@@ -1141,6 +1141,13 @@
 .vt-opts2 button.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .vt-hint{text-align:center;font-size:12.5px;color:var(--muted);margin-top:10px}
 .vt-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.vt-gate{display:none;text-align:center;padding:26px 12px}
+.vt-gate-ico{font-size:44px;margin-bottom:10px}
+.vt-gate-title{font-size:19px;font-weight:800;margin-bottom:8px;letter-spacing:-.02em}
+.vt-gate-desc{font-size:14px;color:var(--muted);line-height:1.75}
+.vt-gate-desc b{color:var(--accent)}
+#vtSetup.locked #vtSetupBody{display:none}
+#vtSetup.locked .vt-gate{display:block}
 .vt-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px}
 .vt-count{font-family:var(--font-num);font-weight:800;font-size:15px;white-space:nowrap}.vt-count span{color:var(--accent)}
 .vt-bar{flex:1;height:7px;background:var(--line);border-radius:99px;overflow:hidden}
@@ -1181,6 +1188,13 @@
     </div>
     <div class="vt reveal">
       <div class="vt-pane on" id="vtSetup">
+        <div class="vt-gate" id="vtGate">
+          <div class="vt-gate-ico">🔒</div>
+          <div class="vt-gate-title">회원 전용 기능이에요</div>
+          <div class="vt-gate-desc">완토 VOCA 단어테스트는 <b>로그인한 회원</b>만 이용할 수 있어요.<br>무료로 가입하고 매일 단어 시험을 풀어보세요!</div>
+          <button class="btn btn-primary" id="vtGateLogin" style="margin-top:16px">로그인 / 회원가입 <span class="arrow">→</span></button>
+        </div>
+        <div id="vtSetupBody">
         <div class="vt-set-row">
           <div class="vt-set-label">① DAY 선택 <span id="vtDayCount" style="color:var(--accent)">(0일)</span></div>
           <div class="vt-set-actions"><button type="button" id="vtAll">전체 선택</button><button type="button" id="vtNone">해제</button></div>
@@ -1192,6 +1206,7 @@
         </div>
         <div class="vt-actions"><button class="btn btn-primary" id="vtStart" style="flex:1 1 190px">단어 시험 시작 <span class="arrow">→</span></button><button class="btn btn-ghost" id="vtPrint" style="flex:1 1 190px">📄 시험지 인쇄 · PDF 저장</button></div>
         <p class="vt-hint" id="vtHint">DAY를 1개 이상 선택한 뒤 시작하세요.</p>
+        </div>
       </div>
       <div class="vt-pane" id="vtQuiz">
         <div class="vt-top">
@@ -1355,11 +1370,17 @@
     if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도해주세요.'); return; }
     w.document.open(); w.document.write(doc); w.document.close();
   }
-  $('vtPrint').onclick=printSheet;
-  $('vtStart').onclick=start;
+  $('vtPrint').onclick=function(){ if(!vtLoggedIn()){ vtUpdateGate(); return; } printSheet(); };
+  $('vtStart').onclick=function(){ if(!vtLoggedIn()){ vtUpdateGate(); return; } start(); };
   $('vtAgain').onclick=function(){ build(); idx=0; correct=0; wrong=[]; $('vtTot').textContent=Q.length; render(); pane('vtQuiz'); };
   $('vtRetry2').onclick=function(){ pane('vtSetup'); };
   $('vtReviewBtn').onclick=function(){ var r=$('vtReview'); r.classList.toggle('on'); this.textContent=r.classList.contains('on')?'오답노트 닫기':'틀린 단어 · 정답 보기'; };
+  function vtLoggedIn(){ try{ return !!JSON.parse(localStorage.getItem('wt_session')||'null'); }catch(e){ return false; } }
+  function vtUpdateGate(){ var s=$('vtSetup'); if(!s) return; if(vtLoggedIn()) s.classList.remove('locked'); else s.classList.add('locked'); }
+  var vtgl=$('vtGateLogin'); if(vtgl) vtgl.onclick=function(){ if(window.waOpenLogin) window.waOpenLogin(); else { var o=document.getElementById('waOpen'); if(o) o.click(); } };
+  window.addEventListener('wt-auth', vtUpdateGate);
+  window.addEventListener('hashchange', vtUpdateGate);
+  vtUpdateGate();
 })();
 </script>
 
@@ -2295,7 +2316,8 @@
   function load(){try{return JSON.parse(localStorage.getItem(LS)||'[]');}catch(e){return [];}}
   function save(a){try{localStorage.setItem(LS,JSON.stringify(a));}catch(e){alert('저장 공간이 부족합니다.');}}
   function session(){try{return JSON.parse(localStorage.getItem(SS)||'null');}catch(e){return null;}}
-  function setSession(s){ if(s) localStorage.setItem(SS,JSON.stringify(s)); else localStorage.removeItem(SS); renderAuth(); }
+  function setSession(s){ if(s) localStorage.setItem(SS,JSON.stringify(s)); else localStorage.removeItem(SS); renderAuth(); try{window.dispatchEvent(new Event("wt-auth"));}catch(e){} }
+  window.waOpenLogin=function(){ openModal("login"); };
   function salt(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   function hashPw(pw,s){ return sha256(unescape(encodeURIComponent(s+'::'+pw))); }
   function today(){ var d=new Date(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
