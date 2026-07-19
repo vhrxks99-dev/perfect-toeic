@@ -2343,4 +2343,51 @@
   renderAuth();
 })();
 </script>
+<style>
+  .navitem>a.nav-active{color:var(--accent);background:var(--surface-2)}
+</style>
+<script>
+(function(){
+  var PAGE_OF={
+    hero:'home', stats:'home', apply:'home',
+    notice:'intro', diagnose:'intro', strengths:'intro', 'class-gallery':'intro',
+    curriculum:'curriculum', courses:'curriculum',
+    teachers:'teachers', reviews:'reviews',
+    leveltest:'leveltest', voca:'voca',
+    'apply-form':'apply', 'enroll-info':'apply',
+    contact:'contact', faq:'contact', recruit:'contact',
+    location:'location'
+  };
+  var SUB={ top:'home', rules:'intro', 'course-toeic':'curriculum','course-speaking':'curriculum','course-opic':'curriculum','course-conversation':'curriculum', books:'apply', payment:'apply', outreach:'contact' };
+  var hero=document.querySelector('.hero'); if(hero && !hero.id) hero.id='hero';
+  var trust=document.querySelector('.trust');
+  var SECS=[];
+  Object.keys(PAGE_OF).forEach(function(id){ var el=document.getElementById(id); if(el){ el.setAttribute('data-page',PAGE_OF[id]); SECS.push(el); } });
+  var rv=document.querySelectorAll('.reveal'); for(var i=0;i<rv.length;i++) rv[i].classList.add('in');
+  function pageOf(id){ return PAGE_OF[id] || SUB[id] || null; }
+  function showPage(p, anchor){
+    for(var i=0;i<SECS.length;i++){ SECS[i].style.display = (SECS[i].getAttribute('data-page')===p) ? '' : 'none'; }
+    if(trust) trust.style.display = (p==='home') ? '' : 'none';
+    var navas=document.querySelectorAll('nav.main .navitem>a, .head-cta a[href^="#"]');
+    for(var k=0;k<navas.length;k++){ var hh=navas[k].getAttribute('href')||''; navas[k].classList.toggle('nav-active', hh.charAt(0)==='#' && pageOf(hh.slice(1))===p); }
+    var t=anchor && document.getElementById(anchor);
+    if(t && SUB[anchor]===p){ window.scrollTo(0, Math.max(0, t.getBoundingClientRect().top+window.pageYOffset-88)); }
+    else { window.scrollTo(0,0); }
+  }
+  function route(){ var hash=(location.hash||'').replace(/^#/,''); showPage(pageOf(hash)||'home', hash); }
+  document.addEventListener('click', function(e){
+    var a=e.target.closest ? e.target.closest('a[href^="#"]') : null;
+    if(!a) return;
+    var href=a.getAttribute('href'); if(!href || href==='#') return;
+    var id=href.slice(1);
+    if(pageOf(id)){
+      e.preventDefault();
+      if(location.hash==='#'+id){ route(); } else { location.hash=id; }
+      var d=document.getElementById('drawer'); if(d) d.classList.remove('open');
+    }
+  }, true);
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
 </body></html>
