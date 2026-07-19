@@ -481,8 +481,8 @@
   .rules-contact .rc-label{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.1em;color:var(--accent-deep);background:#fff;align-self:flex-start;padding:3px 8px;border-radius:5px;margin-bottom:5px}
   .rules-contact b{font-size:16px;font-family:var(--font-num)}
   .rules-contact span:not(.rc-label){font-family:var(--font-mono);font-size:12.5px;color:rgba(255,255,255,.72)}
-  .rules-warn{background:var(--ink);color:#fff;padding:22px 30px;font-size:14.5px;line-height:1.8}
-  .rules-warn b{display:block;font-size:16px;margin-bottom:6px;color:var(--accent-deep)}
+  .rules-warn{background:#FFF7ED;color:#7c4a21;padding:22px 30px;font-size:14.5px;line-height:1.8;border-left:4px solid #E8894A}
+  .rules-warn b{display:block;font-size:16px;margin-bottom:6px;color:#C2410C}
   .rules-list{margin:0;padding:26px 30px 8px;list-style:none;counter-reset:r}
   .rules-list li{counter-increment:r;position:relative;padding:0 0 22px 46px;color:var(--ink-soft);font-size:14.5px;line-height:1.8}
   .rules-list li::before{content:counter(r);position:absolute;left:0;top:-2px;width:29px;height:29px;border-radius:9px;background:var(--accent);color:#fff;font-family:var(--font-num);font-weight:800;font-size:14px;display:grid;place-items:center}
@@ -802,6 +802,11 @@
 .lrp-title{font-weight:800;font-size:15px;text-align:center;margin-bottom:16px}
 .lrp-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:13.5px}
 .lrp-cat{width:52px;font-weight:700;color:var(--ink);flex:none}
+.lrp-catwrap{width:104px;flex:none;line-height:1.15}
+.lrp-catwrap .n{font-weight:800;color:var(--ink);font-size:12.5px}
+.lrp-catwrap .s{display:block;font-size:9px;color:var(--muted);font-weight:600;margin-top:2px}
+.lrp-teacher{margin-top:12px;padding:12px 14px;background:var(--accent-wash);border-radius:10px;font-size:12px;color:var(--accent-deep);font-weight:600;line-height:1.65}
+.lrp-teacher b{color:var(--accent);font-weight:800}
 .lrp-bar{flex:1;height:9px;background:var(--line);border-radius:99px;overflow:hidden}
 .lrp-bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-deep))}
 .lrp-bar>i.weak{background:linear-gradient(90deg,#f0885a,#c0342b)}
@@ -854,7 +859,7 @@
     <div class="sec-head reveal">
       <span class="eyebrow">완토 진단 테스트 <b>· WANTO TEST</b></span>
       <h2>지금 내 토익, 몇 점일까?</h2>
-      <p>문법·어휘·전접부·Part 6·Part 7 총 10문제로 예상 점수와 <b>파트별 약점 성적표</b>를 확인하고, 결과에 맞춘 1:1 무료 상담까지 받아보세요. (매번 무작위 출제)</p>
+      <p>문법·어휘·전접부(전치사·접속사·접속부사)·Part 6·Part 7 총 15문제로 예상 점수와 <b>파트별 약점 진단 성적표</b>를 확인하세요. 어느 유형이 약한지 정확히 짚어드립니다. (매번 무작위 출제)</p>
     </div>
 
     <div class="lvt reveal">
@@ -863,10 +868,10 @@
         <div class="lvt-intro">
           <span class="lvt-badge">● 완토 진단 테스트</span>
           <h3>내 실력, 지금 바로 진단</h3>
-          <p class="lvt-intro-p">문법·어휘·전치사/접속사/부사·Part 6·Part 7 유형으로 구성했습니다. 결과에서 <b>파트별 약점</b>을 진단해드려요.</p>
+          <p class="lvt-intro-p">문법·어휘·전치사/접속사/접속부사·Part 6·Part 7 5개 유형 각 3문제로 구성했습니다. 결과에서 <b>파트별 약점</b>을 상세히 진단해드려요.</p>
           <div class="lvt-meta">
-            <div><b>10</b><span>문항</span></div>
-            <div><b>약 4분</b><span>소요 시간</span></div>
+            <div><b>15</b><span>문항</span></div>
+            <div><b>약 6분</b><span>소요 시간</span></div>
             <div><b>즉시</b><span>점수 확인</span></div>
           </div>
           <button class="btn btn-primary" id="lvtStart">진단 시작하기 <span class="arrow">→</span></button>
@@ -876,7 +881,7 @@
       <!-- 문제 화면 -->
       <div class="lvt-pane" id="lvtQuiz">
         <div class="lvt-top">
-          <span class="lvt-count"><span id="lvtNow">1</span><i> / 10</i></span>
+          <span class="lvt-count"><span id="lvtNow">1</span><i> / 15</i></span>
           <div class="lvt-bar"><div class="lvt-bar-fill" id="lvtFill"></div></div>
           <span class="lvt-tag" id="lvtTag">기본</span>
         </div>
@@ -921,68 +926,85 @@
 (function(){
   var LETT=["A","B","C","D"];
   var SINGLES=[
-    {cat:"문법",q:"The marketing team ___ the new campaign next Monday.",o:["launch","will launch","launching","to launch"],a:1,lv:"easy",e:"‘next Monday’는 미래 시점이므로 미래시제 will launch가 정답입니다."},
-    {cat:"문법",q:"The manager was very ___ with the sales results this quarter.",o:["please","pleasing","pleased","pleasure"],a:2,lv:"easy",e:"사람이 ‘만족한’ 감정은 과거분사 pleased. be pleased with로 기억하세요."},
-    {cat:"문법",q:"The training session, ___ was held last week, received excellent feedback.",o:["which","who","where","what"],a:0,lv:"medium",e:"사물 선행사를 부연 설명하는 관계대명사 which가 정답입니다."},
-    {cat:"문법",q:"If the shipment ___ arrived on time, we would not have lost the client.",o:["has","had","would have","have"],a:1,lv:"hard",e:"가정법 과거완료. If절에는 ‘had + 과거분사’가 옵니다."},
-    {cat:"문법",q:"Not until the final report was submitted ___ the errors discovered.",o:["were","was","they","being"],a:0,lv:"hard",e:"부정어(Not until)가 문두에 오면 도치됩니다. 복수주어 the errors에 맞춰 were."},
+    {cat:"문법",q:"The marketing team ___ the new campaign next Monday.",o:["launch","will launch","launching","to launch"],a:1,lv:"easy",e:"‘next Monday’는 미래 시점이므로 미래시제 will launch."},
+    {cat:"문법",q:"The manager was very ___ with the sales results this quarter.",o:["please","pleasing","pleased","pleasure"],a:2,lv:"easy",e:"사람이 ‘만족한’ 감정은 과거분사 pleased (be pleased with)."},
+    {cat:"문법",q:"The training session, ___ was held last week, received excellent feedback.",o:["which","who","where","what"],a:0,lv:"medium",e:"사물 선행사를 부연 설명하는 관계대명사 which."},
+    {cat:"문법",q:"If the shipment ___ arrived on time, we would not have lost the client.",o:["has","had","would have","have"],a:1,lv:"hard",e:"가정법 과거완료. If절에는 ‘had + 과거분사’."},
     {cat:"문법",q:"The list of participants ___ posted on the bulletin board.",o:["are","is","were","have"],a:1,lv:"easy",e:"주어는 The list(단수). of participants는 수식어이므로 단수동사 is."},
     {cat:"문법",q:"The employees submitted ___ timesheets before the deadline.",o:["their","they","them","theirs"],a:0,lv:"easy",e:"명사 timesheets를 수식하는 소유격 their."},
-    {cat:"문법",q:"This year's sales figures are significantly higher than ___ of last year.",o:["that","those","them","it"],a:1,lv:"medium",e:"복수명사 figures를 대신하므로 those."},
     {cat:"문법",q:"The committee recommended ___ the budget for next year.",o:["to increase","increasing","increase","increased"],a:1,lv:"medium",e:"recommend는 동명사(increasing)를 목적어로 취합니다."},
     {cat:"문법",q:"The new policy is designed to reduce costs and ___ efficiency.",o:["improving","improve","improved","improvement"],a:1,lv:"hard",e:"to reduce ... and (to) improve의 병렬구조이므로 동사원형 improve."},
-    {cat:"문법",q:"The proposal received ___ approval from the board of directors.",o:["unanimous","unanimously","unanimity","unanimousness"],a:0,lv:"hard",e:"명사 approval을 수식하는 형용사 unanimous."},
+    {cat:"문법",q:"The proposal received ___ approval from the board of directors.",o:["unanimous","unanimously","unanimity","unanimousness"],a:0,lv:"hard",e:"명사 approval을 수식하는 형용사 자리 → unanimous."},
     {cat:"문법",q:"The supervisor insisted that every report ___ submitted by Friday.",o:["be","is","was","being"],a:0,lv:"hard",e:"insist that + (should) 동사원형. 가정법 현재로 be."},
-    {cat:"어휘",q:"All employees are required to ___ to the new safety guidelines.",o:["adhere","attach","apply","attend"],a:0,lv:"medium",e:"‘규정을 준수하다’는 adhere to입니다."},
-    {cat:"어휘",q:"The revised regulations will take ___ at the start of next year.",o:["affect","effect","effective","effectively"],a:1,lv:"hard",e:"‘시행되다’ 관용 표현은 take effect. affect는 동사."},
+    {cat:"문법",q:"The support team resolved the customer's issue remarkably ___.",o:["quick","quickly","quicker","quickness"],a:1,lv:"medium",e:"동사 resolved를 수식하는 부사 자리 → quickly (부사형 품사 문제)."},
+    {cat:"문법",q:"Company revenue has increased ___ over the past three quarters.",o:["steady","steadily","steadiness","steadier"],a:1,lv:"hard",e:"동사 increased를 수식하는 부사 자리 → steadily."},
+    {cat:"어휘",q:"All employees are required to ___ to the new safety guidelines.",o:["adhere","attach","apply","attend"],a:0,lv:"medium",e:"‘규정을 준수하다’는 adhere to."},
+    {cat:"어휘",q:"The revised regulations will take ___ at the start of next year.",o:["affect","effect","effective","effectively"],a:1,lv:"hard",e:"‘시행되다’ 관용 표현은 take effect."},
     {cat:"어휘",q:"We are pleased to ___ you that your application has been approved.",o:["inform","announce","say","speak"],a:0,lv:"easy",e:"inform은 사람 목적어(you)를 직접 취합니다."},
-    {cat:"어휘",q:"The manager will ___ the new employees to their departments.",o:["assign","appoint","arrange","attach"],a:0,lv:"medium",e:"assign A to B(‘A를 B에 배정하다’) 구조이므로 assign."},
-    {cat:"전접부",q:"Please submit your expense report ___ Friday at the latest.",o:["in","by","at","of"],a:1,lv:"easy",e:"‘~까지(마감)’ 전치사는 by. until은 상태 지속, by는 완료 시점."},
-    {cat:"전접부",q:"The conference was postponed ___ unexpected technical problems.",o:["because","due to","so that","in order to"],a:1,lv:"medium",e:"뒤에 명사구가 오므로 전치사 due to. because는 절이 와야 합니다."},
-    {cat:"전접부",q:"___ the weather was poor, the outdoor ceremony proceeded as scheduled.",o:["Despite","Although","However","Because"],a:1,lv:"medium",e:"뒤에 완전한 절이 오므로 접속사 Although. Despite는 전치사."},
-    {cat:"전접부",q:"The support team resolved the customer's issue remarkably ___.",o:["quick","quickly","quicker","quickness"],a:1,lv:"medium",e:"동사 resolved를 수식하므로 부사 quickly."},
-    {cat:"전접부",q:"Company revenue has increased ___ over the past three quarters.",o:["steady","steadily","steadiness","steadier"],a:1,lv:"hard",e:"동사 increased를 수식하는 부사 자리이므로 steadily."},
-    {cat:"전접부",q:"The store will remain closed ___ the end of the month.",o:["by","until","for","since"],a:1,lv:"medium",e:"‘~까지 계속’ 상태 지속은 until. by는 완료 시점."},
-    {cat:"전접부",q:"Please review the safety manual ___ operating the machine.",o:["before","while","during","since"],a:0,lv:"medium",e:"전치사 자리 + 동명사(operating). ‘~하기 전에’ before."},
-    {cat:"전접부",q:"The report clearly explains ___ the project was delayed.",o:["why","because","due to","that"],a:0,lv:"hard",e:"이유를 나타내는 명사절을 이끄는 why."}
+    {cat:"어휘",q:"The manager will ___ the new employees to their departments.",o:["assign","appoint","arrange","attach"],a:0,lv:"medium",e:"assign A to B(‘A를 B에 배정하다’)."},
+    {cat:"어휘",q:"All visitors must ___ at the front desk upon arrival.",o:["register","resign","remind","repair"],a:0,lv:"easy",e:"‘접수(등록)하다’는 register."},
+    {cat:"어휘",q:"The manager will ___ the schedule to avoid conflicts.",o:["adjust","adopt","admire","announce"],a:0,lv:"medium",e:"‘일정을 조정하다’는 adjust the schedule."},
+    {cat:"전접부",q:"The outdoor event was postponed ___ the heavy rain.",o:["because","due to","although","however"],a:1,lv:"medium",e:"빈칸 뒤에 명사구(the heavy rain)가 오므로 전치사 due to. because/although는 뒤에 절(주어+동사)이 와야 합니다."},
+    {cat:"전접부",q:"___ the report was late, the client was understanding.",o:["Despite","Although","However","In spite of"],a:1,lv:"medium",e:"뒤에 완전한 절이 오므로 접속사 Although. Despite/In spite of는 전치사(명사만), However는 접속부사입니다."},
+    {cat:"전접부",q:"The budget was tight. ___, the team completed the project on time.",o:["Nevertheless","Despite","Although","Because"],a:0,lv:"hard",e:"앞 문장과 대조되는 새 문장을 잇는 자리이므로 접속부사 Nevertheless. Despite/Although는 한 문장 안에서 연결합니다."},
+    {cat:"전접부",q:"Sales rose sharply last quarter; ___, profits declined.",o:["however","despite","although","because"],a:0,lv:"hard",e:"세미콜론(;) 뒤에서 두 문장을 잇는 것은 접속부사 however. 접속사·전치사는 이 자리에 올 수 없습니다."},
+    {cat:"전접부",q:"The store offers special discounts ___ the holiday season.",o:["during","while","since","because"],a:0,lv:"easy",e:"빈칸 뒤에 명사구(the holiday season)가 오므로 전치사 during. while/since/because는 절을 이끕니다."},
+    {cat:"전접부",q:"Please contact the front desk ___ you have any questions.",o:["if","despite","therefore","during"],a:0,lv:"easy",e:"뒤에 절(you have~)이 오므로 접속사 if. despite/during은 전치사, therefore는 접속부사입니다."},
+    {cat:"전접부",q:"The proposal was costly. ___, it promised significant long-term savings.",o:["However","Despite","Although","During"],a:0,lv:"medium",e:"앞 문장과 대조되는 새 문장을 잇는 접속부사 However. Despite/During은 전치사, Although는 접속사입니다."},
+    {cat:"전접부",q:"___ the tight deadline, the team delivered the project on time.",o:["Despite","Although","Therefore","While"],a:0,lv:"medium",e:"빈칸 뒤에 명사구(the tight deadline)가 오므로 전치사 Despite. Although/While는 절, Therefore는 접속부사입니다."}
   ];
   var PASSAGES=[
-    {cat:"P6",passage:"📄 <b>사내 공지</b><br>Attention all employees. The company parking lot will be repaved this weekend. <b>①</b> , please use the public lot on Main Street. The repaving is expected <b>②</b> by Monday morning.",items:[
+    {cat:"P6",passage:"📄 <b>사내 공지</b><br>The company parking lot will be repaved this weekend. <b>①</b>, employees are asked to use the public lot on Main Street. The work is expected <b>②</b> by Monday morning. We <b>③</b> for any inconvenience this may cause.",items:[
       {q:"빈칸 ① — 연결어",o:["Therefore","However","In addition","For example"],a:0,e:"주차장 재포장으로 인해 ‘그러므로(Therefore)’ 공용 주차장을 이용하라는 흐름입니다."},
-      {q:"빈칸 ② — 문법",o:["to complete","to be completed","completing","completion"],a:1,e:"공사가 ‘완료되는’ 수동 의미이므로 to be completed가 정답입니다."}
+      {q:"빈칸 ② — 문법(태)",o:["to complete","to be completed","completing","completion"],a:1,e:"공사가 ‘완료되는’ 수동 의미이므로 to be completed."},
+      {q:"빈칸 ③ — 어휘",o:["apologize","congratulate","celebrate","refuse"],a:0,e:"불편에 대해 ‘사과하다(apologize for)’가 문맥상 알맞습니다."}
     ]},
-    {cat:"P6",passage:"📧 <b>고객 안내 메일</b><br>Thank you for your order. Unfortunately, one item is currently out of stock. <b>①</b> , we will ship the available items right away and send the rest <b>②</b> it is restocked, at no extra charge.",items:[
-      {q:"빈칸 ① — 연결어",o:["In the meantime","On the contrary","As a result","For example"],a:0,e:"‘그동안(In the meantime)’ 가능한 상품을 먼저 보낸다는 흐름입니다."},
-      {q:"빈칸 ② — 접속사",o:["as soon as","in spite of","rather than","instead of"],a:0,e:"‘재입고되는 대로(as soon as)’가 문맥상 알맞습니다."}
+    {cat:"P6",passage:"📧 <b>고객 안내 메일</b><br>Thank you for your order. Unfortunately, one item is currently <b>①</b>. <b>②</b>, we will ship the available items right away and send the rest as soon as it is restocked. We appreciate your <b>③</b>.",items:[
+      {q:"빈칸 ① — 어휘/문맥",o:["out of stock","on sale","in demand","on time"],a:0,e:"뒤에 ‘재입고되면 보내겠다’고 하므로 ‘품절(out of stock)’ 상태입니다."},
+      {q:"빈칸 ② — 연결어",o:["In the meantime","On the contrary","As a result","For example"],a:0,e:"‘그동안(In the meantime)’ 가능한 상품을 먼저 보낸다는 흐름입니다."},
+      {q:"빈칸 ③ — 어휘",o:["patience","refusal","complaint","absence"],a:0,e:"지연에 대한 ‘양해·인내(patience)’에 감사한다는 관용 표현입니다."}
     ]},
-    {cat:"P7",passage:"📢 <b>도서관 공지</b><br>The city library will extend its opening hours starting July 1. On weekdays, it will stay open until 10 P.M. Weekend hours remain 9 A.M.–6 P.M. Members can now reserve study rooms online through the library website.",items:[
+    {cat:"P6",passage:"📢 <b>교육 안내</b><br>All staff are required to attend the safety training next Friday. The session <b>①</b> at 2 P.M. in the main hall. Please arrive early <b>②</b> the room may be crowded. Attendance <b>③</b> mandatory for everyone.",items:[
+      {q:"빈칸 ① — 문법(시제)",o:["begins","began","beginning","to begin"],a:0,e:"정해진 일정을 나타내는 현재시제 begins."},
+      {q:"빈칸 ② — 접속사",o:["because","despite","therefore","during"],a:0,e:"‘붐빌 수 있으므로’ 이유를 잇는 접속사 because (뒤에 절)."},
+      {q:"빈칸 ③ — 문법(수일치)",o:["is","are","be","being"],a:0,e:"주어 Attendance(단수)에 맞는 be동사 is."}
+    ]},
+    {cat:"P7",passage:"📢 <b>도서관 공지</b><br>The city library will extend its opening hours starting July 1. On weekdays, it will stay open until 10 P.M. Weekend hours remain 9 A.M.–6 P.M. Members can now reserve study rooms online through the library website. A valid membership card is required to borrow books.",items:[
       {q:"What is the main purpose of this notice?",o:["To announce extended hours","To hire a new librarian","To close the library","To raise membership fees"],a:0,e:"평일 밤 10시까지 운영 시간을 연장한다는 안내가 핵심입니다."},
-      {q:"What can members do online?",o:["Borrow e-books","Reserve study rooms","Pay late fees","Donate books"],a:1,e:"홈페이지에서 스터디룸을 예약할 수 있다고 했습니다."}
+      {q:"What can members do online?",o:["Borrow e-books","Reserve study rooms","Pay late fees","Donate books"],a:1,e:"홈페이지에서 스터디룸을 예약할 수 있다고 했습니다."},
+      {q:"What is required to borrow books?",o:["A valid membership card","An online account","A cash deposit","A reference letter"],a:0,e:"책을 빌리려면 유효한 회원카드가 필요하다고 명시되어 있습니다."}
     ]},
-    {cat:"P7",passage:"🎉 <b>매장 광고</b><br>GRAND OPENING! Riverside Café opens this Saturday. Enjoy 20% off all drinks and a free dessert with any purchase over $15. Open 10 A.M.–8 P.M. The first 50 customers receive a free tote bag.",items:[
+    {cat:"P7",passage:"🎉 <b>매장 광고</b><br>GRAND OPENING! Riverside Café opens this Saturday. Enjoy 20% off all drinks and a free dessert with any purchase over $15. Open 10 A.M.–8 P.M. The first 50 customers receive a free tote bag. Follow us on social media for weekly specials.",items:[
       {q:"What is being advertised?",o:["A grand opening sale","A cooking class","A job opening","A book fair"],a:0,e:"카페의 그랜드 오픈 할인 행사를 광고하고 있습니다."},
-      {q:"How can a customer get a free dessert?",o:["By spending over $15","By arriving before 10 A.M.","By bringing a coupon","By buying a tote bag"],a:0,e:"15달러 이상 구매 시 무료 디저트를 제공한다고 했습니다."}
+      {q:"How can a customer get a free dessert?",o:["By spending over $15","By arriving before 10 A.M.","By bringing a coupon","By buying a tote bag"],a:0,e:"15달러 이상 구매 시 무료 디저트를 제공합니다."},
+      {q:"How can customers learn about weekly specials?",o:["By following on social media","By calling the café","By visiting the library","By signing a contract"],a:0,e:"주간 특가는 소셜미디어 팔로우로 확인할 수 있다고 했습니다."}
+    ]},
+    {cat:"P7",passage:"📧 <b>회의 안내 메일</b><br>Dear team, The monthly sales meeting has been moved to Thursday at 3 P.M. in Conference Room B. Please bring your quarterly reports. Lunch will not be provided, so plan accordingly. Contact Ms. Kim if you cannot attend.",items:[
+      {q:"What is the email mainly about?",o:["A schedule change for a meeting","A new hiring","An office relocation","A product launch"],a:0,e:"월례 회의 일정이 목요일 3시로 변경되었다는 안내입니다."},
+      {q:"What should recipients bring?",o:["Their quarterly reports","Lunch","A laptop","A guest"],a:0,e:"분기 보고서를 가져오라고 요청했습니다."},
+      {q:"Who should be contacted if unable to attend?",o:["Ms. Kim","The CEO","The receptionist","No one"],a:0,e:"참석이 어려우면 Ms. Kim에게 연락하라고 했습니다."}
     ]}
   ];
   var TAG={"문법":"📝 문법","어휘":"📝 어휘","전접부":"📝 전접부","P6":"📖 PART 6","P7":"📖 PART 7"};
   var SHORT={"문법":"문법","어휘":"어휘","전접부":"전접부","P6":"Part 6","P7":"Part 7"};
+  var SUBT={"문법":"시제·수일치·관계사·준동사","어휘":"어휘 선택·콜로케이션","전접부":"전치사·접속사·접속부사 구분","P6":"문맥·연결어·문장흐름","P7":"독해·정보 파악"};
   var TIP={
-    "문법":"동사 시제·태·수일치·관계사 등 문법 규칙을 집중 보완하세요.",
-    "어휘":"빈출 어휘와 콜로케이션(덩어리 표현) 암기를 집중하세요.",
-    "전접부":"전치사·접속사·부사의 쓰임 구분을 집중 훈련하세요.",
-    "P6":"문맥 흐름·연결어·문장 삽입 감각을 집중 훈련하세요.",
-    "P7":"지문 독해와 정보 찾기 속도를 집중적으로 끌어올리세요."
+    "문법":"동사(시제·태·수일치)·관계사·준동사·가정법 등 문장 구조 규칙을 집중 정리하세요.",
+    "어휘":"문맥에 맞는 어휘 선택과 빈출 콜로케이션(덩어리 표현) 암기를 집중하세요.",
+    "전접부":"전치사(뒤 명사)·접속사(뒤 절)·접속부사(문장 연결)의 자리 구분을 집중 훈련하세요.",
+    "P6":"지문 흐름과 연결어, 문장 삽입 감각(Part 6)을 집중 훈련하세요.",
+    "P7":"지문 독해와 정보 찾기 속도(Part 7)를 집중적으로 끌어올리세요."
   };
   var CATS=["문법","어휘","전접부","P6","P7"];
   var W={easy:30,medium:48,hard:62}, BASE=130;
-  var Q=[], idx=0, ans=[];
+  var Q=[], idx=0, ans=[], lastReportText='';
   var $=function(id){return document.getElementById(id);};
   function blank(t){return t.replace("___",'<span class="blank">________</span>');}
   function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
   function build(){
     var singles=[];
     ["문법","어휘","전접부"].forEach(function(c){
-      var arr=shuffle(SINGLES.filter(function(x){return x.cat===c;})).slice(0,2);
+      var arr=shuffle(SINGLES.filter(function(x){return x.cat===c;})).slice(0,3);
       arr.forEach(function(it){ singles.push({cat:c,q:it.q,o:it.o,a:it.a,e:it.e,lv:it.lv}); });
     });
     shuffle(singles);
@@ -1040,11 +1062,13 @@
     var rh='<div class="lrp-title">📊 파트별 진단 성적표</div>';
     CATS.forEach(function(c){
       var s=stat[c], r=s.t?s.c/s.t:0, isw=(s.t>0 && (s.c/s.t)===wr && wr<1);
-      rh+='<div class="lrp-row"><span class="lrp-cat">'+SHORT[c]+'</span><div class="lrp-bar"><i class="'+(isw?'weak':'')+'" style="width:'+Math.round(r*100)+'%"></i></div><span class="lrp-sc">'+s.c+'/'+s.t+'</span></div>';
+      rh+='<div class="lrp-row"><div class="lrp-catwrap"><span class="n">'+SHORT[c]+'</span><span class="s">'+SUBT[c]+'</span></div><div class="lrp-bar"><i class="'+(isw?'weak':'')+'" style="width:'+Math.round(r*100)+'%"></i></div><span class="lrp-sc">'+s.c+'/'+s.t+'</span></div>';
     });
     if(wr>=1){ rh+='<div class="lrp-weak">🎉 모든 영역이 고르게 우수해요! 실전 감각과 시간 관리를 다듬으면 만점권입니다.</div>'; }
-    else { rh+='<div class="lrp-weak">🔎 가장 취약한 영역: <b>'+SHORT[weak]+'</b><br>'+TIP[weak]+'</div>'; }
+    else { rh+='<div class="lrp-weak">🔎 가장 취약한 영역: <b>'+SHORT[weak]+'</b> ('+SUBT[weak]+')<br>'+TIP[weak]+'</div>'; }
+    rh+='<div class="lrp-teacher">👩‍🏫 <b>선생님 참고</b> — '+(weak? ('이 학생은 <b>'+SHORT[weak]+'</b> 영역이 가장 약합니다. '+TIP[weak]) : '전 영역이 고르게 우수합니다. 실전 문제풀이·시간관리 중심 학습을 권장합니다.')+'</div>';
     $('lvtReport').innerHTML=rh;
+    lastReportText = CATS.map(function(c){ return SHORT[c]+' '+stat[c].c+'/'+stat[c].t; }).join(' · ') + '  |  취약: ' + (weak?SHORT[weak]:'없음(고른 우수)');
     buildReview();
     $('lvtReview').classList.remove('on'); $('lvtReviewBtn').textContent='정답 · 해설 보기';
     pane('lvtResult');
@@ -1086,6 +1110,7 @@
         "예상 점수: "+score+"점",
         "진단 결과: "+($('lvtLevel').textContent.replace("예상 레벨 — ","")),
         "요약: "+$('lvtRange').textContent,
+        "파트별 결과: "+lastReportText,
         "","(완벽한토익 홈페이지 완토 진단 테스트에서 신청)"
       ];
       var subject=encodeURIComponent("[진단상담] "+name+" · 예상 "+score+"점");
