@@ -2334,7 +2334,7 @@
         <label>비밀번호 <em>*</em><input type="password" id="waSuPw" required placeholder="6자 이상"></label>
         <label>비밀번호 확인 <em>*</em><input type="password" id="waSuPw2" required></label>
       </div>
-      <label>연락처 <em>*</em><input type="text" id="waSuPhone" required maxlength="30" placeholder="010-1234-5678"></label>
+      <label>휴대폰 번호 <em>*</em><input type="tel" id="waSuPhone" required maxlength="30" placeholder="010-1234-5678"></label>
       <div class="wa-row">
         <label>생년월일<input type="date" id="waSuBirth"></label>
         <label>성별<select id="waSuGender"><option value="">선택 안 함</option><option>남성</option><option>여성</option></select></label>
@@ -2526,7 +2526,7 @@
     <div class="wa-form on" style="display:flex">
       <label>이름<input type="text" id="myName" maxlength="20"></label>
       <div class="wa-row">
-        <label>연락처<input type="text" id="myPhone" maxlength="30"></label>
+        <label>휴대폰 번호<input type="tel" id="myPhone" maxlength="30" placeholder="010-1234-5678"></label>
         <label>성별<select id="myGender"><option value="">선택 안 함</option><option>남성</option><option>여성</option></select></label>
       </div>
       <div class="wa-row">
@@ -2576,7 +2576,7 @@
     <div class="wa-sub" id="waEditEmail"></div>
     <div class="wa-form on" style="display:flex">
       <label>이름<input type="text" id="waEName"></label>
-      <label>연락처<input type="text" id="waEPhone"></label>
+      <label>휴대폰 번호<input type="tel" id="waEPhone" placeholder="010-1234-5678"></label>
       <label>관심 과목<input type="text" id="waEInterest" placeholder="토익 / 토익스피킹 / 오픽 / 영어회화"></label>
       <div class="wa-row">
         <label>현재 점수<input type="text" id="waECurrent"></label>
@@ -2618,7 +2618,7 @@
     var name=$('waSuName').value.trim(), email=$('waSuEmail').value.trim().toLowerCase(), phone=$('waSuPhone').value.trim(), pw=$('waSuPw').value, pw2=$('waSuPw2').value;
     var birth=$('waSuBirth').value, gender=$('waSuGender').value, interest=$('waSuInterest').value, current=$('waSuCurrent').value.trim(), goal=$('waSuGoal').value.trim(), route=$('waSuRoute').value, marketing=$('waSuMarketing').checked;
     var err=$('waSuErr'); err.textContent='';
-    if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·연락처·비밀번호는 필수입니다.'; return; }
+    if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·휴대폰 번호·비밀번호는 필수입니다.'; return; }
     if(pw.length<4){ err.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
     if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
     if(!$('waSuAgree').checked){ err.textContent='개인정보 수집·이용에 동의해주세요.'; return; }
@@ -2731,7 +2731,7 @@
     var pw=$('waSuPw').value, pw2=$('waSuPw2').value;
     var birth=$('waSuBirth').value||null, gender=$('waSuGender').value||null, interest=$('waSuInterest').value||null;
     var current=$('waSuCurrent').value.trim()||null, goal=$('waSuGoal').value.trim()||null, route=$('waSuRoute').value||null, marketing=$('waSuMarketing').checked;
-    if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·연락처·비밀번호는 필수입니다.'; return; }
+    if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·휴대폰 번호·비밀번호는 필수입니다.'; return; }
     if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
     if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
     if(!$('waSuAgree').checked){ err.textContent='개인정보 수집·이용에 동의해주세요.'; return; }
@@ -3251,7 +3251,7 @@
     var err=$('myErr'); err.textContent='';
     var name=$('myName').value.trim(), phone=$('myPhone').value.trim();
     if(!name){ err.textContent='이름은 필수입니다.'; return; }
-    if(!phone){ err.textContent='연락처는 필수입니다.'; return; }
+    if(!phone){ err.textContent='휴대폰 번호는 필수입니다.'; return; }
     var patch={ name:name, phone:phone, gender:($('myGender').value||null), birth:($('myBirth').value||null), interest:($('myInterest').value||null), current_score:($('myCurrent').value.trim()||null), goal_score:($('myGoal').value.trim()||null), marketing:$('myMarketing').checked };
     var r=await sb.from('profiles').update(patch).eq('id',profile.id);
     if(r.error){ err.textContent='저장 실패: '+r.error.message; return; }
