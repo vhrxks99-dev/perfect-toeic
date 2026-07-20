@@ -2922,6 +2922,7 @@
   function fillTimeSelects(){
     var opts='<option value="">선택</option>';
     for(var hh=6; hh<=23; hh++){ for(var m=0; m<60; m+=30){ var v=pad(hh)+':'+pad(m); opts+='<option value="'+v+'">'+v+'</option>'; } }
+    opts+='<option value="24:00">24:00</option>';
     document.querySelectorAll('.timesel').forEach(function(sel){ var cur=sel.value; sel.innerHTML=opts; if(cur) sel.value=cur; });
   }
 
@@ -3003,7 +3004,7 @@
   if($('rmCheck')) $('rmCheck').onclick=async function(){
     var d=$('rmDate').value, s=$('rmStart').value, en=$('rmEnd').value;
     if(!d||!s||!en){ $('rmResult').textContent='날짜·시작·종료 시간을 입력하세요.'; return; }
-    var startISO=new Date(d+'T'+s).toISOString(), endISO=new Date(d+'T'+en).toISOString();
+    var startISO=slotISO(d,s), endISO=slotISO(d,en);
     if(endISO<=startISO){ $('rmResult').textContent='종료가 시작보다 빨라요.'; return; }
     var r=await sb.from('schedules').select('room_id').lt('starts_at',endISO).gt('ends_at',startISO);
     var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null) busy[x.room_id]=true; });
@@ -3029,7 +3030,7 @@
     var err=$('scErr'); err.textContent='';
     var d=$('scDate').value, s=$('scStart').value, en=$('scEnd').value;
     if(!d||!s||!en){ err.textContent='날짜·시작·종료 시간을 입력하세요.'; return; }
-    var startISO=new Date(d+'T'+s).toISOString(), endISO=new Date(d+'T'+en).toISOString();
+    var startISO=slotISO(d,s), endISO=slotISO(d,en);
     if(endISO<=startISO){ err.textContent='종료 시간이 시작보다 빨라요.'; return; }
     var roomId=$('scRoom').value?parseInt($('scRoom').value,10):null;
     if(roomId){
@@ -3051,13 +3052,14 @@
 
   // ---- 주간 캘린더 (시간 격자) ----
   var DOW=['월','화','수','목','금','토','일'];
-  var DAY_START=6, DAY_END=23, HOUR_H=44;
+  var DAY_START=6, DAY_END=24, HOUR_H=44;
   var calMode='week';
   var calCur=new Date(); calCur.setHours(0,0,0,0);
   function startOfWeek(d){ var x=new Date(d); var day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
   async function fetchRange(start,end){ var rows=[]; if(sb){ var r=await sb.from('schedules').select('*').gte('starts_at',start.toISOString()).lt('starts_at',end.toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; } return rows; }
   function updateModeButtons(){ [['calDay','day'],['calWeekBtn','week'],['calMonth','month']].forEach(function(m){ var el=$(m[0]); if(el) el.classList.toggle('on', calMode===m[1]); }); }
   function minsFromStart(iso){ var d=new Date(iso); return (d.getHours()-DAY_START)*60 + d.getMinutes(); }
+  function slotISO(dstr, t){ if(t==='24:00'){ var x=new Date(dstr+'T00:00'); x.setDate(x.getDate()+1); return x.toISOString(); } return new Date(dstr+'T'+t).toISOString(); }
   function layoutDay(evs){
     evs.sort(function(a,b){ return a.__st-b.__st || a.__en-b.__en; });
     var cluster=[], curEnd=-1;
@@ -3086,7 +3088,7 @@
       var head='<div class="cal-colhead'+(key===todayKey?' today':'')+' '+cls+'">'+DOW[dowIdx]+'<span class="dd">'+day.getDate()+'</span></div>';
       var lines=''; for(var h2=1;h2<(DAY_END-DAY_START);h2++){ lines+='<div class="cal-line" style="top:'+(h2*HOUR_H)+'px"></div>'; }
       var evs=(byDay[key]||[]).slice();
-      evs.forEach(function(s){ s.__st=minsFromStart(s.starts_at); s.__en=Math.max(s.__st+20, minsFromStart(s.ends_at)); });
+      evs.forEach(function(s){ s.__st=minsFromStart(s.starts_at); var enM=minsFromStart(s.ends_at); if(enM<=s.__st){ enM=(DAY_END-DAY_START)*60; } s.__en=Math.max(s.__st+20, enM); });
       layoutDay(evs);
       var evHtml=evs.map(function(s){
         var top=Math.max(0, s.__st/60*HOUR_H);
@@ -3139,7 +3141,7 @@
     if(!$('scFree')) return;
     var d=$('scDate').value, s=$('scStart').value, en=$('scEnd').value;
     if(!d||!s||!en){ $('scFree').style.display='none'; $('scFree').innerHTML=''; return; }
-    var startISO=new Date(d+'T'+s).toISOString(), endISO=new Date(d+'T'+en).toISOString();
+    var startISO=slotISO(d,s), endISO=slotISO(d,en);
     $('scFree').style.display='';
     if(endISO<=startISO){ $('scFree').innerHTML='<span style="color:#c0342b">종료가 시작보다 빨라요.</span>'; return; }
     var r=await sb.from('schedules').select('room_id').lt('starts_at',endISO).gt('ends_at',startISO);
