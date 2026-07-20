@@ -630,7 +630,7 @@
     <div class="dgroup"><span>문의 &amp; 제휴</span><div class="dsub">
       <a href="#faq" data-close>FAQ</a><a href="#outreach" data-close>출강문의</a><a href="#recruit" data-close>채용공고</a></div></div>
     <div class="dgroup"><a class="dtop" href="#location" data-close>오시는 길</a></div>
-    <a href="#apply-form" class="btn btn-primary" data-close>무료 레벨테스트 신청 →</a>
+    <a href="#apply-form" class="btn btn-primary" data-close>수강신청 문의 →</a>
   </div>
 </div>
 
@@ -646,7 +646,7 @@
       <h1>당신의 점수를,<br><span class="hl">완벽하게</span> 설계합니다.</h1>
       <p class="lede">정밀 진단으로 취약 파트를 찾고, 파트별 맞춤 커리큘럼과 1:1 관리로 목표 점수까지. 토익·토익스피킹·오픽·영어회화 전문.</p>
       <div class="hero-cta">
-        <a href="#apply-form" class="btn btn-primary">무료 레벨테스트 신청 <span class="arrow">→</span></a>
+        <a href="#apply-form" class="btn btn-primary">수강신청 문의 <span class="arrow">→</span></a>
         <a href="#curriculum" class="btn btn-ghost">커리큘럼 보기</a>
       </div>
       <div class="hero-meta">
@@ -741,7 +741,7 @@
     <div class="notice-list reveal">
       <a href="#rules"><span class="ntag ntag-must">필독</span><span class="ntit">완벽한토익 과외 규칙 안내 (수업 등록 전 꼭 확인)</span><span class="ndate">필수</span></a>
       <a href="#apply-form"><span class="ntag">개강</span><span class="ntit">7월 신규 토익반 개강 안내 (매주 월요일 개강)</span><span class="ndate">2026.07.01</span></a>
-      <a href="#apply-form"><span class="ntag">이벤트</span><span class="ntit">여름 방학 특강 · 무료 레벨테스트 신청 이벤트</span><span class="ndate">2026.06.20</span></a>
+      <a href="#apply-form"><span class="ntag">이벤트</span><span class="ntit">여름 방학 특강 · 수강신청 문의 이벤트</span><span class="ndate">2026.06.20</span></a>
       <a href="#course-speaking"><span class="ntag">신설</span><span class="ntit">토익스피킹·오픽 스피킹 집중반 신설 오픈</span><span class="ndate">2026.06.10</span></a>
       <a href="#books"><span class="ntag">교재</span><span class="ntit">완벽한토익 자체 교재 개정판 출시 안내</span><span class="ndate">2026.05.28</span></a>
       <a href="#location"><span class="ntag">안내</span><span class="ntit">신촌 연세로 신규 강의실 오픈 · 오시는 길 안내</span><span class="ndate">2026.05.02</span></a>
@@ -1414,7 +1414,7 @@
   $('vtAgain').onclick=function(){ build(); idx=0; correct=0; wrong=[]; $('vtTot').textContent=Q.length; render(); pane('vtQuiz'); };
   $('vtRetry2').onclick=function(){ pane('vtSetup'); };
   $('vtReviewBtn').onclick=function(){ var r=$('vtReview'); r.classList.toggle('on'); this.textContent=r.classList.contains('on')?'오답노트 닫기':'틀린 단어 · 정답 보기'; };
-  function vtLoggedIn(){ try{ return !!JSON.parse(localStorage.getItem('wt_session')||'null'); }catch(e){ return false; } }
+  function vtLoggedIn(){ return !!window.WT_LOGGED_IN; }
   function vtUpdateGate(){ var s=$('vtSetup'); if(!s) return; if(vtLoggedIn()) s.classList.remove('locked'); else s.classList.add('locked'); }
   var vtgl=$('vtGateLogin'); if(vtgl) vtgl.onclick=function(){ if(window.waOpenLogin) window.waOpenLogin(); else { var o=document.getElementById('waOpen'); if(o) o.click(); } };
   window.addEventListener('wt-auth', vtUpdateGate);
@@ -1744,7 +1744,7 @@
         </div>
         <div class="full"><label for="rvTitle">제목</label><input id="rvTitle" name="title" maxlength="40" required placeholder="후기 제목을 입력하세요"></div>
         <div class="full"><label for="rvBody">후기 내용</label><textarea id="rvBody" name="body" maxlength="1000" required placeholder="수업을 들으며 느낀 점, 점수 변화, 추천 이유 등을 자유롭게 남겨주세요."></textarea></div>
-        <div class="submit"><span class="hint">※ 작성한 후기는 현재 이 브라우저에 저장됩니다 (데모). 실제 공유 게시판은 배포 시 서버 연동이 필요합니다.</span><button type="submit" class="btn btn-primary">후기 등록하기 →</button></div>
+        <div class="submit"><span class="hint">※ 후기는 <b>로그인 후</b> 작성할 수 있으며, 등록하면 모든 방문자에게 공유됩니다.</span><button type="submit" class="btn btn-primary">후기 등록하기 →</button></div>
       </form>
       <div class="board-list" id="postList"></div>
     </div>
@@ -1760,7 +1760,7 @@
     </div>
     <div class="cta-actions reveal">
       <div class="row">
-        <a href="#apply-form" class="btn btn-white">무료 레벨테스트 신청 <span class="arrow">→</span></a>
+        <a href="#apply-form" class="btn btn-white">수강신청 문의 <span class="arrow">→</span></a>
         <a href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" class="btn btn-outline">카카오톡 상담</a>
         <a href="https://talk.naver.com/ct/wmqldig?frm=pnmb&amp;frm=nmb_detail#nafullscreen" target="_blank" rel="noopener" class="btn btn-outline">네이버 톡톡 상담</a>
       </div>
@@ -1893,7 +1893,7 @@
     <div class="contact-grid">
       <div class="cbox reveal">
         <span class="ctag">수강 문의</span>
-        <h3>1:1 상담 &amp; 무료 레벨테스트</h3>
+        <h3>1:1 상담 &amp; 수강신청 문의</h3>
         <p>현재 점수와 목표를 알려주시면, 파트별 진단 결과와 맞춤 커리큘럼·수강료를 안내해드립니다.</p>
         <div class="cbtns">
           <a class="btn btn-primary" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">카카오톡 상담 →</a>
@@ -2051,13 +2051,13 @@
           <a href="#diagnose">소개</a><a href="#teachers">강사진</a>
           <a href="#reviews">수강 후기</a><a href="#location">오시는 길</a></div>
         <div class="col"><h5>신청</h5>
-          <a href="#apply-form">무료 레벨테스트</a><a href="#apply-form">수강 신청</a>
+          <a href="#apply-form">수강신청 문의</a><a href="#apply-form">수강 신청</a>
           <a href="#apply-form">상담 문의</a></div>
       </div>
     </div>
     <div class="foot-legal">
       <div>
-        <span class="mono">완벽한토익</span> · 대표 김태완 · 사업자등록번호 369-28-01751<br>
+        <span class="mono">완벽한토익</span> · 대표 김태완 &amp; 이창희 · 사업자등록번호 369-28-01751<br>
         서울 서대문구 연세로2길 14, 4층 · TEL 0507-1332-9565
       </div>
       <div class="mono">© 2026 PERFECT TOEIC. All rights reserved.</div>
@@ -2161,46 +2161,61 @@
   });
 })();
 </script>
+<!-- ============ Supabase 백엔드 연결 ============ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.WT_SB_URL = "https://guaqfsuwrvqjffmbiwpw.supabase.co";
+  window.WT_SB_KEY = "sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C";
+  try { window.sb = window.supabase.createClient(window.WT_SB_URL, window.WT_SB_KEY); }
+  catch(e){ console.error("Supabase 초기화 실패:", e); window.sb = null; }
+</script>
+<!-- ============ 수강후기 게시판 (Supabase 공유) ============ -->
 <script>
 (function(){
   var form = document.getElementById("reviewForm");
   var list = document.getElementById("postList");
   var countEl = document.getElementById("postCount");
   if(!form || !list) return;
-  var KEY = "pt_reviews_v1";
+  var sb = window.sb;
+  var g = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function stars(n){ n=parseInt(n,10)||5; return "★★★★★☆☆☆☆☆".slice(5-n,10-n); }
   var seed = [
     {name:"정**", course:"토익", score:"600 → 905", rating:5, title:"3개월 만에 900 돌파", body:"파트별 약점만 콕 집어 관리해주셔서 헤매지 않고 900을 넘었어요. 매일 학습 점검이 큰 힘이 됐습니다.", date:"2026.06.30", best:true},
     {name:"한**", course:"토익스피킹", score:"IM2 → AL", rating:5, title:"스피킹 자신감이 달라졌어요", body:"실전 표현 위주로 연습하니 시험장에서 훨씬 덜 떨렸어요. 목표 등급까지 딱 맞춘 관리받았습니다.", date:"2026.06.12", best:true}
   ];
-  var g = function(id){ return document.getElementById(id); };
-  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
-  function stars(n){ n=parseInt(n,10)||5; return "★★★★★☆☆☆☆☆".slice(5-n,10-n); }
-  function load(){ try{ return JSON.parse(localStorage.getItem(KEY)||"[]"); }catch(e){ return []; } }
-  function save(a){ try{ localStorage.setItem(KEY, JSON.stringify(a)); }catch(e){} }
-  function render(){
-    var all = load().concat(seed);
-    countEl.textContent = "후기 " + all.length + "개";
-    list.innerHTML = all.map(function(p){
-      return '<div class="post">'
-        + '<div class="ph"><span class="stars">'+stars(p.rating)+'</span><span class="pt">'+esc(p.title)+'</span>'+(p.best?'<span class="badge-best">BEST</span>':'')+'</div>'
-        + '<div class="pm">'+esc(p.body)+'</div>'
-        + '<div class="pf"><span>'+esc(p.name)+'</span><span>·</span><span>'+esc(p.course)+'</span>'+(p.score?'<span>·</span><span>'+esc(p.score)+'</span>':'')+'<span>·</span><span>'+esc(p.date)+'</span></div>'
-        + '</div>';
-    }).join("");
+  function card(p){
+    return '<div class="post">'
+      + '<div class="ph"><span class="stars">'+stars(p.rating)+'</span><span class="pt">'+esc(p.title)+'</span>'+(p.best?'<span class="badge-best">BEST</span>':'')+'</div>'
+      + '<div class="pm">'+esc(p.body)+'</div>'
+      + '<div class="pf"><span>'+esc(p.name)+'</span><span>·</span><span>'+esc(p.course)+'</span>'+(p.score?'<span>·</span><span>'+esc(p.score)+'</span>':'')+'<span>·</span><span>'+esc(p.date)+'</span></div>'
+      + '</div>';
   }
-  form.addEventListener("submit", function(e){
+  async function render(){
+    var rows = [];
+    if(sb){ try{ var res = await sb.from('reviews').select('*').eq('approved',true).order('created_at',{ascending:false}); if(!res.error && res.data) rows = res.data; }catch(e){} }
+    var mapped = rows.map(function(p){ return {name:p.author_name, course:p.course, score:p.score, rating:p.rating, title:p.title, body:p.body, date:(p.created_at||'').slice(0,10).replace(/-/g,'.'), best:false}; });
+    var all = mapped.concat(seed);
+    countEl.textContent = "후기 " + all.length + "개";
+    list.innerHTML = all.map(card).join("");
+  }
+  form.addEventListener("submit", async function(e){
     e.preventDefault();
-    var d = new Date();
-    var date = d.getFullYear()+"."+("0"+(d.getMonth()+1)).slice(-2)+"."+("0"+d.getDate()).slice(-2);
-    var post = { name:(g('rvName').value.trim()||"익명"), course:g('rvCourse').value, score:g('rvScore').value.trim(),
-      rating:g('rvRating').value, title:g('rvTitle').value.trim(), body:g('rvBody').value.trim(), date:date, best:false };
-    if(!post.title || !post.body){ return; }
-    var user = load(); user.unshift(post); save(user);
-    form.reset(); render();
+    if(!sb){ alert("서버 연결 중입니다. 잠시 후 다시 시도해주세요."); return; }
+    var sess = await sb.auth.getSession();
+    var session = sess.data && sess.data.session;
+    if(!session){ alert("후기는 로그인 후 작성할 수 있어요."); if(window.waOpenLogin) window.waOpenLogin(); return; }
+    var payload = { author_id:session.user.id, author_name:(g('rvName').value.trim()||"익명"), course:g('rvCourse').value,
+      score:(g('rvScore').value.trim()||null), rating:(parseInt(g('rvRating').value,10)||5), title:g('rvTitle').value.trim(), body:g('rvBody').value.trim() };
+    if(!payload.title || !payload.body){ return; }
+    var ins = await sb.from('reviews').insert(payload);
+    if(ins.error){ alert("후기 등록 실패: "+ins.error.message); return; }
+    form.reset(); await render();
     var first = list.querySelector(".post");
     if(first){ first.scrollIntoView({behavior:"smooth", block:"center"}); }
   });
   render();
+  window.WT_reloadReviews = render;
 })();
 </script>
 <script>
@@ -2308,6 +2323,7 @@
     <form class="wa-form on" id="waLoginForm" data-form="login" autocomplete="on">
       <label>이메일<input type="email" id="waLoginEmail" required placeholder="you@example.com"></label>
       <label>비밀번호<input type="password" id="waLoginPw" required></label>
+      <label class="wa-check" style="margin-top:0"><input type="checkbox" id="waRemember"><span>아이디 저장</span></label>
       <p class="wa-err" id="waLoginErr"></p>
       <button class="btn btn-primary" type="submit">로그인</button>
     </form>
@@ -2315,7 +2331,7 @@
       <label>이름 <em>*</em><input type="text" id="waSuName" required maxlength="20"></label>
       <label>이메일 <em>*</em> <span class="wa-hint">(로그인 아이디)</span><input type="email" id="waSuEmail" required placeholder="you@example.com"></label>
       <div class="wa-row">
-        <label>비밀번호 <em>*</em><input type="password" id="waSuPw" required placeholder="4자 이상"></label>
+        <label>비밀번호 <em>*</em><input type="password" id="waSuPw" required placeholder="6자 이상"></label>
         <label>비밀번호 확인 <em>*</em><input type="password" id="waSuPw2" required></label>
       </div>
       <label>연락처 <em>*</em><input type="text" id="waSuPhone" required maxlength="30" placeholder="010-1234-5678"></label>
@@ -2333,7 +2349,7 @@
       <label class="wa-check"><input type="checkbox" id="waSuAgree" required><span>개인정보 수집·이용에 동의합니다. <em>*</em></span></label>
       <p class="wa-err" id="waSuErr"></p>
       <button class="btn btn-primary" type="submit">가입하기</button>
-      <p class="wa-note">가입 정보는 이 브라우저에 안전하게 저장되며, 비밀번호는 암호화되어 보관됩니다.</p>
+      <p class="wa-note">가입 정보는 완벽한토익 서버에 안전하게 저장되며, 비밀번호는 암호화되어 보관됩니다.</p>
     </form>
     <div class="wa-social">
       <div class="wa-or"><span>또는 간편하게</span></div>
@@ -2342,23 +2358,221 @@
     </div>
   </div>
 </div>
+<style>
+.wa-dash{max-width:920px}
+.dash-badge{font-size:12px;font-weight:800;color:#fff;background:var(--accent);padding:2px 10px;border-radius:999px;vertical-align:middle}
+.dash-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:12px 0 16px;flex-wrap:wrap}
+.dash-tab{background:none;border:none;padding:10px 16px;font-size:14.5px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1px}
+.dash-tab.on{color:var(--accent);border-color:var(--accent)}
+.dash-pane{display:none}
+.dash-pane.on{display:block}
+.dash-form{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.dash-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.dash-row:last-child{margin-bottom:0}
+.dash-row>label{flex:1;min-width:120px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+.dash-row input,.dash-row select{padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
+.dash-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;margin:16px 0 8px;letter-spacing:-.01em;flex-wrap:wrap}
+.dash-total{font-family:var(--font-num);font-weight:800;color:var(--accent);font-size:16px}
+.dash-note{font-size:13px;color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
+.wa-link.del{color:#c0342b}
+.cal-head{display:flex;align-items:center;gap:8px;margin:4px 0 10px;flex-wrap:wrap}
+.cal-head .btn{padding:7px 12px;font-size:13px}
+.cal-title{font-weight:800;font-size:15px;flex:1;min-width:120px;text-align:center;letter-spacing:-.01em}
+.cal-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
+.cal-grid{display:flex;min-width:700px}
+.cal-axis{flex:0 0 42px;background:var(--surface-2)}
+.cal-head-sp{height:38px;border-bottom:1px solid var(--line)}
+.cal-hr{height:44px;font-size:10px;color:var(--muted);text-align:right;padding-right:5px;box-sizing:border-box}
+.cal-col{flex:1 1 0;min-width:90px;border-left:1px solid var(--line)}
+.cal-colhead{height:38px;display:flex;align-items:center;justify-content:center;gap:5px;border-bottom:1px solid var(--line);font-size:12px;font-weight:800;color:var(--ink-soft);background:var(--surface-2)}
+.cal-colhead.today{background:var(--accent-wash);color:var(--accent)}
+.cal-colhead .dd{font-size:15px;color:var(--ink)}
+.cal-colhead.today .dd{color:var(--accent)}
+.cal-sat .dd{color:#2563eb}
+.cal-sun .dd{color:#c0342b}
+.cal-body{position:relative;background:var(--surface);cursor:pointer}
+.cal-line{position:absolute;left:0;right:0;border-top:1px solid var(--line);opacity:.6}
+.cal-ev{position:absolute;background:var(--accent-wash);border:1px solid var(--accent);border-left:3px solid var(--accent);border-radius:5px;padding:2px 4px;font-size:10.5px;line-height:1.28;color:var(--ink);overflow:hidden;box-sizing:border-box}
+.cal-ev b{font-weight:800;display:block;font-size:10.5px;color:var(--accent)}
+.cal-empty-note{font-size:12px;color:var(--muted);text-align:center;padding:8px}
+.cal-modes{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
+.cal-mode{background:var(--surface);border:none;padding:7px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
+.cal-mode+.cal-mode{border-left:1px solid var(--line-strong)}
+.cal-mode.on{background:var(--accent);color:#fff}
+.cal-month{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;margin-bottom:12px}
+.cal-mh{background:var(--surface-2);text-align:center;font-size:11.5px;font-weight:800;color:var(--ink-soft);padding:7px 0;border-top:1px solid var(--line)}
+.cal-mcell{min-height:86px;border-top:1px solid var(--line);border-left:1px solid var(--line);padding:4px;font-size:11px;overflow:hidden;cursor:pointer}
+.cal-mcell:nth-child(7n+1){border-left:none}
+.cal-mdate{font-weight:800;color:var(--ink-soft);font-size:11px;margin-bottom:3px}
+.cal-mcell.oth{background:var(--surface-2)}
+.cal-mcell.oth .cal-mdate{opacity:.45}
+.cal-mcell.today{background:var(--accent-wash)}
+.cal-mcell.today .cal-mdate{color:var(--accent)}
+.cal-chip{background:var(--accent-wash);border-left:2px solid var(--accent);border-radius:3px;padding:1px 4px;margin-bottom:2px;font-size:10px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-more{font-size:9.5px;color:var(--muted);font-weight:700;padding-left:2px}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;margin:2px 0 10px;font-size:11.5px}
+.cal-lg{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--ink-soft)}
+.cal-lg i{width:11px;height:11px;border-radius:3px;display:inline-block;flex:none}
+</style>
 <div class="wa-overlay" id="waAdmin" aria-hidden="true">
-  <div class="wa-card wa-admin">
+  <div class="wa-card wa-admin wa-dash">
     <button class="wa-x" id="waAdminClose" aria-label="닫기">&times;</button>
-    <div class="wa-head">회원 관리 <span id="waCount" style="font-size:14px;color:var(--muted);font-weight:600"></span></div>
-    <div class="wa-sub">가입한 회원 목록입니다. 데이터를 폴더로 내보내 백업하세요.</div>
-    <div class="wa-admin-actions">
-      <button class="btn btn-primary" id="waExport">📁 폴더로 내보내기 (JSON)</button>
-      <button class="btn btn-ghost" id="waExportCsv">CSV로 내보내기</button>
-      <label class="btn btn-ghost" style="cursor:pointer;margin:0">📂 불러오기<input type="file" id="waImport" accept=".json,application/json" hidden></label>
+    <div class="wa-head">관리 페이지 <span id="waRoleBadge" class="dash-badge"></span></div>
+    <div class="dash-tabs">
+      <button class="dash-tab on" data-dtab="members">회원</button>
+      <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
+      <button class="dash-tab" data-dtab="rooms">강의장</button>
+      <button class="dash-tab" data-dtab="pay">정산</button>
     </div>
-    <label class="wa-toggle"><input type="checkbox" id="waAutoBk"> 회원가입 시 백업 파일 자동 다운로드</label>
-    <p class="wa-note" style="text-align:left">💡 내보낸 파일을 <b>바탕화면 폴더(예: 완토_회원데이터)</b>에 저장해두면 백업·다른 PC로 이동에 사용할 수 있어요.</p>
-    <div class="wa-table-wrap"><table class="wa-table" id="waTable"></table></div>
+
+    <div class="dash-pane on" data-dpane="members">
+      <div class="wa-sub">전체 회원 <span id="waCount" style="color:var(--muted);font-weight:700"></span> · 모든 기기에서 실시간 공유</div>
+      <div class="wa-admin-actions">
+        <button class="btn btn-primary" id="waReload">🔄 새로고침</button>
+        <button class="btn btn-ghost" id="waExportCsv">CSV로 내보내기</button>
+      </div>
+      <div class="wa-table-wrap"><table class="wa-table" id="waTable"></table></div>
+    </div>
+
+    <div class="dash-pane" data-dpane="sched">
+      <div class="dash-form">
+        <div class="dash-row">
+          <label>날짜<input type="date" id="scDate"></label>
+          <label>시작<select id="scStart" class="timesel"></select></label>
+          <label>종료<select id="scEnd" class="timesel"></select></label>
+        </div>
+        <div class="dash-row">
+          <label>강의장<select id="scRoom"></select></label>
+          <label>선생님<select id="scTeacher"></select></label>
+          <label>학생<select id="scStudent"></select></label>
+        </div>
+        <div class="dash-row">
+          <label>과목<select id="scSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
+          <label style="flex:2">메모<input type="text" id="scMemo" placeholder="선택"></label>
+        </div>
+        <div id="scFree" class="dash-note" style="margin-top:0;display:none"></div>
+        <p class="wa-err" id="scErr"></p>
+        <button class="btn btn-primary" id="scAdd" type="button">＋ 스케줄 추가</button>
+      </div>
+      <div class="cal-head">
+        <div class="cal-modes">
+          <button class="cal-mode" id="calDay" type="button">일</button>
+          <button class="cal-mode on" id="calWeekBtn" type="button">주</button>
+          <button class="cal-mode" id="calMonth" type="button">월</button>
+        </div>
+        <button class="btn btn-ghost" id="calPrev" type="button">←</button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="btn btn-ghost" id="calNext" type="button">→</button>
+        <button class="btn btn-ghost" id="calToday" type="button">오늘</button>
+      </div>
+      <div class="cal-legend" id="calLegend"></div>
+      <div class="cal-scroll" id="calScroll"><div class="cal-grid" id="calGrid"></div></div>
+      <div class="cal-month" id="calMonthGrid" style="display:none"></div>
+      <div class="dash-list-head">다가오는 수업 <span id="scCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="wa-table-wrap"><table class="wa-table" id="scTable"></table></div>
+    </div>
+
+    <div class="dash-pane" data-dpane="rooms">
+      <div class="dash-form">
+        <div class="dash-list-head" style="margin-top:0">🔍 빈 강의장 확인</div>
+        <div class="dash-row">
+          <label>날짜<input type="date" id="rmDate"></label>
+          <label>시작<select id="rmStart" class="timesel"></select></label>
+          <label>종료<select id="rmEnd" class="timesel"></select></label>
+          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span><button class="btn btn-ghost" id="rmCheck" type="button">확인</button></label>
+        </div>
+        <div id="rmResult" class="dash-note">시간을 입력하고 확인을 누르면 비어 있는 강의장을 보여드려요.</div>
+      </div>
+      <div class="dash-form">
+        <div class="dash-row">
+          <label style="flex:2">강의장 이름<input type="text" id="rmName" placeholder="예: C강의장"></label>
+          <label>정원<input type="number" id="rmCap" value="4" min="1"></label>
+          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span><button class="btn btn-primary" id="rmAdd" type="button">＋ 추가</button></label>
+        </div>
+      </div>
+      <div class="wa-table-wrap"><table class="wa-table" id="rmTable"></table></div>
+    </div>
+
+    <div class="dash-pane" data-dpane="pay">
+      <div class="dash-form" id="pyAddForm">
+        <div class="dash-row">
+          <label>학생<select id="pyStudent"></select></label>
+          <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
+          <label>정산 월<input type="month" id="pyMonth"></label>
+        </div>
+        <div class="dash-row">
+          <label>결제수단<select id="pyMethod"></select></label>
+          <label id="pyCardWrap" style="display:none">카드사<select id="pyCard"></select></label>
+          <label>결제일<input type="date" id="pyPaid"></label>
+          <label style="flex:2">메모<input type="text" id="pyMemo" placeholder="선택"></label>
+        </div>
+        <p class="wa-err" id="pyErr"></p>
+        <button class="btn btn-primary" id="pyAdd" type="button">＋ 정산 추가</button>
+      </div>
+      <div class="dash-list-head">
+        <label style="font-weight:700;font-size:13px">조회 월 <input type="month" id="pyFilter" style="margin-left:6px;padding:7px 9px;border:1.5px solid var(--line-strong);border-radius:8px"></label>
+        <span id="pyTotal" class="dash-total"></span>
+      </div>
+      <div id="pyScopeNote" class="dash-note" style="display:none">담당 학생의 정산 내역만 표시됩니다. (조회 전용 · 등록/삭제는 원장님)</div>
+      <div class="wa-table-wrap"><table class="wa-table" id="pyTable"></table></div>
+    </div>
+  </div>
+</div>
+<div class="wa-overlay" id="waMy" aria-hidden="true">
+  <div class="wa-card wa-admin">
+    <button class="wa-x" id="waMyClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">내 정보 <span id="waMyName" class="dash-badge"></span></div>
+    <div class="dash-note" id="myProfile"></div>
+    <div class="dash-list-head">📅 내 수업 일정</div>
+    <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
+    <div class="dash-list-head">💳 결제 내역</div>
+    <div class="wa-table-wrap"><table class="wa-table" id="mypayTable"></table></div>
+  </div>
+</div>
+<div class="wa-overlay" id="waPayEdit" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waPayEditClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">정산 수정</div>
+    <div class="wa-sub" id="pyeStudent"></div>
+    <div class="wa-form on" style="display:flex">
+      <div class="wa-row">
+        <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
+        <label>정산 월<input type="month" id="pyeMonth"></label>
+      </div>
+      <div class="wa-row">
+        <label>결제수단<select id="pyeMethod"></select></label>
+        <label>결제일<input type="date" id="pyePaid"></label>
+      </div>
+      <label id="pyeCardWrap" style="display:none">카드사<select id="pyeCard"></select></label>
+      <label>메모<input type="text" id="pyeMemo" placeholder="선택"></label>
+      <p class="wa-err" id="pyeErr"></p>
+      <button class="btn btn-primary" id="pyeSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+<div class="wa-overlay" id="waEdit" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waEditClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">회원 정보 수정</div>
+    <div class="wa-sub" id="waEditEmail"></div>
+    <div class="wa-form on" style="display:flex">
+      <label>이름<input type="text" id="waEName"></label>
+      <label>연락처<input type="text" id="waEPhone"></label>
+      <label>관심 과목<input type="text" id="waEInterest" placeholder="토익 / 토익스피킹 / 오픽 / 영어회화"></label>
+      <div class="wa-row">
+        <label>현재 점수<input type="text" id="waECurrent"></label>
+        <label>목표 점수<input type="text" id="waEGoal"></label>
+      </div>
+      <label>가입 경로<input type="text" id="waERoute"></label>
+      <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="master">원장님</option></select></label>
+      <p class="wa-err" id="waEErr"></p>
+      <button class="btn btn-primary" id="waESave" type="button">저장</button>
+    </div>
   </div>
 </div>
 <script>
 (function(){
+  return; /* 기존 localStorage 인증 비활성화 — 아래 Supabase 인증으로 대체됨 */
   function sha256(ascii){function rightRotate(value,amount){return (value>>>amount)|(value<<(32-amount));}var mathPow=Math.pow;var maxWord=mathPow(2,32);var lengthProperty='length';var i,j;var result='';var words=[];var asciiBitLength=ascii[lengthProperty]*8;var hash=sha256.h=sha256.h||[];var k=sha256.k=sha256.k||[];var primeCounter=k[lengthProperty];var isComposite={};for(var candidate=2;primeCounter<64;candidate++){if(!isComposite[candidate]){for(i=0;i<313;i+=candidate){isComposite[i]=candidate;}hash[primeCounter]=(mathPow(candidate,.5)*maxWord)|0;k[primeCounter++]=(mathPow(candidate,1/3)*maxWord)|0;}}ascii+='\x80';while(ascii[lengthProperty]%64-56)ascii+='\x00';for(i=0;i<ascii[lengthProperty];i++){j=ascii.charCodeAt(i);if(j>>8)return;words[i>>2]|=j<<((3-i)%4)*8;}words[words[lengthProperty]]=((asciiBitLength/maxWord)|0);words[words[lengthProperty]]=(asciiBitLength);for(j=0;j<words[lengthProperty];){var w=words.slice(j,j+=16);var oldHash=hash;hash=hash.slice(0,8);for(i=0;i<64;i++){var w15=w[i-15],w2=w[i-2];var a=hash[0],e=hash[4];var temp1=hash[7]+(rightRotate(e,6)^rightRotate(e,11)^rightRotate(e,25))+((e&hash[5])^((~e)&hash[6]))+k[i]+(w[i]=i<16?w[i]:(w[i-16]+(rightRotate(w15,7)^rightRotate(w15,18)^(w15>>>3))+w[i-7]+(rightRotate(w2,17)^rightRotate(w2,19)^(w2>>>10)))|0);var temp2=(rightRotate(a,2)^rightRotate(a,13)^rightRotate(a,22))+((a&hash[1])^(a&hash[2])^(hash[1]&hash[2]));hash=[(temp1+temp2)|0].concat(hash);hash[4]=(hash[4]+temp1)|0;}for(i=0;i<8;i++){hash[i]=(hash[i]+oldHash[i])|0;}}for(i=0;i<8;i++){for(j=3;j+1;j--){var b=(hash[i]>>(j*8))&255;result+=((b<16)?0:'')+b.toString(16);}}return result;}
   var LS='wt_members', SS='wt_session';
   var $=function(id){return document.getElementById(id);};
@@ -2463,6 +2677,546 @@
   if($('waNaver')) $('waNaver').onclick=function(){socialSoon('네이버');};
   if($('waKakao')) $('waKakao').onclick=function(){socialSoon('카카오');};
   renderAuth();
+})();
+</script>
+<!-- ============ Supabase 인증 (로그인/회원가입/역할) ============ -->
+<script>
+(function(){
+  var sb = window.sb;
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function today(){ var d=new Date(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+  var profile = null;
+
+  function openModal(tab){ $('waModal').classList.add('on'); setTab(tab||'login'); }
+  function closeModal(){ $('waModal').classList.remove('on'); }
+  function setTab(t){ var ms=$('waModal'); ms.querySelectorAll('.wa-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===t);}); ms.querySelectorAll('.wa-form').forEach(function(f){f.classList.toggle('on',f.getAttribute('data-form')===t);}); }
+  window.waOpenLogin = function(){ openModal('login'); };
+  if($('waClose')) $('waClose').onclick = closeModal;
+  if($('waModal')){ $('waModal').addEventListener('click',function(e){ if(e.target===$('waModal')) closeModal(); });
+    $('waModal').querySelectorAll('.wa-tab').forEach(function(b){ b.onclick=function(){ setTab(b.getAttribute('data-tab')); }; }); }
+
+  function authErr(msg){
+    msg = msg||'';
+    if(/Invalid login/i.test(msg)) return '이메일 또는 비밀번호가 올바르지 않습니다.';
+    if(/already|exists/i.test(msg)) return '이미 가입된 이메일입니다.';
+    if(/at least 6|Password should|weak/i.test(msg)) return '비밀번호는 6자 이상이어야 합니다.';
+    if(/valid email|invalid.*email|email.*invalid/i.test(msg)) return '올바른 이메일 형식이 아닙니다.';
+    return msg;
+  }
+
+  if($('waSignupForm')) $('waSignupForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var err=$('waSuErr'); err.textContent='';
+    var name=$('waSuName').value.trim(), email=$('waSuEmail').value.trim().toLowerCase(), phone=$('waSuPhone').value.trim();
+    var pw=$('waSuPw').value, pw2=$('waSuPw2').value;
+    var birth=$('waSuBirth').value||null, gender=$('waSuGender').value||null, interest=$('waSuInterest').value||null;
+    var current=$('waSuCurrent').value.trim()||null, goal=$('waSuGoal').value.trim()||null, route=$('waSuRoute').value||null, marketing=$('waSuMarketing').checked;
+    if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·연락처·비밀번호는 필수입니다.'; return; }
+    if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
+    if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
+    if(!$('waSuAgree').checked){ err.textContent='개인정보 수집·이용에 동의해주세요.'; return; }
+    if(!sb){ err.textContent='서버 연결 중입니다. 잠시 후 다시 시도해주세요.'; return; }
+    var su=await sb.auth.signUp({email:email,password:pw});
+    if(su.error){ err.textContent=authErr(su.error.message); return; }
+    var user=su.data.user;
+    if(!user){ err.textContent='가입에 실패했습니다. 다시 시도해주세요.'; return; }
+    var ins=await sb.from('profiles').insert({ id:user.id, name:name, email:email, phone:phone, birth:birth, gender:gender, interest:interest, current_score:current, goal_score:goal, route:route, marketing:marketing, role:'student' });
+    if(ins.error){ console.error('profile insert:', ins.error); }
+    $('waSignupForm').reset(); closeModal(); await refresh();
+    alert(name+'님, 회원가입이 완료되었습니다!');
+  });
+
+  if($('waLoginForm')) $('waLoginForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var err=$('waLoginErr'); err.textContent='';
+    var email=$('waLoginEmail').value.trim().toLowerCase(), pw=$('waLoginPw').value;
+    if(!sb){ err.textContent='서버 연결 중입니다. 잠시 후 다시 시도해주세요.'; return; }
+    var li=await sb.auth.signInWithPassword({email:email,password:pw});
+    if(li.error){ err.textContent=authErr(li.error.message); return; }
+    try{ if($('waRemember') && $('waRemember').checked) localStorage.setItem('wt_saved_email', email); else localStorage.removeItem('wt_saved_email'); }catch(e){}
+    $('waLoginPw').value=''; closeModal(); await refresh();
+  });
+  (function(){ try{ var em=localStorage.getItem('wt_saved_email'); if(em){ if($('waLoginEmail')) $('waLoginEmail').value=em; if($('waRemember')) $('waRemember').checked=true; } }catch(e){} })();
+
+  async function refresh(){
+    profile=null;
+    if(sb){
+      var s=await sb.auth.getSession();
+      var user=s.data && s.data.session && s.data.session.user;
+      if(user){
+        var pr=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+        profile = (pr.data) ? pr.data : {id:user.id,email:user.email,name:(user.email||'').split('@')[0],role:'student'};
+      }
+    }
+    window.WT_LOGGED_IN = !!profile;
+    window.WT_PROFILE = profile;
+    renderAuth();
+    try{ window.dispatchEvent(new Event('wt-auth')); }catch(e){}
+  }
+
+  function roleTag(r){ return r==='master'?'원장님':(r==='admin'?'선생님':'학생'); }
+
+  function renderAuth(){
+    var s=profile;
+    function links(){
+      var h='';
+      if(s.role==='admin'||s.role==='master') h+='<a class="wa-link" id="waAdminOpen">관리 페이지</a>';
+      h+='<a class="wa-link" id="waMyOpen">내 정보</a><a class="wa-link" id="waLogout">로그아웃</a>';
+      return h;
+    }
+    var a=$('waAuth');
+    if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="btn btn-ghost wa-btn" id="waOpen">로그인</a>'; }
+    var am=$('waAuthM');
+    if(am){ am.innerHTML = s
+      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
+      : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인 / 회원가입</a></div>'; }
+    wire();
+  }
+  function closeDrawer(){ var d=$('drawer'); if(d) d.classList.remove('open'); }
+  function wire(){
+    [ ['waOpen','click',function(){openModal('login');}],
+      ['waOpenM','click',function(e){e.preventDefault();closeDrawer();openModal('login');}],
+      ['waLogout','click',function(){ if(confirm('로그아웃 하시겠어요?')) doLogout(); }],
+      ['waLogoutM','click',function(e){e.preventDefault();doLogout();closeDrawer();}],
+      ['waAdminOpen','click',function(){openAdmin();}],
+      ['waAdminOpenM','click',function(e){e.preventDefault();closeDrawer();openAdmin();}],
+      ['waMasterOpen','click',function(){openMaster();}],
+      ['waMasterOpenM','click',function(e){e.preventDefault();closeDrawer();openMaster();}],
+      ['waMyOpen','click',function(){openMy();}],
+      ['waMyOpenM','click',function(e){e.preventDefault();closeDrawer();openMy();}]
+    ].forEach(function(m){ var el=$(m[0]); if(el) el.addEventListener(m[1],m[2]); });
+  }
+  function doLogout(){ if(sb) sb.auth.signOut().then(refresh); }
+
+  async function openAdmin(){ $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role); dashTab('members'); await renderTable(); await dashInit(); }
+  function isMasterNow(){ return profile && profile.role==='master'; }
+  async function renderTable(){
+    var m=[];
+    if(sb){ var r=await sb.from('profiles').select('*').order('created_at',{ascending:false}); if(!r.error && r.data) m=r.data; }
+    $('waCount').textContent='('+m.length+'명)';
+    window.__wtMembers=m;
+    if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
+    function rt(r){ return r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생'); }
+    var mm=isMasterNow();
+    var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>현재→목표</th><th>경로</th><th>구분</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    m.forEach(function(u){ var sc=(esc(u.current_score||'-'))+' → '+(esc(u.goal_score||'-'));
+      var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">삭제</a></td>' : '';
+      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td style="white-space:nowrap">'+sc+'</td><td>'+esc(u.route||'-')+'</td><td>'+rt(u.role)+'</td><td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
+    $('waTable').innerHTML=h;
+  }
+  if($('waAdminClose')) $('waAdminClose').onclick=function(){ $('waAdmin').classList.remove('on'); };
+  if($('waAdmin')) $('waAdmin').addEventListener('click',function(e){ if(e.target===$('waAdmin')) $('waAdmin').classList.remove('on'); });
+  if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
+
+  // ---- 회원 수정/삭제 (마스터 전용) ----
+  var editingId=null;
+  if($('waTable')) $('waTable').addEventListener('click', function(e){
+    var a=(e.target && e.target.closest)?e.target.closest('a[data-act]'):null; if(!a) return;
+    e.preventDefault();
+    var id=a.getAttribute('data-id'), act=a.getAttribute('data-act');
+    var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(id);})[0]; if(!u) return;
+    if(act==='edit') openEdit(u); else if(act==='del') delMember(u);
+  });
+  function openEdit(u){
+    editingId=u.id;
+    $('waEditEmail').textContent=u.email;
+    $('waEName').value=u.name||''; $('waEPhone').value=u.phone||''; $('waEInterest').value=u.interest||'';
+    $('waECurrent').value=u.current_score||''; $('waEGoal').value=u.goal_score||''; $('waERoute').value=u.route||'';
+    $('waERole').value=u.role||'student'; $('waEErr').textContent='';
+    $('waEdit').classList.add('on');
+  }
+  async function delMember(u){
+    if(profile && u.id===profile.id){ alert('본인(원장님) 계정은 여기서 삭제할 수 없습니다.'); return; }
+    if(!confirm(u.name+' ('+u.email+') 회원을 삭제할까요?\n\n※ 회원 프로필이 삭제됩니다. (로그인 계정 자체의 완전 삭제는 추후 서버 기능으로 추가할 수 있어요.)')) return;
+    if(!sb) return;
+    var r=await sb.from('profiles').delete().eq('id',u.id);
+    if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await renderTable();
+  }
+  if($('waEditClose')) $('waEditClose').onclick=function(){ $('waEdit').classList.remove('on'); };
+  if($('waEdit')) $('waEdit').addEventListener('click',function(e){ if(e.target===$('waEdit')) $('waEdit').classList.remove('on'); });
+  if($('waESave')) $('waESave').onclick=async function(){
+    if(!editingId||!sb) return;
+    var patch={ name:$('waEName').value.trim(), phone:($('waEPhone').value.trim()||null), interest:($('waEInterest').value.trim()||null), current_score:($('waECurrent').value.trim()||null), goal_score:($('waEGoal').value.trim()||null), route:($('waERoute').value.trim()||null), role:$('waERole').value };
+    if(!patch.name){ $('waEErr').textContent='이름은 필수입니다.'; return; }
+    var wasSelf = profile && editingId===profile.id;
+    var r=await sb.from('profiles').update(patch).eq('id',editingId);
+    if(r.error){ $('waEErr').textContent='저장 실패: '+r.error.message; return; }
+    $('waEdit').classList.remove('on');
+    await renderTable();
+    if(wasSelf) await refresh();
+  };
+  function downloadFile(name,content,type){ var b=new Blob([content],{type:type}); var u=URL.createObjectURL(b); var a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(u);},1000); }
+  if($('waExportCsv')) $('waExportCsv').onclick=function(){
+    var m=window.__wtMembers||[]; var rows=[['이름','이메일','연락처','생년월일','성별','관심과목','현재점수','목표점수','가입경로','마케팅동의','구분','가입일']];
+    m.forEach(function(u){ rows.push([u.name,u.email,u.phone||'',u.birth||'',u.gender||'',u.interest||'',u.current_score||'',u.goal_score||'',u.route||'',(u.marketing?'동의':'미동의'),roleTag(u.role),(u.created_at||'').slice(0,10)]); });
+    var csv='﻿'+rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
+    downloadFile('완토_회원_'+today()+'.csv', csv,'text/csv');
+  };
+
+  function openMaster(){ openAdmin(); }
+  async function openMy(){ if(!profile) return; await renderMy(); $('waMy').classList.add('on'); }
+
+  function socialSoon(n){ alert(n+' 간편가입은 준비 중입니다. 지금은 이메일 회원가입을 이용해주세요.'); }
+  if($('waNaver')) $('waNaver').onclick=function(){socialSoon('네이버');};
+  if($('waKakao')) $('waKakao').onclick=function(){socialSoon('카카오');};
+
+  // ================= 관리 대시보드 (원장님/선생님) =================
+  function dashTab(name){
+    var card=$('waAdmin'); if(!card) return;
+    card.querySelectorAll('.dash-tab').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-dtab')===name); });
+    card.querySelectorAll('.dash-pane').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-dpane')===name); });
+  }
+  (function(){ var c=$('waAdmin'); if(c) c.querySelectorAll('.dash-tab').forEach(function(b){ b.onclick=function(){ dashTab(b.getAttribute('data-dtab')); }; }); })();
+
+  function pad(n){ return (n<10?'0':'')+n; }
+  function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function ym(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1); }
+  function fmtDT(iso){ if(!iso) return '-'; var d=new Date(iso); return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function hm(iso){ if(!iso) return ''; var d=new Date(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function won(n){ n=parseInt(n,10)||0; return n.toLocaleString('ko-KR')+'원'; }
+  function fillTimeSelects(){
+    var opts='<option value="">선택</option>';
+    for(var hh=6; hh<=23; hh++){ for(var m=0; m<60; m+=10){ var v=pad(hh)+':'+pad(m); opts+='<option value="'+v+'">'+v+'</option>'; } }
+    document.querySelectorAll('.timesel').forEach(function(sel){ var cur=sel.value; sel.innerHTML=opts; if(cur) sel.value=cur; });
+  }
+
+  var _members=[], _rooms=[], _teacherColors={};
+  var TEACHER_COLORS=['#2563eb','#16a34a','#db2777','#ea580c','#7c3aed','#0891b2','#ca8a04','#dc2626','#0d9488','#9333ea'];
+  function teacherColor(id){ return (id && _teacherColors[id]) || '#64748b'; }
+  function updateLegend(){
+    if(!$('calLegend')) return;
+    var teachers=_members.filter(function(m){return m.role==='admin'||m.role==='master';});
+    $('calLegend').innerHTML = teachers.length ? ('<span style="color:var(--muted)">선생님</span> '+teachers.map(function(t){ return '<span class="cal-lg"><i style="background:'+teacherColor(t.id)+'"></i>'+esc(t.name)+'</span>'; }).join('')) : '';
+  }
+  async function dashInit(){
+    _members = window.__wtMembers || [];
+    _teacherColors={}; _members.filter(function(m){return m.role==='admin'||m.role==='master';}).forEach(function(t,idx){ _teacherColors[t.id]=TEACHER_COLORS[idx%TEACHER_COLORS.length]; });
+    fillTimeSelects();
+    fillMethods(); toggleCard('pyMethod','pyCardWrap');
+    await loadRooms();
+    fillSelects();
+    var now=new Date();
+    if($('scDate')&&!$('scDate').value) $('scDate').value=ymd(now);
+    if($('rmDate')&&!$('rmDate').value) $('rmDate').value=ymd(now);
+    if($('pyMonth')&&!$('pyMonth').value) $('pyMonth').value=ym(now);
+    if($('pyPaid')&&!$('pyPaid').value) $('pyPaid').value=ymd(now);
+    if($('pyFilter')&&!$('pyFilter').value) $('pyFilter').value=ym(now);
+    await loadSchedules(); await renderCalendar();
+    await loadPayments($('pyFilter')?$('pyFilter').value:ym(now));
+    applyRoleScope();
+  }
+  function fillSelects(){
+    var students=_members.filter(function(m){return m.role==='student';});
+    var teachers=_members.filter(function(m){return m.role==='admin'||m.role==='master';});
+    function opts(arr){ return arr.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>'; }).join(''); }
+    if($('scRoom')) $('scRoom').innerHTML=_rooms.map(function(r){ return '<option value="'+r.id+'">'+esc(r.name)+'</option>'; }).join('');
+    if($('scTeacher')) $('scTeacher').innerHTML=opts(teachers);
+    if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+opts(students);
+    if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+opts(students);
+  }
+
+  // ---- 강의장 ----
+  async function loadRooms(){
+    _rooms=[];
+    if(sb){ var r=await sb.from('rooms').select('*').order('id'); if(!r.error&&r.data) _rooms=r.data; }
+    renderRooms();
+  }
+  function renderRooms(){
+    if(!$('rmTable')) return;
+    if(!_rooms.length){ $('rmTable').innerHTML='<tr><td class="wa-empty">등록된 강의장이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>강의장</th><th>정원</th><th>상태</th><th>관리</th></tr>';
+    _rooms.forEach(function(r){ h+='<tr><td>'+esc(r.name)+'</td><td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
+    $('rmTable').innerHTML=h;
+  }
+  if($('rmAdd')) $('rmAdd').onclick=async function(){
+    var name=($('rmName').value||'').trim(); var cap=parseInt($('rmCap').value,10)||1;
+    if(!name){ alert('강의장 이름을 입력하세요.'); return; }
+    var r=await sb.from('rooms').insert({name:name,capacity:cap}); if(r.error){ alert('추가 실패: '+r.error.message); return; }
+    $('rmName').value=''; await loadRooms(); fillSelects();
+  };
+  if($('rmTable')) $('rmTable').addEventListener('click', async function(e){
+    var t=(e.target&&e.target.closest)?e.target:null; if(!t||!t.closest) return;
+    var ed=t.closest('a[data-rmedit]'), dl=t.closest('a[data-rmdel]');
+    if(ed){ var id=ed.getAttribute('data-rmedit'); var cur=(_rooms.filter(function(x){return String(x.id)===String(id);})[0]||{}).name||''; var nm=prompt('새 강의장 이름을 입력하세요', cur); if(nm===null) return; nm=nm.trim(); if(!nm) return; var u=await sb.from('rooms').update({name:nm}).eq('id',id); if(u.error){ alert('수정 실패: '+u.error.message); return; } await loadRooms(); fillSelects(); return; }
+    if(dl){ if(!confirm('이 강의장을 삭제할까요? (기존 스케줄은 강의장 미지정으로 남습니다)')) return; var r=await sb.from('rooms').delete().eq('id',dl.getAttribute('data-rmdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } await loadRooms(); fillSelects(); return; }
+  });
+  if($('rmCheck')) $('rmCheck').onclick=async function(){
+    var d=$('rmDate').value, s=$('rmStart').value, en=$('rmEnd').value;
+    if(!d||!s||!en){ $('rmResult').textContent='날짜·시작·종료 시간을 입력하세요.'; return; }
+    var startISO=new Date(d+'T'+s).toISOString(), endISO=new Date(d+'T'+en).toISOString();
+    if(endISO<=startISO){ $('rmResult').textContent='종료가 시작보다 빨라요.'; return; }
+    var r=await sb.from('schedules').select('room_id').lt('starts_at',endISO).gt('ends_at',startISO);
+    var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null) busy[x.room_id]=true; });
+    var free=_rooms.filter(function(rm){ return rm.active!==false && !busy[rm.id]; });
+    var busyRooms=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
+    $('rmResult').innerHTML='<b>✅ 빈 강의장:</b> '+(free.length?free.map(function(x){return esc(x.name);}).join(', '):'없음')
+      +(busyRooms.length?'<br><span style="color:var(--muted)">사용중: '+busyRooms.map(function(x){return esc(x.name);}).join(', ')+'</span>':'');
+  };
+
+  // ---- 스케줄 ----
+  function roomName(id){ var x=_rooms.filter(function(r){return r.id===id;})[0]; return x?x.name:'-'; }
+  async function loadSchedules(){
+    if(!$('scTable')) return;
+    var rows=[];
+    if(sb){ var r=await sb.from('schedules').select('*').gte('ends_at', new Date(Date.now()-6*3600*1000).toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; }
+    if($('scCount')) $('scCount').textContent='('+rows.length+'건)';
+    if(!rows.length){ $('scTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>일시</th><th>강의장</th><th>과목</th><th>선생님</th><th>학생</th><th>메모</th><th>관리</th></tr>';
+    rows.forEach(function(s){ h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(roomName(s.room_id))+'</td><td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.student_name||'-')+'</td><td>'+esc(s.memo||'')+'</td><td><a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>'; });
+    $('scTable').innerHTML=h;
+  }
+  if($('scAdd')) $('scAdd').onclick=async function(){
+    var err=$('scErr'); err.textContent='';
+    var d=$('scDate').value, s=$('scStart').value, en=$('scEnd').value;
+    if(!d||!s||!en){ err.textContent='날짜·시작·종료 시간을 입력하세요.'; return; }
+    var startISO=new Date(d+'T'+s).toISOString(), endISO=new Date(d+'T'+en).toISOString();
+    if(endISO<=startISO){ err.textContent='종료 시간이 시작보다 빨라요.'; return; }
+    var roomId=$('scRoom').value?parseInt($('scRoom').value,10):null;
+    if(roomId){
+      var c=await sb.from('schedules').select('id').eq('room_id',roomId).lt('starts_at',endISO).gt('ends_at',startISO);
+      if(!c.error && c.data && c.data.length){ err.textContent='해당 시간에 그 강의장이 이미 예약돼 있어요.'; return; }
+    }
+    var teacher=_members.filter(function(m){return m.id===$('scTeacher').value;})[0];
+    var student=_members.filter(function(m){return m.id===$('scStudent').value;})[0];
+    var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null) };
+    var r=await sb.from('schedules').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
+    $('scMemo').value=''; await loadSchedules();
+  };
+  if($('scTable')) $('scTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('a[data-scdel]'):null; if(!a) return;
+    if(!confirm('이 수업 스케줄을 삭제할까요?')) return;
+    var r=await sb.from('schedules').delete().eq('id',a.getAttribute('data-scdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await loadSchedules(); await renderCalendar();
+  });
+
+  // ---- 주간 캘린더 (시간 격자) ----
+  var DOW=['월','화','수','목','금','토','일'];
+  var DAY_START=6, DAY_END=23, HOUR_H=44;
+  var calMode='week';
+  var calCur=new Date(); calCur.setHours(0,0,0,0);
+  function startOfWeek(d){ var x=new Date(d); var day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
+  async function fetchRange(start,end){ var rows=[]; if(sb){ var r=await sb.from('schedules').select('*').gte('starts_at',start.toISOString()).lt('starts_at',end.toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; } return rows; }
+  function updateModeButtons(){ [['calDay','day'],['calWeekBtn','week'],['calMonth','month']].forEach(function(m){ var el=$(m[0]); if(el) el.classList.toggle('on', calMode===m[1]); }); }
+  function minsFromStart(iso){ var d=new Date(iso); return (d.getHours()-DAY_START)*60 + d.getMinutes(); }
+  function layoutDay(evs){
+    evs.sort(function(a,b){ return a.__st-b.__st || a.__en-b.__en; });
+    var cluster=[], curEnd=-1;
+    function flush(){ var lanes=[]; cluster.forEach(function(s){ var ln=0; while(lanes[ln]!=null && lanes[ln]>s.__st) ln++; lanes[ln]=s.__en; s.__lane=ln; }); cluster.forEach(function(s){ s.__lanes=lanes.length; }); cluster=[]; curEnd=-1; }
+    evs.forEach(function(s){ if(cluster.length && s.__st>=curEnd) flush(); cluster.push(s); curEnd=Math.max(curEnd,s.__en); });
+    if(cluster.length) flush();
+  }
+  async function renderGrid(nDays){
+    var start = nDays===1 ? new Date(calCur) : startOfWeek(calCur);
+    start.setHours(0,0,0,0);
+    var end=new Date(start); end.setDate(end.getDate()+nDays);
+    if($('calTitle')){
+      if(nDays===1){ $('calTitle').textContent=(start.getMonth()+1)+'월 '+start.getDate()+'일 ('+DOW[(start.getDay()+6)%7]+')'; }
+      else { var e2=new Date(end); e2.setDate(e2.getDate()-1); $('calTitle').textContent=(start.getMonth()+1)+'월 '+start.getDate()+'일 ~ '+(e2.getMonth()+1)+'월 '+e2.getDate()+'일'; }
+    }
+    var rows=await fetchRange(start,end);
+    var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
+    var bodyH=(DAY_END-DAY_START)*HOUR_H;
+    var axis='<div class="cal-axis"><div class="cal-head-sp"></div>';
+    for(var hh=DAY_START; hh<DAY_END; hh++){ axis+='<div class="cal-hr">'+hh+':00</div>'; }
+    axis+='</div>';
+    var todayKey=ymd(new Date()), cols='';
+    for(var i=0;i<nDays;i++){
+      var day=new Date(start); day.setDate(day.getDate()+i); var key=ymd(day);
+      var dowIdx=(day.getDay()+6)%7; var cls=(dowIdx===5?'cal-sat':(dowIdx===6?'cal-sun':''));
+      var head='<div class="cal-colhead'+(key===todayKey?' today':'')+' '+cls+'">'+DOW[dowIdx]+'<span class="dd">'+day.getDate()+'</span></div>';
+      var lines=''; for(var h2=1;h2<(DAY_END-DAY_START);h2++){ lines+='<div class="cal-line" style="top:'+(h2*HOUR_H)+'px"></div>'; }
+      var evs=(byDay[key]||[]).slice();
+      evs.forEach(function(s){ s.__st=minsFromStart(s.starts_at); s.__en=Math.max(s.__st+20, minsFromStart(s.ends_at)); });
+      layoutDay(evs);
+      var evHtml=evs.map(function(s){
+        var top=Math.max(0, s.__st/60*HOUR_H);
+        var hgt=Math.max(20, (s.__en-s.__st)/60*HOUR_H-2);
+        var w=100/(s.__lanes||1), left=(s.__lane||0)*w;
+        var who=esc([s.teacher_name,s.student_name].filter(Boolean).join(' · '));
+        var room=s.room_id?('🏫'+esc(roomName(s.room_id))):'';
+        var col=teacherColor(s.teacher_id);
+        return '<div class="cal-ev" title="'+esc((s.subject||'')+' '+who)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'"><b style="color:'+col+'">'+hm(s.starts_at)+'~'+hm(s.ends_at)+'</b>'+esc(s.subject||'')+(who?'<br>'+who:'')+(room?'<br>'+room:'')+'</div>';
+      }).join('');
+      cols+='<div class="cal-col">'+head+'<div class="cal-body" data-date="'+key+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
+    }
+    $('calGrid').innerHTML=axis+cols;
+  }
+  async function renderMonth(){
+    var y=calCur.getFullYear(), mo=calCur.getMonth();
+    if($('calTitle')) $('calTitle').textContent=y+'년 '+(mo+1)+'월';
+    var first=new Date(y,mo,1), gs=startOfWeek(first);
+    var end=new Date(gs); end.setDate(end.getDate()+42);
+    var rows=await fetchRange(gs,end);
+    var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
+    var todayKey=ymd(new Date()), html='';
+    DOW.forEach(function(n,idx){ html+='<div class="cal-mh '+(idx===5?'cal-sat':(idx===6?'cal-sun':''))+'">'+n+'</div>'; });
+    for(var i=0;i<42;i++){
+      var day=new Date(gs); day.setDate(day.getDate()+i); var key=ymd(day);
+      var oth=(day.getMonth()!==mo)?' oth':'', td=(key===todayKey)?' today':'';
+      var evs=(byDay[key]||[]);
+      var chips=evs.slice(0,3).map(function(s){ var col=teacherColor(s.teacher_id); return '<div class="cal-chip" style="border-left-color:'+col+';background:'+col+'1f">'+hm(s.starts_at)+' '+esc(s.subject||'')+(s.teacher_name?(' '+esc(s.teacher_name)):'')+'</div>'; }).join('');
+      var more=evs.length>3?('<div class="cal-more">+'+(evs.length-3)+' 더</div>'):'';
+      html+='<div class="cal-mcell'+oth+td+'" data-date="'+key+'"><div class="cal-mdate">'+day.getDate()+'</div>'+chips+more+'</div>';
+    }
+    $('calMonthGrid').innerHTML=html;
+  }
+  async function renderCalendar(){
+    if(calMode==='month'){ if($('calScroll'))$('calScroll').style.display='none'; if($('calMonthGrid'))$('calMonthGrid').style.display=''; await renderMonth(); }
+    else { if($('calScroll'))$('calScroll').style.display=''; if($('calMonthGrid'))$('calMonthGrid').style.display='none'; await renderGrid(calMode==='day'?1:7); }
+    updateLegend();
+    updateModeButtons();
+  }
+  function calShift(dir){ if(calMode==='day') calCur.setDate(calCur.getDate()+dir); else if(calMode==='week') calCur.setDate(calCur.getDate()+dir*7); else calCur.setMonth(calCur.getMonth()+dir); renderCalendar(); }
+  if($('calPrev')) $('calPrev').onclick=function(){ calShift(-1); };
+  if($('calNext')) $('calNext').onclick=function(){ calShift(1); };
+  if($('calToday')) $('calToday').onclick=function(){ calCur=new Date(); calCur.setHours(0,0,0,0); renderCalendar(); };
+  if($('calDay')) $('calDay').onclick=function(){ calMode='day'; renderCalendar(); };
+  if($('calWeekBtn')) $('calWeekBtn').onclick=function(){ calMode='week'; renderCalendar(); };
+  if($('calMonth')) $('calMonth').onclick=function(){ calMode='month'; renderCalendar(); };
+
+  // ---- 스케줄 폼: 선택 시간대 빈 강의장 실시간 표시 ----
+  async function updateScFree(){
+    if(!$('scFree')) return;
+    var d=$('scDate').value, s=$('scStart').value, en=$('scEnd').value;
+    if(!d||!s||!en){ $('scFree').style.display='none'; $('scFree').innerHTML=''; return; }
+    var startISO=new Date(d+'T'+s).toISOString(), endISO=new Date(d+'T'+en).toISOString();
+    $('scFree').style.display='';
+    if(endISO<=startISO){ $('scFree').innerHTML='<span style="color:#c0342b">종료가 시작보다 빨라요.</span>'; return; }
+    var r=await sb.from('schedules').select('room_id').lt('starts_at',endISO).gt('ends_at',startISO);
+    var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null) busy[x.room_id]=true; });
+    var free=_rooms.filter(function(rm){ return rm.active!==false && !busy[rm.id]; });
+    var busyR=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
+    $('scFree').innerHTML='🟢 빈 강의장: <b>'+(free.length?free.map(function(x){return esc(x.name);}).join(', '):'없음')+'</b>'+(busyR.length?' &nbsp;&nbsp;🔴 사용중: '+busyR.map(function(x){return esc(x.name);}).join(', '):'');
+  }
+  if($('scDate')) $('scDate').onchange=updateScFree;
+  if($('scStart')) $('scStart').onchange=updateScFree;
+  if($('scEnd')) $('scEnd').onchange=updateScFree;
+
+  // ---- 캘린더 클릭 → 날짜/시간 자동 입력 ----
+  if($('calGrid')) $('calGrid').addEventListener('click', function(e){
+    if(e.target.closest && e.target.closest('.cal-ev')) return;
+    var body=(e.target.closest)?e.target.closest('.cal-body'):null; if(!body) return;
+    var rect=body.getBoundingClientRect(); var y=e.clientY-rect.top;
+    var mins=Math.round((y/HOUR_H*60)/10)*10 + DAY_START*60;
+    var hh=Math.floor(mins/60), mm=mins%60;
+    if(hh<DAY_START){ hh=DAY_START; mm=0; } if(hh>=DAY_END){ hh=DAY_END-1; mm=0; }
+    var endh=Math.min(DAY_END, hh+1);
+    if($('scDate')) $('scDate').value=body.getAttribute('data-date');
+    if($('scStart')) $('scStart').value=pad(hh)+':'+pad(mm);
+    if($('scEnd')) $('scEnd').value=pad(endh)+':'+pad(mm);
+    updateScFree();
+    if($('scDate') && $('scDate').scrollIntoView) $('scDate').scrollIntoView({behavior:'smooth',block:'center'});
+  });
+  if($('calMonthGrid')) $('calMonthGrid').addEventListener('click', function(e){
+    var cell=(e.target.closest)?e.target.closest('.cal-mcell'):null; if(!cell||!cell.getAttribute('data-date')) return;
+    var key=cell.getAttribute('data-date'), p=key.split('-');
+    if($('scDate')) $('scDate').value=key;
+    calCur=new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10)); calCur.setHours(0,0,0,0);
+    calMode='day'; renderCalendar(); updateScFree();
+  });
+
+  // ---- 정산 ----
+  async function loadPayments(month){
+    if(!$('pyTable')) return;
+    var rows=[];
+    if(sb && month){ var r=await sb.from('payments').select('*').eq('month',month).order('paid_at',{ascending:false}); if(!r.error&&r.data) rows=r.data; }
+    window.__wtPayments=rows;
+    var total=rows.reduce(function(a,b){return a+(b.amount||0);},0);
+    if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
+    if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 정산 내역이 없습니다.</td></tr>'; return; }
+    var mm=isMasterNow();
+    var h='<tr><th>학생</th><th>금액</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    rows.forEach(function(p){ h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+    $('pyTable').innerHTML=h;
+  }
+  function applyRoleScope(){
+    var mm=isMasterNow();
+    if($('pyAddForm')) $('pyAddForm').style.display = mm ? '' : 'none';
+    if($('pyScopeNote')) $('pyScopeNote').style.display = mm ? 'none' : '';
+  }
+  if($('pyAdd')) $('pyAdd').onclick=async function(){
+    var err=$('pyErr'); err.textContent='';
+    var student=_members.filter(function(m){return m.id===$('pyStudent').value;})[0];
+    var amount=parseInt($('pyAmount').value,10); var month=$('pyMonth').value;
+    if(!student){ err.textContent='학생을 선택하세요.'; return; }
+    if(!amount||amount<=0){ err.textContent='금액을 입력하세요.'; return; }
+    if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
+    var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null) };
+    var r=await sb.from('payments').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
+    $('pyAmount').value=''; $('pyMemo').value=''; await loadPayments($('pyFilter').value||month);
+  };
+  if($('pyFilter')) $('pyFilter').onchange=function(){ loadPayments($('pyFilter').value); };
+  var PAY_CATS=['카드','계좌이체','현금','카카오페이','네이버페이'];
+  var CARD_ISSUERS=['삼성카드','현대카드','신한카드','KB국민카드','롯데카드','BC카드','하나카드','우리카드','NH농협카드','기타 카드'];
+  function fillMethods(){
+    var cats=PAY_CATS.map(function(m){return '<option>'+m+'</option>';}).join('');
+    var cards=CARD_ISSUERS.map(function(m){return '<option>'+m+'</option>';}).join('');
+    if($('pyMethod'))$('pyMethod').innerHTML=cats; if($('pyeMethod'))$('pyeMethod').innerHTML=cats;
+    if($('pyCard'))$('pyCard').innerHTML=cards; if($('pyeCard'))$('pyeCard').innerHTML=cards;
+  }
+  function toggleCard(sel,wrap){ if($(wrap)) $(wrap).style.display=($(sel)&&$(sel).value==='카드')?'':'none'; }
+  function payMethodVal(sel,card){ return ($(sel)&&$(sel).value==='카드') ? ($(card)?$(card).value:'카드') : ($(sel)?$(sel).value:''); }
+  if($('pyMethod')) $('pyMethod').onchange=function(){ toggleCard('pyMethod','pyCardWrap'); };
+  if($('pyeMethod')) $('pyeMethod').onchange=function(){ toggleCard('pyeMethod','pyeCardWrap'); };
+  var editingPayId=null;
+  function openPayEdit(p){
+    editingPayId=p.id;
+    if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
+    if($('pyeAmount')) $('pyeAmount').value=p.amount||'';
+    if($('pyeMonth')) $('pyeMonth').value=p.month||'';
+    var _m=p.method||PAY_CATS[0], _isCard=CARD_ISSUERS.indexOf(_m)>=0;
+    if($('pyeMethod')) $('pyeMethod').value=_isCard?'카드':(PAY_CATS.indexOf(_m)>=0?_m:'카드');
+    if($('pyeCard')) $('pyeCard').value=_isCard?_m:CARD_ISSUERS[0];
+    toggleCard('pyeMethod','pyeCardWrap');
+    if($('pyePaid')) $('pyePaid').value=p.paid_at||'';
+    if($('pyeMemo')) $('pyeMemo').value=p.memo||'';
+    if($('pyeErr')) $('pyeErr').textContent='';
+    $('waPayEdit').classList.add('on');
+  }
+  if($('waPayEditClose')) $('waPayEditClose').onclick=function(){ $('waPayEdit').classList.remove('on'); };
+  if($('waPayEdit')) $('waPayEdit').addEventListener('click',function(e){ if(e.target===$('waPayEdit')) $('waPayEdit').classList.remove('on'); });
+  if($('pyeSave')) $('pyeSave').onclick=async function(){
+    if(!editingPayId||!sb) return;
+    var amount=parseInt($('pyeAmount').value,10);
+    if(!amount||amount<=0){ $('pyeErr').textContent='금액을 입력하세요.'; return; }
+    if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
+    var patch={ amount:amount, month:$('pyeMonth').value, method:payMethodVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null) };
+    var r=await sb.from('payments').update(patch).eq('id',editingPayId);
+    if(r.error){ $('pyeErr').textContent='저장 실패: '+r.error.message; return; }
+    $('waPayEdit').classList.remove('on');
+    await loadPayments($('pyFilter').value);
+  };
+  if($('pyTable')) $('pyTable').addEventListener('click', async function(e){
+    var t=(e.target&&e.target.closest)?e.target:null; if(!t||!t.closest) return;
+    var ed=t.closest('a[data-pyedit]'), dl=t.closest('a[data-pydel]');
+    if(ed){ var p=(window.__wtPayments||[]).filter(function(x){return String(x.id)===String(ed.getAttribute('data-pyedit'));})[0]; if(p) openPayEdit(p); return; }
+    if(dl){ if(!confirm('이 정산 내역을 삭제할까요?')) return; var r=await sb.from('payments').delete().eq('id',dl.getAttribute('data-pydel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } await loadPayments($('pyFilter').value); return; }
+  });
+
+  // ================= 학생 대시보드 =================
+  async function renderMy(){
+    if($('waMyName')) $('waMyName').textContent=roleTag(profile.role);
+    if($('myProfile')) $('myProfile').innerHTML='<b>'+esc(profile.name)+'</b>님 · '+esc(profile.email)+'<br>연락처: '+esc(profile.phone||'-')+' · 관심 과목: '+esc(profile.interest||'-')+'<br>현재 '+esc(profile.current_score||'-')+' → 목표 '+esc(profile.goal_score||'-');
+    if($('myschedTable')){
+      var rows=[];
+      if(sb){ var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-6*3600*1000).toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; }
+      if(!rows.length){ $('myschedTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; }
+      else { var h='<tr><th>일시</th><th>과목</th><th>선생님</th><th>메모</th></tr>'; rows.forEach(function(s){ h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.memo||'')+'</td></tr>'; }); $('myschedTable').innerHTML=h; }
+    }
+    if($('mypayTable')){
+      var pr=[];
+      if(sb){ var r2=await sb.from('payments').select('*').eq('student_id',profile.id).order('month',{ascending:false}); if(!r2.error&&r2.data) pr=r2.data; }
+      if(!pr.length){ $('mypayTable').innerHTML='<tr><td class="wa-empty">결제 내역이 없습니다.</td></tr>'; }
+      else { var h2='<tr><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td>'+esc(p.month)+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
+    }
+  }
+  if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
+  if($('waMy')) $('waMy').addEventListener('click',function(e){ if(e.target===$('waMy')) $('waMy').classList.remove('on'); });
+
+  if(sb && sb.auth && sb.auth.onAuthStateChange){ sb.auth.onAuthStateChange(function(){ }); }
+  refresh();
 })();
 </script>
 <style>
