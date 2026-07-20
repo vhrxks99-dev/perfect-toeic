@@ -2443,7 +2443,7 @@
         <div class="dash-row">
           <label>강의장<select id="scRoom"></select></label>
           <label>선생님<select id="scTeacher"></select></label>
-          <label>학생<select id="scStudent"></select></label>
+          <label>학생<input type="text" id="scStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="scStudent"></select></label>
         </div>
         <div class="dash-row">
           <label>과목<select id="scSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
@@ -2495,7 +2495,7 @@
     <div class="dash-pane" data-dpane="pay">
       <div class="dash-form" id="pyAddForm">
         <div class="dash-row">
-          <label>학생<select id="pyStudent"></select></label>
+          <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"></label>
           <label>정산 월<input type="month" id="pyMonth"></label>
@@ -2596,6 +2596,7 @@
         <label>목표 점수<input type="text" id="waEGoal"></label>
       </div>
       <label>가입 경로<input type="text" id="waERoute"></label>
+      <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
       <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="master">원장님</option></select></label>
       <p class="wa-err" id="waEErr"></p>
       <button class="btn btn-primary" id="waESave" type="button">저장</button>
@@ -2832,11 +2833,13 @@
     window.__wtMembers=m;
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
     function rt(r){ return r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생'); }
+    var tmap={}; m.forEach(function(x){ tmap[x.id]=x.name; });
     var mm=isMasterNow();
-    var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>현재→목표</th><th>경로</th><th>구분</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
-    m.forEach(function(u){ var sc=(esc(u.current_score||'-'))+' → '+(esc(u.goal_score||'-'));
+    var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당쌤</th><th>구분</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    m.forEach(function(u){
       var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">삭제</a></td>' : '';
-      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td style="white-space:nowrap">'+sc+'</td><td>'+esc(u.route||'-')+'</td><td>'+rt(u.role)+'</td><td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
+      var tn = (u.role==='student') ? (u.teacher_id?esc(tmap[u.teacher_id]||'-'):'<span style="color:var(--muted)">미배정</span>') : '-';
+      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td>'+tn+'</td><td>'+rt(u.role)+'</td><td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
     $('waTable').innerHTML=h;
   }
   if($('waAdminClose')) $('waAdminClose').onclick=function(){ $('waAdmin').classList.remove('on'); };
@@ -2844,7 +2847,7 @@
   if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
 
   // ---- 회원 수정/삭제 (마스터 전용) ----
-  var editingId=null, editingRole='student';
+  var editingId=null, editingRole='student', editingTeacher='';
   if($('waTable')) $('waTable').addEventListener('click', function(e){
     var a=(e.target && e.target.closest)?e.target.closest('a[data-act]'):null; if(!a) return;
     e.preventDefault();
@@ -2857,7 +2860,8 @@
     $('waEditEmail').textContent=u.email;
     $('waEName').value=u.name||''; $('waEPhone').value=u.phone||''; $('waEInterest').value=u.interest||'';
     $('waECurrent').value=u.current_score||''; $('waEGoal').value=u.goal_score||''; $('waERoute').value=u.route||'';
-    editingRole=u.role||'student';
+    editingRole=u.role||'student'; editingTeacher=u.teacher_id||'';
+    if($('waETeacher')){ var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';}); $('waETeacher').innerHTML='<option value="">미배정</option>'+ts.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join(''); $('waETeacher').value=u.teacher_id||''; }
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
     $('waEdit').classList.add('on');
   }
@@ -2880,6 +2884,8 @@
     var r=await sb.from('profiles').update(patch).eq('id',editingId);
     if(r.error){ $('waEErr').textContent='저장 실패: '+r.error.message; return; }
     if(newRole!==editingRole){ var rr=await sb.rpc('set_role',{target:editingId,new_role:newRole}); if(rr.error){ $('waEErr').textContent='권한 변경 실패: '+rr.error.message; return; } }
+    var newTeacher=$('waETeacher')?$('waETeacher').value:'';
+    if(newTeacher!==editingTeacher){ var rt2=await sb.rpc('set_teacher',{target:editingId,tid:(newTeacher||null)}); if(rt2.error){ $('waEErr').textContent='담당 선생님 변경 실패: '+rt2.error.message; return; } }
     $('waEdit').classList.remove('on');
     await renderTable();
     if(wasSelf) await refresh();
@@ -2934,6 +2940,7 @@
     fillMethods(); toggleCard('pyMethod','pyCardWrap');
     await loadRooms();
     fillSelects();
+    computeStudentPool(); fillStudentSelects();
     var now=new Date();
     if($('scDate')&&!$('scDate').value) $('scDate').value=ymd(now);
     if($('rmDate')&&!$('rmDate').value) $('rmDate').value=ymd(now);
@@ -2946,14 +2953,27 @@
     applyRoleScope();
   }
   function fillSelects(){
-    var students=_members.filter(function(m){return m.role==='student';});
     var teachers=_members.filter(function(m){return m.role==='admin'||m.role==='master';});
-    function opts(arr){ return arr.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>'; }).join(''); }
     if($('scRoom')) $('scRoom').innerHTML=_rooms.map(function(r){ return '<option value="'+r.id+'">'+esc(r.name)+'</option>'; }).join('');
-    if($('scTeacher')) $('scTeacher').innerHTML=opts(teachers);
-    if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+opts(students);
-    if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+opts(students);
+    if($('scTeacher')){ $('scTeacher').innerHTML=teachers.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>'; }).join(''); if(profile) $('scTeacher').value=profile.id; }
   }
+  var _studentPool=[];
+  function computeStudentPool(){
+    var all=_members.filter(function(m){return m.role==='student';});
+    _studentPool = (profile && profile.role==='master') ? all : all.filter(function(m){ return m.teacher_id && m.teacher_id===profile.id; });
+  }
+  function studentOpts(q){
+    q=(q||'').trim().toLowerCase();
+    var list=_studentPool;
+    if(q) list=_studentPool.filter(function(m){ return (m.name||'').toLowerCase().indexOf(q)>=0 || (m.phone||'').indexOf(q)>=0; });
+    return list.slice(0,300).map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+(m.phone?(' · '+esc(m.phone)):'')+'</option>'; }).join('');
+  }
+  function fillStudentSelects(){
+    if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+studentOpts($('scStudentSearch')?$('scStudentSearch').value:'');
+    if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts($('pyStudentSearch')?$('pyStudentSearch').value:'');
+  }
+  if($('scStudentSearch')) $('scStudentSearch').oninput=function(){ if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+studentOpts(this.value); };
+  if($('pyStudentSearch')) $('pyStudentSearch').oninput=function(){ if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
 
   // ---- 강의장 ----
   async function loadRooms(){
@@ -3254,7 +3274,7 @@
     else {
       var h='<tr><th>학생</th><th>구매</th><th>출석</th><th>남은 횟수</th><th>출석 처리</th></tr>';
       students.forEach(function(s){ var pu=purchased[s.id]||0, at=attended[s.id]||0, rem=pu-at;
-        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+at+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:12px" data-attid="'+esc(s.id)+'"'+(rem<=0?' disabled':'')+'>출석 (−1)</button></td></tr>'; });
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+at+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'"'+(rem<=0?' disabled':'')+'>출석 −1</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소 +1</button></td></tr>'; });
       $('attTable').innerHTML=h;
     }
     if($('attHistTable')){
@@ -3264,12 +3284,23 @@
   }
   if($('attReload')) $('attReload').onclick=loadAttendance;
   if($('attTable')) $('attTable').addEventListener('click', async function(e){
-    var b=(e.target&&e.target.closest)?e.target.closest('button[data-attid]'):null; if(!b) return;
-    var sid=b.getAttribute('data-attid'); var st=_members.filter(function(m){return m.id===sid;})[0]; if(!st) return;
-    if(!confirm(st.name+' 학생 출석 처리할까요? (남은 횟수 −1)')) return;
-    var r=await sb.from('attendance').insert({student_id:sid, student_name:st.name, attended_on:ymd(new Date()), admin_id:(profile?profile.id:null)});
-    if(r.error){ alert('출석 처리 실패: '+r.error.message); return; }
-    await loadAttendance();
+    var minus=(e.target&&e.target.closest)?e.target.closest('button[data-attid]'):null;
+    var plus=(e.target&&e.target.closest)?e.target.closest('button[data-attundo]'):null;
+    if(minus){
+      var sid=minus.getAttribute('data-attid'); var st=_members.filter(function(m){return m.id===sid;})[0]; if(!st) return;
+      if(!confirm(st.name+' 학생 출석 처리할까요? (남은 횟수 −1)')) return;
+      var r=await sb.from('attendance').insert({student_id:sid, student_name:st.name, attended_on:ymd(new Date()), admin_id:(profile?profile.id:null)});
+      if(r.error){ alert('출석 처리 실패: '+r.error.message); return; }
+      await loadAttendance();
+    } else if(plus){
+      var sid2=plus.getAttribute('data-attundo'); var st2=_members.filter(function(m){return m.id===sid2;})[0]; if(!st2) return;
+      if(!confirm(st2.name+' 학생의 최근 출석 1건을 취소할까요? (남은 횟수 +1)')) return;
+      var q=await sb.from('attendance').select('id').eq('student_id',sid2).order('created_at',{ascending:false}).limit(1);
+      if(q.error||!q.data||!q.data.length){ alert('취소할 출석 내역이 없습니다.'); return; }
+      var d=await sb.from('attendance').delete().eq('id',q.data[0].id);
+      if(d.error){ alert('취소 실패: '+d.error.message); return; }
+      await loadAttendance();
+    }
   });
 
   // ================= 학생 대시보드 =================
