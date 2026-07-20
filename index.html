@@ -2294,6 +2294,8 @@
 .wa-user b{color:var(--accent)}
 .wa-link{font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;white-space:nowrap}
 .wa-link:hover{text-decoration:underline}
+.wa-authlink{font-size:13.5px}
+.wa-sep{color:var(--line-strong);font-size:12px;margin:0 1px}
 .wa-admin{max-width:740px}
 .wa-admin-actions{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}
 .wa-admin-actions .btn{padding:9px 13px;font-size:13px}
@@ -2650,7 +2652,7 @@
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
       ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+(s.role==='admin'?'<a href="#" id="waAdminOpenM">회원관리</a>':'')+'<a href="#" id="waLogoutM">로그아웃</a></div></div>'
-      : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인 / 회원가입</a></div>'; }
+      : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
   }
   function closeDrawer(){ var d=$('drawer'); if(d) d.classList.remove('open'); }
@@ -2785,17 +2787,19 @@
       return h;
     }
     var a=$('waAuth');
-    if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="btn btn-ghost wa-btn" id="waOpen">로그인</a>'; }
+    if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
       ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
-      : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인 / 회원가입</a></div>'; }
+      : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
   }
   function closeDrawer(){ var d=$('drawer'); if(d) d.classList.remove('open'); }
   function wire(){
     [ ['waOpen','click',function(){openModal('login');}],
       ['waOpenM','click',function(e){e.preventDefault();closeDrawer();openModal('login');}],
+      ['waOpenSignup','click',function(){openModal('signup');}],
+      ['waOpenSignupM','click',function(e){e.preventDefault();closeDrawer();openModal('signup');}],
       ['waLogout','click',function(){ if(confirm('로그아웃 하시겠어요?')) doLogout(); }],
       ['waLogoutM','click',function(e){e.preventDefault();doLogout();closeDrawer();}],
       ['waAdminOpen','click',function(){openAdmin();}],
