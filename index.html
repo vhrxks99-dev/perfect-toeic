@@ -2338,14 +2338,10 @@
       </div>
       <label>휴대폰 번호 <em>*</em><input type="tel" id="waSuPhone" required maxlength="30" placeholder="010-1234-5678"></label>
       <div class="wa-row">
-        <label>생년월일<input type="date" id="waSuBirth"></label>
+        <label>생년월일 <span class="wa-hint">(6자리)</span><input type="text" id="waSuBirth" maxlength="6" inputmode="numeric" placeholder="예: 940107"></label>
         <label>성별<select id="waSuGender"><option value="">선택 안 함</option><option>남성</option><option>여성</option></select></label>
       </div>
       <label>관심 과목<select id="waSuInterest"><option value="">선택하세요</option><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option><option>토익+스피킹</option></select></label>
-      <div class="wa-row">
-        <label>현재 토익 점수<input type="text" id="waSuCurrent" maxlength="20" placeholder="예: 650 / 없음"></label>
-        <label>목표 점수<input type="text" id="waSuGoal" maxlength="20" placeholder="예: 900"></label>
-      </div>
       <label>알게 된 경로<select id="waSuRoute"><option value="">선택하세요</option><option>인스타그램</option><option>네이버</option><option>숨고</option><option>지인 추천</option><option>블로그</option><option>기타</option></select></label>
       <label class="wa-check"><input type="checkbox" id="waSuMarketing"><span>이벤트·개강·혜택 등 마케팅 정보 수신에 동의합니다. <span class="wa-hint">(선택)</span></span></label>
       <label class="wa-check"><input type="checkbox" id="waSuAgree" required><span>개인정보 수집·이용에 동의합니다. <em>*</em></span></label>
@@ -2425,6 +2421,7 @@
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
       <button class="dash-tab" data-dtab="rooms">강의장</button>
       <button class="dash-tab" data-dtab="pay">정산</button>
+      <button class="dash-tab" data-dtab="att">출석</button>
     </div>
 
     <div class="dash-pane on" data-dpane="members">
@@ -2500,6 +2497,7 @@
         <div class="dash-row">
           <label>학생<select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
+          <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"></label>
           <label>정산 월<input type="month" id="pyMonth"></label>
         </div>
         <div class="dash-row">
@@ -2518,6 +2516,14 @@
       <div id="pyScopeNote" class="dash-note" style="display:none">담당 학생의 정산 내역만 표시됩니다. (조회 전용 · 등록/삭제는 원장님)</div>
       <div class="wa-table-wrap"><table class="wa-table" id="pyTable"></table></div>
     </div>
+
+    <div class="dash-pane" data-dpane="att">
+      <div class="dash-list-head" style="margin-top:6px">🎫 학생별 남은 수업 횟수 <button class="btn btn-ghost" id="attReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="dash-note" style="margin-top:0">학생을 <b>출석 처리</b>하면 남은 횟수가 1회 차감됩니다. 횟수권은 정산 탭에서 판매(충전)합니다.</div>
+      <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
+      <div class="dash-list-head">최근 출석 내역</div>
+      <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
+    </div>
   </div>
 </div>
 <div class="wa-overlay" id="waMy" aria-hidden="true">
@@ -2532,7 +2538,7 @@
         <label>성별<select id="myGender"><option value="">선택 안 함</option><option>남성</option><option>여성</option></select></label>
       </div>
       <div class="wa-row">
-        <label>생년월일<input type="date" id="myBirth"></label>
+        <label>생년월일 <span class="wa-hint">(6자리)</span><input type="text" id="myBirth" maxlength="6" inputmode="numeric" placeholder="예: 940107"></label>
         <label>관심 과목<select id="myInterest"><option value="">선택</option><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option><option>토익+스피킹</option></select></label>
       </div>
       <div class="wa-row">
@@ -2544,10 +2550,14 @@
       <p class="wa-err" id="myErr"></p>
       <button class="btn btn-primary" id="mySave" type="button">내 정보 저장</button>
     </div>
+    <div class="dash-list-head">🎫 내 수강권 (남은 수업 횟수)</div>
+    <div class="dash-note" id="myPass"></div>
     <div class="dash-list-head">📅 내 수업 일정</div>
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
     <div class="dash-list-head">💳 결제 내역</div>
     <div class="wa-table-wrap"><table class="wa-table" id="mypayTable"></table></div>
+    <div class="dash-list-head">✅ 출석 내역</div>
+    <div class="wa-table-wrap"><table class="wa-table" id="myAttTable"></table></div>
   </div>
 </div>
 <div class="wa-overlay" id="waPayEdit" aria-hidden="true">
@@ -2559,6 +2569,7 @@
       <div class="wa-row">
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
+        <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="8+"></label>
       </div>
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
@@ -2731,8 +2742,8 @@
     var err=$('waSuErr'); err.textContent='';
     var name=$('waSuName').value.trim(), email=$('waSuEmail').value.trim().toLowerCase(), phone=$('waSuPhone').value.trim();
     var pw=$('waSuPw').value, pw2=$('waSuPw2').value;
-    var birth=$('waSuBirth').value||null, gender=$('waSuGender').value||null, interest=$('waSuInterest').value||null;
-    var current=$('waSuCurrent').value.trim()||null, goal=$('waSuGoal').value.trim()||null, route=$('waSuRoute').value||null, marketing=$('waSuMarketing').checked;
+    var birth=$('waSuBirth').value.trim()||null, gender=$('waSuGender').value||null, interest=$('waSuInterest').value||null;
+    var route=$('waSuRoute').value||null, marketing=$('waSuMarketing').checked;
     if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·휴대폰 번호·비밀번호는 필수입니다.'; return; }
     if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
     if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
@@ -2742,7 +2753,7 @@
     if(su.error){ err.textContent=authErr(su.error.message); return; }
     var user=su.data.user;
     if(!user){ err.textContent='가입에 실패했습니다. 다시 시도해주세요.'; return; }
-    var ins=await sb.from('profiles').insert({ id:user.id, name:name, email:email, phone:phone, birth:birth, gender:gender, interest:interest, current_score:current, goal_score:goal, route:route, marketing:marketing });
+    var ins=await sb.from('profiles').insert({ id:user.id, name:name, email:email, phone:phone, birth:birth, gender:gender, interest:interest, route:route, marketing:marketing });
     if(ins.error){ console.error('profile insert:', ins.error); }
     $('waSignupForm').reset(); closeModal(); await refresh();
     alert(name+'님, 회원가입이 완료되었습니다!');
@@ -2931,6 +2942,7 @@
     if($('pyFilter')&&!$('pyFilter').value) $('pyFilter').value=ym(now);
     await loadSchedules(); await renderCalendar();
     await loadPayments($('pyFilter')?$('pyFilter').value:ym(now));
+    await loadAttendance();
     applyRoleScope();
   }
   function fillSelects(){
@@ -3153,8 +3165,8 @@
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
     if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 정산 내역이 없습니다.</td></tr>'; return; }
     var mm=isMasterNow();
-    var h='<tr><th>학생</th><th>금액</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
-    rows.forEach(function(p){ h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+    var h='<tr><th>학생</th><th>금액</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    rows.forEach(function(p){ h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
@@ -3166,12 +3178,14 @@
     var err=$('pyErr'); err.textContent='';
     var student=_members.filter(function(m){return m.id===$('pyStudent').value;})[0];
     var amount=parseInt($('pyAmount').value,10); var month=$('pyMonth').value;
+    var sessions=parseInt($('pySessions').value,10)||0;
     if(!student){ err.textContent='학생을 선택하세요.'; return; }
     if(!amount||amount<=0){ err.textContent='금액을 입력하세요.'; return; }
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
-    var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null) };
+    if(sessions>0 && sessions<8){ err.textContent='수업 횟수권은 최소 8회부터 구매 가능합니다.'; return; }
+    var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null) };
     var r=await sb.from('payments').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
-    $('pyAmount').value=''; $('pyMemo').value=''; await loadPayments($('pyFilter').value||month);
+    $('pyAmount').value=''; $('pyMemo').value=''; $('pySessions').value=''; await loadPayments($('pyFilter').value||month); await loadAttendance();
   };
   if($('pyFilter')) $('pyFilter').onchange=function(){ loadPayments($('pyFilter').value); };
   var PAY_CATS=['카드','계좌이체','현금','카카오페이','네이버페이'];
@@ -3197,6 +3211,7 @@
     if($('pyeCard')) $('pyeCard').value=_isCard?_m:CARD_ISSUERS[0];
     toggleCard('pyeMethod','pyeCardWrap');
     if($('pyePaid')) $('pyePaid').value=p.paid_at||'';
+    if($('pyeSessions')) $('pyeSessions').value=p.sessions||'';
     if($('pyeMemo')) $('pyeMemo').value=p.memo||'';
     if($('pyeErr')) $('pyeErr').textContent='';
     $('waPayEdit').classList.add('on');
@@ -3208,17 +3223,53 @@
     var amount=parseInt($('pyeAmount').value,10);
     if(!amount||amount<=0){ $('pyeErr').textContent='금액을 입력하세요.'; return; }
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
-    var patch={ amount:amount, month:$('pyeMonth').value, method:payMethodVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null) };
+    var sessions=parseInt($('pyeSessions').value,10)||0;
+    if(sessions>0 && sessions<8){ $('pyeErr').textContent='수업 횟수권은 최소 8회부터입니다.'; return; }
+    var patch={ amount:amount, month:$('pyeMonth').value, method:payMethodVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null) };
     var r=await sb.from('payments').update(patch).eq('id',editingPayId);
     if(r.error){ $('pyeErr').textContent='저장 실패: '+r.error.message; return; }
     $('waPayEdit').classList.remove('on');
-    await loadPayments($('pyFilter').value);
+    await loadPayments($('pyFilter').value); await loadAttendance();
   };
   if($('pyTable')) $('pyTable').addEventListener('click', async function(e){
     var t=(e.target&&e.target.closest)?e.target:null; if(!t||!t.closest) return;
     var ed=t.closest('a[data-pyedit]'), dl=t.closest('a[data-pydel]');
     if(ed){ var p=(window.__wtPayments||[]).filter(function(x){return String(x.id)===String(ed.getAttribute('data-pyedit'));})[0]; if(p) openPayEdit(p); return; }
     if(dl){ if(!confirm('이 정산 내역을 삭제할까요?')) return; var r=await sb.from('payments').delete().eq('id',dl.getAttribute('data-pydel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } await loadPayments($('pyFilter').value); return; }
+  });
+
+  // ---- 출석 / 수강권 (남은 수업 횟수) ----
+  async function loadAttendance(){
+    if(!$('attTable')) return;
+    var pays=[], atts=[];
+    if(sb){
+      var r1=await sb.from('payments').select('student_id,sessions'); if(!r1.error&&r1.data) pays=r1.data;
+      var r2=await sb.from('attendance').select('student_id,student_name,attended_on,created_at').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
+    }
+    var purchased={}, attended={};
+    pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
+    atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
+    var students=_members.filter(function(m){return m.role==='student';});
+    if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">등록된 학생이 없습니다.</td></tr>'; }
+    else {
+      var h='<tr><th>학생</th><th>구매</th><th>출석</th><th>남은 횟수</th><th>출석 처리</th></tr>';
+      students.forEach(function(s){ var pu=purchased[s.id]||0, at=attended[s.id]||0, rem=pu-at;
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+at+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:12px" data-attid="'+esc(s.id)+'"'+(rem<=0?' disabled':'')+'>출석 (−1)</button></td></tr>'; });
+      $('attTable').innerHTML=h;
+    }
+    if($('attHistTable')){
+      if(!atts.length){ $('attHistTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; }
+      else { var hh='<tr><th>출석일</th><th>학생</th></tr>'; atts.slice(0,40).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td></tr>'; }); $('attHistTable').innerHTML=hh; }
+    }
+  }
+  if($('attReload')) $('attReload').onclick=loadAttendance;
+  if($('attTable')) $('attTable').addEventListener('click', async function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('button[data-attid]'):null; if(!b) return;
+    var sid=b.getAttribute('data-attid'); var st=_members.filter(function(m){return m.id===sid;})[0]; if(!st) return;
+    if(!confirm(st.name+' 학생 출석 처리할까요? (남은 횟수 −1)')) return;
+    var r=await sb.from('attendance').insert({student_id:sid, student_name:st.name, attended_on:ymd(new Date()), admin_id:(profile?profile.id:null)});
+    if(r.error){ alert('출석 처리 실패: '+r.error.message); return; }
+    await loadAttendance();
   });
 
   // ================= 학생 대시보드 =================
@@ -3246,6 +3297,18 @@
       if(sb){ var r2=await sb.from('payments').select('*').eq('student_id',profile.id).order('month',{ascending:false}); if(!r2.error&&r2.data) pr=r2.data; }
       if(!pr.length){ $('mypayTable').innerHTML='<tr><td class="wa-empty">결제 내역이 없습니다.</td></tr>'; }
       else { var h2='<tr><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td>'+esc(p.month)+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
+    }
+    if($('myPass')){
+      var pu=0, atts=[];
+      if(sb){
+        var rp=await sb.from('payments').select('sessions').eq('student_id',profile.id);
+        if(!rp.error&&rp.data) rp.data.forEach(function(x){ pu+=(x.sessions||0); });
+        var ra=await sb.from('attendance').select('attended_on,created_at').eq('student_id',profile.id).order('created_at',{ascending:false});
+        if(!ra.error&&ra.data) atts=ra.data;
+      }
+      var rem=pu-atts.length;
+      $('myPass').innerHTML='구매 <b>'+pu+'회</b> · 출석 <b>'+atts.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>';
+      if($('myAttTable')){ if(!atts.length){ $('myAttTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; } else { var ah='<tr><th>출석일</th></tr>'; atts.slice(0,30).forEach(function(a){ ah+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td></tr>'; }); $('myAttTable').innerHTML=ah; } }
     }
   }
   if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
