@@ -73,7 +73,7 @@
   }
   .site-head.stuck{border-color:var(--line);background:color-mix(in srgb,var(--paper) 92%, transparent)}
   .head-in{display:flex;align-items:center;gap:28px;height:70px}
-  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:19px;letter-spacing:-.04em}
+  .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:19px;letter-spacing:-.04em;flex:none}
   .brand .bmark{
     width:34px;height:34px;border-radius:9px;background:var(--ink);color:#fff;
     display:grid;place-items:center;font-family:var(--font-num);font-weight:800;font-size:15px;
@@ -83,7 +83,7 @@
     radial-gradient(circle at 70% 120%,var(--accent) 0 38%,transparent 39%);opacity:.9}
   .brand .bmark span{position:relative;z-index:1}
   .brand em{color:var(--accent);font-style:normal}
-  .logo{height:56px;width:auto;display:block}
+  .logo{height:56px;width:auto;display:block;flex:none}
   .logo-foot{height:56px}
   @media (max-width:560px){ .logo{height:46px} }
   nav.main{display:flex;gap:2px;margin-left:6px}
@@ -2522,7 +2522,26 @@
   <div class="wa-card wa-admin">
     <button class="wa-x" id="waMyClose" aria-label="닫기">&times;</button>
     <div class="wa-head">내 정보 <span id="waMyName" class="dash-badge"></span></div>
-    <div class="dash-note" id="myProfile"></div>
+    <div class="wa-sub" id="myEmail"></div>
+    <div class="wa-form on" style="display:flex">
+      <label>이름<input type="text" id="myName" maxlength="20"></label>
+      <div class="wa-row">
+        <label>연락처<input type="text" id="myPhone" maxlength="30"></label>
+        <label>성별<select id="myGender"><option value="">선택 안 함</option><option>남성</option><option>여성</option></select></label>
+      </div>
+      <div class="wa-row">
+        <label>생년월일<input type="date" id="myBirth"></label>
+        <label>관심 과목<select id="myInterest"><option value="">선택</option><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option><option>토익+스피킹</option></select></label>
+      </div>
+      <div class="wa-row">
+        <label>현재 점수<input type="text" id="myCurrent" maxlength="20"></label>
+        <label>목표 점수<input type="text" id="myGoal" maxlength="20"></label>
+      </div>
+      <label>새 비밀번호 <span class="wa-hint">(변경 시에만 입력)</span><input type="password" id="myPw" placeholder="6자 이상"></label>
+      <label class="wa-check" style="margin-top:0"><input type="checkbox" id="myMarketing"><span>이벤트·혜택 등 마케팅 정보 수신 동의</span></label>
+      <p class="wa-err" id="myErr"></p>
+      <button class="btn btn-primary" id="mySave" type="button">내 정보 저장</button>
+    </div>
     <div class="dash-list-head">📅 내 수업 일정</div>
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
     <div class="dash-list-head">💳 결제 내역</div>
@@ -2721,7 +2740,7 @@
     if(su.error){ err.textContent=authErr(su.error.message); return; }
     var user=su.data.user;
     if(!user){ err.textContent='가입에 실패했습니다. 다시 시도해주세요.'; return; }
-    var ins=await sb.from('profiles').insert({ id:user.id, name:name, email:email, phone:phone, birth:birth, gender:gender, interest:interest, current_score:current, goal_score:goal, route:route, marketing:marketing, role:'student' });
+    var ins=await sb.from('profiles').insert({ id:user.id, name:name, email:email, phone:phone, birth:birth, gender:gender, interest:interest, current_score:current, goal_score:goal, route:route, marketing:marketing });
     if(ins.error){ console.error('profile insert:', ins.error); }
     $('waSignupForm').reset(); closeModal(); await refresh();
     alert(name+'님, 회원가입이 완료되었습니다!');
@@ -2810,7 +2829,7 @@
   if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
 
   // ---- 회원 수정/삭제 (마스터 전용) ----
-  var editingId=null;
+  var editingId=null, editingRole='student';
   if($('waTable')) $('waTable').addEventListener('click', function(e){
     var a=(e.target && e.target.closest)?e.target.closest('a[data-act]'):null; if(!a) return;
     e.preventDefault();
@@ -2823,6 +2842,7 @@
     $('waEditEmail').textContent=u.email;
     $('waEName').value=u.name||''; $('waEPhone').value=u.phone||''; $('waEInterest').value=u.interest||'';
     $('waECurrent').value=u.current_score||''; $('waEGoal').value=u.goal_score||''; $('waERoute').value=u.route||'';
+    editingRole=u.role||'student';
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
     $('waEdit').classList.add('on');
   }
@@ -2838,11 +2858,13 @@
   if($('waEdit')) $('waEdit').addEventListener('click',function(e){ if(e.target===$('waEdit')) $('waEdit').classList.remove('on'); });
   if($('waESave')) $('waESave').onclick=async function(){
     if(!editingId||!sb) return;
-    var patch={ name:$('waEName').value.trim(), phone:($('waEPhone').value.trim()||null), interest:($('waEInterest').value.trim()||null), current_score:($('waECurrent').value.trim()||null), goal_score:($('waEGoal').value.trim()||null), route:($('waERoute').value.trim()||null), role:$('waERole').value };
+    var newRole=$('waERole').value;
+    var patch={ name:$('waEName').value.trim(), phone:($('waEPhone').value.trim()||null), interest:($('waEInterest').value.trim()||null), current_score:($('waECurrent').value.trim()||null), goal_score:($('waEGoal').value.trim()||null), route:($('waERoute').value.trim()||null) };
     if(!patch.name){ $('waEErr').textContent='이름은 필수입니다.'; return; }
     var wasSelf = profile && editingId===profile.id;
     var r=await sb.from('profiles').update(patch).eq('id',editingId);
     if(r.error){ $('waEErr').textContent='저장 실패: '+r.error.message; return; }
+    if(newRole!==editingRole){ var rr=await sb.rpc('set_role',{target:editingId,new_role:newRole}); if(rr.error){ $('waEErr').textContent='권한 변경 실패: '+rr.error.message; return; } }
     $('waEdit').classList.remove('on');
     await renderTable();
     if(wasSelf) await refresh();
@@ -3198,7 +3220,17 @@
   // ================= 학생 대시보드 =================
   async function renderMy(){
     if($('waMyName')) $('waMyName').textContent=roleTag(profile.role);
-    if($('myProfile')) $('myProfile').innerHTML='<b>'+esc(profile.name)+'</b>님 · '+esc(profile.email)+'<br>연락처: '+esc(profile.phone||'-')+' · 관심 과목: '+esc(profile.interest||'-')+'<br>현재 '+esc(profile.current_score||'-')+' → 목표 '+esc(profile.goal_score||'-');
+    if($('myEmail')) $('myEmail').textContent=profile.email+' (이메일은 변경 불가)';
+    if($('myName')) $('myName').value=profile.name||'';
+    if($('myPhone')) $('myPhone').value=profile.phone||'';
+    if($('myGender')) $('myGender').value=profile.gender||'';
+    if($('myBirth')) $('myBirth').value=profile.birth||'';
+    if($('myInterest')) $('myInterest').value=profile.interest||'';
+    if($('myCurrent')) $('myCurrent').value=profile.current_score||'';
+    if($('myGoal')) $('myGoal').value=profile.goal_score||'';
+    if($('myMarketing')) $('myMarketing').checked=!!profile.marketing;
+    if($('myPw')) $('myPw').value='';
+    if($('myErr')) $('myErr').textContent='';
     if($('myschedTable')){
       var rows=[];
       if(sb){ var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-6*3600*1000).toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; }
@@ -3214,6 +3246,21 @@
   }
   if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
   if($('waMy')) $('waMy').addEventListener('click',function(e){ if(e.target===$('waMy')) $('waMy').classList.remove('on'); });
+  if($('mySave')) $('mySave').onclick=async function(){
+    if(!profile||!sb) return;
+    var err=$('myErr'); err.textContent='';
+    var name=$('myName').value.trim(), phone=$('myPhone').value.trim();
+    if(!name){ err.textContent='이름은 필수입니다.'; return; }
+    if(!phone){ err.textContent='연락처는 필수입니다.'; return; }
+    var patch={ name:name, phone:phone, gender:($('myGender').value||null), birth:($('myBirth').value||null), interest:($('myInterest').value||null), current_score:($('myCurrent').value.trim()||null), goal_score:($('myGoal').value.trim()||null), marketing:$('myMarketing').checked };
+    var r=await sb.from('profiles').update(patch).eq('id',profile.id);
+    if(r.error){ err.textContent='저장 실패: '+r.error.message; return; }
+    var pw=$('myPw').value;
+    if(pw){ if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; } var pr=await sb.auth.updateUser({password:pw}); if(pr.error){ err.textContent='비밀번호 변경 실패: '+pr.error.message; return; } }
+    await refresh();
+    $('waMy').classList.remove('on');
+    alert('내 정보가 저장되었습니다.');
+  };
 
   if(sb && sb.auth && sb.auth.onAuthStateChange){ sb.auth.onAuthStateChange(function(){ }); }
   refresh();
