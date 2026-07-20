@@ -2915,7 +2915,7 @@
   function won(n){ n=parseInt(n,10)||0; return n.toLocaleString('ko-KR')+'원'; }
   function fillTimeSelects(){
     var opts='<option value="">선택</option>';
-    for(var hh=6; hh<=23; hh++){ for(var m=0; m<60; m+=10){ var v=pad(hh)+':'+pad(m); opts+='<option value="'+v+'">'+v+'</option>'; } }
+    for(var hh=6; hh<=23; hh++){ for(var m=0; m<60; m+=30){ var v=pad(hh)+':'+pad(m); opts+='<option value="'+v+'">'+v+'</option>'; } }
     document.querySelectorAll('.timesel').forEach(function(sel){ var cur=sel.value; sel.innerHTML=opts; if(cur) sel.value=cur; });
   }
 
@@ -3137,7 +3137,7 @@
     if(e.target.closest && e.target.closest('.cal-ev')) return;
     var body=(e.target.closest)?e.target.closest('.cal-body'):null; if(!body) return;
     var rect=body.getBoundingClientRect(); var y=e.clientY-rect.top;
-    var mins=Math.round((y/HOUR_H*60)/10)*10 + DAY_START*60;
+    var mins=Math.round((y/HOUR_H*60)/30)*30 + DAY_START*60;
     var hh=Math.floor(mins/60), mm=mins%60;
     if(hh<DAY_START){ hh=DAY_START; mm=0; } if(hh>=DAY_END){ hh=DAY_END-1; mm=0; }
     var endh=Math.min(DAY_END, hh+1);
