@@ -2420,6 +2420,12 @@
 </div>
 <style>
 .wa-dash{max-width:920px}
+/* 관리 페이지: 팝업이 아닌 전체 화면 페이지로 */
+#waAdmin.wa-overlay{padding:0;background:var(--paper);align-items:flex-start;justify-content:center;overflow:auto}
+#waAdmin .wa-card{max-width:1180px;width:100%;max-height:none;min-height:100vh;border-radius:0;box-shadow:none;padding:24px clamp(16px,4vw,48px) 64px}
+#waAdmin .wa-table-wrap{max-height:none}
+#waAdmin .wa-x{top:18px;right:22px;font-size:30px;z-index:5}
+#waAdmin .wa-head{font-size:23px}
 .dash-badge{font-size:12px;font-weight:800;color:#fff;background:var(--accent);padding:2px 10px;border-radius:999px;vertical-align:middle}
 .dash-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:12px 0 16px;flex-wrap:wrap}
 .dash-tab{background:none;border:none;padding:10px 16px;font-size:14.5px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1px}
@@ -2599,7 +2605,15 @@
           <button class="btn btn-ghost" id="workOut" type="button">🔴 퇴근</button>
         </div>
       </div>
-      <div class="dash-list-head">출퇴근 기록 <button class="btn btn-ghost" id="workReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="dash-list-head" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">📅 출퇴근 캘린더
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost" id="workCalPrev" type="button" style="padding:5px 11px;font-size:13px">←</button>
+        <b id="workCalTitle" style="min-width:74px;text-align:center;font-size:14px"></b>
+        <button class="btn btn-ghost" id="workCalNext" type="button" style="padding:5px 11px;font-size:13px">→</button>
+        <button class="btn btn-ghost" id="workCalToday" type="button" style="padding:5px 11px;font-size:12.5px">오늘</button>
+      </div>
+      <div class="cal-month" id="workCalGrid" style="border-top:1px solid var(--line);border-radius:10px"></div>
+      <div class="dash-list-head">출퇴근 기록 (목록) <button class="btn btn-ghost" id="workReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
       <div class="wa-table-wrap"><table class="wa-table" id="workTable"></table></div>
     </div>
 
@@ -3416,6 +3430,7 @@
     var rows=[];
     if(sb){ var r=await sb.from('work_logs').select('*').order('work_date',{ascending:false}).order('clock_in',{ascending:false}).limit(300); if(!r.error&&r.data) rows=r.data; }
     window.__wtWork=rows;
+    renderWorkCal();
     var td=ymd(new Date());
     var mine=rows.filter(function(x){return x.staff_id===(profile&&profile.id) && x.work_date===td;})[0];
     if($('workWho')) $('workWho').textContent=profile?('· '+profile.name):'';
@@ -3427,6 +3442,33 @@
     $('workTable').innerHTML=h;
   }
   if($('workReload')) $('workReload').onclick=loadWork;
+  var workCalCur=new Date(); workCalCur.setHours(0,0,0,0);
+  function renderWorkCal(){
+    if(!$('workCalGrid')) return;
+    var y=workCalCur.getFullYear(), mo=workCalCur.getMonth();
+    if($('workCalTitle')) $('workCalTitle').textContent=y+'.'+('0'+(mo+1)).slice(-2);
+    var first=new Date(y,mo,1), gs=startOfWeek(first);
+    var rows=window.__wtWork||[];
+    var byDay={}; rows.forEach(function(w){ if(w.work_date){ (byDay[w.work_date]=byDay[w.work_date]||[]).push(w); } });
+    var todayKey=ymd(new Date()), html='';
+    DOW.forEach(function(n,idx){ html+='<div class="cal-mh '+(idx===5?'cal-sat':(idx===6?'cal-sun':''))+'">'+n+'</div>'; });
+    for(var i=0;i<42;i++){
+      var day=new Date(gs); day.setDate(day.getDate()+i); var key=ymd(day);
+      var oth=(day.getMonth()!==mo)?' oth':'', tdc=(key===todayKey)?' today':'';
+      var evs=(byDay[key]||[]);
+      var chips=evs.slice(0,4).map(function(w){
+        var ci=hmT(w.clock_in), co=hmT(w.clock_out);
+        var t=(ci==='-'?'--':ci)+'~'+(co==='-'?'--':co);
+        return '<div class="cal-chip" style="border-left-color:var(--accent);background:var(--accent-wash)">'+esc(w.staff_name||'-')+' '+t+'</div>';
+      }).join('');
+      var more=evs.length>4?('<div class="cal-more">+'+(evs.length-4)+'</div>'):'';
+      html+='<div class="cal-mcell'+oth+tdc+'"><div class="cal-mdate">'+day.getDate()+'</div>'+chips+more+'</div>';
+    }
+    $('workCalGrid').innerHTML=html;
+  }
+  if($('workCalPrev')) $('workCalPrev').onclick=function(){ workCalCur.setMonth(workCalCur.getMonth()-1); renderWorkCal(); };
+  if($('workCalNext')) $('workCalNext').onclick=function(){ workCalCur.setMonth(workCalCur.getMonth()+1); renderWorkCal(); };
+  if($('workCalToday')) $('workCalToday').onclick=function(){ workCalCur=new Date(); workCalCur.setHours(0,0,0,0); renderWorkCal(); };
   if($('workTable')) $('workTable').addEventListener('click', async function(e){
     var t=e.target; if(!t||!t.closest) return;
     var del=t.closest('a[data-workdel]'), ed=t.closest('a[data-workedit]');
