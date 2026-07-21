@@ -3413,11 +3413,30 @@
     if($('workToday')) $('workToday').innerHTML = mine ? ('오늘 · 출근 <b>'+hmT(mine.clock_in)+'</b> · 퇴근 <b>'+hmT(mine.clock_out)+'</b>') : '오늘 출근 기록이 없습니다. "출근"을 눌러 기록하세요.';
     var ops=isOps();
     if(!rows.length){ $('workTable').innerHTML='<tr><td class="wa-empty">출퇴근 기록이 없습니다.</td></tr>'; return; }
-    var h='<tr><th>날짜</th>'+(ops?'<th>이름</th>':'')+'<th>출근</th><th>퇴근</th><th>근무</th></tr>';
-    rows.forEach(function(w){ h+='<tr><td style="white-space:nowrap">'+esc(w.work_date||'')+'</td>'+(ops?'<td>'+esc(w.staff_name||'-')+'</td>':'')+'<td>'+hmT(w.clock_in)+'</td><td>'+hmT(w.clock_out)+'</td><td style="white-space:nowrap">'+durHM(w.clock_in,w.clock_out)+'</td></tr>'; });
+    var h='<tr><th>날짜</th>'+(ops?'<th>이름</th>':'')+'<th>출근</th><th>퇴근</th><th>근무</th>'+(ops?'<th>관리</th>':'')+'</tr>';
+    rows.forEach(function(w){ h+='<tr><td style="white-space:nowrap">'+esc(w.work_date||'')+'</td>'+(ops?'<td>'+esc(w.staff_name||'-')+'</td>':'')+'<td>'+hmT(w.clock_in)+'</td><td>'+hmT(w.clock_out)+'</td><td style="white-space:nowrap">'+durHM(w.clock_in,w.clock_out)+'</td>'+(ops?'<td><a class="wa-link" data-workedit="'+w.id+'">수정</a> <a class="wa-link del" data-workdel="'+w.id+'">삭제</a></td>':'')+'</tr>'; });
     $('workTable').innerHTML=h;
   }
   if($('workReload')) $('workReload').onclick=loadWork;
+  if($('workTable')) $('workTable').addEventListener('click', async function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    var del=t.closest('a[data-workdel]'), ed=t.closest('a[data-workedit]');
+    if(del){
+      if(!confirm('이 출퇴근 기록을 삭제할까요?')) return;
+      var r=await sb.from('work_logs').delete().eq('id',del.getAttribute('data-workdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+      await loadWork(); return;
+    }
+    if(ed){
+      var w=(window.__wtWork||[]).filter(function(x){return x.id===ed.getAttribute('data-workedit');})[0]; if(!w) return;
+      var ci=prompt('출근 시간 (HH:MM, 비우면 기록 없음)', hmT(w.clock_in)==='-'?'':hmT(w.clock_in)); if(ci===null) return;
+      var co=prompt('퇴근 시간 (HH:MM, 비우면 기록 없음)', hmT(w.clock_out)==='-'?'':hmT(w.clock_out)); if(co===null) return;
+      function toISO(hm){ hm=(hm||'').trim(); if(!hm) return null; var m=hm.match(/^(\d{1,2}):(\d{2})$/); if(!m) return undefined; var d=new Date(w.work_date+'T00:00:00'); d.setHours(+m[1], +m[2], 0, 0); return d.toISOString(); }
+      var ciISO=toISO(ci), coISO=toISO(co);
+      if(ciISO===undefined||coISO===undefined){ alert('시간 형식이 올바르지 않습니다. 예: 09:30'); return; }
+      var r=await sb.from('work_logs').update({clock_in:ciISO, clock_out:coISO}).eq('id',w.id); if(r.error){ alert('수정 실패: '+r.error.message); return; }
+      await loadWork(); return;
+    }
+  });
   if($('workIn')) $('workIn').onclick=async function(){
     if(!sb||!profile) return;
     var td=ymd(new Date());
@@ -3444,25 +3463,40 @@
     var rows=[];
     if(sb){ var r=await sb.from('op_logs').select('*').order('log_date',{ascending:false}).order('created_at',{ascending:false}).limit(200); if(!r.error&&r.data) rows=r.data; }
     if(!rows.length){ $('opTable').innerHTML='<tr><td class="wa-empty">운영일지가 없습니다.</td></tr>'; return; }
+    window.__wtOplog=rows;
     var h='<tr><th>날짜</th><th>작성자</th><th>내용</th><th>관리</th></tr>';
-    rows.forEach(function(o){ h+='<tr><td style="white-space:nowrap">'+esc(o.log_date||'')+'</td><td style="white-space:nowrap">'+esc(o.author_name||'-')+'</td><td>'+esc(o.content||'').replace(/\n/g,'<br>')+'</td><td><a class="wa-link del" data-opdel="'+o.id+'">삭제</a></td></tr>'; });
+    rows.forEach(function(o){ h+='<tr><td style="white-space:nowrap">'+esc(o.log_date||'')+'</td><td style="white-space:nowrap">'+esc(o.author_name||'-')+'</td><td>'+esc(o.content||'').replace(/\n/g,'<br>')+'</td><td style="white-space:nowrap"><a class="wa-link" data-opedit="'+o.id+'">수정</a> <a class="wa-link del" data-opdel="'+o.id+'">삭제</a></td></tr>'; });
     $('opTable').innerHTML=h;
   }
+  var opEditId=null;
+  function opResetForm(){ opEditId=null; $('opContent').value=''; if($('opAdd')) $('opAdd').textContent='＋ 운영일지 저장'; if($('opErr')) $('opErr').textContent=''; }
   if($('opReload')) $('opReload').onclick=loadOplog;
   if($('opAdd')) $('opAdd').onclick=async function(){
     if(!sb||!profile) return;
     var err=$('opErr'); if(err) err.textContent='';
     var content=$('opContent').value.trim(); var date=$('opDate').value||ymd(new Date());
     if(!content){ if(err) err.textContent='내용을 입력하세요.'; return; }
-    var r=await sb.from('op_logs').insert({author_id:profile.id, author_name:profile.name, log_date:date, content:content});
+    var r = opEditId ? await sb.from('op_logs').update({log_date:date, content:content}).eq('id',opEditId)
+                     : await sb.from('op_logs').insert({author_id:profile.id, author_name:profile.name, log_date:date, content:content});
     if(r.error){ if(err) err.textContent='저장 실패: '+r.error.message; return; }
-    $('opContent').value=''; await loadOplog();
+    opResetForm(); await loadOplog();
   };
   if($('opTable')) $('opTable').addEventListener('click', async function(e){
-    var a=(e.target&&e.target.closest)?e.target.closest('a[data-opdel]'):null; if(!a) return;
-    if(!confirm('이 운영일지를 삭제할까요?')) return;
-    var r=await sb.from('op_logs').delete().eq('id',a.getAttribute('data-opdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
-    await loadOplog();
+    var t=e.target; if(!t||!t.closest) return;
+    var del=t.closest('a[data-opdel]'), ed=t.closest('a[data-opedit]');
+    if(del){
+      if(!confirm('이 운영일지를 삭제할까요?')) return;
+      var r=await sb.from('op_logs').delete().eq('id',del.getAttribute('data-opdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+      if(opEditId===del.getAttribute('data-opdel')) opResetForm();
+      await loadOplog(); return;
+    }
+    if(ed){
+      var o=(window.__wtOplog||[]).filter(function(x){return x.id===ed.getAttribute('data-opedit');})[0]; if(!o) return;
+      opEditId=o.id; $('opDate').value=o.log_date||''; $('opContent').value=o.content||'';
+      if($('opAdd')) $('opAdd').textContent='✏️ 수정 저장';
+      $('opContent').focus();
+      return;
+    }
   });
 
   // ---- 진단 테스트 결과 (선생님/매니저/원장 열람) ----
