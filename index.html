@@ -1159,9 +1159,14 @@
     var abils={}; ABIL.forEach(function(a){ var s=abStat[a.k]; abils[a.k]=s.t?Math.round(s.c/s.t*100):0; });
     lastDiag = { abils:abils, weak:(weakA?weakA.ko:''), weakEn:(weakA?weakA.en:'') };
     lastReportText = ABIL.map(function(a){ return a.ko+' '+abils[a.k]+'%(평균'+a.avg+')'; }).join(' · ') + '  |  취약: ' + (weakA?weakA.ko:'없음');
-    // 학생 화면에는 상세 분석을 숨기고 간단하게만 (상세 능력별 성적표는 상담 신청 시 선생님만 확인)
-    $('lvtReport').innerHTML='<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>정밀 진단 분석이 완료되었습니다.</b><br>능력별 상세 성적표·취약 유형·맞춤 학습 처방은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
-    if($('lvtReviewBtn')) $('lvtReviewBtn').style.display='none';
+    // 학생 화면: 상세 능력 분석(성적표·그래프)은 선생님 전용 / 틀린 문항 복습은 학생도 가능
+    var wrongNums=[]; for(var iw=0;iw<Q.length;iw++){ if(ans[iw]!==Q[iw].a) wrongNums.push('Q'+(iw+1)); }
+    var wrongHtml = wrongNums.length
+      ? '<div style="background:#fff5f5;border:1px solid #f0b4b4;border-radius:12px;padding:13px 16px;font-size:14px;line-height:1.6;color:#7a1f1f;margin-bottom:10px">✕ <b>틀린 문항 ('+wrongNums.length+'개):</b> '+wrongNums.join(' · ')+'<br><span style="font-size:12.5px;color:#a44">아래 <b>내가 틀린 문제 확인하기</b>에서 정답·해설을 볼 수 있어요.</span></div>'
+      : '<div style="background:#f0fbf3;border:1px solid #a7e0bb;border-radius:12px;padding:13px 16px;font-size:14px;color:#14683a;margin-bottom:10px">🎉 <b>전 문항 정답입니다!</b></div>';
+    $('lvtReport').innerHTML = wrongHtml + '<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>정밀 진단 분석이 완료되었습니다.</b><br>능력별 상세 성적표·취약 유형·맞춤 학습 처방은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
+    buildReview();
+    if($('lvtReviewBtn')){ $('lvtReviewBtn').style.display=''; $('lvtReviewBtn').textContent='내가 틀린 문제 확인하기'; }
     if($('lvtReview')) $('lvtReview').classList.remove('on');
     pane('lvtResult');
   }
@@ -1186,7 +1191,7 @@
   $('lvtPrev').onclick=function(){ prev(); };
   $('lvtNext').onclick=function(){ if(ans[idx]==null) return; if(idx<Q.length-1){ idx++; render(); } else { result(); } };
   $('lvtRetry').onclick=function(){ idx=0; ans=[]; pane('lvtIntro'); };
-  $('lvtReviewBtn').onclick=function(){ var r=$('lvtReview'); r.classList.toggle('on'); this.textContent=r.classList.contains('on')?'해설 닫기':'정답 · 해설 보기'; };
+  $('lvtReviewBtn').onclick=function(){ var r=$('lvtReview'); r.classList.toggle('on'); this.textContent=r.classList.contains('on')?'닫기':'내가 틀린 문제 확인하기'; };
   var lead=$('lvtLead');
   if(lead){
     lead.addEventListener('submit',function(e){
@@ -2611,7 +2616,9 @@
 
     <div class="dash-pane" data-dpane="diag">
       <div class="dash-list-head" style="margin-top:6px">🎯 진단 테스트 결과 <button class="btn btn-ghost" id="diagReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
-      <div class="dash-note" style="margin-top:0">학생이 완토 진단 테스트를 풀고 상담 신청한 결과입니다. 능력별 정답률(%)이 <b>낮을수록 약한 영역</b>이에요. (🔴&lt;60 · 🟡60~74 · 🟢75+)</div>
+      <div class="dash-note" style="margin-top:0">학생이 완토 진단 테스트를 풀고 상담 신청한 결과입니다. 능력별 정답률(%)이 <b>낮을수록 약한 영역</b>이에요. (🔴&lt;60 · 🟡60~74 · 🟢75+) · 행의 <b>상세 ▸</b>를 누르면 능력별 그래프와 분석이 나옵니다.</div>
+      <div style="margin:12px 0 4px"><input id="diagSearch" type="search" placeholder="🔍 학생 이름 또는 연락처 검색" autocomplete="off" style="width:100%;max-width:340px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
+      <div id="diagDetail" style="display:none;margin:14px 0"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="diagTable"></table></div>
     </div>
   </div>
@@ -3502,25 +3509,73 @@
   });
 
   // ---- 진단 테스트 결과 (선생님/매니저/원장 열람) ----
+  function diagColor(v){ return v<60?'#c0342b':(v<75?'#ca8a04':'#16a34a'); }
   async function loadDiag(){
     if(!$('diagTable')) return;
     var rows=[];
     if(sb){ var r=await sb.from('diagnostics').select('*').order('created_at',{ascending:false}).limit(300); if(!r.error&&r.data) rows=r.data; }
-    if(!rows.length){ $('diagTable').innerHTML='<tr><td class="wa-empty">아직 진단 상담 신청이 없습니다.</td></tr>'; return; }
+    window.__wtDiag=rows;
+    renderDiag();
+  }
+  function renderDiag(){
+    if(!$('diagTable')) return;
+    var rows=window.__wtDiag||[];
+    var q=(($('diagSearch')&&$('diagSearch').value)||'').trim().toLowerCase();
+    if(q) rows=rows.filter(function(d){ return ((d.name||'').toLowerCase().indexOf(q)>=0)||((d.phone||'').toLowerCase().indexOf(q)>=0); });
     var mm=isOps();
-    function cell(v){ if(v==null) return '<span style="color:var(--muted)">-</span>'; var c=v<60?'#c0342b':(v<75?'#ca8a04':'#16a34a'); return '<b style="color:'+c+'">'+v+'</b>'; }
-    var h='<tr><th>날짜</th><th>이름</th><th>연락처</th><th>예상점수</th><th>추론</th><th>세부정보</th><th>연계</th><th>어휘</th><th>문법</th><th>취약</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    if(!rows.length){ $('diagTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'아직 진단 상담 신청이 없습니다.')+'</td></tr>'; return; }
+    function cell(v){ if(v==null) return '<span style="color:var(--muted)">-</span>'; return '<b style="color:'+diagColor(v)+'">'+v+'</b>'; }
+    var h='<tr><th>날짜</th><th>이름</th><th>연락처</th><th>예상점수</th><th>추론</th><th>세부정보</th><th>연계</th><th>어휘</th><th>문법</th><th>취약</th><th>상세</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     rows.forEach(function(d){
-      h+='<tr><td style="white-space:nowrap">'+esc((d.created_at||'').slice(0,10))+'</td><td>'+esc(d.name||'-')+'</td><td style="white-space:nowrap">'+esc(d.phone||'-')+'</td><td style="white-space:nowrap"><b>'+(d.score!=null?d.score+'점':'-')+'</b></td><td>'+cell(d.ab_infer)+'</td><td>'+cell(d.ab_locate)+'</td><td>'+cell(d.ab_connect)+'</td><td>'+cell(d.ab_vocab)+'</td><td>'+cell(d.ab_gram)+'</td><td style="white-space:nowrap"><b style="color:#c0342b">'+esc(d.weak||'-')+'</b></td>'+(mm?'<td><a class="wa-link del" data-diagdel="'+d.id+'">삭제</a></td>':'')+'</tr>';
+      h+='<tr><td style="white-space:nowrap">'+esc((d.created_at||'').slice(0,10))+'</td><td>'+esc(d.name||'-')+'</td><td style="white-space:nowrap">'+esc(d.phone||'-')+'</td><td style="white-space:nowrap"><b>'+(d.score!=null?d.score+'점':'-')+'</b></td><td>'+cell(d.ab_infer)+'</td><td>'+cell(d.ab_locate)+'</td><td>'+cell(d.ab_connect)+'</td><td>'+cell(d.ab_vocab)+'</td><td>'+cell(d.ab_gram)+'</td><td style="white-space:nowrap"><b style="color:#c0342b">'+esc(d.weak||'-')+'</b></td><td style="white-space:nowrap"><a class="wa-link" data-diagshow="'+d.id+'">상세 ▸</a></td>'+(mm?'<td><a class="wa-link del" data-diagdel="'+d.id+'">삭제</a></td>':'')+'</tr>';
     });
     $('diagTable').innerHTML=h;
   }
+  function diagBar(label,v){
+    if(v==null) return '<div style="display:flex;align-items:center;gap:10px;margin:8px 0"><div style="width:74px;font-size:12.5px;font-weight:700;color:var(--ink-soft)">'+label+'</div><div style="flex:1;color:var(--muted);font-size:12.5px">기록 없음</div></div>';
+    var c=diagColor(v);
+    return '<div style="display:flex;align-items:center;gap:10px;margin:8px 0">'
+      +'<div style="width:74px;font-size:12.5px;font-weight:700;color:var(--ink-soft)">'+label+'</div>'
+      +'<div style="flex:1;background:#eef1f6;border-radius:8px;height:22px;overflow:hidden"><div style="width:'+v+'%;height:100%;background:'+c+';border-radius:8px"></div></div>'
+      +'<div style="width:44px;text-align:right;font-weight:800;color:'+c+'">'+v+'%</div></div>';
+  }
+  function showDiagDetail(id){
+    var d=(window.__wtDiag||[]).filter(function(x){return x.id===id;})[0];
+    var box=$('diagDetail'); if(!d||!box) return;
+    var avg=[]; ['ab_infer','ab_locate','ab_connect','ab_vocab','ab_gram'].forEach(function(k){ if(d[k]!=null) avg.push(d[k]); });
+    var avgv=avg.length?Math.round(avg.reduce(function(a,b){return a+b;},0)/avg.length):null;
+    var h='<div style="border:1.5px solid var(--line-strong);border-radius:14px;padding:16px 18px;background:var(--surface-2)">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
+    h+='<div style="font-size:16px;font-weight:800">'+esc(d.name||'-')+' <span style="font-weight:600;color:var(--muted);font-size:13px">· '+esc(d.phone||'-')+' · '+esc((d.created_at||'').slice(0,10))+'</span></div>';
+    h+='<a class="wa-link" data-diaghide="1" style="font-size:13px;cursor:pointer">✕ 닫기</a></div>';
+    h+='<div style="display:flex;gap:20px;flex-wrap:wrap;margin:12px 0 4px">';
+    h+='<div><span style="color:var(--muted);font-size:12.5px">예상 점수</span><br><b style="font-size:22px">'+(d.score!=null?d.score+'점':'-')+'</b></div>';
+    h+='<div><span style="color:var(--muted);font-size:12.5px">레벨</span><br><b style="font-size:18px">'+esc(d.level||'-')+'</b></div>';
+    if(avgv!=null) h+='<div><span style="color:var(--muted);font-size:12.5px">평균 정답률</span><br><b style="font-size:18px;color:'+diagColor(avgv)+'">'+avgv+'%</b></div>';
+    h+='<div><span style="color:var(--muted);font-size:12.5px">취약 영역</span><br><b style="font-size:16px;color:#c0342b">'+esc(d.weak||'-')+'</b></div></div>';
+    h+='<div style="margin-top:12px;font-weight:800;font-size:13.5px;color:var(--ink-soft)">📊 능력별 정답률</div>';
+    h+=diagBar('추론',d.ab_infer)+diagBar('세부정보',d.ab_locate)+diagBar('연계',d.ab_connect)+diagBar('어휘',d.ab_vocab)+diagBar('문법',d.ab_gram);
+    if(d.detail){ h+='<div style="margin-top:14px;font-weight:800;font-size:13.5px;color:var(--ink-soft)">📝 상세 분석 <span style="font-weight:600;color:var(--muted);font-size:12px">(선생님 전용)</span></div>';
+      h+='<div style="margin-top:6px;white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px">'+esc(d.detail)+'</div>'; }
+    h+='</div>';
+    box.innerHTML=h; box.style.display='';
+    box.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
   if($('diagReload')) $('diagReload').onclick=loadDiag;
+  if($('diagSearch')) $('diagSearch').addEventListener('input', renderDiag);
+  if($('diagDetail')) $('diagDetail').addEventListener('click', function(e){
+    var t=e.target; if(t&&t.closest&&t.closest('a[data-diaghide]')){ $('diagDetail').style.display='none'; $('diagDetail').innerHTML=''; }
+  });
   if($('diagTable')) $('diagTable').addEventListener('click', async function(e){
-    var a=(e.target&&e.target.closest)?e.target.closest('a[data-diagdel]'):null; if(!a) return;
-    if(!confirm('이 진단 결과를 삭제할까요?')) return;
-    var r=await sb.from('diagnostics').delete().eq('id',a.getAttribute('data-diagdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
-    await loadDiag();
+    var t=e.target; if(!t||!t.closest) return;
+    var show=t.closest('a[data-diagshow]'), del=t.closest('a[data-diagdel]');
+    if(show){ showDiagDetail(show.getAttribute('data-diagshow')); return; }
+    if(del){
+      if(!confirm('이 진단 결과를 삭제할까요?')) return;
+      var r=await sb.from('diagnostics').delete().eq('id',del.getAttribute('data-diagdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+      var box=$('diagDetail'); if(box){ box.style.display='none'; box.innerHTML=''; }
+      await loadDiag(); return;
+    }
   });
 
   function applyTabRoles(){
