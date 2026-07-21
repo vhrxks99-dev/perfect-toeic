@@ -2445,6 +2445,8 @@
       <button class="dash-tab" data-dtab="rooms">강의장</button>
       <button class="dash-tab" data-dtab="pay">정산</button>
       <button class="dash-tab" data-dtab="att">출석</button>
+      <button class="dash-tab" data-dtab="work">출퇴근</button>
+      <button class="dash-tab" data-dtab="oplog">운영일지</button>
     </div>
 
     <div class="dash-pane on" data-dpane="members">
@@ -2547,6 +2549,30 @@
       <div class="dash-list-head">최근 출석 내역</div>
       <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
     </div>
+
+    <div class="dash-pane" data-dpane="work">
+      <div class="dash-form">
+        <div class="dash-list-head" style="margin-top:0">🕒 내 출퇴근 <span id="workWho" style="color:var(--muted);font-weight:700;font-size:12px"></span></div>
+        <div id="workToday" class="dash-note" style="margin-top:0"></div>
+        <div class="wa-admin-actions" style="margin-top:10px">
+          <button class="btn btn-primary" id="workIn" type="button">🟢 출근</button>
+          <button class="btn btn-ghost" id="workOut" type="button">🔴 퇴근</button>
+        </div>
+      </div>
+      <div class="dash-list-head">출퇴근 기록 <button class="btn btn-ghost" id="workReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="wa-table-wrap"><table class="wa-table" id="workTable"></table></div>
+    </div>
+
+    <div class="dash-pane" data-dpane="oplog">
+      <div class="dash-form">
+        <div class="dash-row"><label>날짜<input type="date" id="opDate"></label></div>
+        <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">내용<textarea id="opContent" rows="3" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)" placeholder="오늘 운영 특이사항·전달사항 등"></textarea></label>
+        <p class="wa-err" id="opErr"></p>
+        <button class="btn btn-primary" id="opAdd" type="button">＋ 운영일지 저장</button>
+      </div>
+      <div class="dash-list-head">운영일지 <button class="btn btn-ghost" id="opReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="wa-table-wrap"><table class="wa-table" id="opTable"></table></div>
+    </div>
   </div>
 </div>
 <div class="wa-overlay" id="waMy" aria-hidden="true">
@@ -2620,7 +2646,7 @@
       </div>
       <label>가입 경로<input type="text" id="waERoute"></label>
       <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
-      <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="master">원장님</option></select></label>
+      <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">매니저</option><option value="master">원장님</option></select></label>
       <p class="wa-err" id="waEErr"></p>
       <button class="btn btn-primary" id="waESave" type="button">저장</button>
     </div>
@@ -2811,13 +2837,13 @@
     try{ window.dispatchEvent(new Event('wt-auth')); }catch(e){}
   }
 
-  function roleTag(r){ return r==='master'?'원장님':(r==='admin'?'선생님':'학생'); }
+  function roleTag(r){ return r==='master'?'원장님':(r==='manager'?'매니저':(r==='admin'?'선생님':'학생')); }
 
   function renderAuth(){
     var s=profile;
     function links(){
       var h='';
-      if(s.role==='admin'||s.role==='master') h+='<a class="wa-link" id="waAdminOpen">관리 페이지</a>';
+      if(s.role==='admin'||s.role==='manager'||s.role==='master') h+='<a class="wa-link" id="waAdminOpen">관리 페이지</a>';
       h+='<a class="wa-link" id="waMyOpen">내 정보</a><a class="wa-link" id="waLogout">로그아웃</a>';
       return h;
     }
@@ -2825,7 +2851,7 @@
     if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
-      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
+      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
       : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
   }
@@ -2849,13 +2875,14 @@
 
   async function openAdmin(){ $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role); dashTab('members'); await renderTable(); await dashInit(); }
   function isMasterNow(){ return profile && profile.role==='master'; }
+  function isOps(){ return profile && (profile.role==='master'||profile.role==='manager'); }
   async function renderTable(){
     var m=[];
     if(sb){ var r=await sb.from('profiles').select('*').order('created_at',{ascending:false}); if(!r.error && r.data) m=r.data; }
     $('waCount').textContent='('+m.length+'명)';
     window.__wtMembers=m;
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
-    function rt(r){ return r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생'); }
+    function rt(r){ return r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='manager'?'<b style="color:#7c3aed">매니저</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생')); }
     var tmap={}; m.forEach(function(x){ tmap[x.id]=x.name; });
     var mm=isMasterNow();
     var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당쌤</th><th>구분</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
@@ -2972,9 +2999,13 @@
     if($('pyPaid')&&!$('pyPaid').value) $('pyPaid').value=ymd(now);
     if($('pyFilter')&&!$('pyFilter').value) $('pyFilter').value=ym(now);
     await loadSchedules(); await renderCalendar();
+    if($('opDate')&&!$('opDate').value) $('opDate').value=ymd(now);
     await loadPayments($('pyFilter')?$('pyFilter').value:ym(now));
     await loadAttendance();
+    await loadWork();
+    if(isOps()) await loadOplog();
     applyRoleScope();
+    applyTabRoles();
   }
   function fillSelects(){
     var teachers=_members.filter(function(m){return m.role==='admin'||m.role==='master';});
@@ -2984,7 +3015,7 @@
   var _studentPool=[];
   function computeStudentPool(){
     var all=_members.filter(function(m){return m.role==='student';});
-    _studentPool = (profile && profile.role==='master') ? all : all.filter(function(m){ return m.teacher_id && m.teacher_id===profile.id; });
+    _studentPool = isOps() ? all : all.filter(function(m){ return m.teacher_id && m.teacher_id===profile.id; });
   }
   function studentOpts(q){
     q=(q||'').trim().toLowerCase();
@@ -3209,13 +3240,13 @@
     var total=rows.reduce(function(a,b){return a+(b.amount||0);},0);
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
     if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 정산 내역이 없습니다.</td></tr>'; return; }
-    var mm=isMasterNow();
+    var mm=isOps();
     var h='<tr><th>학생</th><th>금액</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     rows.forEach(function(p){ h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
-    var mm=isMasterNow();
+    var mm=isOps();
     if($('pyAddForm')) $('pyAddForm').style.display = mm ? '' : 'none';
     if($('pyScopeNote')) $('pyScopeNote').style.display = mm ? 'none' : '';
   }
@@ -3327,6 +3358,78 @@
       await loadAttendance();
     }
   });
+
+  // ---- 출퇴근 (직원 본인 기록, 원장·매니저 전체 조회) ----
+  function hmT(iso){ if(!iso) return '-'; var d=new Date(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function durHM(a,b){ if(!a||!b) return '-'; var ms=new Date(b)-new Date(a); if(ms<0) return '-'; var m=Math.round(ms/60000); return Math.floor(m/60)+'시간 '+(m%60)+'분'; }
+  async function loadWork(){
+    if(!$('workTable')) return;
+    var rows=[];
+    if(sb){ var r=await sb.from('work_logs').select('*').order('work_date',{ascending:false}).order('clock_in',{ascending:false}).limit(300); if(!r.error&&r.data) rows=r.data; }
+    window.__wtWork=rows;
+    var td=ymd(new Date());
+    var mine=rows.filter(function(x){return x.staff_id===(profile&&profile.id) && x.work_date===td;})[0];
+    if($('workWho')) $('workWho').textContent=profile?('· '+profile.name):'';
+    if($('workToday')) $('workToday').innerHTML = mine ? ('오늘 · 출근 <b>'+hmT(mine.clock_in)+'</b> · 퇴근 <b>'+hmT(mine.clock_out)+'</b>') : '오늘 출근 기록이 없습니다. "출근"을 눌러 기록하세요.';
+    var ops=isOps();
+    if(!rows.length){ $('workTable').innerHTML='<tr><td class="wa-empty">출퇴근 기록이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>날짜</th>'+(ops?'<th>이름</th>':'')+'<th>출근</th><th>퇴근</th><th>근무</th></tr>';
+    rows.forEach(function(w){ h+='<tr><td style="white-space:nowrap">'+esc(w.work_date||'')+'</td>'+(ops?'<td>'+esc(w.staff_name||'-')+'</td>':'')+'<td>'+hmT(w.clock_in)+'</td><td>'+hmT(w.clock_out)+'</td><td style="white-space:nowrap">'+durHM(w.clock_in,w.clock_out)+'</td></tr>'; });
+    $('workTable').innerHTML=h;
+  }
+  if($('workReload')) $('workReload').onclick=loadWork;
+  if($('workIn')) $('workIn').onclick=async function(){
+    if(!sb||!profile) return;
+    var td=ymd(new Date());
+    var ex=(window.__wtWork||[]).filter(function(x){return x.staff_id===profile.id && x.work_date===td;})[0];
+    if(ex && ex.clock_in && !confirm('오늘 이미 출근 기록이 있습니다. 출근 시간을 새로 기록할까요?')) return;
+    var r = ex ? await sb.from('work_logs').update({clock_in:new Date().toISOString()}).eq('id',ex.id)
+               : await sb.from('work_logs').insert({staff_id:profile.id, staff_name:profile.name, work_date:td, clock_in:new Date().toISOString()});
+    if(r.error){ alert('출근 기록 실패: '+r.error.message); return; }
+    await loadWork();
+  };
+  if($('workOut')) $('workOut').onclick=async function(){
+    if(!sb||!profile) return;
+    var td=ymd(new Date());
+    var ex=(window.__wtWork||[]).filter(function(x){return x.staff_id===profile.id && x.work_date===td;})[0];
+    var r = ex ? await sb.from('work_logs').update({clock_out:new Date().toISOString()}).eq('id',ex.id)
+               : await sb.from('work_logs').insert({staff_id:profile.id, staff_name:profile.name, work_date:td, clock_out:new Date().toISOString()});
+    if(r.error){ alert('퇴근 기록 실패: '+r.error.message); return; }
+    await loadWork();
+  };
+
+  // ---- 운영일지 (원장·매니저 작성/열람) ----
+  async function loadOplog(){
+    if(!$('opTable')) return;
+    var rows=[];
+    if(sb){ var r=await sb.from('op_logs').select('*').order('log_date',{ascending:false}).order('created_at',{ascending:false}).limit(200); if(!r.error&&r.data) rows=r.data; }
+    if(!rows.length){ $('opTable').innerHTML='<tr><td class="wa-empty">운영일지가 없습니다.</td></tr>'; return; }
+    var h='<tr><th>날짜</th><th>작성자</th><th>내용</th><th>관리</th></tr>';
+    rows.forEach(function(o){ h+='<tr><td style="white-space:nowrap">'+esc(o.log_date||'')+'</td><td style="white-space:nowrap">'+esc(o.author_name||'-')+'</td><td>'+esc(o.content||'').replace(/\n/g,'<br>')+'</td><td><a class="wa-link del" data-opdel="'+o.id+'">삭제</a></td></tr>'; });
+    $('opTable').innerHTML=h;
+  }
+  if($('opReload')) $('opReload').onclick=loadOplog;
+  if($('opAdd')) $('opAdd').onclick=async function(){
+    if(!sb||!profile) return;
+    var err=$('opErr'); if(err) err.textContent='';
+    var content=$('opContent').value.trim(); var date=$('opDate').value||ymd(new Date());
+    if(!content){ if(err) err.textContent='내용을 입력하세요.'; return; }
+    var r=await sb.from('op_logs').insert({author_id:profile.id, author_name:profile.name, log_date:date, content:content});
+    if(r.error){ if(err) err.textContent='저장 실패: '+r.error.message; return; }
+    $('opContent').value=''; await loadOplog();
+  };
+  if($('opTable')) $('opTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('a[data-opdel]'):null; if(!a) return;
+    if(!confirm('이 운영일지를 삭제할까요?')) return;
+    var r=await sb.from('op_logs').delete().eq('id',a.getAttribute('data-opdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await loadOplog();
+  });
+
+  function applyTabRoles(){
+    var c=$('waAdmin'); if(!c) return;
+    var ops=isOps();
+    c.querySelectorAll('.dash-tab[data-dtab="oplog"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
+  }
 
   // ================= 학생 대시보드 =================
   async function renderMy(){
