@@ -2592,6 +2592,7 @@
     <div class="dash-pane" data-dpane="att">
       <div class="dash-list-head" style="margin-top:6px">🎫 학생별 남은 수업 횟수 <button class="btn btn-ghost" id="attReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
       <div class="dash-note" style="margin-top:0">학생을 <b>출석 처리</b>하면 남은 횟수가 1회 차감됩니다. 횟수권은 정산 탭에서 판매(충전)합니다.</div>
+      <div style="margin:10px 0 2px"><input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
       <div class="dash-list-head">최근 출석 내역</div>
       <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
@@ -3392,25 +3393,42 @@
     var pays=[], atts=[];
     if(sb){
       var r1=await sb.from('payments').select('student_id,sessions'); if(!r1.error&&r1.data) pays=r1.data;
-      var r2=await sb.from('attendance').select('student_id,student_name,attended_on,created_at').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
+      var r2=await sb.from('attendance').select('id,student_id,student_name,attended_on,created_at').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
     }
     var purchased={}, attended={};
     pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
     atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
+    window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAtts=atts;
+    drawAtt();
+  }
+  function drawAtt(){
+    var purchased=window.__wtAttP||{}, attended=window.__wtAttD||{}, atts=window.__wtAtts||[];
+    var q=(($('attSearch')&&$('attSearch').value)||'').trim().toLowerCase();
     var students=_members.filter(function(m){return m.role==='student';});
+    var fst=q?students.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):students;
     if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">등록된 학생이 없습니다.</td></tr>'; }
+    else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; }
     else {
       var h='<tr><th>학생</th><th>구매</th><th>출석</th><th>남은 횟수</th><th>출석 처리</th></tr>';
-      students.forEach(function(s){ var pu=purchased[s.id]||0, at=attended[s.id]||0, rem=pu-at;
+      fst.forEach(function(s){ var pu=purchased[s.id]||0, at=attended[s.id]||0, rem=pu-at;
         h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+at+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'"'+(rem<=0?' disabled':'')+'>출석 −1</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소 +1</button></td></tr>'; });
       $('attTable').innerHTML=h;
     }
     if($('attHistTable')){
-      if(!atts.length){ $('attHistTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; }
-      else { var hh='<tr><th>출석일</th><th>학생</th></tr>'; atts.slice(0,40).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td></tr>'; }); $('attHistTable').innerHTML=hh; }
+      var mm=isOps();
+      var fatts=q?atts.filter(function(a){return (a.student_name||'').toLowerCase().indexOf(q)>=0;}):atts;
+      if(!fatts.length){ $('attHistTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; }
+      else { var hh='<tr><th>출석일</th><th>학생</th>'+(mm?'<th>관리</th>':'')+'</tr>'; fatts.slice(0,60).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td>'+(mm?'<td><a class="wa-link del" data-attdel="'+esc(a.id)+'">삭제</a></td>':'')+'</tr>'; }); $('attHistTable').innerHTML=hh; }
     }
   }
   if($('attReload')) $('attReload').onclick=loadAttendance;
+  if($('attSearch')) $('attSearch').addEventListener('input', drawAtt);
+  if($('attHistTable')) $('attHistTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('a[data-attdel]'):null; if(!a) return;
+    if(!confirm('이 출석 기록을 삭제할까요? (남은 횟수 +1)')) return;
+    var r=await sb.from('attendance').delete().eq('id',a.getAttribute('data-attdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await loadAttendance();
+  });
   if($('attTable')) $('attTable').addEventListener('click', async function(e){
     var minus=(e.target&&e.target.closest)?e.target.closest('button[data-attid]'):null;
     var plus=(e.target&&e.target.closest)?e.target.closest('button[data-attundo]'):null;
