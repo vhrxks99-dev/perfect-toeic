@@ -2501,6 +2501,7 @@
         <button class="btn btn-primary" id="waReload">🔄 새로고침</button>
         <button class="btn btn-ghost" id="waExportCsv">CSV로 내보내기</button>
       </div>
+      <div style="margin:10px 0 2px"><input id="waSearch" type="search" placeholder="🔍 이름 · 연락처 · 이메일 검색" autocomplete="off" style="width:100%;max-width:340px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="waTable"></table></div>
     </div>
 
@@ -2941,11 +2942,18 @@
   async function renderTable(){
     var m=[];
     if(sb){ var r=await sb.from('profiles').select('*').order('created_at',{ascending:false}); if(!r.error && r.data) m=r.data; }
-    $('waCount').textContent='('+m.length+'명)';
     window.__wtMembers=m;
-    if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
+    drawMembers();
+  }
+  function drawMembers(){
+    var all=window.__wtMembers||[];
+    var q=(($('waSearch')&&$('waSearch').value)||'').trim().toLowerCase();
+    var m=q?all.filter(function(u){ return ((u.name||'').toLowerCase().indexOf(q)>=0)||((u.phone||'').toLowerCase().indexOf(q)>=0)||((u.email||'').toLowerCase().indexOf(q)>=0); }):all;
+    $('waCount').textContent='('+all.length+'명'+(q?(' · 검색 '+m.length+'명'):'')+')';
+    if(!all.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
+    if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; return; }
     function rt(r){ return r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='manager'?'<b style="color:#7c3aed">매니저</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생')); }
-    var tmap={}; m.forEach(function(x){ tmap[x.id]=x.name; });
+    var tmap={}; all.forEach(function(x){ tmap[x.id]=x.name; });
     var mm=isMasterNow();
     var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당쌤</th><th>구분</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     m.forEach(function(u){
@@ -2954,6 +2962,7 @@
       h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td>'+tn+'</td><td>'+rt(u.role)+'</td><td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
     $('waTable').innerHTML=h;
   }
+  if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
   if($('waAdminClose')) $('waAdminClose').onclick=function(){ $('waAdmin').classList.remove('on'); };
   if($('waAdmin')) $('waAdmin').addEventListener('click',function(e){ if(e.target===$('waAdmin')) $('waAdmin').classList.remove('on'); });
   if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
