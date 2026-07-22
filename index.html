@@ -3071,7 +3071,12 @@
   function openMaster(){ openAdmin(); }
   async function openMy(){ if(!profile) return; await renderMy(); $('waMy').classList.add('on'); }
 
-  // (구 소셜 버튼 코드 제거됨 — 실제 카카오 로그인은 상단 인증 IIFE에서 처리)
+  // 카카오 간편로그인 (활성 인증 블록)
+  if($('waKakao')) $('waKakao').onclick=async function(){
+    if(!window.sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var r=await window.sb.auth.signInWithOAuth({ provider:'kakao', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
+  };
 
   // ================= 관리 대시보드 (원장님/선생님) =================
   function dashTab(name){
