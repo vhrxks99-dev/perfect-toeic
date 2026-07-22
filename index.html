@@ -2856,8 +2856,12 @@
   };
 
   var abk=$('waAutoBk'); if(abk){ abk.checked=localStorage.getItem('wt_autobackup')!=='off'; abk.onchange=function(){ localStorage.setItem('wt_autobackup',abk.checked?'on':'off'); }; }
-  function socialSoon(n){ alert(n+' 간편가입은 홈페이지가 인터넷에 배포되고 '+n+' 개발자 앱 등록을 마친 후 활성화됩니다.\n\n지금은 이메일 회원가입을 이용해주세요.'); }
-  if($('waKakao')) $('waKakao').onclick=function(){socialSoon('카카오');};
+  function socialSoon(n){ alert(n+' 간편가입은 준비 중입니다. 지금은 이메일 회원가입을 이용해주세요.'); }
+  if($('waKakao')) $('waKakao').onclick=async function(){
+    if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var r=await sb.auth.signInWithOAuth({ provider:'kakao', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
+  };
   renderAuth();
 })();
 </script>
@@ -2928,7 +2932,15 @@
       var user=s.data && s.data.session && s.data.session.user;
       if(user){
         var pr=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
-        profile = (pr.data) ? pr.data : {id:user.id,email:user.email,name:(user.email||'').split('@')[0],role:'student'};
+        if(pr.data){ profile = pr.data; }
+        else {
+          var meta=user.user_metadata||{};
+          var nm=meta.name||meta.full_name||meta.nickname||meta.user_name||(user.email||'').split('@')[0]||'회원';
+          var np={ id:user.id, email:(user.email||null), name:nm, role:'student' };
+          await sb.from('profiles').insert(np);
+          var pr2=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+          profile = pr2.data ? pr2.data : np;
+        }
       }
     }
     window.WT_LOGGED_IN = !!profile;
