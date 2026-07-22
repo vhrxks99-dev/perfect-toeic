@@ -2206,6 +2206,15 @@
   catch(e){ console.error("Supabase 초기화 실패:", e); window.sb = null; }
 </script>
 <!-- ============ 수강후기 게시판 (Supabase 공유) ============ -->
+<style>
+  .rv-del{margin-left:8px;color:#c0342b;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+  .rv-pager{display:flex;gap:5px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:22px}
+  .rv-pg{min-width:34px;height:34px;padding:0 9px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);border-radius:8px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:var(--font-sans)}
+  .rv-pg.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .rv-pg:disabled{opacity:.4;cursor:default}
+  .rv-pg.nav{font-size:17px}
+  .rv-ell{color:var(--muted);padding:0 2px}
+</style>
 <script>
 (function(){
   var form = document.getElementById("reviewForm");
@@ -2220,21 +2229,56 @@
     {name:"정**", course:"토익", score:"600 → 905", rating:5, title:"3개월 만에 900 돌파", body:"파트별 약점만 콕 집어 관리해주셔서 헤매지 않고 900을 넘었어요. 매일 학습 점검이 큰 힘이 됐습니다.", date:"2026.06.30", best:true},
     {name:"한**", course:"토익스피킹", score:"IM2 → AL", rating:5, title:"스피킹 자신감이 달라졌어요", body:"실전 표현 위주로 연습하니 시험장에서 훨씬 덜 떨렸어요. 목표 등급까지 딱 맞춘 관리받았습니다.", date:"2026.06.12", best:true}
   ];
-  function card(p){
+  function isMaster(){ return !!(window.WT_PROFILE && window.WT_PROFILE.role==='master'); }
+  function card(p, mm){
+    var del = (mm && p.id!=null) ? '<a class="rv-del" data-rvdel="'+esc(String(p.id))+'">삭제</a>' : '';
     return '<div class="post">'
       + '<div class="ph"><span class="stars">'+stars(p.rating)+'</span><span class="pt">'+esc(p.title)+'</span>'+(p.best?'<span class="badge-best">BEST</span>':'')+'</div>'
       + '<div class="pm">'+esc(p.body)+'</div>'
-      + '<div class="pf"><span>'+esc(p.name)+'</span><span>·</span><span>'+esc(p.course)+'</span>'+(p.score?'<span>·</span><span>'+esc(p.score)+'</span>':'')+'<span>·</span><span>'+esc(p.date)+'</span></div>'
+      + '<div class="pf"><span>'+esc(p.name)+'</span><span>·</span><span>'+esc(p.course)+'</span>'+(p.score?'<span>·</span><span>'+esc(p.score)+'</span>':'')+'<span>·</span><span>'+esc(p.date)+'</span>'+del+'</div>'
       + '</div>';
+  }
+  function pager(total, pg, per){
+    var pages=Math.ceil(total/per); if(pages<=1) return '';
+    var h='<div class="rv-pager"><button class="rv-pg nav" data-pg="'+(pg-1)+'"'+(pg<=1?' disabled':'')+'>‹</button>';
+    var start=Math.max(1,pg-2), end=Math.min(pages,pg+2);
+    if(start>1){ h+='<button class="rv-pg" data-pg="1">1</button>'; if(start>2) h+='<span class="rv-ell">…</span>'; }
+    for(var i=start;i<=end;i++){ h+='<button class="rv-pg'+(i===pg?' on':'')+'" data-pg="'+i+'">'+i+'</button>'; }
+    if(end<pages){ if(end<pages-1) h+='<span class="rv-ell">…</span>'; h+='<button class="rv-pg" data-pg="'+pages+'">'+pages+'</button>'; }
+    h+='<button class="rv-pg nav" data-pg="'+(pg+1)+'"'+(pg>=pages?' disabled':'')+'>›</button></div>';
+    return h;
+  }
+  var ALL=[], page=1, PER=10;
+  function draw(){
+    var pages=Math.ceil(ALL.length/PER)||1;
+    if(page>pages) page=pages; if(page<1) page=1;
+    var s=(page-1)*PER, mm=isMaster();
+    list.innerHTML = ALL.slice(s, s+PER).map(function(p){return card(p,mm);}).join("") + pager(ALL.length, page, PER);
   }
   async function render(){
     var rows = [];
     if(sb){ try{ var res = await sb.from('reviews').select('*').eq('approved',true).order('created_at',{ascending:false}); if(!res.error && res.data) rows = res.data; }catch(e){} }
-    var mapped = rows.map(function(p){ return {name:p.author_name, course:p.course, score:p.score, rating:p.rating, title:p.title, body:p.body, date:(p.created_at||'').slice(0,10).replace(/-/g,'.'), best:false}; });
-    var all = mapped.concat(seed);
-    countEl.textContent = "후기 " + all.length + "개";
-    list.innerHTML = all.map(card).join("");
+    var mapped = rows.map(function(p){ return {id:p.id, name:p.author_name, course:p.course, score:p.score, rating:p.rating, title:p.title, body:p.body, date:(p.created_at||'').slice(0,10).replace(/-/g,'.'), best:false}; });
+    ALL = mapped.concat(seed);
+    countEl.textContent = "후기 " + ALL.length + "개";
+    draw();
   }
+  list.addEventListener('click', async function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    var pg=t.closest('.rv-pg'), del=t.closest('.rv-del');
+    if(pg && pg.getAttribute('data-pg')!=null){
+      var n=parseInt(pg.getAttribute('data-pg'),10); if(n){ page=n; draw(); var sec=document.getElementById('board'); if(sec) sec.scrollIntoView({behavior:'smooth',block:'start'}); }
+      return;
+    }
+    if(del){
+      if(!isMaster()){ alert('후기 삭제는 원장님만 가능합니다.'); return; }
+      if(!sb) return;
+      if(!confirm('이 후기를 삭제할까요?')) return;
+      var r=await sb.from('reviews').delete().eq('id', del.getAttribute('data-rvdel'));
+      if(r&&r.error){ alert('삭제 실패: '+r.error.message); return; }
+      await render();
+    }
+  });
   form.addEventListener("submit", async function(e){
     e.preventDefault();
     if(!sb){ alert("서버 연결 중입니다. 잠시 후 다시 시도해주세요."); return; }
@@ -2252,6 +2296,7 @@
   });
   render();
   window.WT_reloadReviews = render;
+  window.addEventListener('wt-auth', function(){ draw(); });
 })();
 </script>
 <script>
