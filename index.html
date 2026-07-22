@@ -2595,7 +2595,7 @@
 
     <div class="dash-pane" data-dpane="oplog">
       <div class="dash-form">
-        <div class="dash-row"><label>날짜<input type="date" id="opDate"></label></div>
+        <div class="dash-row"><label>날짜<input type="date" id="opDate"></label><label>작성자<select id="opAuthor"></select></label></div>
         <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">내용<textarea id="opContent" rows="3" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)" placeholder="오늘 운영 특이사항·전달사항 등"></textarea></label>
         <p class="wa-err" id="opErr"></p>
         <button class="btn btn-primary" id="opAdd" type="button">＋ 운영일지 저장</button>
@@ -3510,8 +3510,16 @@
   };
 
   // ---- 운영일지 (원장·매니저 작성/열람) ----
+  function fillOpAuthors(sel){
+    var el=$('opAuthor'); if(!el) return;
+    var keep = sel || el.value || (profile?profile.id:'');
+    var staff=(_members||[]).filter(function(m){return m.role==='master'||m.role==='manager'||m.role==='admin';});
+    el.innerHTML = staff.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+' ('+esc(roleTag(m.role))+')</option>'; }).join('');
+    if(keep) el.value=keep;
+  }
   async function loadOplog(){
     if(!$('opTable')) return;
+    fillOpAuthors();
     var rows=[];
     if(sb){ var r=await sb.from('op_logs').select('*').order('log_date',{ascending:false}).order('created_at',{ascending:false}).limit(200); if(!r.error&&r.data) rows=r.data; }
     if(!rows.length){ $('opTable').innerHTML='<tr><td class="wa-empty">운영일지가 없습니다.</td></tr>'; return; }
@@ -3521,15 +3529,18 @@
     $('opTable').innerHTML=h;
   }
   var opEditId=null;
-  function opResetForm(){ opEditId=null; $('opContent').value=''; if($('opAdd')) $('opAdd').textContent='＋ 운영일지 저장'; if($('opErr')) $('opErr').textContent=''; }
+  function opResetForm(){ opEditId=null; $('opContent').value=''; if($('opAdd')) $('opAdd').textContent='＋ 운영일지 저장'; if($('opErr')) $('opErr').textContent=''; fillOpAuthors(profile?profile.id:''); }
   if($('opReload')) $('opReload').onclick=loadOplog;
   if($('opAdd')) $('opAdd').onclick=async function(){
     if(!sb||!profile) return;
     var err=$('opErr'); if(err) err.textContent='';
     var content=$('opContent').value.trim(); var date=$('opDate').value||ymd(new Date());
     if(!content){ if(err) err.textContent='내용을 입력하세요.'; return; }
-    var r = opEditId ? await sb.from('op_logs').update({log_date:date, content:content}).eq('id',opEditId)
-                     : await sb.from('op_logs').insert({author_id:profile.id, author_name:profile.name, log_date:date, content:content});
+    var authId=($('opAuthor')&&$('opAuthor').value)||profile.id;
+    var authM=(_members||[]).filter(function(m){return m.id===authId;})[0];
+    var authName=authM?authM.name:profile.name;
+    var r = opEditId ? await sb.from('op_logs').update({author_id:authId, author_name:authName, log_date:date, content:content}).eq('id',opEditId)
+                     : await sb.from('op_logs').insert({author_id:authId, author_name:authName, log_date:date, content:content});
     if(r.error){ if(err) err.textContent='저장 실패: '+r.error.message; return; }
     opResetForm(); await loadOplog();
   };
@@ -3545,6 +3556,7 @@
     if(ed){
       var o=(window.__wtOplog||[]).filter(function(x){return x.id===ed.getAttribute('data-opedit');})[0]; if(!o) return;
       opEditId=o.id; $('opDate').value=o.log_date||''; $('opContent').value=o.content||'';
+      fillOpAuthors(o.author_id||'');
       if($('opAdd')) $('opAdd').textContent='✏️ 수정 저장';
       $('opContent').focus();
       return;
