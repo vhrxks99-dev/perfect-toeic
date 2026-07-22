@@ -3071,8 +3071,7 @@
   function openMaster(){ openAdmin(); }
   async function openMy(){ if(!profile) return; await renderMy(); $('waMy').classList.add('on'); }
 
-  function socialSoon(n){ alert(n+' 간편가입은 준비 중입니다. 지금은 이메일 회원가입을 이용해주세요.'); }
-  if($('waKakao')) $('waKakao').onclick=function(){socialSoon('카카오');};
+  // (구 소셜 버튼 코드 제거됨 — 실제 카카오 로그인은 상단 인증 IIFE에서 처리)
 
   // ================= 관리 대시보드 (원장님/선생님) =================
   function dashTab(name){
