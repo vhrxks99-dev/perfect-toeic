@@ -1756,61 +1756,8 @@
     <div class="sec-head reveal">
       <span class="eyebrow">05 <b>· 수강후기</b></span>
       <h2>점수로 증명된 수강 후기</h2>
-      <p>완벽한토익 수강생들의 <b>실제 점수 인증·후기</b>입니다. 이미지를 누르면 크게 볼 수 있어요. 아래 게시판에도 직접 후기를 남길 수 있습니다.</p>
+      <p>완벽한토익 수강생들의 실제 후기입니다. 아래 게시판에서 확인하고, 직접 후기를 남길 수도 있어요.</p>
     </div>
-    <style>
-      .rv-gallery{columns:4 200px;column-gap:12px;margin-top:8px}
-      @media(max-width:640px){.rv-gallery{columns:2 150px;column-gap:8px}}
-      .rv-tile{display:block;width:100%;margin:0 0 12px;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);cursor:zoom-in;break-inside:avoid}
-      .rv-tile img{display:block;width:100%;height:auto}
-      .rv-lightbox{position:fixed;inset:0;z-index:300;background:rgba(8,12,22,.92);display:none;align-items:center;justify-content:center}
-      .rv-lightbox.on{display:flex}
-      .rv-lightbox img{max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-      .rv-lb-x{position:absolute;top:16px;right:22px;background:none;border:none;color:#fff;font-size:34px;cursor:pointer;line-height:1;z-index:2}
-      .rv-lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:none;color:#fff;font-size:40px;width:54px;height:72px;border-radius:10px;cursor:pointer;z-index:2}
-      .rv-lb-nav.prev{left:16px}.rv-lb-nav.next{right:16px}
-      .rv-lb-nav:hover{background:rgba(255,255,255,.25)}
-      @media(max-width:640px){.rv-lb-nav{width:40px;height:58px;font-size:30px}}
-    </style>
-    <div class="rv-gallery" id="revGallery"></div>
-    <div style="text-align:center;margin:16px 0 4px"><button class="btn btn-ghost" id="revMore" type="button">후기 더 보기</button></div>
-    <div class="rv-lightbox" id="rvLightbox" aria-hidden="true">
-      <button class="rv-lb-x" data-lbclose type="button" aria-label="닫기">&times;</button>
-      <button class="rv-lb-nav prev" id="rvLbPrev" type="button" aria-label="이전">&#8249;</button>
-      <img id="rvLbImg" alt="완벽한토익 수강후기 확대 보기">
-      <button class="rv-lb-nav next" id="rvLbNext" type="button" aria-label="다음">&#8250;</button>
-    </div>
-    <script src="reviews/rv-data.js"></script>
-    <script>
-    (function(){
-      var RV=window.RV||[];
-      var grid=document.getElementById('revGallery');
-      if(!grid||!RV.length) return;
-      var shown=0, STEP=30;
-      function loadMore(){
-        var frag='', end=Math.min(RV.length, shown+STEP), i;
-        for(i=shown;i<end;i++){ var it=RV[i]; frag+='<button class="rv-tile" type="button" data-i="'+i+'" style="aspect-ratio:'+it.w+'/'+it.h+'"><img src="'+it.f+'" loading="lazy" alt="완벽한토익 수강후기 '+(i+1)+'"></button>'; }
-        grid.insertAdjacentHTML('beforeend',frag);
-        shown=end;
-        var btn=document.getElementById('revMore');
-        if(btn){ if(shown>=RV.length) btn.style.display='none'; else btn.textContent='후기 더 보기 (+'+(RV.length-shown)+')'; }
-      }
-      loadMore();
-      var mb=document.getElementById('revMore'); if(mb) mb.onclick=loadMore;
-      var lb=document.getElementById('rvLightbox'), lbImg=document.getElementById('rvLbImg'), cur=0;
-      function openLb(i){ cur=i; lbImg.src=RV[i].f; lb.classList.add('on'); document.body.style.overflow='hidden'; }
-      function closeLb(){ lb.classList.remove('on'); lbImg.removeAttribute('src'); document.body.style.overflow=''; }
-      function nav(d){ cur=(cur+d+RV.length)%RV.length; lbImg.src=RV[cur].f; }
-      grid.addEventListener('click',function(e){ var t=e.target.closest?e.target.closest('.rv-tile'):null; if(t) openLb(+t.getAttribute('data-i')); });
-      if(lb){
-        lb.addEventListener('click',function(e){ if(e.target===lb || (e.target.getAttribute && e.target.getAttribute('data-lbclose')!=null)) closeLb(); });
-        var p=document.getElementById('rvLbPrev'), nx=document.getElementById('rvLbNext');
-        if(p) p.onclick=function(e){ e.stopPropagation(); nav(-1); };
-        if(nx) nx.onclick=function(e){ e.stopPropagation(); nav(1); };
-        document.addEventListener('keydown',function(e){ if(!lb.classList.contains('on')) return; if(e.key==='Escape') closeLb(); else if(e.key==='ArrowLeft') nav(-1); else if(e.key==='ArrowRight') nav(1); });
-      }
-    })();
-    </script>
 
     <!-- 수강후기 게시판 -->
     <div class="board reveal" id="board">
