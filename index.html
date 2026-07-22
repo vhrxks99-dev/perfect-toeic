@@ -1756,34 +1756,61 @@
     <div class="sec-head reveal">
       <span class="eyebrow">05 <b>· 수강후기</b></span>
       <h2>점수로 증명된 수강 후기</h2>
-      <p>목표 점수를 넘어선 수강생들의 실제 이야기입니다. 아래 게시판에서 직접 후기를 남기고 확인해보세요.</p>
+      <p>완벽한토익 수강생들의 <b>실제 점수 인증·후기</b>입니다. 이미지를 누르면 크게 볼 수 있어요. 아래 게시판에도 직접 후기를 남길 수 있습니다.</p>
     </div>
-    <div class="rev-grid">
-      <div class="rcard reveal">
-        <div class="score-move"><span class="from num">620</span><span class="ar">→</span><span class="to num">920</span><span class="up num">+300</span></div>
-        <h4>퇴근 후 2시간의 기적</h4>
-        <p class="body">8년 만에 다시 시작하는 토익이라 막막했어요. 어디서부터 할지 몰랐는데, 진단 후 제 취약 파트만 골라 학습 순서를 짜주셔서 야근 뒤 2시간씩만 투자해도 점수가 올랐습니다.</p>
-        <div class="who"><span class="av">김</span>이직 준비 직장인 · 정규반 3개월</div>
-      </div>
-      <div class="rcard reveal">
-        <div class="score-move"><span class="from num">705</span><span class="ar">→</span><span class="to num">985</span><span class="up num">+280</span></div>
-        <h4>요령을 알면 성적이 오른다</h4>
-        <p class="body">대학 이후 손 놓았던 토익이 급하게 필요했어요. PART 5·6 문제 풀이 요령과 시간 배분을 잡아주신 덕에 단기간에 목표를 훌쩍 넘겼습니다.</p>
-        <div class="who"><span class="av">박</span>취업 준비생 · 실전반 8주</div>
-      </div>
-      <div class="rcard reveal">
-        <div class="score-move"><span class="from num">TS 5</span><span class="ar">→</span><span class="to num perfect">AL</span><span class="up num">스피킹</span></div>
-        <h4>영포자에게 희망을</h4>
-        <p class="body">토익스피킹을 결심하고 후기를 다 찾아봤어요. 템플릿 암기가 아니라 제 상황에 맞는 실전 표현을 연습시켜 주셔서 자신감이 완전히 달라졌습니다.</p>
-        <div class="who"><span class="av">이</span>대학생 · 스피킹반 6주</div>
-      </div>
-      <div class="rcard reveal">
-        <div class="score-move"><span class="from num">640</span><span class="ar">→</span><span class="to num">890</span><span class="up num">+250</span></div>
-        <h4>승무원, 도전하세요!</h4>
-        <p class="body">발음에 신경 쓰느라 늘 말을 더듬었는데, 파트별 약점을 하나씩 교정받으니 어떤 문제가 나와도 흔들리지 않게 됐어요. 목표 점수로 지원까지 마쳤습니다.</p>
-        <div class="who"><span class="av">최</span>승무원 준비생 · 토익스피킹</div>
-      </div>
+    <style>
+      .rv-gallery{columns:4 200px;column-gap:12px;margin-top:8px}
+      @media(max-width:640px){.rv-gallery{columns:2 150px;column-gap:8px}}
+      .rv-tile{display:block;width:100%;margin:0 0 12px;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);cursor:zoom-in;break-inside:avoid}
+      .rv-tile img{display:block;width:100%;height:auto}
+      .rv-lightbox{position:fixed;inset:0;z-index:300;background:rgba(8,12,22,.92);display:none;align-items:center;justify-content:center}
+      .rv-lightbox.on{display:flex}
+      .rv-lightbox img{max-width:92vw;max-height:88vh;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+      .rv-lb-x{position:absolute;top:16px;right:22px;background:none;border:none;color:#fff;font-size:34px;cursor:pointer;line-height:1;z-index:2}
+      .rv-lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:none;color:#fff;font-size:40px;width:54px;height:72px;border-radius:10px;cursor:pointer;z-index:2}
+      .rv-lb-nav.prev{left:16px}.rv-lb-nav.next{right:16px}
+      .rv-lb-nav:hover{background:rgba(255,255,255,.25)}
+      @media(max-width:640px){.rv-lb-nav{width:40px;height:58px;font-size:30px}}
+    </style>
+    <div class="rv-gallery" id="revGallery"></div>
+    <div style="text-align:center;margin:16px 0 4px"><button class="btn btn-ghost" id="revMore" type="button">후기 더 보기</button></div>
+    <div class="rv-lightbox" id="rvLightbox" aria-hidden="true">
+      <button class="rv-lb-x" data-lbclose type="button" aria-label="닫기">&times;</button>
+      <button class="rv-lb-nav prev" id="rvLbPrev" type="button" aria-label="이전">&#8249;</button>
+      <img id="rvLbImg" alt="완벽한토익 수강후기 확대 보기">
+      <button class="rv-lb-nav next" id="rvLbNext" type="button" aria-label="다음">&#8250;</button>
     </div>
+    <script src="reviews/rv-data.js"></script>
+    <script>
+    (function(){
+      var RV=window.RV||[];
+      var grid=document.getElementById('revGallery');
+      if(!grid||!RV.length) return;
+      var shown=0, STEP=30;
+      function loadMore(){
+        var frag='', end=Math.min(RV.length, shown+STEP), i;
+        for(i=shown;i<end;i++){ var it=RV[i]; frag+='<button class="rv-tile" type="button" data-i="'+i+'" style="aspect-ratio:'+it.w+'/'+it.h+'"><img src="'+it.f+'" loading="lazy" alt="완벽한토익 수강후기 '+(i+1)+'"></button>'; }
+        grid.insertAdjacentHTML('beforeend',frag);
+        shown=end;
+        var btn=document.getElementById('revMore');
+        if(btn){ if(shown>=RV.length) btn.style.display='none'; else btn.textContent='후기 더 보기 (+'+(RV.length-shown)+')'; }
+      }
+      loadMore();
+      var mb=document.getElementById('revMore'); if(mb) mb.onclick=loadMore;
+      var lb=document.getElementById('rvLightbox'), lbImg=document.getElementById('rvLbImg'), cur=0;
+      function openLb(i){ cur=i; lbImg.src=RV[i].f; lb.classList.add('on'); document.body.style.overflow='hidden'; }
+      function closeLb(){ lb.classList.remove('on'); lbImg.removeAttribute('src'); document.body.style.overflow=''; }
+      function nav(d){ cur=(cur+d+RV.length)%RV.length; lbImg.src=RV[cur].f; }
+      grid.addEventListener('click',function(e){ var t=e.target.closest?e.target.closest('.rv-tile'):null; if(t) openLb(+t.getAttribute('data-i')); });
+      if(lb){
+        lb.addEventListener('click',function(e){ if(e.target===lb || (e.target.getAttribute && e.target.getAttribute('data-lbclose')!=null)) closeLb(); });
+        var p=document.getElementById('rvLbPrev'), nx=document.getElementById('rvLbNext');
+        if(p) p.onclick=function(e){ e.stopPropagation(); nav(-1); };
+        if(nx) nx.onclick=function(e){ e.stopPropagation(); nav(1); };
+        document.addEventListener('keydown',function(e){ if(!lb.classList.contains('on')) return; if(e.key==='Escape') closeLb(); else if(e.key==='ArrowLeft') nav(-1); else if(e.key==='ArrowRight') nav(1); });
+      }
+    })();
+    </script>
 
     <!-- 수강후기 게시판 -->
     <div class="board reveal" id="board">
