@@ -2512,6 +2512,7 @@
       <button class="dash-tab" data-dtab="work">출퇴근</button>
       <button class="dash-tab" data-dtab="oplog">운영일지</button>
       <button class="dash-tab" data-dtab="diag">진단결과</button>
+      <button class="dash-tab" data-dtab="hw">숙제</button>
     </div>
 
     <div class="dash-pane on" data-dpane="members">
@@ -2656,6 +2657,22 @@
       <div id="diagDetail" style="display:none;margin:14px 0"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="diagTable"></table></div>
     </div>
+
+    <div class="dash-pane" data-dpane="hw">
+      <div class="dash-form">
+        <div class="dash-row">
+          <label>학생<input type="text" id="hwStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="hwStudent"></select></label>
+          <label>마감일 <span class="wa-hint">(선택)</span><input type="date" id="hwDue"></label>
+        </div>
+        <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">숙제 내용<textarea id="hwContent" rows="3" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)" placeholder="예) ETS VOCA day 15~16 암기 / 파트5 20문제 풀고 오답노트"></textarea></label>
+        <p class="wa-err" id="hwErr"></p>
+        <button class="btn btn-primary" id="hwAdd" type="button">＋ 숙제 등록</button>
+      </div>
+      <div class="dash-list-head">숙제 목록 <button class="btn btn-ghost" id="hwReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="dash-note" style="margin-top:0">등록하면 <b>해당 학생 페이지(내 숙제)</b>에 바로 표시됩니다. 학생이 완료하면 ✅ 표시돼요.</div>
+      <div style="margin:10px 0 2px"><input id="hwListSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
+      <div class="wa-table-wrap"><table class="wa-table" id="hwTable"></table></div>
+    </div>
   </div>
 </div>
 <div class="wa-overlay" id="waMy" aria-hidden="true">
@@ -2684,6 +2701,8 @@
     </div>
     <div class="dash-list-head">🎫 내 수강권 (남은 수업 횟수)</div>
     <div class="dash-note" id="myPass"></div>
+    <div class="dash-list-head">📝 내 숙제 <span style="color:var(--muted);font-weight:700;font-size:12px">담당 선생님이 내준 숙제</span></div>
+    <div class="wa-table-wrap"><table class="wa-table" id="myHwTable"></table></div>
     <div class="dash-list-head">📅 내 수업 일정</div>
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
     <div class="dash-list-head">💳 결제 내역</div>
@@ -3096,6 +3115,7 @@
     await loadWork();
     if(isOps()) await loadOplog();
     await loadDiag();
+    await loadHomework();
     applyRoleScope();
     applyTabRoles();
   }
@@ -3118,9 +3138,11 @@
   function fillStudentSelects(){
     if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+studentOpts($('scStudentSearch')?$('scStudentSearch').value:'');
     if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts($('pyStudentSearch')?$('pyStudentSearch').value:'');
+    if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts($('hwStudentSearch')?$('hwStudentSearch').value:'');
   }
   if($('scStudentSearch')) $('scStudentSearch').oninput=function(){ if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+studentOpts(this.value); };
   if($('pyStudentSearch')) $('pyStudentSearch').oninput=function(){ if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
+  if($('hwStudentSearch')) $('hwStudentSearch').oninput=function(){ if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
 
   // ---- 강의장 ----
   async function loadRooms(){
@@ -3678,6 +3700,56 @@
     }
   });
 
+  // ---- 숙제 (선생님 작성 → 학생 페이지 연동) ----
+  async function loadHomework(){
+    if(!$('hwTable')) return;
+    var rows=[];
+    if(sb){ var r=await sb.from('homeworks').select('*').order('created_at',{ascending:false}).limit(500); if(!r.error&&r.data) rows=r.data; }
+    if(!isOps()) rows=rows.filter(function(x){ return x.teacher_id===(profile&&profile.id); });
+    window.__wtHw=rows;
+    drawHw();
+  }
+  function drawHw(){
+    if(!$('hwTable')) return;
+    var rows=window.__wtHw||[];
+    var q=(($('hwListSearch')&&$('hwListSearch').value)||'').trim().toLowerCase();
+    if(q) rows=rows.filter(function(x){ return (x.student_name||'').toLowerCase().indexOf(q)>=0; });
+    if(!rows.length){ $('hwTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'등록된 숙제가 없습니다.')+'</td></tr>'; return; }
+    var h='<tr><th>등록일</th><th>학생</th><th>숙제</th><th>마감</th><th>완료</th><th>관리</th></tr>';
+    rows.forEach(function(x){
+      h+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td>'+esc(x.content||'').replace(/\n/g,'<br>')+'</td><td style="white-space:nowrap">'+esc(x.due_date||'-')+'</td><td style="white-space:nowrap">'+(x.done?'<b style="color:#16a34a">완료 ✅</b>':'<span style="color:var(--muted)">미완료</span>')+'</td><td style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+    });
+    $('hwTable').innerHTML=h;
+  }
+  var hwEditId=null;
+  function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwDue')) $('hwDue').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
+  if($('hwReload')) $('hwReload').onclick=loadHomework;
+  if($('hwListSearch')) $('hwListSearch').addEventListener('input', drawHw);
+  if($('hwAdd')) $('hwAdd').onclick=async function(){
+    if(!sb||!profile) return;
+    var err=$('hwErr'); if(err) err.textContent='';
+    var content=$('hwContent').value.trim();
+    var due=$('hwDue')?($('hwDue').value||null):null;
+    var r;
+    if(hwEditId){ r=await sb.from('homeworks').update({content:content, due_date:due}).eq('id',hwEditId); }
+    else {
+      var sid=$('hwStudent')?$('hwStudent').value:'';
+      if(!sid){ if(err) err.textContent='학생을 선택하세요.'; return; }
+      if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
+      var st=_members.filter(function(m){return m.id===sid;})[0];
+      r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content, due_date:due});
+    }
+    if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
+    if(r.error){ if(err) err.textContent='저장 실패: '+r.error.message; return; }
+    hwReset(); await loadHomework();
+  };
+  if($('hwTable')) $('hwTable').addEventListener('click', async function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    var del=t.closest('a[data-hwdel]'), ed=t.closest('a[data-hwedit]');
+    if(del){ if(!confirm('이 숙제를 삭제할까요?')) return; var r=await sb.from('homeworks').delete().eq('id',del.getAttribute('data-hwdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } if(hwEditId===del.getAttribute('data-hwdel')) hwReset(); await loadHomework(); return; }
+    if(ed){ var x=(window.__wtHw||[]).filter(function(y){return y.id===ed.getAttribute('data-hwedit');})[0]; if(!x) return; hwEditId=x.id; if($('hwContent')) $('hwContent').value=x.content||''; if($('hwDue')) $('hwDue').value=x.due_date||''; if($('hwStudentSearch')) $('hwStudentSearch').value=x.student_name||''; if($('hwStudent')){ $('hwStudent').innerHTML='<option value="'+esc(x.student_id)+'">'+esc(x.student_name||'')+'</option>'; $('hwStudent').value=x.student_id; } if($('hwAdd')) $('hwAdd').textContent='✏️ 수정 저장'; if($('hwContent')) $('hwContent').focus(); return; }
+  });
+
   function applyTabRoles(){
     var c=$('waAdmin'); if(!c) return;
     var ops=isOps();
@@ -3722,7 +3794,19 @@
       $('myPass').innerHTML='구매 <b>'+pu+'회</b> · 출석 <b>'+atts.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>';
       if($('myAttTable')){ if(!atts.length){ $('myAttTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; } else { var ah='<tr><th>출석일</th></tr>'; atts.slice(0,30).forEach(function(a){ ah+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td></tr>'; }); $('myAttTable').innerHTML=ah; } }
     }
+    if($('myHwTable')){
+      var hw=[];
+      if(sb){ var rh=await sb.from('homeworks').select('*').eq('student_id',profile.id).order('created_at',{ascending:false}); if(!rh.error&&rh.data) hw=rh.data; }
+      if(!hw.length){ $('myHwTable').innerHTML='<tr><td class="wa-empty">아직 등록된 숙제가 없습니다.</td></tr>'; }
+      else { var hwh='<tr><th>등록일</th><th>숙제</th><th>마감</th><th>선생님</th><th>완료</th></tr>'; hw.forEach(function(x){ hwh+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td>'+esc(x.content||'').replace(/\n/g,'<br>')+'</td><td style="white-space:nowrap">'+esc(x.due_date||'-')+'</td><td style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td style="white-space:nowrap"><label style="cursor:pointer;white-space:nowrap"><input type="checkbox" data-hwdone="'+x.id+'"'+(x.done?' checked':'')+'> 완료</label></td></tr>'; }); $('myHwTable').innerHTML=hwh; }
+    }
   }
+  if($('myHwTable')) $('myHwTable').addEventListener('change', async function(e){
+    var cb=e.target; if(!cb||cb.getAttribute('data-hwdone')==null) return;
+    if(!sb) return;
+    var r=await sb.from('homeworks').update({done:cb.checked}).eq('id',cb.getAttribute('data-hwdone'));
+    if(r&&r.error){ alert('저장 실패: '+r.error.message); cb.checked=!cb.checked; }
+  });
   if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
   if($('waMy')) $('waMy').addEventListener('click',function(e){ if(e.target===$('waMy')) $('waMy').classList.remove('on'); });
   if($('mySave')) $('mySave').onclick=async function(){
