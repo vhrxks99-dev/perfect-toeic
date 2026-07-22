@@ -2432,7 +2432,6 @@
     </form>
     <div class="wa-social">
       <div class="wa-or"><span>또는 간편하게</span></div>
-      <button type="button" class="wa-soc wa-naver" id="waNaver"><b>N</b> 네이버로 시작하기</button>
       <button type="button" class="wa-soc wa-kakao" id="waKakao"><span>💬</span> 카카오로 시작하기</button>
     </div>
   </div>
@@ -2858,7 +2857,6 @@
 
   var abk=$('waAutoBk'); if(abk){ abk.checked=localStorage.getItem('wt_autobackup')!=='off'; abk.onchange=function(){ localStorage.setItem('wt_autobackup',abk.checked?'on':'off'); }; }
   function socialSoon(n){ alert(n+' 간편가입은 홈페이지가 인터넷에 배포되고 '+n+' 개발자 앱 등록을 마친 후 활성화됩니다.\n\n지금은 이메일 회원가입을 이용해주세요.'); }
-  if($('waNaver')) $('waNaver').onclick=function(){socialSoon('네이버');};
   if($('waKakao')) $('waKakao').onclick=function(){socialSoon('카카오');};
   renderAuth();
 })();
@@ -3062,7 +3060,6 @@
   async function openMy(){ if(!profile) return; await renderMy(); $('waMy').classList.add('on'); }
 
   function socialSoon(n){ alert(n+' 간편가입은 준비 중입니다. 지금은 이메일 회원가입을 이용해주세요.'); }
-  if($('waNaver')) $('waNaver').onclick=function(){socialSoon('네이버');};
   if($('waKakao')) $('waKakao').onclick=function(){socialSoon('카카오');};
 
   // ================= 관리 대시보드 (원장님/선생님) =================
