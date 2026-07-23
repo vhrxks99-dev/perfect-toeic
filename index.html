@@ -2663,7 +2663,7 @@
           <label>학생<input type="text" id="hwStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="hwStudent"></select></label>
           <label>마감일 <span class="wa-hint">(선택)</span><input type="date" id="hwDue"></label>
         </div>
-        <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">숙제 내용<textarea id="hwContent" rows="3" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)" placeholder="예) ETS VOCA day 15~16 암기 / 파트5 20문제 풀고 오답노트"></textarea></label>
+        <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">숙제 내용 <span class="wa-hint">(한 줄에 하나씩 — 학생이 항목별로 완료 체크)</span><textarea id="hwContent" rows="4" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)" placeholder="예)&#10;1. 완벽한토익 단어장 day1~3 외우기&#10;2. 직독직해 오답해오기"></textarea></label>
         <p class="wa-err" id="hwErr"></p>
         <button class="btn btn-primary" id="hwAdd" type="button">＋ 숙제 등록</button>
       </div>
@@ -3722,15 +3722,22 @@
     window.__wtHw=rows;
     drawHw();
   }
+  function hwItems(content){ return String(content||'').split(/\n/).map(function(s){return s.trim();}).filter(function(s){return s.length>0;}); }
+  function hwDoneArr(x){ var arr=[]; try{ arr=JSON.parse(x.items_done||'[]'); }catch(e){ arr=[]; } if(!Array.isArray(arr)) arr=[]; return arr; }
+  function hwProgress(x){ var items=hwItems(x.content), d=hwDoneArr(x), done=0; for(var i=0;i<items.length;i++){ if(d[i]) done++; } return {done:done,total:items.length}; }
+  function hwProgTag(x){ var p=hwProgress(x); return (p.total>0 && p.done>=p.total) ? '<b style="color:#16a34a">완료 ✅</b>' : ('<b>'+p.done+'/'+p.total+'</b>'); }
+  function fmtDue(d){ if(!d) return '-'; var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d); if(!m) return d; var dt=new Date(+m[1],+m[2]-1,+m[3]); var w=['일','월','화','수','목','금','토'][dt.getDay()]; return m[1]+'.'+m[2]+'.'+m[3]+' ('+w+')'; }
   function drawHw(){
     if(!$('hwTable')) return;
     var rows=window.__wtHw||[];
     var q=(($('hwListSearch')&&$('hwListSearch').value)||'').trim().toLowerCase();
     if(q) rows=rows.filter(function(x){ return (x.student_name||'').toLowerCase().indexOf(q)>=0; });
     if(!rows.length){ $('hwTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'등록된 숙제가 없습니다.')+'</td></tr>'; return; }
-    var h='<tr><th>등록일</th><th>학생</th><th>숙제</th><th>마감</th><th>완료</th><th>관리</th></tr>';
+    var h='<tr><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>마감</th><th>진행</th><th>관리</th></tr>';
     rows.forEach(function(x){
-      h+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td>'+esc(x.content||'').replace(/\n/g,'<br>')+'</td><td style="white-space:nowrap">'+esc(x.due_date||'-')+'</td><td style="white-space:nowrap">'+(x.done?'<b style="color:#16a34a">완료 ✅</b>':'<span style="color:var(--muted)">미완료</span>')+'</td><td style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      var items=hwItems(x.content), d=hwDoneArr(x);
+      var itemHtml = items.length ? items.map(function(it,i){ return '<div>'+(d[i]?'✅':'⬜')+' '+esc(it)+'</div>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
+      h+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td>'+itemHtml+'</td><td style="white-space:nowrap">'+esc(fmtDue(x.due_date))+'</td><td style="white-space:nowrap">'+hwProgTag(x)+'</td><td style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
@@ -3810,15 +3817,23 @@
     if($('myHwTable')){
       var hw=[];
       if(sb){ var rh=await sb.from('homeworks').select('*').eq('student_id',profile.id).order('created_at',{ascending:false}); if(!rh.error&&rh.data) hw=rh.data; }
+      window.__myHw=hw;
       if(!hw.length){ $('myHwTable').innerHTML='<tr><td class="wa-empty">아직 등록된 숙제가 없습니다.</td></tr>'; }
-      else { var hwh='<tr><th>등록일</th><th>숙제</th><th>마감</th><th>선생님</th><th>완료</th></tr>'; hw.forEach(function(x){ hwh+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td>'+esc(x.content||'').replace(/\n/g,'<br>')+'</td><td style="white-space:nowrap">'+esc(x.due_date||'-')+'</td><td style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td style="white-space:nowrap"><label style="cursor:pointer;white-space:nowrap"><input type="checkbox" data-hwdone="'+x.id+'"'+(x.done?' checked':'')+'> 완료</label></td></tr>'; }); $('myHwTable').innerHTML=hwh; }
+      else { var hwh='<tr><th>등록일</th><th>숙제 (완료 체크)</th><th>마감</th><th>선생님</th><th>진행</th></tr>'; hw.forEach(function(x){
+        var items=hwItems(x.content), d=hwDoneArr(x);
+        var itemHtml = items.length ? items.map(function(it,i){ return '<label style="display:block;cursor:pointer;padding:3px 0"><input type="checkbox" data-hw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
+        hwh+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td>'+itemHtml+'</td><td style="white-space:nowrap">'+esc(fmtDue(x.due_date))+'</td><td style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td style="white-space:nowrap">'+hwProgTag(x)+'</td></tr>'; }); $('myHwTable').innerHTML=hwh; }
     }
   }
   if($('myHwTable')) $('myHwTable').addEventListener('change', async function(e){
-    var cb=e.target; if(!cb||cb.getAttribute('data-hwdone')==null) return;
+    var cb=e.target; if(!cb||cb.getAttribute('data-hw')==null) return;
     if(!sb) return;
-    var r=await sb.from('homeworks').update({done:cb.checked}).eq('id',cb.getAttribute('data-hwdone'));
-    if(r&&r.error){ alert('저장 실패: '+r.error.message); cb.checked=!cb.checked; }
+    var id=cb.getAttribute('data-hw'), idx=parseInt(cb.getAttribute('data-i'),10);
+    var x=(window.__myHw||[]).filter(function(y){return y.id===id;})[0]; if(!x) return;
+    var arr=hwDoneArr(x); while(arr.length<=idx) arr.push(false); arr[idx]=cb.checked; x.items_done=JSON.stringify(arr);
+    var r=await sb.from('homeworks').update({items_done:x.items_done}).eq('id',id);
+    if(r&&r.error){ alert('저장 실패: '+r.error.message); cb.checked=!cb.checked; arr[idx]=!cb.checked; x.items_done=JSON.stringify(arr); return; }
+    var row=cb.closest('tr'); if(row&&row.lastElementChild){ row.lastElementChild.innerHTML=hwProgTag(x); }
   });
   if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
   if($('waMy')) $('waMy').addEventListener('click',function(e){ if(e.target===$('waMy')) $('waMy').classList.remove('on'); });
