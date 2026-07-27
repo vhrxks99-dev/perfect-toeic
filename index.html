@@ -2396,6 +2396,13 @@
 .wa-naver b{font-family:Arial,sans-serif;font-weight:900;font-size:16px}
 .wa-kakao{background:#FEE500;color:#3A1D1D}
 .wa-toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:8px 0 0;cursor:pointer}
+.wa-find{display:flex;justify-content:center;gap:10px;margin-top:12px;font-size:12.5px}
+.wa-find a{color:var(--ink-soft,#555);font-weight:600;text-decoration:none;cursor:pointer}
+.wa-find a:hover{color:var(--accent,#1F62E0);text-decoration:underline}
+.wa-fsep{color:var(--line-strong,#ccd2dc)}
+.wa-match{margin:5px 2px 0;font-size:12.5px;font-weight:700;min-height:1em}
+.wa-match.ok{color:#0a8f3c}
+.wa-match.no{color:#c0342b}
 </style>
 <div class="wa-overlay" id="waModal" aria-hidden="true">
   <div class="wa-card">
@@ -2409,6 +2416,7 @@
       <label class="wa-check" style="margin-top:0"><input type="checkbox" id="waRemember"><span>아이디 저장</span></label>
       <p class="wa-err" id="waLoginErr"></p>
       <button class="btn btn-primary" type="submit">로그인</button>
+      <div class="wa-find"><a href="#" id="waFindId">이메일(아이디) 찾기</a><span class="wa-fsep">·</span><a href="#" id="waFindPw">비밀번호 찾기</a></div>
     </form>
     <form class="wa-form" id="waSignupForm" data-form="signup" autocomplete="on">
       <label>이름 <em>*</em><input type="text" id="waSuName" required maxlength="20"></label>
@@ -2417,6 +2425,7 @@
         <label>비밀번호 <em>*</em><input type="password" id="waSuPw" required placeholder="6자 이상"></label>
         <label>비밀번호 확인 <em>*</em><input type="password" id="waSuPw2" required></label>
       </div>
+      <p class="wa-match" id="waPwMatch" aria-live="polite"></p>
       <label>휴대폰 번호 <em>*</em><input type="tel" id="waSuPhone" required maxlength="30" placeholder="010-1234-5678"></label>
       <div class="wa-row">
         <label>생년월일 <span class="wa-hint">(6자리)</span><input type="text" id="waSuBirth" maxlength="6" inputmode="numeric" placeholder="예: 940107"></label>
@@ -2434,6 +2443,19 @@
       <div class="wa-or"><span>또는 간편하게</span></div>
       <button type="button" class="wa-soc wa-kakao" id="waKakao"><span>💬</span> 카카오로 시작하기</button>
     </div>
+  </div>
+</div>
+<div class="wa-overlay" id="waRecovery" aria-hidden="true">
+  <div class="wa-card">
+    <div class="wa-head">새 비밀번호 설정</div>
+    <div class="wa-sub">이메일 인증이 확인되었어요. 사용할 새 비밀번호를 입력해주세요.</div>
+    <form id="waRecoveryForm" autocomplete="off">
+      <label>새 비밀번호 <em>*</em><input type="password" id="waRcPw" required placeholder="6자 이상"></label>
+      <label>새 비밀번호 확인 <em>*</em><input type="password" id="waRcPw2" required></label>
+      <p class="wa-match" id="waRcMatch" aria-live="polite"></p>
+      <p class="wa-err" id="waRcErr"></p>
+      <button class="btn btn-primary" type="submit">비밀번호 변경</button>
+    </form>
   </div>
 </div>
 <style>
@@ -3853,7 +3875,105 @@
     alert('내 정보가 저장되었습니다.');
   };
 
-  if(sb && sb.auth && sb.auth.onAuthStateChange){ sb.auth.onAuthStateChange(function(){ }); }
+  // ==== 아이디/비밀번호 찾기 + 비밀번호 재설정 ====
+  function isEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+  // 비밀번호 찾기 → 재설정 메일 발송
+  if($('waFindPw')) $('waFindPw').addEventListener('click', async function(e){
+    e.preventDefault();
+    if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var email=(($('waLoginEmail')&&$('waLoginEmail').value)||'').trim().toLowerCase();
+    if(!isEmail(email)){ email=(prompt('가입하신 이메일(아이디)을 입력해주세요.')||'').trim().toLowerCase(); }
+    if(!email) return;
+    if(!isEmail(email)){ alert('올바른 이메일 형식이 아닙니다.'); return; }
+    var r=await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
+    if(r && r.error){ alert('메일 발송 실패: '+authErr(r.error.message)); return; }
+    alert(email+' 로\n비밀번호 재설정 메일을 보냈어요.\n\n메일의 링크를 누르면 새 비밀번호를 정할 수 있어요.\n(메일이 안 보이면 스팸함도 확인해주세요.)');
+  });
+
+  // 이메일(아이디) 찾기 → 이름+휴대폰으로 조회(RPC), 마스킹된 이메일 안내
+  if($('waFindId')) $('waFindId').addEventListener('click', async function(e){
+    e.preventDefault();
+    if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var name=(prompt('가입 시 입력한 이름을 입력해주세요.')||'').trim();
+    if(!name) return;
+    var phone=(prompt('가입 시 입력한 휴대폰 번호를 입력해주세요.\n(예: 010-1234-5678)')||'').trim();
+    if(!phone) return;
+    var r=await sb.rpc('find_email',{ p_name:name, p_phone:phone });
+    if(r.error){ alert('조회 중 오류가 발생했어요.\n'+r.error.message); return; }
+    if(!r.data){ alert('입력하신 정보와 일치하는 회원이 없어요.\n이름과 휴대폰 번호를 다시 확인해주세요.'); return; }
+    alert('가입하신 이메일(아이디)은\n\n    '+r.data+'\n\n입니다.\n\n비밀번호를 잊으셨다면 "비밀번호 찾기"를 이용해주세요.');
+  });
+
+  // 비밀번호 확인 실시간 문구
+  function pwMatchWire(pwId, pw2Id, msgId){
+    var pw=$(pwId), pw2=$(pw2Id), m=$(msgId);
+    if(!pw||!pw2||!m) return;
+    function upd(){
+      var a=pw.value, b=pw2.value;
+      if(!b){ m.textContent=''; m.className='wa-match'; return; }
+      if(a===b){ m.textContent='✓ 비밀번호가 일치합니다'; m.className='wa-match ok'; }
+      else { m.textContent='✗ 비밀번호가 일치하지 않습니다'; m.className='wa-match no'; }
+    }
+    pw.addEventListener('input',upd); pw2.addEventListener('input',upd);
+  }
+  pwMatchWire('waSuPw','waSuPw2','waPwMatch');
+  pwMatchWire('waRcPw','waRcPw2','waRcMatch');
+
+  // 재설정 메일 링크 클릭 후 → 새 비밀번호 입력 모달
+  function openRecovery(){ if($('waRecovery')) $('waRecovery').classList.add('on'); }
+  function closeRecovery(){ if($('waRecovery')) $('waRecovery').classList.remove('on'); }
+
+  // 재설정 링크에서 세션 확보 (implicit #access_token / pkce ?code / ?token_hash 모두 대응)
+  async function ensureRecoverySession(){
+    if(!sb) return false;
+    async function has(){ try{ var s=await sb.auth.getSession(); return !!(s && s.data && s.data.session); }catch(e){ return false; } }
+    if(await has()) return true;
+    var qs, hs;
+    try{ qs=new URLSearchParams(window.location.search||''); }catch(e){ qs=new URLSearchParams(''); }
+    try{ hs=new URLSearchParams((window.location.hash||'').replace(/^#/,'')); }catch(e){ hs=new URLSearchParams(''); }
+    try{
+      if(qs.get('code')){ await sb.auth.exchangeCodeForSession(window.location.href); }
+      else {
+        var th=qs.get('token_hash')||hs.get('token_hash');
+        var ty=qs.get('type')||hs.get('type');
+        if(th && ty){ await sb.auth.verifyOtp({ type: ty, token_hash: th }); }
+      }
+    }catch(e){}
+    return await has();
+  }
+
+  if($('waRecoveryForm')) $('waRecoveryForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var err=$('waRcErr'); err.textContent='';
+    var pw=$('waRcPw').value, pw2=$('waRcPw2').value;
+    if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
+    if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
+    if(!sb){ err.textContent='서버 연결 중입니다. 잠시 후 다시 시도해주세요.'; return; }
+    var ok=await ensureRecoverySession();
+    if(!ok){ err.textContent='재설정 링크가 만료되었거나 이미 사용된 것 같아요. "비밀번호 찾기"로 메일을 다시 받아, 새 링크로 접속한 뒤 변경해주세요.'; return; }
+    var r=await sb.auth.updateUser({ password: pw });
+    if(r.error){ err.textContent='변경 실패: '+authErr(r.error.message); return; }
+    $('waRecoveryForm').reset(); closeRecovery();
+    try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
+    alert('비밀번호가 변경되었어요. 새 비밀번호로 다시 로그인해주세요.');
+    await refresh();
+  });
+
+  // PKCE 방식(코드 교환 후)엔 이 이벤트로 복구 모달을 띄움
+  if(sb && sb.auth && sb.auth.onAuthStateChange){
+    sb.auth.onAuthStateChange(function(evt){ if(evt==='PASSWORD_RECOVERY'){ openRecovery(); } });
+  }
+  // implicit(#type=recovery) / token_hash(?type=recovery) 방식 감지
+  // ※ 카카오 로그인의 ?code= 와 충돌하지 않도록 여기선 type=recovery 만 본다
+  (async function(){
+    try{
+      if(/type=recovery/.test(window.location.hash||'') || /type=recovery/.test(window.location.search||'')){
+        await ensureRecoverySession();
+        openRecovery();
+      }
+    }catch(e){}
+  })();
   refresh();
 })();
 </script>
