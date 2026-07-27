@@ -51,6 +51,7 @@
     margin:0; background:var(--paper); color:var(--ink);
     font-family:var(--font-sans); font-size:16px; line-height:1.7;
     -webkit-font-smoothing:antialiased; letter-spacing:-.01em;
+    word-break:keep-all; overflow-wrap:break-word;
   }
   @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *{animation-duration:.001ms!important;transition:none!important} }
   a{color:inherit;text-decoration:none}
@@ -2458,7 +2459,49 @@
     </form>
   </div>
 </div>
+<div class="wa-overlay" id="waBooking" aria-hidden="true">
+  <div class="wa-card wa-book">
+    <button class="wa-x" id="waBookClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">수업 예약</div>
+    <div class="wa-sub" id="waBookSub">담당 선생님의 빈 시간을 골라 예약을 요청하세요. (2시간 단위)</div>
+    <div class="wa-book-row">
+      <label>날짜<input type="date" id="waBookDate"></label>
+      <label>과목<select id="waBookSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
+    </div>
+    <div class="wa-book-slots" id="waBookSlots"><div class="wa-book-empty">날짜를 선택하면 빈 시간이 표시돼요.</div></div>
+    <p class="wa-err" id="waBookErr"></p>
+    <div class="wa-book-mine">
+      <div class="wa-book-mine-h">내 예약 현황</div>
+      <div id="waBookMine"><div class="wa-book-empty">예약 내역이 없어요.</div></div>
+    </div>
+  </div>
+</div>
 <style>
+.wa-book{max-width:520px}
+.wa-book-row{display:flex;gap:12px;margin:6px 0 4px}
+.wa-book-row label{flex:1;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--ink-soft)}
+.wa-book-row input,.wa-book-row select{padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
+.wa-book-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0 4px}
+.wa-book-slot{padding:12px 6px;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface);text-align:center;cursor:pointer;transition:.15s}
+.wa-book-slot .t{font-family:var(--font-num);font-weight:800;font-size:15px;color:var(--ink)}
+.wa-book-slot .s{font-size:11.5px;color:var(--muted);margin-top:2px}
+.wa-book-slot:hover{border-color:var(--accent);background:var(--accent-wash)}
+.wa-book-slot.busy{opacity:.45;cursor:not-allowed;background:var(--surface-2)}
+.wa-book-slot.busy .t{color:var(--muted);text-decoration:line-through}
+.wa-book-slot.busy:hover{border-color:var(--line-strong);background:var(--surface-2)}
+.wa-book-empty{grid-column:1/-1;color:var(--muted);font-size:13px;padding:14px 2px;text-align:center}
+.wa-book-mine{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
+.wa-book-mine-h{font-weight:800;font-size:14px;margin-bottom:8px}
+.wa-book-mine .bm{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.wa-book-mine .bm:last-child{border-bottom:0}
+.wa-book-mine .bm .bm-t{font-weight:700;color:var(--ink)}
+.wa-book-mine .bm .bm-st{margin-left:auto;font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 10px}
+.wa-book-mine .bm .st-pending{background:#fff3df;color:#b26a00}
+.wa-book-mine .bm .st-confirmed{background:#e5f6ec;color:#0a8f3c}
+.wa-book-mine .bm .bm-cancel{margin-left:8px;color:#c0342b;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline}
+.wa-al-approve,.wa-al-reject{flex:none;font-size:12px;font-weight:800;border-radius:8px;padding:3px 11px;cursor:pointer;border:0}
+.wa-al-approve{background:#0a8f3c;color:#fff}
+.wa-al-reject{background:#f1f3f6;color:#c0342b}
 .wa-dash{max-width:920px}
 /* 관리 페이지: 팝업이 아닌 전체 화면 페이지로 */
 #waAdmin.wa-overlay{padding:0;background:var(--paper);align-items:flex-start;justify-content:center;overflow:auto}
@@ -2519,6 +2562,19 @@
 .cal-legend{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;margin:2px 0 10px;font-size:11.5px}
 .cal-lg{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--ink-soft)}
 .cal-lg i{width:11px;height:11px;border-radius:3px;display:inline-block;flex:none}
+.wa-alerts{margin:2px 0 14px;border:1px solid #f0c36d;background:#fff9ec;border-radius:12px;padding:13px 16px}
+.wa-alerts .wa-al-head{display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;color:#8a5a00;margin-bottom:8px}
+.wa-alerts .wa-al-head .wa-al-badge{background:#e8892b;color:#fff;font-size:12px;font-weight:800;border-radius:999px;padding:1px 9px}
+.wa-alerts ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.wa-alerts li{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink)}
+.wa-alerts li .wa-al-tag{flex:none;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px}
+.wa-alerts li .t-next{background:#eaf1fe;color:#154fbe}
+.wa-alerts li .t-hw{background:#fdeaea;color:#c0342b}
+.wa-alerts li .t-req{background:#e8f6ec;color:#0a8f3c}
+.wa-alerts li .wa-al-sp{margin-left:auto}
+.wa-alerts li .wa-al-approve+.wa-al-reject{margin-left:6px}
+.wa-alerts li b{font-weight:800}
+.wa-alerts li .wa-al-go{margin-left:auto;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 </style>
 <div class="wa-overlay" id="waAdmin" aria-hidden="true">
   <div class="wa-card wa-admin wa-dash">
@@ -2535,6 +2591,8 @@
       <button class="dash-tab" data-dtab="diag">진단결과</button>
       <button class="dash-tab" data-dtab="hw">숙제</button>
     </div>
+
+    <div id="waAlerts" class="wa-alerts" style="display:none"></div>
 
     <div class="dash-pane on" data-dpane="members">
       <div class="wa-sub">전체 회원 <span id="waCount" style="color:var(--muted);font-weight:700"></span> · 모든 기기에서 실시간 공유</div>
@@ -2978,6 +3036,7 @@
     function links(){
       var h='';
       if(s.role==='admin'||s.role==='manager'||s.role==='master') h+='<a class="wa-link" id="waAdminOpen">관리 페이지</a>';
+      if(s.role==='student') h+='<a class="wa-link" id="waBookOpen">수업 예약</a>';
       h+='<a class="wa-link" id="waMyOpen">내 정보</a><a class="wa-link" id="waLogout">로그아웃</a>';
       return h;
     }
@@ -2985,7 +3044,7 @@
     if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
-      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
+      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waBookOpenM">수업 예약</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
       : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
   }
@@ -3002,7 +3061,9 @@
       ['waMasterOpen','click',function(){openMaster();}],
       ['waMasterOpenM','click',function(e){e.preventDefault();closeDrawer();openMaster();}],
       ['waMyOpen','click',function(){openMy();}],
-      ['waMyOpenM','click',function(e){e.preventDefault();closeDrawer();openMy();}]
+      ['waMyOpenM','click',function(e){e.preventDefault();closeDrawer();openMy();}],
+      ['waBookOpen','click',function(){openBooking();}],
+      ['waBookOpenM','click',function(e){e.preventDefault();closeDrawer();openBooking();}]
     ].forEach(function(m){ var el=$(m[0]); if(el) el.addEventListener(m[1],m[2]); });
   }
   function doLogout(){ if(sb) sb.auth.signOut().then(refresh); }
@@ -3151,6 +3212,7 @@
     if(isOps()) await loadOplog();
     await loadDiag();
     await loadHomework();
+    await loadTeacherAlerts();
     applyRoleScope();
     applyTabRoles();
   }
@@ -3164,18 +3226,29 @@
     var all=_members.filter(function(m){return m.role==='student';});
     _studentPool = isOps() ? all : all.filter(function(m){ return m.teacher_id && m.teacher_id===profile.id; });
   }
-  function studentOpts(q){
+  function studentOpts(q, teacherId){
     q=(q||'').trim().toLowerCase();
     var list=_studentPool;
-    if(q) list=_studentPool.filter(function(m){ return (m.name||'').toLowerCase().indexOf(q)>=0 || (m.phone||'').indexOf(q)>=0; });
+    if(teacherId) list=list.filter(function(m){ return m.teacher_id===teacherId; });
+    if(q) list=list.filter(function(m){ return (m.name||'').toLowerCase().indexOf(q)>=0 || (m.phone||'').indexOf(q)>=0; });
     return list.slice(0,300).map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+(m.phone?(' · '+esc(m.phone)):'')+'</option>'; }).join('');
   }
+  // 스케줄 폼: 선택된 선생님의 담당 학생만 채운다 (선생님 미선택 시 전체)
+  function fillScStudent(){
+    if(!$('scStudent')) return;
+    var tid=$('scTeacher')?$('scTeacher').value:'';
+    var q=$('scStudentSearch')?$('scStudentSearch').value:'';
+    var opts=studentOpts(q, tid);
+    var hint = tid && !opts ? '<option value="" disabled>담당 학생이 없어요 (회원관리에서 담당쌤 배정)</option>' : '';
+    $('scStudent').innerHTML='<option value="">(미지정)</option>'+opts+hint;
+  }
   function fillStudentSelects(){
-    if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+studentOpts($('scStudentSearch')?$('scStudentSearch').value:'');
+    fillScStudent();
     if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts($('pyStudentSearch')?$('pyStudentSearch').value:'');
     if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts($('hwStudentSearch')?$('hwStudentSearch').value:'');
   }
-  if($('scStudentSearch')) $('scStudentSearch').oninput=function(){ if($('scStudent')) $('scStudent').innerHTML='<option value="">(미지정)</option>'+studentOpts(this.value); };
+  if($('scStudentSearch')) $('scStudentSearch').oninput=function(){ fillScStudent(); };
+  if($('scTeacher')) $('scTeacher').onchange=function(){ if($('scStudentSearch')) $('scStudentSearch').value=''; fillScStudent(); };
   if($('pyStudentSearch')) $('pyStudentSearch').oninput=function(){ if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
   if($('hwStudentSearch')) $('hwStudentSearch').oninput=function(){ if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
 
@@ -3226,7 +3299,7 @@
     if($('scCount')) $('scCount').textContent='('+rows.length+'건)';
     if(!rows.length){ $('scTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; return; }
     var h='<tr><th>일시</th><th>강의장</th><th>과목</th><th>선생님</th><th>학생</th><th>메모</th><th>관리</th></tr>';
-    rows.forEach(function(s){ h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(roomName(s.room_id))+'</td><td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.student_name||'-')+'</td><td>'+esc(s.memo||'')+'</td><td><a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>'; });
+    rows.forEach(function(s){ var pend=(s.status==='pending')?' <span style="color:#e8892b;font-weight:800;font-size:11px">⏳요청</span>':''; h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(roomName(s.room_id))+'</td><td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.student_name||'-')+pend+'</td><td>'+esc(s.memo||'')+'</td><td><a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>'; });
     $('scTable').innerHTML=h;
   }
   if($('scAdd')) $('scAdd').onclick=async function(){
@@ -3251,6 +3324,59 @@
     if(!confirm('이 수업 스케줄을 삭제할까요?')) return;
     var r=await sb.from('schedules').delete().eq('id',a.getAttribute('data-scdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
     await loadSchedules(); await renderCalendar();
+  });
+
+  // ---- 선생님 알림: 최근 수업 후 다음 일정/숙제 누락 ----
+  async function computeTeacherAlerts(){
+    if(!sb || !profile) return [];
+    var meId=profile.id, now=new Date();
+    var start=new Date(now); start.setDate(start.getDate()-2); start.setHours(0,0,0,0); // 오늘 포함 최근 3일
+    var end=new Date(now); end.setDate(end.getDate()+1); end.setHours(0,0,0,0);
+    var recent=await fetchRange(start,end);
+    var mine=recent.filter(function(s){ return s.teacher_id===meId && s.student_id && new Date(s.ends_at)<now; });
+    if(!mine.length) return [];
+    // 내 학생들의 예정 수업 (미래)
+    var hasFuture={};
+    var fr=await sb.from('schedules').select('student_id,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString());
+    if(!fr.error && fr.data) fr.data.forEach(function(s){ if(s.student_id) hasFuture[s.student_id]=true; });
+    var hw=window.__wtHw||[];
+    mine.sort(function(a,b){ return new Date(b.starts_at)-new Date(a.starts_at); });
+    var alerts=[], seen={};
+    mine.forEach(function(s){
+      var sid=s.student_id, sname=s.student_name||'학생', day=ymd(new Date(s.starts_at));
+      if(!hasFuture[sid]){ var k='n:'+sid; if(!seen[k]){ seen[k]=1; alerts.push({type:'next',student:sname,sid:sid,day:day}); } }
+      var hwIssued=hw.some(function(x){ return x.student_id===sid && x.created_at && ymd(new Date(x.created_at))===day; });
+      if(!hwIssued){ var k2='h:'+sid+':'+day; if(!seen[k2]){ seen[k2]=1; alerts.push({type:'hw',student:sname,sid:sid,day:day}); } }
+    });
+    // 다음수업 알림 먼저, 그 다음 최신 날짜순
+    alerts.sort(function(a,b){ if(a.type!==b.type) return a.type==='next'?-1:1; return b.day<a.day?-1:1; });
+    return alerts;
+  }
+  function mdLabel(day){ var p=(day||'').split('-'); return p.length===3 ? (parseInt(p[1],10)+'/'+parseInt(p[2],10)) : day; }
+  async function loadTeacherAlerts(){
+    var box=$('waAlerts'); if(!box||!sb||!profile) return;
+    var alerts=[], pend=[];
+    try{ alerts=await computeTeacherAlerts(); }catch(e){ alerts=[]; }
+    try{ var pr=await sb.from('schedules').select('*').eq('teacher_id',profile.id).eq('status','pending').order('starts_at'); if(!pr.error&&pr.data) pend=pr.data; }catch(e){}
+    if(!alerts.length && !pend.length){ box.style.display='none'; box.innerHTML=''; return; }
+    var pendItems=pend.map(function(s){
+      return '<li><span class="wa-al-tag t-req">예약요청</span><b>'+esc(s.student_name||'학생')+'</b> 학생 — '+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+' '+esc(s.subject||'')+'<span class="wa-al-sp"></span><button class="wa-al-approve" data-approve="'+esc(s.id)+'">승인</button><button class="wa-al-reject" data-reject="'+esc(s.id)+'">거절</button></li>';
+    }).join('');
+    var items=alerts.slice(0,30).map(function(a){
+      if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched">스케줄로 →</span></li>';
+      return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(a.student)+'</b> 학생 — '+mdLabel(a.day)+' 수업 숙제가 안 나갔어요 <span class="wa-al-go" data-goto="hw">숙제로 →</span></li>';
+    }).join('');
+    box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">'+(alerts.length+pend.length)+'</span></div><ul>'+pendItems+items+'</ul>';
+    box.style.display='';
+  }
+  if($('waAlerts')) $('waAlerts').addEventListener('click', async function(e){
+    var t=e.target;
+    var ap=(t&&t.closest)?t.closest('[data-approve]'):null;
+    var rj=(t&&t.closest)?t.closest('[data-reject]'):null;
+    var g=(t&&t.closest)?t.closest('[data-goto]'):null;
+    if(ap){ if(!sb) return; var r=await sb.from('schedules').update({status:'confirmed'}).eq('id',ap.getAttribute('data-approve')); if(r.error){ alert('승인 실패: '+r.error.message); return; } await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
+    if(rj){ if(!sb) return; if(!confirm('이 예약 요청을 거절할까요?')) return; var r2=await sb.from('schedules').delete().eq('id',rj.getAttribute('data-reject')); if(r2.error){ alert('거절 실패: '+r2.error.message); return; } await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
+    if(g){ dashTab(g.getAttribute('data-goto')); }
   });
 
   // ---- 주간 캘린더 (시간 격자) ----
@@ -3958,6 +4084,68 @@
     try{ history.replaceState(null,'',window.location.pathname); }catch(e){}
     alert('비밀번호가 변경되었어요. 새 비밀번호로 다시 로그인해주세요.');
     await refresh();
+  });
+
+  // ==== 학생 수업 예약 (선생님 승인제, 2시간 단위) ====
+  function openBooking(){
+    var m=$('waBooking'); if(!m) return;
+    m.classList.add('on');
+    if($('waBookDate')){ var t=new Date(); $('waBookDate').min=ymd(t); if(!$('waBookDate').value) $('waBookDate').value=ymd(t); }
+    loadBookSlots(); loadMyBookings();
+  }
+  function closeBooking(){ if($('waBooking')) $('waBooking').classList.remove('on'); }
+  if($('waBookClose')) $('waBookClose').onclick=closeBooking;
+  if($('waBooking')) $('waBooking').addEventListener('click',function(e){ if(e.target===$('waBooking')) closeBooking(); });
+  if($('waBookDate')) $('waBookDate').addEventListener('change', loadBookSlots);
+
+  async function loadBookSlots(){
+    var box=$('waBookSlots'); if(!box||!sb) return;
+    if($('waBookErr')) $('waBookErr').textContent='';
+    var date=$('waBookDate')?$('waBookDate').value:'';
+    if(!date){ box.innerHTML='<div class="wa-book-empty">날짜를 선택해주세요.</div>'; return; }
+    box.innerHTML='<div class="wa-book-empty">불러오는 중…</div>';
+    var r=await sb.rpc('free_slots',{p_date:date});
+    if(r.error){ box.innerHTML='<div class="wa-book-empty">불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>'; return; }
+    var d=r.data||{};
+    if(d.error==='no_teacher'){ box.innerHTML='<div class="wa-book-empty">담당 선생님 배정 후 예약할 수 있어요.<br>카카오톡 채널로 문의해주세요.</div>'; if($('waBookSub')) $('waBookSub').textContent='담당 선생님 배정 후 이용할 수 있어요.'; return; }
+    if(d.error){ box.innerHTML='<div class="wa-book-empty">로그인 후 이용해주세요.</div>'; return; }
+    if($('waBookSub') && d.teacher_name) $('waBookSub').textContent='담당 '+d.teacher_name+' 선생님의 빈 시간을 골라 예약을 요청하세요. (2시간 단위)';
+    var slots=d.slots||[];
+    if(!slots.length){ box.innerHTML='<div class="wa-book-empty">예약 가능한 시간이 없어요.</div>'; return; }
+    box.innerHTML=slots.map(function(sl){
+      var busy=!sl.available;
+      var attr=busy?'':(' data-slot="'+esc(sl.start)+'"');
+      return '<div class="wa-book-slot'+(busy?' busy':'')+'"'+attr+'><div class="t">'+esc(sl.start)+'</div><div class="s">'+(busy?'예약중':('~'+esc(sl.end)))+'</div></div>';
+    }).join('');
+  }
+  if($('waBookSlots')) $('waBookSlots').addEventListener('click', async function(e){
+    var el=(e.target&&e.target.closest)?e.target.closest('[data-slot]'):null; if(!el||!sb) return;
+    var start=el.getAttribute('data-slot'), date=$('waBookDate').value, subject=$('waBookSubject')?$('waBookSubject').value:'토익';
+    if(!confirm(date+' '+start+' 수업으로 예약을 요청할까요?\n선생님 승인 후 확정됩니다.')) return;
+    var r=await sb.rpc('request_booking',{p_date:date,p_start:start,p_subject:subject});
+    if(r.error){ if($('waBookErr')) $('waBookErr').textContent='요청 실패: '+r.error.message; return; }
+    var res=r.data||{};
+    if(!res.ok){ if($('waBookErr')) $('waBookErr').textContent=res.msg||'예약할 수 없어요.'; await loadBookSlots(); return; }
+    alert(res.msg||'예약이 요청되었어요.');
+    await loadBookSlots(); await loadMyBookings();
+  });
+  async function loadMyBookings(){
+    var box=$('waBookMine'); if(!box||!sb||!profile) return;
+    var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-2*3600*1000).toISOString()).order('starts_at').limit(50);
+    var rows=(!r.error&&r.data)?r.data:[];
+    if(!rows.length){ box.innerHTML='<div class="wa-book-empty">예약 내역이 없어요.</div>'; return; }
+    box.innerHTML=rows.map(function(s){
+      var st=(s.status==='pending')?'<span class="bm-st st-pending">승인대기</span>':'<span class="bm-st st-confirmed">확정</span>';
+      var cancel=(s.status==='pending')?'<span class="bm-cancel" data-cancel="'+esc(s.id)+'">취소</span>':'';
+      return '<div class="bm"><span class="bm-t">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</span> <span style="color:var(--muted)">'+esc(s.subject||'')+'</span>'+st+cancel+'</div>';
+    }).join('');
+  }
+  if($('waBookMine')) $('waBookMine').addEventListener('click', async function(e){
+    var c=(e.target&&e.target.closest)?e.target.closest('[data-cancel]'):null; if(!c||!sb||!profile) return;
+    if(!confirm('이 예약 요청을 취소할까요?')) return;
+    var r=await sb.from('schedules').delete().eq('id',c.getAttribute('data-cancel')).eq('student_id',profile.id).eq('status','pending');
+    if(r.error){ alert('취소 실패: '+r.error.message); return; }
+    await loadBookSlots(); await loadMyBookings();
   });
 
   // PKCE 방식(코드 교환 후)엔 이 이벤트로 복구 모달을 띄움
