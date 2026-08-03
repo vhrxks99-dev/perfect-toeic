@@ -3096,7 +3096,14 @@
   }
   if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
   if($('waAdminClose')) $('waAdminClose').onclick=function(){ $('waAdmin').classList.remove('on'); };
-  if($('waAdmin')) $('waAdmin').addEventListener('click',function(e){ if(e.target===$('waAdmin')) $('waAdmin').classList.remove('on'); });
+  // 관리 페이지는 팝업이 아니라 전체 화면 페이지다. 카드 옆 여백을 눌렀다고 닫히면
+  // 표를 보다가 실수로 클릭할 때마다 페이지가 통째로 닫힌다. 닫기는 X 버튼과 Esc로만.
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape' && $('waAdmin') && $('waAdmin').classList.contains('on')){
+      var others=['waModal','waRecovery','waBooking','waMy','waPayEdit','waEdit'].filter(function(id){ return $(id) && $(id).classList.contains('on'); });
+      if(!others.length) $('waAdmin').classList.remove('on');
+    }
+  });
   if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
 
   // ---- 회원 수정/삭제 (마스터 전용) ----
