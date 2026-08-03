@@ -2523,6 +2523,10 @@
 .dash-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;margin:16px 0 8px;letter-spacing:-.01em;flex-wrap:wrap}
 .dash-total{font-family:var(--font-num);font-weight:800;color:var(--accent);font-size:16px}
 .dash-note{font-size:13px;color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
+.mem-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
+.mem-filters input[type=search]{flex:1;min-width:200px;max-width:340px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)}
+.mem-n{font-family:var(--font-num);font-weight:800;opacity:.7;margin-left:3px}
+.cal-mode.on .mem-n{opacity:.85}
 .pay-sum{border:1.5px solid var(--accent);border-radius:12px;padding:14px 16px;margin:10px 0 4px;background:var(--accent-wash)}
 .pay-sum .ps-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-weight:800;font-size:14px;margin-bottom:10px}
 .pay-sum .ps-head .ps-total{margin-left:auto;font-family:var(--font-num);font-size:17px;color:var(--accent)}
@@ -2613,7 +2617,14 @@
         <button class="btn btn-primary" id="waReload">🔄 새로고침</button>
         <button class="btn btn-ghost" id="waExportCsv">CSV로 내보내기</button>
       </div>
-      <div style="margin:10px 0 2px"><input id="waSearch" type="search" placeholder="🔍 이름 · 연락처 · 이메일 검색" autocomplete="off" style="width:100%;max-width:340px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
+      <div class="mem-filters">
+        <div class="cal-modes" id="waRoleFilter">
+          <button class="cal-mode on" type="button" data-mrole="all">전체 <span class="mem-n" data-cnt="all"></span></button>
+          <button class="cal-mode" type="button" data-mrole="student">학생 <span class="mem-n" data-cnt="student"></span></button>
+          <button class="cal-mode" type="button" data-mrole="staff">선생님 <span class="mem-n" data-cnt="staff"></span></button>
+        </div>
+        <input id="waSearch" type="search" placeholder="🔍 이름 · 연락처 · 이메일 검색" autocomplete="off">
+      </div>
       <div class="wa-table-wrap"><table class="wa-table" id="waTable"></table></div>
     </div>
 
@@ -3104,13 +3115,27 @@
     window.__wtMembers=m;
     drawMembers();
   }
+  // 회원 목록 구분: 학생과 선생님(원장·매니저 포함)을 갈라서 본다.
+  var memberFilter='all';
+  function isStaffRole(r){ return r==='admin'||r==='master'||r==='manager'; }
   function drawMembers(){
     var all=window.__wtMembers||[];
     var q=(($('waSearch')&&$('waSearch').value)||'').trim().toLowerCase();
-    var m=q?all.filter(function(u){ return ((u.name||'').toLowerCase().indexOf(q)>=0)||((u.phone||'').toLowerCase().indexOf(q)>=0)||((u.email||'').toLowerCase().indexOf(q)>=0); }):all;
-    $('waCount').textContent='('+all.length+'명'+(q?(' · 검색 '+m.length+'명'):'')+')';
+    var nStudent=0, nStaff=0;
+    all.forEach(function(u){ if(isStaffRole(u.role)) nStaff++; else nStudent++; });
+    var fl=$('waRoleFilter');
+    if(fl){
+      fl.querySelectorAll('.cal-mode').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-mrole')===memberFilter); });
+      var setN=function(k,v){ var el=fl.querySelector('[data-cnt="'+k+'"]'); if(el) el.textContent=v; };
+      setN('all',all.length); setN('student',nStudent); setN('staff',nStaff);
+    }
+    var scoped = memberFilter==='all' ? all
+               : all.filter(function(u){ return memberFilter==='staff' ? isStaffRole(u.role) : !isStaffRole(u.role); });
+    var m=q?scoped.filter(function(u){ return ((u.name||'').toLowerCase().indexOf(q)>=0)||((u.phone||'').toLowerCase().indexOf(q)>=0)||((u.email||'').toLowerCase().indexOf(q)>=0); }):scoped;
+    var label = memberFilter==='staff' ? '선생님' : (memberFilter==='student' ? '학생' : '전체 회원');
+    $('waCount').textContent='('+label+' '+scoped.length+'명'+(q?(' · 검색 '+m.length+'명'):'')+')';
     if(!all.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
-    if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; return; }
+    if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'해당하는 회원이 없습니다.')+'</td></tr>'; return; }
     function rt(r,u){
       var tag = r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='manager'?'<b style="color:#7c3aed">매니저</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생'));
       if(r==='admin'||r==='master'){ var pr=(u&&u.pay_rate!=null)?Number(u.pay_rate):50; tag+=' <span style="color:var(--muted);font-size:11.5px;font-weight:700">배분 '+pr+'%</span>'; }
@@ -3126,6 +3151,11 @@
     $('waTable').innerHTML=h;
   }
   if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
+  if($('waRoleFilter')) $('waRoleFilter').addEventListener('click', function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-mrole]'):null; if(!b) return;
+    memberFilter=b.getAttribute('data-mrole');
+    drawMembers();
+  });
   if($('waAdminClose')) $('waAdminClose').onclick=function(){ $('waAdmin').classList.remove('on'); };
   // 관리 페이지는 팝업이 아니라 전체 화면 페이지다. 카드 옆 여백을 눌렀다고 닫히면
   // 표를 보다가 실수로 클릭할 때마다 페이지가 통째로 닫힌다. 닫기는 X 버튼과 Esc로만.
