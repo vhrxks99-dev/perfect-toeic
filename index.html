@@ -3423,18 +3423,26 @@
   // ---- 선생님 알림: 최근 수업 후 다음 일정/숙제 누락 ----
   // 구글 캘린더에서 가져온 수업에는 student_id 가 없고 일정 제목에서 딴 학생 이름만 있다.
   // 회원 id 가 있으면 id 로, 없으면 이름으로 같은 학생인지 판단한다.
+  // 구글 캘린더 제목은 같은 학생이라도 "송희도"와 "송희도(비대면)"처럼 다르게 적힌다.
+  // 괄호 안 표기와 공백을 떼어내 같은 학생으로 묶는다.
+  function normName(name){
+    return String(name||'')
+      .replace(/[（(][^)）]*[)）]/g, '')
+      .replace(/\s+/g, '')
+      .trim();
+  }
   function stuKey(id, name){
     if(id) return 'id:'+id;
-    var n=String(name||'').trim();
+    var n=normName(name);
     return n ? ('nm:'+n) : '';
   }
   // 구글 캘린더에는 수업이 아닌 일정도 들어 있다. 이런 제목은 학생으로 보지 않는다.
   var NOT_STUDENT=['약속'];
   function isStudentEntry(s){
     if(s.student_id) return true;                 // 회원으로 등록된 학생이면 무조건 학생
-    var n=String(s.student_name||'').trim();
-    if(!n) return false;
-    return !NOT_STUDENT.some(function(w){ return n.indexOf(w)>=0; });
+    var raw=String(s.student_name||'').trim();
+    if(!raw || !normName(raw)) return false;      // 이름이 없거나 "(빈)"처럼 괄호만 있는 것
+    return !NOT_STUDENT.some(function(w){ return raw.indexOf(w)>=0; });
   }
   async function computeTeacherAlerts(){
     if(!sb || !profile) return [];
