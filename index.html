@@ -3391,24 +3391,35 @@
   });
 
   // ---- 선생님 알림: 최근 수업 후 다음 일정/숙제 누락 ----
+  // 구글 캘린더에서 가져온 수업에는 student_id 가 없고 일정 제목에서 딴 학생 이름만 있다.
+  // 회원 id 가 있으면 id 로, 없으면 이름으로 같은 학생인지 판단한다.
+  function stuKey(id, name){
+    if(id) return 'id:'+id;
+    var n=String(name||'').trim();
+    return n ? ('nm:'+n) : '';
+  }
   async function computeTeacherAlerts(){
     if(!sb || !profile) return [];
     var meId=profile.id, now=new Date();
     var start=new Date(now); start.setDate(start.getDate()-2); start.setHours(0,0,0,0); // 오늘 포함 최근 3일
     var end=new Date(now); end.setDate(end.getDate()+1); end.setHours(0,0,0,0);
     var recent=await fetchRange(start,end);
-    var mine=recent.filter(function(s){ return s.teacher_id===meId && s.student_id && new Date(s.ends_at)<now; });
+    var mine=recent.filter(function(s){ return s.teacher_id===meId && stuKey(s.student_id,s.student_name) && new Date(s.ends_at)<now; });
     if(!mine.length) return [];
     // 내 학생들의 예정 수업 (미래)
     var hasFuture={};
-    var fr=await sb.from('schedules').select('student_id,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString());
-    if(!fr.error && fr.data) fr.data.forEach(function(s){ if(s.student_id) hasFuture[s.student_id]=true; });
+    var fr=await sb.from('schedules').select('student_id,student_name,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString());
+    if(!fr.error && fr.data) fr.data.forEach(function(s){ var k=stuKey(s.student_id,s.student_name); if(k) hasFuture[k]=true; });
     var hw=window.__wtHw||[];
     mine.sort(function(a,b){ return new Date(b.starts_at)-new Date(a.starts_at); });
     var alerts=[], seen={};
     mine.forEach(function(s){
+      var key=stuKey(s.student_id,s.student_name);
       var sid=s.student_id, sname=s.student_name||'학생', day=ymd(new Date(s.starts_at));
-      if(!hasFuture[sid]){ var k='n:'+sid; if(!seen[k]){ seen[k]=1; alerts.push({type:'next',student:sname,sid:sid,day:day}); } }
+      if(!hasFuture[key]){ var k='n:'+key; if(!seen[k]){ seen[k]=1; alerts.push({type:'next',student:sname,sid:sid,day:day}); } }
+      // 숙제 알림은 회원으로 등록된 학생만. 구글에서 온 수업은 이름만 있어 숙제와 짝짓기가
+      // 불확실하고, 잘못 켜면 다음수업 알림이 숙제 알림에 파묻힌다.
+      if(!sid) return;
       var hwIssued=hw.some(function(x){ return x.student_id===sid && x.created_at && ymd(new Date(x.created_at))===day; });
       if(!hwIssued){ var k2='h:'+sid+':'+day; if(!seen[k2]){ seen[k2]=1; alerts.push({type:'hw',student:sname,sid:sid,day:day}); } }
     });
@@ -3490,7 +3501,10 @@
         var who=esc([s.teacher_name,s.student_name].filter(Boolean).join(' · '));
         var room=s.room_id?('🏫'+esc(roomName(s.room_id))):'';
         var col=teacherColor(s.teacher_id);
-        return '<div class="cal-ev" title="'+esc((s.subject||'')+' '+who)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'"><b style="color:'+col+'">'+hm(s.starts_at)+'~'+hm(s.ends_at)+'</b>'+esc(s.subject||'')+(who?'<br>'+who:'')+(room?'<br>'+room:'')+'</div>';
+        // 시각은 왼쪽 시간축과 블록 위치로 이미 드러난다. 칸 안에 또 적으면
+        // 좁은 블록에서 정작 필요한 학생 이름을 밀어낸다. 마우스를 올리면 보이게만 둔다.
+        var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+who;
+        return '<div class="cal-ev" title="'+esc(tip)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'"><b style="color:'+col+'">'+esc(s.subject||'')+'</b>'+(who?who:'')+(room?'<br>'+room:'')+'</div>';
       }).join('');
       cols+='<div class="cal-col">'+head+'<div class="cal-body" data-date="'+key+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
     }
