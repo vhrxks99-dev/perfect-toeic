@@ -2397,9 +2397,10 @@
 .wa-naver b{font-family:Arial,sans-serif;font-weight:900;font-size:16px}
 .wa-kakao{background:#FEE500;color:#3A1D1D}
 .wa-toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:8px 0 0;cursor:pointer}
-.wa-find{display:flex;justify-content:center;gap:10px;margin-top:12px;font-size:12.5px}
-.wa-find a{color:var(--ink-soft,#555);font-weight:600;text-decoration:none;cursor:pointer}
-.wa-find a:hover{color:var(--accent,#1F62E0);text-decoration:underline}
+.wa-find{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:14px;font-size:13.5px}
+.wa-find a{color:var(--accent,#1F62E0);font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.wa-find a:hover{opacity:.7}
+.wa-fsep{color:var(--muted,#888)}
 .wa-fsep{color:var(--line-strong,#ccd2dc)}
 .wa-match{margin:5px 2px 0;font-size:12.5px;font-weight:700;min-height:1em}
 .wa-match.ok{color:#0a8f3c}
@@ -2523,6 +2524,8 @@
 .dash-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;margin:16px 0 8px;letter-spacing:-.01em;flex-wrap:wrap}
 .dash-total{font-family:var(--font-num);font-weight:800;color:var(--accent);font-size:16px}
 .dash-note{font-size:13px;color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
+.wa-table select.sc-room{padding:5px 7px;border:1.5px solid var(--line-strong);border-radius:7px;font-family:var(--font-sans);font-size:12.5px;font-weight:700;background:var(--surface);color:var(--ink);max-width:150px}
+.wa-table select.sc-room.none{border-color:#f0c36d;background:#fff9ec;color:#8a5a00}
 .mem-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
 .mem-filters input[type=search]{flex:1;min-width:200px;max-width:340px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)}
 .mem-n{font-family:var(--font-num);font-weight:800;opacity:.7;margin-left:3px}
@@ -2663,6 +2666,7 @@
       <div class="cal-scroll" id="calScroll"><div class="cal-grid" id="calGrid"></div></div>
       <div class="cal-month" id="calMonthGrid" style="display:none"></div>
       <div class="dash-list-head">다가오는 수업 <span id="scCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div id="scRoomNote" class="dash-note" style="margin-top:0;display:none"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="scTable"></table></div>
     </div>
 
@@ -3390,12 +3394,62 @@
     if(!$('scTable')) return;
     var rows=[];
     if(sb){ var r=await sb.from('schedules').select('*').gte('ends_at', new Date(Date.now()-6*3600*1000).toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; }
+    window.__wtSchedules=rows;
     if($('scCount')) $('scCount').textContent='('+rows.length+'건)';
     if(!rows.length){ $('scTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; return; }
+    var noRoom=rows.filter(function(s){ return s.room_id==null; }).length;
+    if($('scRoomNote')){
+      $('scRoomNote').innerHTML = noRoom
+        ? ('🏫 강의장이 아직 안 정해진 수업이 <b>'+noRoom+'건</b> 있습니다. 아래 표의 강의장 칸에서 고르면 바로 저장되고, 그 시간 그 방은 다른 선생님에게 <b>사용중</b>으로 표시됩니다.')
+        : '🏫 모든 수업에 강의장이 지정돼 있습니다.';
+      $('scRoomNote').style.display='';
+    }
     var h='<tr><th>일시</th><th>강의장</th><th>과목</th><th>선생님</th><th>학생</th><th>메모</th><th>관리</th></tr>';
-    rows.forEach(function(s){ var pend=(s.status==='pending')?' <span style="color:#e8892b;font-weight:800;font-size:11px">⏳요청</span>':''; h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(roomName(s.room_id))+'</td><td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.student_name||'-')+pend+'</td><td>'+esc(s.memo||'')+'</td><td><a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>'; });
+    rows.forEach(function(s){
+      var pend=(s.status==='pending')?' <span style="color:#e8892b;font-weight:800;font-size:11px">⏳요청</span>':'';
+      h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td>'
+       + '<td><select class="sc-room'+(s.room_id==null?' none':'')+'" data-scroom="'+esc(String(s.id))+'">'+roomOptions(s.room_id)+'</select></td>'
+       + '<td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.student_name||'-')+pend+'</td><td>'+esc(s.memo||'')+'</td>'
+       + '<td><a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>';
+    });
     $('scTable').innerHTML=h;
   }
+  function roomOptions(sel){
+    var h='<option value="">(미지정)</option>';
+    _rooms.forEach(function(r){
+      if(r.active===false) return;
+      h+='<option value="'+esc(String(r.id))+'"'+(String(sel)===String(r.id)?' selected':'')+'>'+esc(r.name)+'</option>';
+    });
+    return h;
+  }
+  // 표에서 강의장을 고르면 바로 저장한다. 같은 시간 같은 방이 이미 잡혀 있으면 막는다.
+  if($('scTable')) $('scTable').addEventListener('change', async function(e){
+    var sel=e.target; if(!sel||!sel.getAttribute||!sel.getAttribute('data-scroom')||!sb) return;
+    var id=sel.getAttribute('data-scroom');
+    var roomId=sel.value?parseInt(sel.value,10):null;
+    var row=(window.__wtSchedules||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    if(!row) return;
+    var prev=(row.room_id==null)?'':String(row.room_id);
+    sel.disabled=true;
+    try{
+      if(roomId!=null){
+        var c=await sb.from('schedules').select('id,teacher_name,student_name,starts_at,ends_at')
+                .eq('room_id',roomId).lt('starts_at',row.ends_at).gt('ends_at',row.starts_at).neq('id',id);
+        if(!c.error && c.data && c.data.length){
+          var o=c.data[0];
+          alert(roomName(roomId)+'은(는) 그 시간에 이미 사용 중입니다.\n\n'
+                + (o.teacher_name||'-')+' 선생님 · '+(o.student_name||'-')+'\n'
+                + fmtDT(o.starts_at)+'~'+hm(o.ends_at));
+          sel.value=prev; return;
+        }
+      }
+      var r=await sb.from('schedules').update({room_id:roomId}).eq('id',id);
+      if(r.error){ alert('강의장 저장 실패: '+r.error.message); sel.value=prev; return; }
+      row.room_id=roomId;
+      sel.classList.toggle('none', roomId==null);
+      await loadSchedules(); await renderCalendar(); updateScFree();
+    } finally { sel.disabled=false; }
+  });
   if($('scAdd')) $('scAdd').onclick=async function(){
     var err=$('scErr'); err.textContent='';
     var d=$('scDate').value, s=$('scStart').value, en=$('scEnd').value;
