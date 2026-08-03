@@ -2523,6 +2523,19 @@
 .dash-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;margin:16px 0 8px;letter-spacing:-.01em;flex-wrap:wrap}
 .dash-total{font-family:var(--font-num);font-weight:800;color:var(--accent);font-size:16px}
 .dash-note{font-size:13px;color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
+.pay-sum{border:1.5px solid var(--accent);border-radius:12px;padding:14px 16px;margin:10px 0 4px;background:var(--accent-wash)}
+.pay-sum .ps-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-weight:800;font-size:14px;margin-bottom:10px}
+.pay-sum .ps-head .ps-total{margin-left:auto;font-family:var(--font-num);font-size:17px;color:var(--accent)}
+.pay-sum table{width:100%;border-collapse:collapse;font-size:13px}
+.pay-sum th{text-align:right;font-weight:800;color:var(--ink-soft);padding:5px 6px;white-space:nowrap;border-bottom:1px solid var(--line)}
+.pay-sum th:first-child{text-align:left}
+.pay-sum td{text-align:right;padding:6px;font-family:var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap;border-bottom:1px solid var(--line)}
+.pay-sum td:first-child{text-align:left;font-family:var(--font-sans);font-weight:700}
+.pay-sum tr:last-child td{border-bottom:none}
+.pay-sum .ps-pay{font-weight:800;color:var(--accent)}
+.pay-sum .ps-foot{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;padding-top:10px;border-top:1.5px solid var(--line);font-size:13px;font-weight:700}
+.pay-sum .ps-foot b{font-family:var(--font-num);font-weight:800}
+.pay-sum .ps-warn{margin-top:8px;font-size:12.5px;color:#b26a00;font-weight:700}
 .wa-link.del{color:#c0342b}
 .cal-head{display:flex;align-items:center;gap:8px;margin:4px 0 10px;flex-wrap:wrap}
 .cal-head .btn{padding:7px 12px;font-size:13px}
@@ -2672,6 +2685,12 @@
           <label>정산 월<input type="month" id="pyMonth"></label>
         </div>
         <div class="dash-row">
+          <label>담당 강사<select id="pyTeacher"></select></label>
+          <label>배분율(%)<input type="number" id="pyRate" min="0" max="100" step="0.1" placeholder="50"></label>
+          <label>원천징수(%)<input type="number" id="pyWithhold" min="0" max="100" step="0.1" value="3.3"></label>
+          <label style="flex:2">강사 실지급<input type="text" id="pyPreview" readonly tabindex="-1" style="background:var(--surface-2);font-weight:800;color:var(--accent)"></label>
+        </div>
+        <div class="dash-row">
           <label>결제수단<select id="pyMethod"></select></label>
           <label id="pyCardWrap" style="display:none">카드사<select id="pyCard"></select></label>
           <label>결제일<input type="date" id="pyPaid"></label>
@@ -2685,6 +2704,7 @@
         <span id="pyTotal" class="dash-total"></span>
       </div>
       <div id="pyScopeNote" class="dash-note" style="display:none">담당 학생의 정산 내역만 표시됩니다. (조회 전용 · 등록/삭제는 원장님)</div>
+      <div id="pySummary" class="pay-sum" style="display:none"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="pyTable"></table></div>
     </div>
 
@@ -2805,6 +2825,12 @@
         <label>결제수단<select id="pyeMethod"></select></label>
         <label>결제일<input type="date" id="pyePaid"></label>
       </div>
+      <div class="wa-row">
+        <label>담당 강사<select id="pyeTeacher"></select></label>
+        <label>배분율(%)<input type="number" id="pyeRate" min="0" max="100" step="0.1"></label>
+        <label>원천징수(%)<input type="number" id="pyeWithhold" min="0" max="100" step="0.1"></label>
+      </div>
+      <div id="pyePreview" class="dash-note" style="margin-top:0"></div>
       <label id="pyeCardWrap" style="display:none">카드사<select id="pyeCard"></select></label>
       <label>메모<input type="text" id="pyeMemo" placeholder="선택"></label>
       <p class="wa-err" id="pyeErr"></p>
@@ -2828,6 +2854,7 @@
       <label>가입 경로<input type="text" id="waERoute"></label>
       <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
       <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">매니저</option><option value="master">원장님</option></select></label>
+      <label id="waERateWrap" style="display:none">강사 배분율(%)<input type="number" id="waERate" min="0" max="100" step="0.1" placeholder="50"><span style="font-weight:600;font-size:12px;color:var(--muted)">이 강사가 맡은 학생 매출에서 가져가는 비율입니다. 여기서 원천징수 3.3%를 뗀 금액이 실지급액이 됩니다.</span></label>
       <p class="wa-err" id="waEErr"></p>
       <button class="btn btn-primary" id="waESave" type="button">저장</button>
     </div>
@@ -3084,14 +3111,18 @@
     $('waCount').textContent='('+all.length+'명'+(q?(' · 검색 '+m.length+'명'):'')+')';
     if(!all.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; return; }
-    function rt(r){ return r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='manager'?'<b style="color:#7c3aed">매니저</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생')); }
+    function rt(r,u){
+      var tag = r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='manager'?'<b style="color:#7c3aed">매니저</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생'));
+      if(r==='admin'||r==='master'){ var pr=(u&&u.pay_rate!=null)?Number(u.pay_rate):50; tag+=' <span style="color:var(--muted);font-size:11.5px;font-weight:700">배분 '+pr+'%</span>'; }
+      return tag;
+    }
     var tmap={}; all.forEach(function(x){ tmap[x.id]=x.name; });
     var mm=isMasterNow();
     var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당쌤</th><th>구분</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     m.forEach(function(u){
       var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">삭제</a></td>' : '';
       var tn = (u.role==='student') ? (u.teacher_id?esc(tmap[u.teacher_id]||'-'):'<span style="color:var(--muted)">미배정</span>') : '-';
-      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td>'+tn+'</td><td>'+rt(u.role)+'</td><td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
+      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+rt(u.role,u)+'</td><td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
     $('waTable').innerHTML=h;
   }
   if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
@@ -3107,7 +3138,7 @@
   if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
 
   // ---- 회원 수정/삭제 (마스터 전용) ----
-  var editingId=null, editingRole='student', editingTeacher='';
+  var editingId=null, editingRole='student', editingTeacher='', editingRate=50;
   if($('waTable')) $('waTable').addEventListener('click', function(e){
     var a=(e.target && e.target.closest)?e.target.closest('a[data-act]'):null; if(!a) return;
     e.preventDefault();
@@ -3123,8 +3154,18 @@
     editingRole=u.role||'student'; editingTeacher=u.teacher_id||'';
     if($('waETeacher')){ var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';}); $('waETeacher').innerHTML='<option value="">미배정</option>'+ts.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join(''); $('waETeacher').value=u.teacher_id||''; }
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
+    editingRate=(u.pay_rate!=null)?Number(u.pay_rate):50;
+    if($('waERate')) $('waERate').value=editingRate;
+    toggleRateField();
     $('waEdit').classList.add('on');
   }
+  // 배분율 칸은 선생님·원장님일 때만 보인다. 학생에게는 의미가 없다.
+  function toggleRateField(){
+    if(!$('waERateWrap')) return;
+    var r=$('waERole')?$('waERole').value:'';
+    $('waERateWrap').style.display=(r==='admin'||r==='master')?'':'none';
+  }
+  if($('waERole')) $('waERole').addEventListener('change', toggleRateField);
   async function delMember(u){
     if(profile && u.id===profile.id){ alert('본인(원장님) 계정은 여기서 삭제할 수 없습니다.'); return; }
     if(!confirm(u.name+' ('+u.email+') 회원을 삭제할까요?\n\n※ 회원 프로필이 삭제됩니다. (로그인 계정 자체의 완전 삭제는 추후 서버 기능으로 추가할 수 있어요.)')) return;
@@ -3146,6 +3187,12 @@
     if(newRole!==editingRole){ var rr=await sb.rpc('set_role',{target:editingId,new_role:newRole}); if(rr.error){ $('waEErr').textContent='권한 변경 실패: '+rr.error.message; return; } }
     var newTeacher=$('waETeacher')?$('waETeacher').value:'';
     if(newTeacher!==editingTeacher){ var rt2=await sb.rpc('set_teacher',{target:editingId,tid:(newTeacher||null)}); if(rt2.error){ $('waEErr').textContent='담당 선생님 변경 실패: '+rt2.error.message; return; } }
+    // 배분율은 본인이 못 바꾸도록 원장님 전용 RPC로만 변경한다.
+    if(newRole==='admin'||newRole==='master'){
+      var newRate=parseFloat($('waERate')?$('waERate').value:'');
+      if(isNaN(newRate)||newRate<0||newRate>100){ $('waEErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
+      if(newRate!==editingRate){ var rp=await sb.rpc('set_pay_rate',{target:editingId,rate:newRate}); if(rp.error){ $('waEErr').textContent='배분율 변경 실패: '+rp.error.message; return; } }
+    }
     $('waEdit').classList.remove('on');
     await renderTable();
     if(wasSelf) await refresh();
@@ -3211,6 +3258,8 @@
     if($('pyMonth')&&!$('pyMonth').value) $('pyMonth').value=ym(now);
     if($('pyPaid')&&!$('pyPaid').value) $('pyPaid').value=ymd(now);
     if($('pyFilter')&&!$('pyFilter').value) $('pyFilter').value=ym(now);
+    if($('pyWithhold')&&!$('pyWithhold').value) $('pyWithhold').value=DEFAULT_WITHHOLD;
+    syncPayTeacher();
     await loadSchedules(); await renderCalendar();
     if($('opDate')&&!$('opDate').value) $('opDate').value=ymd(now);
     await loadPayments($('pyFilter')?$('pyFilter').value:ym(now));
@@ -3253,6 +3302,14 @@
     fillScStudent();
     if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts($('pyStudentSearch')?$('pyStudentSearch').value:'');
     if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts($('hwStudentSearch')?$('hwStudentSearch').value:'');
+    fillPayTeachers();
+  }
+  // 강사 목록(선생님·원장님)을 정산 폼 두 곳에 채운다.
+  function teacherList(){ return (_members||[]).filter(function(m){ return m.role==='admin'||m.role==='master'; }); }
+  function fillPayTeachers(){
+    var opts='<option value="">(미지정)</option>'+teacherList().map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>'; }).join('');
+    if($('pyTeacher')){ var keep=$('pyTeacher').value; $('pyTeacher').innerHTML=opts; $('pyTeacher').value=keep; }
+    if($('pyeTeacher')){ var keep2=$('pyeTeacher').value; $('pyeTeacher').innerHTML=opts; $('pyeTeacher').value=keep2; }
   }
   if($('scStudentSearch')) $('scStudentSearch').oninput=function(){ fillScStudent(); };
   if($('scTeacher')) $('scTeacher').onchange=function(){ if($('scStudentSearch')) $('scStudentSearch').value=''; fillScStudent(); };
@@ -3514,6 +3571,54 @@
   });
 
   // ---- 정산 ----
+  // 배분율·원천징수 기본값. 결제를 등록하는 순간의 값을 payments 행에 그대로 박아 두기 때문에
+  // 나중에 이 기본값이나 강사의 배분율을 바꿔도 이미 지난 달 정산 금액은 흔들리지 않는다.
+  var DEFAULT_PAY_RATE=50, DEFAULT_WITHHOLD=3.3;
+  function teacherRate(id){
+    var t=(_members||[]).filter(function(m){return m.id===id;})[0];
+    return (t && t.pay_rate!=null) ? Number(t.pay_rate) : DEFAULT_PAY_RATE;
+  }
+  // 한 건의 배분 계산. 강사 몫에서 원천징수를 뗀 금액이 실지급액.
+  function payShare(p){
+    var amount=p.amount||0;
+    var rate=(p.pay_rate!=null)?Number(p.pay_rate):DEFAULT_PAY_RATE;
+    var wh=(p.withhold_rate!=null)?Number(p.withhold_rate):DEFAULT_WITHHOLD;
+    var gross=Math.round(amount*rate/100);
+    var tax=Math.round(gross*wh/100);
+    return { amount:amount, rate:rate, wh:wh, gross:gross, tax:tax, net:gross-tax, guessed:(p.pay_rate==null) };
+  }
+  function renderPaySummary(rows, month){
+    var box=$('pySummary'); if(!box) return;
+    if(!rows.length){ box.style.display='none'; box.innerHTML=''; return; }
+    var tmap={}; (_members||[]).forEach(function(m){ tmap[m.id]=m.name; });
+    var groups={}, order=[], guessed=false, unassigned=0;
+    rows.forEach(function(p){
+      var key=p.teacher_id||'';
+      if(!groups[key]){ groups[key]={ name:(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정'), amount:0, gross:0, tax:0, net:0, rates:{} }; order.push(key); }
+      var s=payShare(p); if(s.guessed) guessed=true;
+      if(!key){ unassigned+=s.amount; }
+      var g=groups[key];
+      g.amount+=s.amount; g.gross+=s.gross; g.tax+=s.tax; g.net+=s.net; g.rates[s.rate]=1;
+    });
+    // 담당 미지정 건은 강사 몫을 계산하지 않는다 (누구 몫인지 정해지지 않았으므로).
+    if(groups['']){ groups[''].gross=0; groups[''].tax=0; groups[''].net=0; }
+    var mm=isOps();
+    var totAmount=0, totGross=0, totTax=0, totNet=0;
+    order.forEach(function(k){ totAmount+=groups[k].amount; totGross+=groups[k].gross; totTax+=groups[k].tax; totNet+=groups[k].net; });
+    var h='<div class="ps-head"><span>'+esc(month||'')+' 강사 배분</span><span class="ps-total">총매출 '+won(totAmount)+'</span></div>';
+    h+='<table><tr><th>강사</th><th>담당 매출</th><th>배분율</th><th>강사 몫</th><th>원천징수</th><th>실지급</th></tr>';
+    order.forEach(function(k){
+      var g=groups[k], rl=Object.keys(g.rates);
+      var rateTxt = k ? (rl.length===1 ? (rl[0]+'%') : '혼합') : '-';
+      h+='<tr><td>'+esc(g.name)+'</td><td>'+won(g.amount)+'</td><td>'+rateTxt+'</td><td>'+(k?won(g.gross):'-')+'</td><td>'+(k?('−'+won(g.tax)):'-')+'</td><td class="ps-pay">'+(k?won(g.net):'-')+'</td></tr>';
+    });
+    h+='</table>';
+    h+='<div class="ps-foot"><span>강사 실지급 합계 <b>'+won(totNet)+'</b></span><span>원천징수 합계 <b>'+won(totTax)+'</b></span>'
+      + (mm?('<span>학원 몫 <b>'+won(totAmount-totGross)+'</b></span>'):'')+'</div>';
+    if(unassigned>0) h+='<div class="ps-warn">⚠ 담당 강사가 지정되지 않은 결제가 '+won(unassigned)+' 있습니다. 표에서 수정을 눌러 강사를 지정하면 배분에 반영됩니다.</div>';
+    if(guessed) h+='<div class="ps-warn">※ 배분율이 저장되지 않은 예전 결제는 기본 '+DEFAULT_PAY_RATE+'%로 계산했습니다.</div>';
+    box.innerHTML=h; box.style.display='';
+  }
   async function loadPayments(month){
     if(!$('pyTable')) return;
     var rows=[];
@@ -3521,10 +3626,15 @@
     window.__wtPayments=rows;
     var total=rows.reduce(function(a,b){return a+(b.amount||0);},0);
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
+    renderPaySummary(rows, month);
     if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 정산 내역이 없습니다.</td></tr>'; return; }
     var mm=isOps();
-    var h='<tr><th>학생</th><th>금액</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
-    rows.forEach(function(p){ h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+    var h='<tr><th>학생</th><th>금액</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    rows.forEach(function(p){
+      var s=payShare(p);
+      var tn = p.teacher_id ? esc(p.teacher_name||'-') : '<span style="color:#b26a00;font-weight:700">미지정</span>';
+      var net = p.teacher_id ? (won(s.net)+' <span style="color:var(--muted);font-size:11.5px">('+s.rate+'%)</span>') : '-';
+      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
@@ -3532,6 +3642,28 @@
     if($('pyAddForm')) $('pyAddForm').style.display = mm ? '' : 'none';
     if($('pyScopeNote')) $('pyScopeNote').style.display = mm ? 'none' : '';
   }
+  // 학생을 고르면 그 학생의 담당 선생님과 그 선생님의 배분율을 자동으로 채운다. (원장님이 손으로 고칠 수 있음)
+  function syncPayTeacher(){
+    var st=(_members||[]).filter(function(m){return m.id===($('pyStudent')?$('pyStudent').value:'');})[0];
+    if($('pyTeacher')) $('pyTeacher').value=(st&&st.teacher_id)||'';
+    syncPayRate();
+  }
+  function syncPayRate(){
+    var tid=$('pyTeacher')?$('pyTeacher').value:'';
+    if($('pyRate')) $('pyRate').value = tid ? teacherRate(tid) : '';
+    drawPayPreview();
+  }
+  function drawPayPreview(){
+    if(!$('pyPreview')) return;
+    var tid=$('pyTeacher')?$('pyTeacher').value:'';
+    var amount=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
+    if(!tid||!amount){ $('pyPreview').value=tid?'금액 입력 시 계산':'담당 강사 미지정'; return; }
+    var s=payShare({ amount:amount, pay_rate:parseFloat($('pyRate').value), withhold_rate:parseFloat($('pyWithhold').value) });
+    $('pyPreview').value=won(s.gross)+' − 원천징수 '+won(s.tax)+' = '+won(s.net);
+  }
+  if($('pyStudent')) $('pyStudent').onchange=syncPayTeacher;
+  if($('pyTeacher')) $('pyTeacher').onchange=syncPayRate;
+  ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
   if($('pyAdd')) $('pyAdd').onclick=async function(){
     var err=$('pyErr'); err.textContent='';
     var student=_members.filter(function(m){return m.id===$('pyStudent').value;})[0];
@@ -3541,9 +3673,17 @@
     if(!amount||amount<=0){ err.textContent='금액을 입력하세요.'; return; }
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
     if(sessions>0 && sessions<8){ err.textContent='수업 횟수권은 최소 8회부터 구매 가능합니다.'; return; }
-    var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null) };
+    var tid=$('pyTeacher')?$('pyTeacher').value:'';
+    var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
+    var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
+    if(tid && (rate<0||rate>100)){ err.textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
+    if(!tid && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
+    var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
+    var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
+      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null) };
     var r=await sb.from('payments').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
-    $('pyAmount').value=''; $('pyMemo').value=''; $('pySessions').value=''; await loadPayments($('pyFilter').value||month); await loadAttendance();
+    $('pyAmount').value=''; $('pyMemo').value=''; $('pySessions').value=''; drawPayPreview();
+    await loadPayments($('pyFilter').value||month); await loadAttendance();
   };
   if($('pyFilter')) $('pyFilter').onchange=function(){ loadPayments($('pyFilter').value); };
   var PAY_CATS=['카드','계좌이체','현금','카카오페이','네이버페이'];
@@ -3571,9 +3711,24 @@
     if($('pyePaid')) $('pyePaid').value=p.paid_at||'';
     if($('pyeSessions')) $('pyeSessions').value=p.sessions||'';
     if($('pyeMemo')) $('pyeMemo').value=p.memo||'';
+    fillPayTeachers();
+    if($('pyeTeacher')) $('pyeTeacher').value=p.teacher_id||'';
+    if($('pyeRate')) $('pyeRate').value=(p.pay_rate!=null)?p.pay_rate:(p.teacher_id?teacherRate(p.teacher_id):'');
+    if($('pyeWithhold')) $('pyeWithhold').value=(p.withhold_rate!=null)?p.withhold_rate:DEFAULT_WITHHOLD;
+    drawPayEditPreview();
     if($('pyeErr')) $('pyeErr').textContent='';
     $('waPayEdit').classList.add('on');
   }
+  function drawPayEditPreview(){
+    var box=$('pyePreview'); if(!box) return;
+    var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
+    var amount=parseInt($('pyeAmount')?$('pyeAmount').value:'',10)||0;
+    if(!tid){ box.textContent='담당 강사가 없어 배분 계산에서 빠집니다.'; return; }
+    var s=payShare({ amount:amount, pay_rate:parseFloat($('pyeRate').value), withhold_rate:parseFloat($('pyeWithhold').value) });
+    box.innerHTML='강사 몫 <b>'+won(s.gross)+'</b> − 원천징수 '+s.wh+'% <b>'+won(s.tax)+'</b> = 실지급 <b style="color:var(--accent)">'+won(s.net)+'</b>';
+  }
+  if($('pyeTeacher')) $('pyeTeacher').onchange=function(){ if($('pyeRate')) $('pyeRate').value=this.value?teacherRate(this.value):''; drawPayEditPreview(); };
+  ['pyeAmount','pyeRate','pyeWithhold'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayEditPreview); });
   if($('waPayEditClose')) $('waPayEditClose').onclick=function(){ $('waPayEdit').classList.remove('on'); };
   if($('waPayEdit')) $('waPayEdit').addEventListener('click',function(e){ if(e.target===$('waPayEdit')) $('waPayEdit').classList.remove('on'); });
   if($('pyeSave')) $('pyeSave').onclick=async function(){
@@ -3583,7 +3738,13 @@
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
     var sessions=parseInt($('pyeSessions').value,10)||0;
     if(sessions>0 && sessions<8){ $('pyeErr').textContent='수업 횟수권은 최소 8회부터입니다.'; return; }
-    var patch={ amount:amount, month:$('pyeMonth').value, method:payMethodVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null) };
+    var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
+    var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
+    var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
+    if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
+    var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
+    var patch={ amount:amount, month:$('pyeMonth').value, method:payMethodVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
+      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null) };
     var r=await sb.from('payments').update(patch).eq('id',editingPayId);
     if(r.error){ $('pyeErr').textContent='저장 실패: '+r.error.message; return; }
     $('waPayEdit').classList.remove('on');
