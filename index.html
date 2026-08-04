@@ -866,6 +866,29 @@
 .lvt-review-btn:hover{color:var(--accent)}
 .lvt-review{display:none;text-align:left;margin-top:22px;border-top:1px solid var(--line);padding-top:6px}
 .lvt-review.on{display:block}
+/* 진단 → 맞춤 커리큘럼 요약 */
+.lvc{text-align:left;border:1.5px solid var(--accent);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.lvc-h{background:var(--accent);color:#fff;padding:13px 17px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.lvc-h .t{font-size:16px;font-weight:800;letter-spacing:-.02em}
+.lvc-h .g{font-size:12.5px;font-weight:700;opacity:.92;white-space:nowrap}
+.lvc-b{padding:15px 17px}
+.lvc-lead{font-size:14px;line-height:1.7;color:var(--ink);margin-bottom:13px}
+.lvc-lead b{color:var(--accent)}
+.lvc-day{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px}
+.lvc-day .c{flex:1 1 150px;border:1px solid var(--line-strong);border-radius:10px;overflow:hidden}
+.lvc-day .c .ct{background:var(--accent-wash);color:var(--accent);font-size:12.5px;font-weight:800;padding:6px 10px;display:flex;justify-content:space-between}
+.lvc-day .c .cb{padding:8px 10px;font-size:12.8px;line-height:1.55;color:var(--ink-soft)}
+.lvc-day .c .cb b{color:var(--ink)}
+.lvc-bk{border:1px solid var(--line-strong);border-radius:10px;padding:10px 13px;font-size:13px;line-height:1.62;color:var(--ink-soft);margin-bottom:12px}
+.lvc-bk .bt{font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:5px}
+.lvc-bk b{color:var(--accent)}
+.lvc-fc{background:#fdf4ea;border:1px solid #c9762c;border-radius:10px;padding:10px 13px;font-size:13px;line-height:1.62;color:#7a4a16;margin-bottom:12px}
+.lvc-fc .bt{font-weight:800;color:#c9762c;margin-bottom:4px}
+.lvc-fc b{color:#c9762c}
+.lvc-act{display:flex;gap:8px;flex-wrap:wrap}
+.lvc-act button{flex:1 1 160px;font-size:13.5px;font-weight:700;padding:11px 10px;border-radius:10px;cursor:pointer;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent)}
+.lvc-act button:hover{background:var(--accent-wash)}
+@media(max-width:520px){.lvc-day .c{flex:1 1 100%}}
 .lvt-rv{padding:16px 0;border-bottom:1px solid var(--line)}
 .lvt-rv:last-child{border-bottom:none}
 .lvt-rv .qn{font-size:13.5px;font-weight:800;color:var(--ink)}
@@ -1165,12 +1188,156 @@
     var wrongHtml = wrongNums.length
       ? '<div style="background:#fff5f5;border:1px solid #f0b4b4;border-radius:12px;padding:13px 16px;font-size:14px;line-height:1.6;color:#7a1f1f;margin-bottom:10px">✕ <b>틀린 문항 ('+wrongNums.length+'개):</b> '+wrongNums.join(' · ')+'<br><span style="font-size:12.5px;color:#a44">아래 <b>내가 틀린 문제 확인하기</b>에서 정답·해설을 볼 수 있어요.</span></div>'
       : '<div style="background:#f0fbf3;border:1px solid #a7e0bb;border-radius:12px;padding:13px 16px;font-size:14px;color:#14683a;margin-bottom:10px">🎉 <b>전 문항 정답입니다!</b></div>';
-    $('lvtReport').innerHTML = wrongHtml + '<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>정밀 진단 분석이 완료되었습니다.</b><br>능력별 상세 성적표·취약 유형·맞춤 학습 처방은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
+    var curHtml = renderCur(score, lvcFocus(abStat, ABIL));
+    $('lvtReport').innerHTML = wrongHtml + curHtml + '<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>여기까지는 요약입니다.</b><br><b>능력별 상세 성적표 · 취약 유형 · 4주 단위 상세 계획</b>은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
+    if($('lvcPrint')) $('lvcPrint').onclick=lvcPrintSheet;
     buildReview();
     if($('lvtReviewBtn')){ $('lvtReviewBtn').style.display=''; $('lvtReviewBtn').textContent='내가 틀린 문제 확인하기'; }
     if($('lvtReview')) $('lvtReview').classList.remove('on');
     pane('lvtResult');
   }
+  // ── 진단 점수 → 맞춤 커리큘럼 (student_simple.py의 4단계와 동일 기준) ──
+  var LVC=[
+    {max:449, band:'0 ~ 450점', name:'기초반', goal:'450점', sess:'수업 8번', dur:'약 1개월', mins:'70분',
+     lead:'지금은 <b>단어</b>가 점수를 결정합니다. 이 점수대에서 틀리는 문제의 대부분은 문법이 아니라 <b>단어를 몰라서</b>입니다. 문법은 깊게 파지 않고 <b>자리만</b> 잡습니다.',
+     day:[['단어','30분','하루 <b>30개</b>. 뜻은 <b>맨 앞 하나만</b>. 새 30개 전에 어제 것 10개를 먼저.'],
+          ['듣기','20분','<b>Part 1·2는 받아쓰기.</b> Part 3·4는 아직 듣지 말고 <b>스크립트를 읽고 해석</b>.'],
+          ['문제','20분','그날 배운 곳에서 <b>20문제</b>. 틀리면 왜 그 답을 골랐는지 한 줄 적기.']],
+     books:'<b>VOCA All-in-One</b> DAY 01–20 · <b>Grammar All-in-One</b> CH 00–10 한 바퀴 · <b>1000제 RC</b> TEST 01의 Part 5(101–130번)만',
+     skip:'가정법·도치 같은 예외 문법 / 긴 지문(Part 7) / Part 3·4를 귀로 듣는 것',
+     nx:'하프 모의고사 <b>400점</b>을 넘으면 다음 단계(450~650점)로 올라갑니다.'},
+    {max:649, band:'450 ~ 650점', name:'중급반', goal:'650점', sess:'수업 16번', dur:'약 2개월', mins:'90분',
+     lead:'이 단계는 <b>습관 세 개</b>를 만드는 게 전부입니다 &mdash; 먼저 읽고 듣기 · <b>해석 후 쉐도잉</b> · <b>짝으로</b> 단어 외우기. 문법을 여기서 끝냅니다.',
+     day:[['단어','30분','하루 <b>30개</b>. 여기서부터는 <b>짝으로</b> &mdash; make a decision처럼 덩어리로.'],
+          ['받아쓰기 · 쉐도잉','30분','Part 1·2는 받아쓰기. <b>Part 3·4는 해석 후 쉐도잉</b>, 같은 세트 3번.'],
+          ['문법 · 문제','30분','문법책을 <b>끝까지 한 권</b>. 그날 문법으로 <b>문제 20개</b>.']],
+     books:'<b>VOCA All-in-One</b> DAY 21–40(1,192개 완주) · <b>Grammar All-in-One</b> 2회독 + 실전 388제 · <b>1000제 RC</b> TEST 02–05',
+     skip:'삼중지문 / 패러프레이징 노트 / ○△× 표시하며 풀기 / 읽기 75분 완주 훈련',
+     nx:'중간에 하프 모의 <b>550점</b>, 마지막 실전 2번에서 <b>650점</b>.'},
+    {max:849, band:'650 ~ 850점', name:'고득점반', goal:'850점', sess:'수업 20번', dur:'약 2.5개월', mins:'120분',
+     lead:'새 문법은 거의 없습니다. 이 단계는 <b>실수 제거와 속도</b>가 전부입니다. 틀린 이유를 <b>태그로 분류</b>해 같은 실수를 반복하지 않게 만듭니다.',
+     day:[['실전 · 오답','60분','실전을 풀고 <b>틀린 이유를 태그</b>로 분류해 모읍니다.'],
+          ['직독직해','30분','앞에서부터 끊어 읽기. 되돌아가지 않는 <b>속도</b>를 만듭니다.'],
+          ['쉐도잉','30분','<b>1.2배속</b>으로. 패러프레이징 노트를 함께 만듭니다.']],
+     books:'<b>VOCA All-in-One</b> DAY 01–40 회독 · <b>1000제 RC</b> TEST 06–10 · <b>1000제 2</b> TEST 01–03 · <b>어휘 노트</b>(짝표현·동의어)',
+     skip:'새 문법책 구입 / 새 단어 DAY 나가기(회독으로 대체)',
+     nx:'듣기 8개 · 읽기 10개 안쪽으로 틀리기. <b>이게 850점</b>입니다.'},
+    {max:9999, band:'850점 이상', name:'만점반', goal:'950점', sess:'수업 16번', dur:'약 2개월', mins:'150분',
+     lead:'오답이 아니라 <b>△(확신 없이 맞힌 문항)</b>를 관리하는 단계입니다. ○/△/×로 표시하고 <b>△는 맞아도 전부 다시</b> 봅니다.',
+     day:[['실전 · △ 관리','80분','△는 맞아도 전수 리뷰. 목표는 △ 30개 &rarr; <b>10개 아래로</b>.'],
+          ['숙어 · 실수 고치기','40분','어휘 노트 PART 5 숙어 하루 8개 + 실수 <b>5유형</b>을 절차로 고정.'],
+          ['LC 문제풀이','30분','<b>1.3배속</b> 딕테이션 · 영국·호주 발음 패턴.']],
+     books:'<b>VOCA All-in-One</b> 회독 · <b>1000제 2</b> TEST 04–10(주교재) · <b>1000제 2 해설집</b> · <b>어휘 노트</b>(혼동어·숙어)',
+     skip:'새 교재 추가 / 안 틀리는 유형 반복',
+     nx:'실전 1회에서 <b>△ 10개 이하</b>. 여기까지 오면 950점 구간입니다.'}
+  ];
+  function lvcOf(score){ for(var i=0;i<LVC.length;i++){ if(score<=LVC[i].max) return LVC[i]; } return LVC[LVC.length-1]; }
+
+  // 표본이 충분(4문항 이상)하고 절반 이하로 맞힌 항목만 사실 그대로 알려준다.
+  // ※ 항목별 문항 수가 2~6개로 적어 '평균 대비 최약점' 순위는 신뢰할 수 없으므로 쓰지 않는다.
+  function lvcFocus(abStat, ABIL){
+    var r=[];
+    ABIL.forEach(function(a){
+      var s=abStat[a.k];
+      if(s && s.t>=4 && s.c/s.t<=0.5) r.push({ko:a.ko, c:s.c, t:s.t});
+    });
+    return r;
+  }
+
+  var lastCur=null, lastFocus=[];
+  function renderCur(score, focus){
+    var L=lvcOf(score); lastCur=L; lastFocus=focus;
+    var days=L.day.map(function(d){
+      return '<div class="c"><div class="ct"><span>'+d[0]+'</span><em style="font-style:normal">'+d[1]+'</em></div>'+
+             '<div class="cb">'+d[2]+'</div></div>';
+    }).join('');
+    var fc='';
+    if(focus.length){
+      fc='<div class="lvc-fc"><div class="bt">이번 진단에서 특히 많이 틀린 곳</div>'+
+         focus.map(function(f){ return '<b>'+f.ko+'</b> '+f.t+'문항 중 '+f.c+'개 정답'; }).join(' &nbsp;·&nbsp; ')+
+         '<br><span style="font-size:12.2px">문항 수가 많지 않아 참고용입니다. 정확한 약점은 상담 때 선생님이 확인해 드립니다.</span></div>';
+    }
+    return '<div class="lvc">'+
+      '<div class="lvc-h"><div class="t">📘 '+name0()+'추천 커리큘럼 &mdash; '+L.name+'</div>'+
+      '<div class="g">'+L.band+' &nbsp;·&nbsp; 목표 '+L.goal+' &nbsp;·&nbsp; '+L.sess+' &nbsp;·&nbsp; '+L.dur+'</div></div>'+
+      '<div class="lvc-b">'+
+        '<div class="lvc-lead">'+L.lead+'</div>'+
+        '<div style="font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:7px">매일 할 것 &mdash; 총 '+L.mins+' <span style="font-weight:600;color:var(--muted)">· 수업 없는 날도 똑같이</span></div>'+
+        '<div class="lvc-day">'+days+'</div>'+
+        fc+
+        '<div class="lvc-bk"><div class="bt">쓰는 책</div>'+L.books+
+          '<div style="margin-top:6px;color:var(--muted)">지금은 <b style="color:#c9762c">안 해도 됩니다</b> &mdash; '+L.skip+'</div></div>'+
+        '<div class="lvc-bk" style="border-color:var(--accent);background:var(--accent-wash)"><div class="bt">다 하면</div>'+L.nx+'</div>'+
+        '<div class="lvc-act"><button type="button" id="lvcPrint">📄 내 커리큘럼 인쇄 · PDF 저장</button></div>'+
+      '</div></div>';
+  }
+  function name0(){ var n=($('lvtName')&&$('lvtName').value||'').trim(); return n?n+'님 ':''; }
+
+  function lvcPrintSheet(){
+    if(!lastCur) return;
+    var L=lastCur, score=($('lvtScore').textContent||'').trim();
+    var lvl=($('lvtLevel').textContent||'').replace('예상 레벨 — ','').trim();
+    var nm=($('lvtName')&&$('lvtName').value||'').trim();
+    var logo=(document.querySelector('.logo')||{}).src||'';
+    function esc2(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    var days=L.day.map(function(d){
+      return '<div class="c"><div class="ct"><span>'+d[0]+'</span><em>'+d[1]+'</em></div><div class="cb">'+d[2]+'</div></div>';
+    }).join('');
+    var fc = lastFocus.length
+      ? '<div class="fc"><div class="bt">이번 진단에서 특히 많이 틀린 곳</div>'+
+        lastFocus.map(function(f){ return '<b>'+f.ko+'</b> '+f.t+'문항 중 '+f.c+'개 정답'; }).join(' &nbsp;·&nbsp; ')+
+        '<div class="sm">문항 수가 많지 않아 참고용입니다. 정확한 약점은 상담 때 확인합니다.</div></div>' : '';
+    var css='@page{size:A4;margin:14mm}*{box-sizing:border-box}'
+      +'body{font-family:"Pretendard","Malgun Gothic",sans-serif;color:#1c2530;margin:0;word-break:keep-all;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+      +'.hd{background:#1d5c96;color:#fff;border-radius:3mm;padding:5mm 7mm;display:flex;justify-content:space-between;align-items:center;gap:6mm}'
+      +'.hd .k{font-size:9.4pt;opacity:.85;letter-spacing:.1em;font-weight:700}'
+      +'.hd .t{font-size:21pt;font-weight:800;letter-spacing:-.03em;margin-top:1.2mm;line-height:1.12}'
+      +'.hd .r{text-align:right;border-left:1pt solid rgba(255,255,255,.35);padding-left:6mm;white-space:nowrap}'
+      +'.hd .r .g{font-size:9.2pt;opacity:.85;font-weight:700}.hd .r .n{font-size:19pt;font-weight:800;margin-top:1mm}'
+      +'.hd .r .s{font-size:9.2pt;opacity:.9;margin-top:1mm}'
+      +'h3{font-size:13pt;font-weight:800;margin:5mm 0 2.6mm;letter-spacing:-.02em}h3 span{color:#2b7cc4}'
+      +'h3 small{font-size:9.6pt;font-weight:500;color:#6b7787;margin-left:2.4mm}'
+      +'.lead{border:1.2pt solid #d8dfe7;border-radius:2.4mm;padding:3.4mm 5mm;font-size:11pt;line-height:1.6}'
+      +'.lead b{color:#1d5c96}'
+      +'.day{display:flex;gap:4mm}.day .c{flex:1;border:1.2pt solid #cfe0f0;border-radius:2.4mm;overflow:hidden}'
+      +'.day .c .ct{background:#eaf3fb;color:#1d5c96;font-size:11.4pt;font-weight:800;padding:2.4mm 4mm;display:flex;justify-content:space-between;align-items:baseline}'
+      +'.day .c .ct em{font-style:normal;font-size:9.6pt;color:#2b7cc4}'
+      +'.day .c .cb{padding:3mm 4mm;font-size:10.2pt;line-height:1.5;color:#35404c}.day .c .cb b{color:#1d5c96}'
+      +'.fc{margin-top:4mm;background:#fdf4ea;border:1.2pt solid #c9762c;border-radius:2.4mm;padding:3.2mm 5mm;font-size:10.6pt;line-height:1.55;color:#7a4a16}'
+      +'.fc .bt{font-weight:800;color:#c9762c;margin-bottom:1.6mm;font-size:11.4pt}.fc b{color:#c9762c}'
+      +'.fc .sm{font-size:9.4pt;color:#8b6a44;margin-top:1.6mm}'
+      +'.row{border:1.2pt solid #d8dfe7;border-radius:2.4mm;padding:3.4mm 5mm;font-size:10.8pt;line-height:1.6}'
+      +'.row b{color:#1d5c96}.row .sk{margin-top:2mm;color:#6b7787}.row .sk b{color:#c9762c}'
+      +'.nx{margin-top:4mm;border:1.4pt dashed #2b7cc4;border-radius:2.4mm;padding:3.2mm 5mm;font-size:11pt;color:#1d5c96;font-weight:700}'
+      +'.nx b{color:#1c2530}'
+      +'.tip{margin-top:4mm;background:#1d5c96;color:#fff;border-radius:2.4mm;padding:3.4mm 5.4mm;font-size:10.8pt;line-height:1.5}'
+      +'.tip b{color:#ffd98a}'
+      +'.ft{margin-top:6mm;border-top:.5pt solid #d8dfe7;padding-top:2mm;font-size:8.6pt;color:#9aa5b1;display:flex;justify-content:space-between}'
+      +'.printbar{position:fixed;top:0;left:0;right:0;background:#1d5c96;color:#fff;padding:9px 14px;font-size:13px;display:flex;justify-content:space-between;align-items:center;z-index:9}'
+      +'.printbar button{font-size:13px;font-weight:700;padding:7px 14px;border:none;border-radius:7px;background:#fff;color:#1d5c96;cursor:pointer}'
+      +'body{padding-top:46px}@media print{.printbar{display:none}body{padding-top:0}}';
+    var doc='<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>완벽한토익 진단 맞춤 커리큘럼</title><style>'+css+'</style></head><body>'
+      +'<div class="printbar"><span>완벽한토익 · 진단 결과 맞춤 커리큘럼</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>'
+      +'<div class="hd"><div class="l"><div class="k">D I A G N O S I S</div><div class="t">'
+        +(nm?esc2(nm)+' 학생 ':'')+'맞춤 커리큘럼</div></div>'
+      +'<div class="r"><div class="g">진단 예상 점수</div><div class="n">'+esc2(score)+'점</div><div class="s">'+esc2(lvl)+'</div></div></div>'
+      +'<h3><span>'+L.name+'</span> &mdash; '+L.band+' <small>목표 '+L.goal+' · '+L.sess+' · '+L.dur+'</small></h3>'
+      +'<div class="lead">'+L.lead+'</div>'
+      +'<h3><span>매일</span> 할 것 <small>총 '+L.mins+' · 수업 없는 날도 똑같이 합니다</small></h3>'
+      +'<div class="day">'+days+'</div>'
+      +fc
+      +'<h3>쓰는 <span>책</span></h3>'
+      +'<div class="row">'+L.books+'<div class="sk">지금은 <b>안 해도 됩니다</b> &mdash; '+L.skip+'</div></div>'
+      +'<div class="nx">다 하면 &rarr; '+L.nx+'</div>'
+      +'<div class="tip"><b>이 표는 진단 21문항으로 뽑은 요약본입니다.</b> 능력별 상세 성적표와 4주 단위 상세 계획은 '
+        +'<b>무료 상담</b> 때 담당 선생님이 직접 분석해 드립니다.</div>'
+      +'<div class="ft"><span>완벽한토익 · perfect-toeic.com</span><span>진단 맞춤 커리큘럼</span></div>'
+      +'</body></html>';
+    var w=window.open('','_blank');
+    if(!w){ alert('팝업이 차단되었습니다. 팝업 허용 후 다시 눌러주세요.'); return; }
+    w.document.open(); w.document.write(doc); w.document.close();
+  }
+
   function buildReview(){
     var h='';
     for(var i=0;i<Q.length;i++){
