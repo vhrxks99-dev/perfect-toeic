@@ -1339,28 +1339,15 @@
   var lastCur=null, lastFocus=[];
   function renderCur(score, focus){
     var L=lvcOf(score); lastCur=L; lastFocus=focus;
-    var days=L.day.map(function(d){
-      return '<div class="c"><div class="ct"><span>'+d[0]+'</span><em style="font-style:normal">'+d[1]+'</em></div>'+
-             '<div class="cb">'+d[2]+'</div></div>';
-    }).join('');
-    var fc='';
-    if(focus.length){
-      fc='<div class="lvc-fc"><div class="bt">이번 진단에서 특히 많이 틀린 곳</div>'+
-         focus.map(function(f){ return '<b>'+f.ko+'</b> '+f.t+'문항 중 '+f.c+'개 정답'; }).join(' &nbsp;·&nbsp; ')+
-         '<br><span style="font-size:12.2px">문항 수가 많지 않아 참고용입니다. 정확한 약점은 상담 때 선생님이 확인해 드립니다.</span></div>';
-    }
     return '<div class="lvc">'+
       '<div class="lvc-h"><div class="t">📘 '+name0()+'추천 커리큘럼 &mdash; '+L.name+'</div>'+
-      '<div class="g">'+L.band+' &nbsp;·&nbsp; 목표 '+L.goal+' &nbsp;·&nbsp; '+L.sess+' &nbsp;·&nbsp; '+L.dur+'</div></div>'+
+      '<div class="g">'+L.band+' &nbsp;·&nbsp; 목표 '+L.goal+'</div></div>'+
       '<div class="lvc-b">'+
-        '<div class="lvc-lead">'+L.lead+'</div>'+
-        '<div style="font-size:12.5px;font-weight:800;color:var(--ink);margin-bottom:7px">매일 할 것 &mdash; 총 '+L.mins+' <span style="font-weight:600;color:var(--muted)">· 수업 없는 날도 똑같이</span></div>'+
-        '<div class="lvc-day">'+days+'</div>'+
-        fc+
-        '<div class="lvc-bk"><div class="bt">쓰는 책</div>'+L.books+
-          '<div style="margin-top:6px;color:var(--muted)">지금은 <b style="color:#c9762c">안 해도 됩니다</b> &mdash; '+L.skip+'</div></div>'+
-        '<div class="lvc-bk" style="border-color:var(--accent);background:var(--accent-wash)"><div class="bt">다 하면</div>'+L.nx+'</div>'+
-        '<div class="lvc-act"><button type="button" id="lvcPrint">📄 내 커리큘럼 인쇄 · PDF 저장</button></div>'+
+        '<div class="lvc-lead" style="margin-bottom:0">'+
+          '<b>'+L.sess+' · '+L.dur+'</b> 과정으로, <b>하루 '+L.mins+'</b>씩 공부하는 단계입니다.<br>'+
+          '<span style="color:var(--muted);font-size:13px">무엇을 몇 분씩 할지, 어떤 책을 어디까지 볼지는 '+
+          '<b style="color:var(--accent)">상담 때 담당 선생님이 정해 드립니다.</b></span>'+
+        '</div>'+
       '</div></div>';
   }
   // ── 실제 토익 성적표의 LC/RC 점수(선택 입력) ──
@@ -1378,16 +1365,9 @@
         '두 영역 차이가 <b>'+ab+'점</b>입니다. 한쪽으로 치우치지 않았으니 <b>커리큘럼을 그대로</b> 진행하세요.</div>';
     }
     var hi = gap>0 ? '듣기(LC)' : '읽기(RC)', lo = gap>0 ? '읽기(RC)' : '듣기(LC)';
-    var h='<div class="lvc-gap"><div class="bt">'+hi+'가 '+lo+'보다 '+ab+'점 높습니다</div>';
-    h+='두 영역을 같이 올리려 하면 <b>둘 다 안 오릅니다.</b> 이번 기간에는 <b>'+lo+'</b>에 무게를 두세요.';
-    if(gap>0){
-      h+='<br>매일 할 것에서 <b>'+lcCard[0]+' '+lcCard[1]+'</b>'+(ab>=100?'을 절반으로 줄이고':'을 조금 줄이고')+
-         ', 그 시간을 <b>'+L.day[0][0]+'</b>에 더하세요.';
-    } else {
-      h+='<br>매일 할 것에서 <b>'+lcCard[0]+' '+lcCard[1]+'</b>을 늘리고, <b>Part 1 · 2 받아쓰기</b>부터 소리를 잡으세요.';
-    }
-    h+='</div>';
-    return h;
+    return '<div class="lvc-gap"><div class="bt">'+hi+'가 '+lo+'보다 '+ab+'점 높습니다</div>'+
+      '두 영역을 같이 올리려 하면 둘 다 잘 안 오릅니다. '+
+      '<b>'+lo+'</b>에 얼마나 무게를 둘지는 <b>상담 때 선생님이 잡아 드립니다.</b></div>';
   }
   function totBox(){
     if(!hasReal()) return '';
@@ -1538,7 +1518,16 @@
   }
 
   var lastScore=0, lastWrong='', lastFocusArr=[];
-  var LOCK='<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>여기까지는 요약입니다.</b><br><b>능력별 상세 성적표 · 취약 유형 · 4주 단위 상세 계획</b>은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
+  var LOCK='<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.75;color:var(--ink)">'
+    +'🔒 <b>여기까지가 진단으로 알 수 있는 것입니다.</b>'
+    +'<div style="margin-top:9px;font-size:13.4px">무료 상담을 신청하시면 담당 선생님이 결과를 직접 분석해 <b>1:1로</b> 알려드립니다.</div>'
+    +'<div style="margin-top:8px;font-size:13.4px;line-height:1.9">'
+      +'① <b>능력별 상세 성적표</b> &mdash; 5개 능력이 평균과 얼마나 차이 나는지<br>'
+      +'② <b>내가 약한 유형</b>과 그 이유<br>'
+      +'③ <b>매일 무엇을 몇 분씩</b> 할지<br>'
+      +'④ <b>쓰는 책과 범위</b>, 지금은 안 해도 되는 것<br>'
+      +'⑤ <b>4주 단위 상세 계획표</b></div>'
+    +'<div style="margin-top:9px;color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</div></div>';
   function paintReport(){
     var L=lvcOf(effScore());
     $('lvtReport').innerHTML = lastWrong + scoreInputBox() + totBox() + gapBox(L)
