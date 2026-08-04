@@ -929,7 +929,7 @@
     <div class="sec-head reveal">
       <span class="eyebrow">완토 진단 테스트 <b>· WANTO TEST</b></span>
       <h2>지금 내 토익, 몇 점일까?</h2>
-      <p>문법·어휘·전접부(전치사·접속사·접속부사)·Part 6·Part 7 총 21문제로 실력을 정밀 진단합니다. <b>예상 점수</b>를 즉시 확인하고, <b>상세 능력별 약점 분석</b>은 무료 상담 시 담당 선생님이 1:1로 알려드립니다. (매번 무작위 출제)</p>
+      <p>문법·어휘·전접부(전치사·접속사·접속부사)·Part 6·Part 7 총 30문제로 실력을 정밀 진단합니다. 5개 능력별로 <b>각 6문제씩</b> 고르게 출제됩니다. <b>예상 점수</b>를 즉시 확인하고, <b>상세 능력별 약점 분석</b>은 무료 상담 시 담당 선생님이 1:1로 알려드립니다. (매번 무작위 출제)</p>
     </div>
 
     <div class="lvt reveal">
@@ -951,7 +951,7 @@
       <!-- 문제 화면 -->
       <div class="lvt-pane" id="lvtQuiz">
         <div class="lvt-top">
-          <span class="lvt-count"><span id="lvtNow">1</span><i> / 15</i></span>
+          <span class="lvt-count"><span id="lvtNow">1</span><i> / <span id="lvtTotQ">30</span></i></span>
           <div class="lvt-bar"><div class="lvt-bar-fill" id="lvtFill"></div></div>
           <span class="lvt-tag" id="lvtTag">기본</span>
         </div>
@@ -1018,6 +1018,15 @@
     {cat:"어휘",q:"The manager will ___ the new employees to their departments.",o:["assign","appoint","arrange","attach"],a:0,lv:"medium",e:"assign A to B(‘A를 B에 배정하다’)."},
     {cat:"어휘",q:"All visitors must ___ at the front desk upon arrival.",o:["register","resign","remind","repair"],a:0,lv:"easy",e:"‘접수(등록)하다’는 register."},
     {cat:"어휘",q:"The manager will ___ the schedule to avoid conflicts.",o:["adjust","adopt","admire","announce"],a:0,lv:"medium",e:"‘일정을 조정하다’는 adjust the schedule."},
+    {cat:"어휘",q:"Please ___ the attached document before tomorrow's meeting.",o:["review","reveal","remove","reserve"],a:0,lv:"easy",e:"‘검토하다’는 review. reveal은 드러내다, remove는 제거하다, reserve는 예약하다입니다."},
+    {cat:"어휘",q:"The store will ___ its business hours during the holiday season.",o:["extend","expend","expose","exceed"],a:0,lv:"easy",e:"영업시간을 ‘연장하다’는 extend. expend는 소비하다, exceed는 초과하다입니다."},
+    {cat:"어휘",q:"Our team is ___ for handling all customer complaints.",o:["responsible","reliable","reasonable","remarkable"],a:0,lv:"medium",e:"be responsible for = ~을 담당하다. 뒤에 for가 온 것이 결정적 단서입니다."},
+    {cat:"어휘",q:"The maintenance contract will ___ at the end of December.",o:["expire","export","expand","expect"],a:0,lv:"medium",e:"계약·기한이 ‘만료되다’는 expire."},
+    {cat:"어휘",q:"All applicants must ___ the minimum experience requirement.",o:["meet","make","take","bring"],a:0,lv:"medium",e:"meet the requirement = 요건을 충족하다. 관용 조합으로 외웁니다."},
+    {cat:"어휘",q:"A technician will ___ the equipment before the demonstration.",o:["inspect","expect","suspect","respect"],a:0,lv:"medium",e:"장비를 ‘점검하다’는 inspect."},
+    {cat:"어휘",q:"Sales have remained ___ despite the economic downturn.",o:["stable","stationary","statue","status"],a:0,lv:"hard",e:"‘안정적인’은 stable. stationary는 ‘움직이지 않는’이라 매출에는 쓰지 않습니다."},
+    {cat:"어휘",q:"The proposal is ___ to approval by the board of directors.",o:["subject","subjective","subjected","submitting"],a:0,lv:"hard",e:"be subject to = ~의 대상이다, ~에 좌우되다. 이사회 승인을 받아야 한다는 뜻입니다."},
+    {cat:"어휘",q:"The new regulations will be ___ enforced starting next month.",o:["strictly","strongly","shortly","slightly"],a:0,lv:"hard",e:"규정을 ‘엄격히’ 시행한다 = strictly enforced. shortly는 ‘곧’, slightly는 ‘약간’입니다."},
     {cat:"전접부",q:"The outdoor event was postponed ___ the heavy rain.",o:["because","due to","although","however"],a:1,lv:"medium",e:"빈칸 뒤에 명사구(the heavy rain)가 오므로 전치사 due to. because/although는 뒤에 절(주어+동사)이 와야 합니다."},
     {cat:"전접부",q:"___ the report was late, the client was understanding.",o:["Despite","Although","However","In spite of"],a:1,lv:"medium",e:"뒤에 완전한 절이 오므로 접속사 Although. Despite/In spite of는 전치사(명사만), However는 접속부사입니다."},
     {cat:"전접부",q:"The budget was tight. ___, the team completed the project on time.",o:["Nevertheless","Despite","Although","Because"],a:0,lv:"hard",e:"앞 문장과 대조되는 새 문장을 잇는 자리이므로 접속부사 Nevertheless. Despite/Although는 한 문장 안에서 연결합니다."},
@@ -1054,30 +1063,65 @@
       {q:"빈칸 ② — 접속사",o:["because","despite","therefore","during"],a:0,e:"‘붐빌 수 있으므로’ 이유를 잇는 접속사 because (뒤에 절)."},
       {q:"빈칸 ③ — 문법(수일치)",o:["is","are","be","being"],a:0,e:"주어 Attendance(단수)에 맞는 be동사 is."}
     ]},
+    {cat:"P6",passage:"📩 <b>예약 확인</b><br>Thank you for booking a meeting room at Central Tower. Your reservation <b>①</b> for Thursday, June 6, from 1 P.M. to 4 P.M. Please check in at the lobby desk fifteen minutes early. <b>②</b>, we can prepare your access card before the meeting begins. If you need to cancel, please notify us at least 24 hours <b>③</b>.",items:[
+      {q:"빈칸 ① — 문법(태)",o:["is confirmed","confirms","confirming","to confirm"],a:0,e:"예약이 ‘확정된’ 것이므로 수동태 is confirmed."},
+      {q:"빈칸 ② — 연결어",o:["That way","However","On the contrary","For instance"],a:0,e:"일찍 체크인하면 ‘그렇게 하면(That way)’ 카드를 미리 준비할 수 있다는 순접 흐름입니다."},
+      {q:"빈칸 ③ — 어휘",o:["in advance","in place","in charge","in general"],a:0,e:"‘미리, 사전에’는 in advance. 24시간 전에 알려 달라는 뜻입니다."}
+    ]},
+    {cat:"P6",passage:"📢 <b>사내 공지</b><br>The Employee Suggestion Program will reopen on March 1. Any staff member <b>①</b> has worked here for at least six months may submit an idea. Suggestions <b>②</b> reviewed by a panel each quarter, and the three best ideas will receive a cash award. <b>③</b> your idea is not selected, you will still receive written feedback.",items:[
+      {q:"빈칸 ① — 문법(관계사)",o:["who","which","whose","where"],a:0,e:"사람 선행사(Any staff member)를 받는 주격 관계대명사 who."},
+      {q:"빈칸 ② — 문법(태)",o:["will be","will","have","are being"],a:0,e:"제안이 ‘검토되는’ 수동 의미이고 분기마다 예정된 일이므로 will be reviewed."},
+      {q:"빈칸 ③ — 접속사",o:["Even if","Because","Despite","Therefore"],a:0,e:"‘선정되지 않더라도’라는 양보 접속사 Even if. Despite는 전치사, Therefore는 접속부사입니다."}
+    ]},
+    {cat:"P6",passage:"📧 <b>거래처 안내</b><br>We are writing to inform you that our warehouse will relocate to Fairview Industrial Park on August 12. All orders placed before August 5 will ship from the current facility <b>①</b> usual. Deliveries scheduled between August 6 and August 11 may be delayed by a day or two. We appreciate your <b>②</b> during the move. <b>③</b>, please update your records with our new address.",items:[
+      {q:"빈칸 ① — 어휘",o:["as","like","than","so"],a:0,e:"‘평소처럼’은 as usual로 굳어진 표현입니다."},
+      {q:"빈칸 ② — 어휘",o:["understanding","attention","decision","progress"],a:0,e:"이전 기간의 ‘양해(understanding)’에 감사한다는 관용 표현입니다."},
+      {q:"빈칸 ③ — 연결어",o:["In addition","However","Otherwise","For example"],a:0,e:"앞 내용에 새 요청을 덧붙이는 흐름이므로 In addition."}
+    ]},
+    {cat:"P7",passage:"📝 <b>사내 메모</b><br>To: Department Heads　From: Priya Raman, Human Resources<br>Subject: Remote Work Pilot — Results<br><br>The three-month remote work pilot ended last Friday. Productivity metrics remained steady across all four participating teams, and the number of sick days fell by nearly a third. However, employees who joined the company during the pilot reported feeling disconnected from their teams, and two of them resigned within eight weeks. Based on these findings, we will extend remote work for staff with more than one year of service, while requiring new hires to work on site for their first six months. Department heads should discuss the change with their teams before the policy takes effect on July 1.",items:[
+      {ab:"infer",q:"What is the main purpose of the memo?",o:["To share pilot results and announce a policy change","To recruit additional employees","To cancel remote work entirely","To request approval for a new budget"],a:0,e:"시범 운영 결과를 공유하고 그에 따라 바뀌는 정책을 알리는 메모입니다."},
+      {ab:"infer",q:"What is implied about employees who joined during the pilot?",o:["They had more difficulty settling in than experienced staff","They were the most productive group","They took the most sick days","They were excluded from the pilot"],a:0,e:"신입들이 팀과 단절감을 느꼈고 두 명이 8주 안에 퇴사했다고 했습니다. 그래서 신입만 6개월 출근으로 바뀐 것입니다."},
+      {ab:"locate",q:"By how much did the number of sick days decrease?",o:["By nearly one third","By half","By eight weeks","By one year"],a:0,e:"병가 일수가 ‘거의 3분의 1(nearly a third)’ 줄었다고 했습니다."}
+    ]},
+    {cat:"P7",passage:"📰 <b>지역 뉴스</b><br>Starting next month, the Brenton Transit Authority will add a direct bus route between the east district and the downtown business area. The new route, numbered 47, will run every 20 minutes during peak hours and every 45 minutes at other times. Officials say the route was created after a survey showed that east district residents spent an average of 55 minutes commuting downtown, more than double the city average. Fares will match existing routes, and riders holding monthly passes may use route 47 at no extra cost. The authority notes that route 12, which follows a similar path but makes 14 additional stops, will continue to operate for now.",items:[
+      {ab:"infer",q:"Why was route 47 most likely introduced?",o:["To shorten unusually long commutes from the east district","To replace route 12 completely","To raise additional fare revenue","To serve a newly opened shopping center"],a:0,e:"동부 지역 주민의 통근 시간이 시 평균의 두 배가 넘는다는 조사 결과 때문에 신설됐습니다."},
+      {ab:"infer",q:"What is suggested about route 12?",o:["It takes longer than route 47","It will be canceled next month","It costs more than route 47","It runs only during peak hours"],a:0,e:"경로는 비슷한데 정류장이 14개 더 많다고 했으므로 더 오래 걸립니다. 폐지가 아니라 ‘당분간 계속 운행’입니다."},
+      {ab:"locate",q:"How often does route 47 run during peak hours?",o:["Every 20 minutes","Every 45 minutes","Every 55 minutes","Every 14 minutes"],a:0,e:"혼잡 시간대에는 20분마다 운행합니다. 45분은 그 외 시간대입니다."}
+    ]},
+    {cat:"P7",passage:"⭐ <b>온라인 후기</b><br>I booked the Harborview Suites for a four-night business trip, mainly because the listing advertised a 24-hour business center. The room itself was spotless and the staff could not have been more helpful — when my flight was delayed past midnight, the front desk held my reservation without my having to call. That said, the business center was closed for renovation the entire week, and nobody mentioned this until I arrived. I ended up printing my presentation at a shop three blocks away. The hotel did refund one night's stay once I raised the issue. I would stay here again, but I would confirm the facilities by phone first.",items:[
+      {ab:"infer",q:"What is the reviewer's overall opinion of the hotel?",o:["Generally positive despite one significant problem","Completely negative","Neutral, with no strong opinion either way","Entirely positive with no complaints"],a:0,e:"청결함과 직원 응대를 칭찬하고 다시 묵겠다고 했지만, 비즈니스 센터 문제는 분명히 지적했습니다."},
+      {ab:"infer",q:"Why did the reviewer most likely choose this hotel?",o:["It advertised a business center open at all hours","It was the least expensive option nearby","It was located close to the airport","A colleague had recommended it"],a:0,e:"‘주로(mainly because)’ 24시간 비즈니스 센터 광고 때문에 예약했다고 밝혔습니다."},
+      {ab:"locate",q:"What did the hotel do after the reviewer raised the issue?",o:["Refunded one night's stay","Upgraded the room","Reopened the business center","Provided free printing service"],a:0,e:"문제를 제기하자 1박 요금을 환불해 주었습니다."}
+    ]},
+    {cat:"P7",passage:"⚠️ <b>제품 안내문</b><br>Kelmore Appliances is issuing a voluntary recall of its VX-200 electric kettle, sold between January and August of this year. In rare cases the automatic shut-off may fail, allowing the kettle to continue heating after the water has boiled. No injuries have been reported, but the company asks all owners to stop using the product immediately. Owners may return the kettle to any Kelmore retailer for a full refund, or request a prepaid shipping label on the company website. Customers who purchased the extended warranty will additionally receive a $15 voucher. The VX-300 model, released in September, is not affected.",items:[
+      {ab:"infer",q:"Why is Kelmore Appliances contacting customers?",o:["To warn them about a possible safety defect","To promote a newly released kettle","To apologize for a shipping delay","To announce an upcoming price increase"],a:0,e:"자동 차단 기능이 작동하지 않을 수 있어 사용 중단을 요청하는 안전 안내입니다."},
+      {ab:"infer",q:"What can be inferred about a kettle purchased in October?",o:["It is not part of the recall","It must be returned immediately","It qualifies for the $15 voucher","It is a VX-200 model"],a:0,e:"리콜 대상은 1~8월에 판매된 VX-200입니다. 10월 구매분은 대상이 아닙니다(9월 출시 VX-300은 영향 없음)."},
+      {ab:"locate",q:"What do owners with an extended warranty receive?",o:["A $15 voucher","A free VX-300 kettle","A two-year warranty extension","A $20 store credit"],a:0,e:"연장 보증을 구매한 고객은 환불에 더해 15달러 상품권을 추가로 받습니다."}
+    ]},
     {cat:"P7",passage:"📧 <b>사내 이메일</b><br>To: All Marketing Staff　From: David Chen, Operations<br>Subject: Updated Reimbursement Procedure<br><br>Effective next Monday, all expense claims must be submitted through the new online portal rather than by paper form. Receipts should be scanned and uploaded within five business days of the purchase; however, claims submitted more than ten business days after the purchase date will not be processed under any circumstances. Please note that meal expenses are reimbursed only when incurred during approved business travel, and any single purchase exceeding $200 now requires pre-approval from a department head. If you experience difficulty accessing the portal, contact the IT help desk before the deadline rather than reverting to the old paper forms.",items:[
-      {q:"What is the main purpose of the email?",o:["To explain a new way of submitting expenses","To announce a company merger","To advertise a travel service","To request quarterly reports"],a:0,e:"종이 양식 대신 온라인 포털로 경비를 제출하는 새 절차를 안내하는 메일입니다."},
-      {q:"After how long will a claim definitely be rejected?",o:["More than ten business days","More than five business days","More than one month","The next day"],a:0,e:"5일 내 업로드 ‘권장’이지만, 구매 후 10 영업일을 넘기면 어떤 경우에도 처리되지 않는다고 했습니다. (5일과 헷갈리게 한 함정)"},
-      {q:"What is now required for a single purchase over $200?",o:["Pre-approval from a department head","A paper receipt only","A refund request","A travel booking"],a:0,e:"200달러 초과 단일 구매는 부서장의 사전 승인이 필요하다고 명시했습니다."}
+      {ab:"infer",q:"What is the main purpose of the email?",o:["To explain a new way of submitting expenses","To announce a company merger","To advertise a travel service","To request quarterly reports"],a:0,e:"종이 양식 대신 온라인 포털로 경비를 제출하는 새 절차를 안내하는 메일입니다."},
+      {ab:"locate",q:"After how long will a claim definitely be rejected?",o:["More than ten business days","More than five business days","More than one month","The next day"],a:0,e:"5일 내 업로드 ‘권장’이지만, 구매 후 10 영업일을 넘기면 어떤 경우에도 처리되지 않는다고 했습니다. (5일과 헷갈리게 한 함정)"},
+      {ab:"locate",q:"What is now required for a single purchase over $200?",o:["Pre-approval from a department head","A paper receipt only","A refund request","A travel booking"],a:0,e:"200달러 초과 단일 구매는 부서장의 사전 승인이 필요하다고 명시했습니다."}
     ]},
     {cat:"P7",passage:"📰 <b>지역 소식</b><br>The Westbrook Community Center will undergo renovations from March 3 to April 30. During this period, the main gymnasium and the second-floor meeting rooms will be closed, but the swimming pool and the ground-floor library will remain open as usual. Fitness classes normally held in the gym will be temporarily relocated to the nearby Hillside School; members are advised to check the center's website for the updated class schedule rather than calling the front desk. The center apologizes for any inconvenience and notes that monthly membership fees will be reduced by 15 percent for the affected period.",items:[
-      {q:"What will remain open during the renovations?",o:["The swimming pool","The main gymnasium","The meeting rooms","The front desk only"],a:0,e:"수영장과 1층 도서관은 평소대로 운영됩니다. 체육관·회의실은 폐쇄됩니다."},
-      {q:"How are members advised to find the new class schedule?",o:["By checking the website","By calling the front desk","By visiting Hillside School","By emailing an instructor"],a:0,e:"프런트에 전화하지 말고 홈페이지에서 확인하라고 권했습니다. (전화는 오답 함정)"},
-      {q:"What is implied about the membership fees?",o:["They will be temporarily lowered","They will rise by 15 percent","They will be fully refunded","They will not change"],a:0,e:"해당 기간 회비를 15% ‘인하’한다고 했으므로 일시적으로 낮아집니다."}
+      {ab:"locate",q:"What will remain open during the renovations?",o:["The swimming pool","The main gymnasium","The meeting rooms","The front desk only"],a:0,e:"수영장과 1층 도서관은 평소대로 운영됩니다. 체육관·회의실은 폐쇄됩니다."},
+      {ab:"locate",q:"How are members advised to find the new class schedule?",o:["By checking the website","By calling the front desk","By visiting Hillside School","By emailing an instructor"],a:0,e:"프런트에 전화하지 말고 홈페이지에서 확인하라고 권했습니다. (전화는 오답 함정)"},
+      {ab:"infer",q:"What is implied about the membership fees?",o:["They will be temporarily lowered","They will rise by 15 percent","They will be fully refunded","They will not change"],a:0,e:"해당 기간 회비를 15% ‘인하’한다고 했으므로 일시적으로 낮아집니다."}
     ]},
     {cat:"P7",passage:"✉️ <b>고객 서신</b><br>Dear Ms. Alvarez,<br><br>Thank you for letting us know about the damaged blender you received in order #4471. We sincerely apologize for the inconvenience this has caused. A replacement unit has already been dispatched and should arrive within three business days at no additional charge. You do not need to send back the damaged item; please dispose of it responsibly. As a gesture of goodwill, we have also applied a $20 store credit to your account, which will be deducted automatically from your next order. Should the replacement fail to meet your expectations, our customer care team is available seven days a week.",items:[
-      {q:"Why was the letter most likely written?",o:["To respond to a complaint about a damaged product","To confirm a job interview","To promote a new blender model","To demand an overdue payment"],a:0,e:"파손된 블렌더에 대한 고객 통보에 사과·조치하는 응대 서신입니다."},
-      {q:"What is Ms. Alvarez told to do with the damaged blender?",o:["Dispose of it herself","Return it by mail","Repair it at a service center","Exchange it in store"],a:0,e:"파손품은 반송할 필요 없이 직접(책임감 있게) 폐기하라고 했습니다."},
-      {q:"The phrase 'a gesture of goodwill' is closest in meaning to",o:["a kind act to show good intentions","a legal obligation","a shipping charge","a formal complaint"],a:0,e:"‘호의의 표시’ — 선의를 보이려는 친절한 행동. 문맥상 $20 크레딧 제공을 가리킵니다."}
+      {ab:"infer",q:"Why was the letter most likely written?",o:["To respond to a complaint about a damaged product","To confirm a job interview","To promote a new blender model","To demand an overdue payment"],a:0,e:"파손된 블렌더에 대한 고객 통보에 사과·조치하는 응대 서신입니다."},
+      {ab:"locate",q:"What is Ms. Alvarez told to do with the damaged blender?",o:["Dispose of it herself","Return it by mail","Repair it at a service center","Exchange it in store"],a:0,e:"파손품은 반송할 필요 없이 직접(책임감 있게) 폐기하라고 했습니다."},
+      {ab:"locate",q:"When should the replacement blender arrive?",o:["Within three business days","Within seven days","After the damaged item is returned","On the next order date"],a:0,e:"교체품이 이미 발송되었고 ‘영업일 3일 이내(within three business days)’에 도착한다고 했습니다."}
     ]},
     {cat:"P7",passage:"📋 <b>채용 공고</b><br>Greenfield Logistics is seeking a full-time Warehouse Coordinator for its downtown facility. The successful candidate will oversee daily shipments, maintain accurate inventory records, and supervise a team of four staff members. Applicants must have at least two years of experience in a comparable role and be comfortable operating standard warehouse equipment. A forklift certification is preferred but not required, since on-site training can be arranged for the right candidate. Interested individuals should submit a résumé and a brief cover letter no later than May 15. Only shortlisted applicants will be contacted to arrange an interview, which will be held at the facility.",items:[
-      {q:"What is one duty of the position?",o:["Supervising a small team","Designing the company website","Processing customer refunds","Leading training seminars"],a:0,e:"4명 규모의 팀을 감독하는 것이 업무에 포함됩니다."},
-      {q:"What is indicated about the forklift certification?",o:["It is helpful but not mandatory","It must be earned before applying","It is unrelated to the job","It replaces the résumé"],a:0,e:"‘preferred but not required’ — 있으면 좋지만 필수는 아니며 현장 교육이 가능하다고 했습니다."},
-      {q:"What is suggested about applicants after May 15?",o:["Not everyone will be contacted","All will receive an interview","They must call the facility","Training will start immediately"],a:0,e:"서류 통과자(shortlisted)에게만 연락한다고 했으므로 모두가 연락받는 것은 아닙니다."}
+      {ab:"locate",q:"What is one duty of the position?",o:["Supervising a small team","Designing the company website","Processing customer refunds","Leading training seminars"],a:0,e:"4명 규모의 팀을 감독하는 것이 업무에 포함됩니다."},
+      {ab:"locate",q:"What is indicated about the forklift certification?",o:["It is helpful but not mandatory","It must be earned before applying","It is unrelated to the job","It replaces the résumé"],a:0,e:"‘preferred but not required’ — 있으면 좋지만 필수는 아니며 현장 교육이 가능하다고 했습니다."},
+      {ab:"infer",q:"What is suggested about applicants after May 15?",o:["Not everyone will be contacted","All will receive an interview","They must call the facility","Training will start immediately"],a:0,e:"서류 통과자(shortlisted)에게만 연락한다고 했으므로 모두가 연락받는 것은 아닙니다."}
     ]},
     {cat:"P7",passage:"🗓️ <b>안내문 + 메모</b><br><b>[Notice]</b> The annual Riverdale Food Festival will take place on Saturday, September 14, from 11 A.M. to 7 P.M. in Central Park. Admission is free, but tickets for the evening cooking demonstration at 5 P.M. must be reserved in advance, as seating is limited to 60 people.<br><br><b>[Note to vendors]</b> Please arrive by 8 A.M. to set up your booths. Electricity will be provided only at booths numbered 1 through 20; vendors assigned to booth 21 or higher must bring their own power source. A complimentary lunch will be served to registered vendors at noon.",items:[
-      {q:"What is required to attend the evening cooking demonstration?",o:["An advance reservation","A paid admission ticket","A vendor badge","A parking permit"],a:0,e:"저녁 요리 시연은 좌석이 60석으로 제한돼 사전 예약이 필요합니다. 입장 자체는 무료입니다."},
-      {q:"What should a vendor assigned to booth 25 do?",o:["Bring their own power source","Arrive at noon","Reserve a demonstration seat","Pay an electricity fee"],a:0,e:"전기는 1~20번 부스에만 제공되므로 21번 이상(25번)은 자체 전원을 준비해야 합니다. (숫자 추론 함정)"},
-      {q:"By what time are vendors asked to arrive?",o:["8 A.M.","11 A.M.","Noon","5 P.M."],a:0,e:"메모에서 판매자는 오전 8시까지 도착해 부스를 설치하라고 했습니다. (11 A.M.는 축제 시작 시간)"}
+      {ab:"infer",q:"What is suggested about the evening cooking demonstration?",o:["Seats may run out because space is limited","It costs extra to attend","It is open only to vendors","It begins at 8 A.M."],a:0,e:"좌석이 60명으로 제한되어 사전 예약을 받는다고 했으므로 자리가 찰 수 있음을 암시합니다. 입장 자체는 무료이고 시연은 오후 5시입니다."},
+      {ab:"locate",q:"What should a vendor assigned to booth 25 do?",o:["Bring their own power source","Arrive at noon","Reserve a demonstration seat","Pay an electricity fee"],a:0,e:"전기는 1~20번 부스에만 제공되므로 21번 이상(25번)은 자체 전원을 준비해야 합니다. (숫자 추론 함정)"},
+      {ab:"locate",q:"By what time are vendors asked to arrive?",o:["8 A.M.","11 A.M.","Noon","5 P.M."],a:0,e:"메모에서 판매자는 오전 8시까지 도착해 부스를 설치하라고 했습니다. (11 A.M.는 축제 시작 시간)"}
     ]}
   ];
   var TAG={"문법":"📝 문법","어휘":"📝 어휘","전접부":"📝 전접부","P6":"📖 PART 6","P7":"📖 PART 7"};
@@ -1096,23 +1140,40 @@
   var $=function(id){return document.getElementById(id);};
   function blank(t){return t.replace("___",'<span class="blank">________</span>');}
   function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
-  function abOf(cat){ return cat==='어휘'?'vocab':'gram'; }
+  // 5개 능력에 각 6문항씩 = 총 30문항. 능력별 문항 수가 같아야 정답률 비교가 성립한다.
+  function pickN(arr,n){ return shuffle(arr.slice()).slice(0,n); }
+  // 보기 순서를 매번 섞고 정답 위치를 다시 계산한다.
+  // (문항 데이터의 정답이 A에 몰려 있어, 섞지 않으면 A만 찍어도 높은 점수가 나온다)
+  function mixOpts(it){
+    var ord=it.o.map(function(_,i){return i;});
+    shuffle(ord);
+    return { o:ord.map(function(i){return it.o[i];}), a:ord.indexOf(it.a) };
+  }
+  function nAb(p,k){ var n=0; p.items.forEach(function(i){ if(i.ab===k) n++; }); return n; }
   function build(){
     var singles=[];
-    ["문법","어휘","전접부"].forEach(function(c){
-      var arr=shuffle(SINGLES.filter(function(x){return x.cat===c;})).slice(0,3);
-      arr.forEach(function(it){ singles.push({cat:c,q:it.q,o:it.o,a:it.a,e:it.e,lv:it.lv,ab:abOf(c)}); });
-    });
+    function addS(cat,n,ab){
+      pickN(SINGLES.filter(function(x){return x.cat===cat;}),n).forEach(function(it){
+        var m=mixOpts(it);
+        singles.push({cat:cat,q:it.q,o:m.o,a:m.a,e:it.e,lv:it.lv,ab:ab});
+      });
+    }
+    addS('어휘',6,'vocab');            // 어휘 6
+    addS('문법',4,'gram');             // 문법 4 + 전접부 2 = 문법 이해 6
+    addS('전접부',2,'gram');
     shuffle(singles);
     var list=singles.slice();
-    // Part 6: 1지문 (문장·지문 연계)
-    shuffle(PASSAGES.filter(function(x){return x.cat==='P6';})).slice(0,2).forEach(function(p6){
-      p6.items.forEach(function(it){ list.push({cat:'P6',q:it.q,o:it.o,a:it.a,e:it.e,lv:'medium',passage:p6.passage,ab:'connect'}); });
+    // Part 6 : 2지문 × 3문항 = 문장·지문 연계 6
+    pickN(PASSAGES.filter(function(x){return x.cat==='P6';}),2).forEach(function(p6){
+      p6.items.forEach(function(it){ var m=mixOpts(it); list.push({cat:'P6',q:it.q,o:m.o,a:m.a,e:it.e,lv:'medium',passage:p6.passage,ab:'connect'}); });
     });
-    // Part 7: 2지문 (첫 문항=추론, 나머지=세부정보)
-    shuffle(PASSAGES.filter(function(x){return x.cat==='P7';})).slice(0,2).forEach(function(p){
-      p.items.forEach(function(it,ii){ list.push({cat:'P7',q:it.q,o:it.o,a:it.a,e:it.e,lv:'hard',passage:p.passage,ab:(ii===0?'infer':'locate')}); });
-    });
+    // Part 7 : (추론2+세부1) 지문 2개 + (추론1+세부2) 지문 2개 = 추론 6 · 세부정보 6
+    var p7=PASSAGES.filter(function(x){return x.cat==='P7';});
+    pickN(p7.filter(function(p){return nAb(p,'infer')===2;}),2)
+      .concat(pickN(p7.filter(function(p){return nAb(p,'infer')===1;}),2))
+      .forEach(function(p){
+        p.items.forEach(function(it){ var m=mixOpts(it); list.push({cat:'P7',q:it.q,o:m.o,a:m.a,e:it.e,lv:'hard',passage:p.passage,ab:it.ab}); });
+      });
     return list;
   }
   function pane(id){ var ps=document.querySelectorAll('#leveltest .lvt-pane'); for(var i=0;i<ps.length;i++) ps[i].classList.remove('on'); $(id).classList.add('on'); }
@@ -1329,7 +1390,7 @@
       +'<h3>쓰는 <span>책</span></h3>'
       +'<div class="row">'+L.books+'<div class="sk">지금은 <b>안 해도 됩니다</b> &mdash; '+L.skip+'</div></div>'
       +'<div class="nx">다 하면 &rarr; '+L.nx+'</div>'
-      +'<div class="tip"><b>이 표는 진단 21문항으로 뽑은 요약본입니다.</b> 능력별 상세 성적표와 4주 단위 상세 계획은 '
+      +'<div class="tip"><b>이 표는 진단 30문항으로 뽑은 요약본입니다.</b> 능력별 상세 성적표와 4주 단위 상세 계획은 '
         +'<b>무료 상담</b> 때 담당 선생님이 직접 분석해 드립니다.</div>'
       +'<div class="ft"><span>완벽한토익 · perfect-toeic.com</span><span>진단 맞춤 커리큘럼</span></div>'
       +'</body></html>';
@@ -1355,7 +1416,7 @@
     }
     $('lvtReview').innerHTML=h;
   }
-  $('lvtStart').onclick=function(){ Q=build(); idx=0; ans=[]; render(); pane('lvtQuiz'); };
+  $('lvtStart').onclick=function(){ Q=build(); idx=0; ans=[]; if($('lvtTotQ')) $('lvtTotQ').textContent=Q.length; render(); pane('lvtQuiz'); };
   $('lvtPrev').onclick=function(){ prev(); };
   $('lvtNext').onclick=function(){ if(ans[idx]==null) return; if(idx<Q.length-1){ idx++; render(); } else { result(); } };
   $('lvtRetry').onclick=function(){ idx=0; ans=[]; pane('lvtIntro'); };
