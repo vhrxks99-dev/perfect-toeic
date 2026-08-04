@@ -1230,13 +1230,6 @@
     $('lvtRange').textContent='예상 범위 '+lo+' ~ '+hi+'점  ·  '+Q.length+'문제 중 '+correct+'개 정답';
     $('lvtLevel').innerHTML='예상 레벨 — '+lvl;
     $('lvtDesc').textContent=desc;
-    var ABIL=[
-      {k:'infer',  en:'Can make inferences based on written texts', ko:'추론 (문맥·의도 파악)', avg:66},
-      {k:'locate', en:'Can locate and understand specific information', ko:'세부정보 찾기', avg:66},
-      {k:'connect',en:'Can connect information across sentences and texts', ko:'문장·지문 연계', avg:63},
-      {k:'vocab',  en:'Can understand vocabulary in written texts', ko:'어휘 이해', avg:69},
-      {k:'gram',   en:'Can understand grammar in written texts', ko:'문법 이해', avg:75}
-    ];
     var abStat={}; ABIL.forEach(function(a){ abStat[a.k]={c:0,t:0}; });
     for(var ia=0;ia<Q.length;ia++){ var itA=Q[ia]; if(itA.ab && abStat[itA.ab]){ abStat[itA.ab].t++; if(ans[ia]===itA.a) abStat[itA.ab].c++; } }
     var weakA=null, wgap=9999;
@@ -1250,6 +1243,7 @@
       ? '<div style="background:#fff5f5;border:1px solid #f0b4b4;border-radius:12px;padding:13px 16px;font-size:14px;line-height:1.6;color:#7a1f1f;margin-bottom:10px">✕ <b>틀린 문항 ('+wrongNums.length+'개):</b> '+wrongNums.join(' · ')+'<br><span style="font-size:12.5px;color:#a44">아래 <b>내가 틀린 문제 확인하기</b>에서 정답·해설을 볼 수 있어요.</span></div>'
       : '<div style="background:#f0fbf3;border:1px solid #a7e0bb;border-radius:12px;padding:13px 16px;font-size:14px;color:#14683a;margin-bottom:10px">🎉 <b>전 문항 정답입니다!</b></div>';
     var curHtml = renderCur(score, lvcFocus(abStat, ABIL));
+    autoSave(score, abils, weakA);
     $('lvtReport').innerHTML = wrongHtml + curHtml + '<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>여기까지는 요약입니다.</b><br><b>능력별 상세 성적표 · 취약 유형 · 4주 단위 상세 계획</b>은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
     if($('lvcPrint')) $('lvcPrint').onclick=lvcPrintSheet;
     buildReview();
@@ -1292,6 +1286,22 @@
      skip:'새 교재 추가 / 안 틀리는 유형 반복',
      nx:'실전 1회에서 <b>△ 10개 이하</b>. 여기까지 오면 950점 구간입니다.'}
   ];
+  // 능력 5개 — 코드는 ETS 성적표와 같은 축. avg는 일반 수험자 평균(참고값)
+  var ABIL=[
+    {k:'infer',  en:'Can make inferences based on written texts', ko:'추론 (문맥·의도 파악)', avg:66},
+    {k:'locate', en:'Can locate and understand specific information', ko:'세부정보 찾기', avg:66},
+    {k:'connect',en:'Can connect information across sentences and texts', ko:'문장·지문 연계', avg:63},
+    {k:'vocab',  en:'Can understand vocabulary in written texts', ko:'어휘 이해', avg:69},
+    {k:'gram',   en:'Can understand grammar in written texts', ko:'문법 이해', avg:75}
+  ];
+  // 능력별 처방 — 선생님이 수업에서 바로 쓰는 지시문
+  var RX={
+    vocab:'<b>어휘가 점수를 막고 있습니다.</b> 단어 시간을 가장 먼저 확보하세요(하루 30개 · 뜻은 맨 앞 하나만). 어휘는 읽기뿐 아니라 <b>듣기 세부사항</b> 정답률까지 같이 끌어올립니다. 홈페이지 VOCA 테스트로 그날 DAY를 매일 확인시키세요.',
+    gram:'<b>문법 &lsquo;자리&rsquo; 개념이 안 잡혔습니다.</b> 깊게 파지 말고 명사 · 형용사 · 부사 자리 구분을 반복하세요. 해석부터 하지 말고 <b>빈칸 앞뒤만 보고 고르는</b> 훈련이 훨씬 빠릅니다.',
+    locate:'<b>Part 7에서 정보를 찾지 못합니다.</b> 기초 · 중급 단계면 Part 7을 붙잡지 말고 <b>Part 5로 점수를 확보</b>하세요. 고득점 단계면 키워드를 먼저 찾는 <b>스캐닝 속도</b>를 훈련합니다.',
+    connect:'<b>문장과 지문을 연결하지 못합니다.</b> Part 6 연결어(However · Therefore · In addition)와 지시어가 무엇을 가리키는지 <b>수업에서 소리 내어</b> 짚게 하세요.',
+    infer:'<b>추론이 약합니다.</b> 글의 목적 · 암시를 묻는 문제만 따로 모아, <b>어디를 근거로 그렇게 판단했는지</b> 한 줄씩 적게 하세요.'
+  };
   function lvcOf(score){ for(var i=0;i<LVC.length;i++){ if(score<=LVC[i].max) return LVC[i]; } return LVC[LVC.length-1]; }
 
   // 표본이 충분(4문항 이상)하고 절반 이하로 맞힌 항목만 사실 그대로 알려준다.
@@ -1333,21 +1343,53 @@
       '</div></div>';
   }
   function name0(){ var n=($('lvtName')&&$('lvtName').value||'').trim(); return n?n+'님 ':''; }
+  // 관리 페이지(다른 IIFE)에서 같은 커리큘럼·리포트를 쓰기 위한 통로
+  window.WT_DIAG={ ABIL:ABIL, RX:RX, levelOf:lvcOf, openSheet:lvcOpenSheet };
 
   function lvcPrintSheet(){
     if(!lastCur) return;
-    var L=lastCur, score=($('lvtScore').textContent||'').trim();
-    var lvl=($('lvtLevel').textContent||'').replace('예상 레벨 — ','').trim();
-    var nm=($('lvtName')&&$('lvtName').value||'').trim();
-    var logo=(document.querySelector('.logo')||{}).src||'';
+    lvcOpenSheet({ name:($('lvtName')&&$('lvtName').value||'').trim(),
+      score:($('lvtScore').textContent||'').trim(),
+      level:($('lvtLevel').textContent||'').replace('예상 레벨 — ','').trim(),
+      L:lastCur, focus:lastFocus, abils:null });
+  }
+  // o = {name, score, level, L(커리큘럼), focus[], abils{} }
+  // abils가 있으면 능력별 그래프 + 처방까지 붙은 선생님용 전체 리포트가 된다.
+  function lvcOpenSheet(o){
+    var L=o.L, score=o.score, lvl=o.level, nm=o.name;
     function esc2(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     var days=L.day.map(function(d){
       return '<div class="c"><div class="ct"><span>'+d[0]+'</span><em>'+d[1]+'</em></div><div class="cb">'+d[2]+'</div></div>';
     }).join('');
-    var fc = lastFocus.length
+    var focus=o.focus||[];
+    var fc = focus.length
       ? '<div class="fc"><div class="bt">이번 진단에서 특히 많이 틀린 곳</div>'+
-        lastFocus.map(function(f){ return '<b>'+f.ko+'</b> '+f.t+'문항 중 '+f.c+'개 정답'; }).join(' &nbsp;·&nbsp; ')+
+        focus.map(function(f){ return '<b>'+f.ko+'</b> '+f.t+'문항 중 '+f.c+'개 정답'; }).join(' &nbsp;·&nbsp; ')+
         '<div class="sm">문항 수가 많지 않아 참고용입니다. 정확한 약점은 상담 때 확인합니다.</div></div>' : '';
+
+    // ── 능력별 정답률 그래프 + 처방 (abils가 있을 때만 = 선생님용) ──
+    var abHtml='', rxHtml='';
+    if(o.abils){
+      var rows=ABIL.map(function(a){ return {a:a, v:(o.abils[a.k]==null?null:o.abils[a.k])}; })
+                   .filter(function(r){ return r.v!=null; });
+      rows.sort(function(x,y){ return (x.v-x.a.avg)-(y.v-y.a.avg); });   // 평균 대비 많이 벌어진 순
+      abHtml='<h3><span>능력별</span> 정답률 <small>6문항씩 · 주황 세로선 = 수험자 평균(참고값)</small></h3>'
+        +'<div class="ab">'+rows.map(function(r){
+          var gap=r.v-r.a.avg, bad=gap<=-20;
+          return '<div class="r2'+(bad?' bad':'')+'"><div class="nm">'+r.a.ko+'</div>'
+            +'<div class="bar"><i style="width:'+r.v+'%"></i><u style="left:calc('+r.a.avg+'% - .45mm)"></u></div>'
+            +'<div class="vv">'+r.v+'% <s>/ 평균 '+r.a.avg+'</s> <em>'+(gap>0?'+':'')+gap+'</em></div></div>';
+        }).join('')+'</div>';
+      var weak=rows.filter(function(r){ return (r.v-r.a.avg)<=-15 || r.v<=50; }).slice(0,3);
+      if(weak.length){
+        rxHtml='<h3>이 학생에게 <span>특히</span> <small>부족한 순서대로 · 수업에서 이렇게 잡습니다</small></h3>'
+          +'<div class="rx">'+weak.map(function(r){
+            return '<div class="i"><div class="k">'+r.a.ko+' <span>'+r.v+'% (평균 '+r.a.avg+')</span></div>'+RX[r.a.k]+'</div>';
+          }).join('')+'</div>';
+      } else {
+        rxHtml='<div class="row" style="margin-top:4mm">평균과 크게 벌어진 항목이 없습니다. <b>점수대 커리큘럼을 그대로</b> 진행하세요.</div>';
+      }
+    }
     var css='@page{size:A4;margin:14mm}*{box-sizing:border-box}'
       +'body{font-family:"Pretendard","Malgun Gothic",sans-serif;color:#1c2530;margin:0;word-break:keep-all;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
       +'.hd{background:#1d5c96;color:#fff;border-radius:3mm;padding:5mm 7mm;display:flex;justify-content:space-between;align-items:center;gap:6mm}'
@@ -1373,6 +1415,22 @@
       +'.nx b{color:#1c2530}'
       +'.tip{margin-top:4mm;background:#1d5c96;color:#fff;border-radius:2.4mm;padding:3.4mm 5.4mm;font-size:10.8pt;line-height:1.5}'
       +'.tip b{color:#ffd98a}'
+      +'.ab{border:1.2pt solid #d8dfe7;border-radius:2.4mm;overflow:hidden}'
+      +'.ab .r2{display:flex;align-items:center;gap:3mm;padding:1.9mm 4mm;border-top:.6pt solid #e6ebf1;font-size:10pt}'
+      +'.ab .r2:first-child{border-top:none}'
+      +'.ab .r2 .nm{width:42mm;flex:none;color:#35404c;font-weight:700}'
+      +'.ab .r2 .bar{flex:1;height:5.2mm;background:#eef2f6;border-radius:.8mm;position:relative}'
+      +'.ab .r2 .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:.8mm;background:#2b7cc4}'
+      +'.ab .r2 .bar u{position:absolute;top:-1mm;bottom:-1mm;width:.9mm;background:#c9762c}'
+      +'.ab .r2 .vv{width:34mm;flex:none;text-align:right;font-size:9.6pt;font-weight:800;color:#1d5c96}'
+      +'.ab .r2 .vv s{text-decoration:none;font-weight:600;color:#9aa5b1;font-size:8.8pt}'
+      +'.ab .r2 .vv em{font-style:normal;color:#c9762c;font-size:9pt}'
+      +'.ab .r2.bad .bar i{background:#c0342b}.ab .r2.bad .vv{color:#c0342b}'
+      +'.rx{border:1.2pt solid #cfe0f0;border-radius:2.4mm;overflow:hidden}'
+      +'.rx .i{padding:3mm 5mm;border-top:.6pt solid #e6ebf1;font-size:10.4pt;line-height:1.55;color:#35404c}'
+      +'.rx .i:first-child{border-top:none}.rx .i b{color:#1d5c96}'
+      +'.rx .i .k{font-size:11.4pt;font-weight:800;color:#1d5c96;margin-bottom:1.4mm}'
+      +'.rx .i .k span{font-weight:700;font-size:9.6pt;color:#c9762c}'
       +'.ft{margin-top:6mm;border-top:.5pt solid #d8dfe7;padding-top:2mm;font-size:8.6pt;color:#9aa5b1;display:flex;justify-content:space-between}'
       +'.printbar{position:fixed;top:0;left:0;right:0;background:#1d5c96;color:#fff;padding:9px 14px;font-size:13px;display:flex;justify-content:space-between;align-items:center;z-index:9}'
       +'.printbar button{font-size:13px;font-weight:700;padding:7px 14px;border:none;border-radius:7px;background:#fff;color:#1d5c96;cursor:pointer}'
@@ -1380,9 +1438,11 @@
     var doc='<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>완벽한토익 진단 맞춤 커리큘럼</title><style>'+css+'</style></head><body>'
       +'<div class="printbar"><span>완벽한토익 · 진단 결과 맞춤 커리큘럼</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>'
       +'<div class="hd"><div class="l"><div class="k">D I A G N O S I S</div><div class="t">'
-        +(nm?esc2(nm)+' 학생 ':'')+'맞춤 커리큘럼</div></div>'
+        +(nm?esc2(nm)+' 학생 ':'')+(o.abils?'진단 리포트':'맞춤 커리큘럼')+'</div></div>'
       +'<div class="r"><div class="g">진단 예상 점수</div><div class="n">'+esc2(score)+'점</div><div class="s">'+esc2(lvl)+'</div></div></div>'
-      +'<h3><span>'+L.name+'</span> &mdash; '+L.band+' <small>목표 '+L.goal+' · '+L.sess+' · '+L.dur+'</small></h3>'
+      +abHtml
+      +rxHtml
+      +'<h3>추천 <span>'+L.name+'</span> &mdash; '+L.band+' <small>목표 '+L.goal+' · '+L.sess+' · '+L.dur+'</small></h3>'
       +'<div class="lead">'+L.lead+'</div>'
       +'<h3><span>매일</span> 할 것 <small>총 '+L.mins+' · 수업 없는 날도 똑같이 합니다</small></h3>'
       +'<div class="day">'+days+'</div>'
@@ -1390,9 +1450,12 @@
       +'<h3>쓰는 <span>책</span></h3>'
       +'<div class="row">'+L.books+'<div class="sk">지금은 <b>안 해도 됩니다</b> &mdash; '+L.skip+'</div></div>'
       +'<div class="nx">다 하면 &rarr; '+L.nx+'</div>'
-      +'<div class="tip"><b>이 표는 진단 30문항으로 뽑은 요약본입니다.</b> 능력별 상세 성적표와 4주 단위 상세 계획은 '
-        +'<b>무료 상담</b> 때 담당 선생님이 직접 분석해 드립니다.</div>'
-      +'<div class="ft"><span>완벽한토익 · perfect-toeic.com</span><span>진단 맞춤 커리큘럼</span></div>'
+      +(o.abils
+        ? '<div class="tip"><b>읽기(RC) 30문항 기준입니다.</b> 듣기는 이 진단에 포함돼 있지 않으므로, '
+          +'LC 점수가 있으면 함께 놓고 판단하세요. 능력별 정답률은 항목당 6문항이라 <b>추세로만</b> 읽습니다.</div>'
+        : '<div class="tip"><b>이 표는 진단 30문항으로 뽑은 요약본입니다.</b> 능력별 상세 성적표와 4주 단위 상세 계획은 '
+          +'<b>무료 상담</b> 때 담당 선생님이 직접 분석해 드립니다.</div>')
+      +'<div class="ft"><span>완벽한토익 · perfect-toeic.com</span><span>'+(o.abils?'진단 리포트 (선생님용)':'진단 맞춤 커리큘럼')+'</span></div>'
       +'</body></html>';
     var w=window.open('','_blank');
     if(!w){ alert('팝업이 차단되었습니다. 팝업 허용 후 다시 눌러주세요.'); return; }
@@ -1415,6 +1478,21 @@
       +'</div>';
     }
     $('lvtReview').innerHTML=h;
+  }
+  // 로그인한 학생이 진단을 마치면 상담 폼을 내지 않아도 결과를 남긴다(신입생 진단 → 선생님 확인용)
+  var autoSaved=false;
+  function autoSave(score, abils, weakA){
+    autoSaved=false;
+    if(!window.sb || !window.WT_PROFILE) return;
+    var p=window.WT_PROFILE;
+    var payload={ name:(p.name||'회원'), phone:(p.phone||null), score:score,
+      level:($('lvtLevel').textContent||'').replace('예상 레벨 — ',''),
+      ab_infer:abils.infer, ab_locate:abils.locate, ab_connect:abils.connect,
+      ab_vocab:abils.vocab, ab_gram:abils.gram,
+      weak:(weakA?weakA.ko:''), detail:lastReportText, student_id:p.id };
+    window.sb.from('diagnostics').insert(payload).then(function(r){
+      if(r&&!r.error) autoSaved=true;
+    });
   }
   $('lvtStart').onclick=function(){ Q=build(); idx=0; ans=[]; if($('lvtTotQ')) $('lvtTotQ').textContent=Q.length; render(); pane('lvtQuiz'); };
   $('lvtPrev').onclick=function(){ prev(); };
@@ -1441,6 +1519,10 @@
         weak:(lastDiag?lastDiag.weak:''), detail:lastReportText,
         student_id:(window.WT_PROFILE?window.WT_PROFILE.id:null) };
       if(window.sb){
+        if(autoSaved){   // 로그인 상태라 이미 저장됨 — 같은 결과를 두 번 남기지 않는다
+          done(name+'님, 진단 상담 신청이 접수되었습니다! 담당 선생님이 결과를 확인하고 연락드리겠습니다.', true);
+          return;
+        }
         window.sb.from('diagnostics').insert(payload).then(function(r){
           if(r&&r.error){ done('접수 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', false); return; }
           done(name+'님, 진단 상담 신청이 접수되었습니다! 담당 선생님이 결과를 확인하고 연락드리겠습니다.', true);
@@ -4383,8 +4465,34 @@
     h+='<div><span style="color:var(--muted);font-size:12.5px">레벨</span><br><b style="font-size:18px">'+esc(d.level||'-')+'</b></div>';
     if(avgv!=null) h+='<div><span style="color:var(--muted);font-size:12.5px">평균 정답률</span><br><b style="font-size:18px;color:'+diagColor(avgv)+'">'+avgv+'%</b></div>';
     h+='<div><span style="color:var(--muted);font-size:12.5px">취약 영역</span><br><b style="font-size:16px;color:#c0342b">'+esc(d.weak||'-')+'</b></div></div>';
-    h+='<div style="margin-top:12px;font-weight:800;font-size:13.5px;color:var(--ink-soft)">📊 능력별 정답률</div>';
-    h+=diagBar('추론',d.ab_infer)+diagBar('세부정보',d.ab_locate)+diagBar('연계',d.ab_connect)+diagBar('어휘',d.ab_vocab)+diagBar('문법',d.ab_gram);
+    h+='<div style="margin-top:12px;font-weight:800;font-size:13.5px;color:var(--ink-soft)">📊 능력별 정답률 <span style="font-weight:600;color:var(--muted);font-size:12px">· 항목당 6문항 · 주황선 = 수험자 평균(참고값)</span></div>';
+    var AB=(window.WT_DIAG&&window.WT_DIAG.ABIL)||[];
+    var rows=AB.map(function(a){ return {a:a, v:d['ab_'+a.k]}; }).filter(function(r){ return r.v!=null; });
+    rows.sort(function(x,y){ return (x.v-x.a.avg)-(y.v-y.a.avg); });
+    if(!rows.length) h+='<div style="color:var(--muted);font-size:13px;margin:8px 0">기록 없음</div>';
+    rows.forEach(function(r){
+      var gap=r.v-r.a.avg, c=(gap<=-20?'#c0342b':diagColor(r.v));
+      h+='<div style="display:flex;align-items:center;gap:10px;margin:8px 0">'
+        +'<div style="width:86px;font-size:12.5px;font-weight:700;color:var(--ink-soft)">'+r.a.ko.split(' ')[0]+'</div>'
+        +'<div style="flex:1;background:#eef1f6;border-radius:8px;height:22px;position:relative;overflow:hidden">'
+          +'<div style="width:'+r.v+'%;height:100%;background:'+c+';border-radius:8px"></div>'
+          +'<div style="position:absolute;left:'+r.a.avg+'%;top:-2px;bottom:-2px;width:2px;background:#c9762c"></div></div>'
+        +'<div style="width:118px;text-align:right;font-size:12.5px"><b style="color:'+c+'">'+r.v+'%</b>'
+          +'<span style="color:var(--muted)"> / 평균 '+r.a.avg+'</span> '
+          +'<b style="color:'+(gap<0?'#c9762c':'#0a7d3f')+'">'+(gap>0?'+':'')+gap+'</b></div></div>';
+    });
+    // 추천 커리큘럼 + 리포트 인쇄
+    if(window.WT_DIAG && d.score!=null){
+      var L=window.WT_DIAG.levelOf(d.score);
+      h+='<div style="margin-top:14px;border:1.5px solid var(--accent);border-radius:12px;overflow:hidden">'
+        +'<div style="background:var(--accent);color:#fff;padding:10px 14px;font-size:14px;font-weight:800">📘 추천 커리큘럼 — '+L.name
+          +' <span style="font-weight:600;opacity:.9">· '+L.band+' · 목표 '+L.goal+' · '+L.sess+' · '+L.dur+'</span></div>'
+        +'<div style="padding:12px 14px;font-size:13px;line-height:1.65;color:var(--ink)">'+L.lead
+          +'<div style="margin-top:8px;color:var(--ink-soft)"><b>매일 '+L.mins+'</b> — '
+          +L.day.map(function(x){ return x[0]+' '+x[1]; }).join(' · ')+'</div>'
+          +'<button type="button" class="btn btn-ghost" data-diagsheet="'+esc(d.id)+'" style="margin-top:12px;padding:9px 14px;font-size:13px">📄 이 학생 진단 리포트 인쇄 · PDF 저장</button>'
+        +'</div></div>';
+    }
     if(d.detail){ h+='<div style="margin-top:14px;font-weight:800;font-size:13.5px;color:var(--ink-soft)">📝 상세 분석 <span style="font-weight:600;color:var(--muted);font-size:12px">(선생님 전용)</span></div>';
       h+='<div style="margin-top:6px;white-space:pre-wrap;font-size:13px;line-height:1.6;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px">'+esc(d.detail)+'</div>'; }
     h+='</div>';
@@ -4394,7 +4502,16 @@
   if($('diagReload')) $('diagReload').onclick=loadDiag;
   if($('diagSearch')) $('diagSearch').addEventListener('input', renderDiag);
   if($('diagDetail')) $('diagDetail').addEventListener('click', function(e){
-    var t=e.target; if(t&&t.closest&&t.closest('a[data-diaghide]')){ $('diagDetail').style.display='none'; $('diagDetail').innerHTML=''; }
+    var t=e.target; if(!t||!t.closest) return;
+    if(t.closest('a[data-diaghide]')){ $('diagDetail').style.display='none'; $('diagDetail').innerHTML=''; return; }
+    var sh=t.closest('button[data-diagsheet]');
+    if(sh && window.WT_DIAG){
+      var dd=(window.__wtDiag||[]).filter(function(x){return String(x.id)===sh.getAttribute('data-diagsheet');})[0];
+      if(!dd) return;
+      var ab={infer:dd.ab_infer,locate:dd.ab_locate,connect:dd.ab_connect,vocab:dd.ab_vocab,gram:dd.ab_gram};
+      window.WT_DIAG.openSheet({ name:(dd.name||''), score:(dd.score!=null?dd.score:''), level:(dd.level||''),
+        L:window.WT_DIAG.levelOf(dd.score), abils:ab, focus:[] });
+    }
   });
   if($('diagTable')) $('diagTable').addEventListener('click', async function(e){
     var t=e.target; if(!t||!t.closest) return;
