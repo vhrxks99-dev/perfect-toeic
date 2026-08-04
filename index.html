@@ -885,6 +885,27 @@
 .lvc-fc{background:#fdf4ea;border:1px solid #c9762c;border-radius:10px;padding:10px 13px;font-size:13px;line-height:1.62;color:#7a4a16;margin-bottom:12px}
 .lvc-fc .bt{font-weight:800;color:#c9762c;margin-bottom:4px}
 .lvc-fc b{color:#c9762c}
+.lvc-sc{text-align:left;border:1.5px dashed var(--accent);border-radius:14px;padding:14px 16px;margin-bottom:14px;background:var(--accent-wash)}
+.lvc-sc .h{font-size:14px;font-weight:800;color:var(--ink);margin-bottom:4px}
+.lvc-sc .d{font-size:12.8px;color:var(--ink-soft);line-height:1.6;margin-bottom:10px}
+.lvc-sc .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lvc-sc .f{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--ink-soft)}
+.lvc-sc input{width:78px;padding:9px 10px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:14px;font-family:var(--font-num);font-weight:700;text-align:center;background:var(--surface)}
+.lvc-sc input:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.lvc-sc button{padding:10px 16px;border-radius:9px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;font-size:13.5px;font-weight:700;cursor:pointer}
+.lvc-sc .err{font-size:12.5px;color:#c0342b;font-weight:700;margin-top:7px}
+.lvc-gap{border:1.5px solid #c9762c;background:#fdf4ea;border-radius:12px;padding:12px 15px;margin-bottom:14px;font-size:13.2px;line-height:1.68;color:#7a4a16}
+.lvc-gap .bt{font-weight:800;color:#c9762c;margin-bottom:5px;font-size:13.5px}
+.lvc-gap b{color:#c9762c}
+.lvc-gap.ok{border-color:#16866f;background:#e9f6f3;color:#12604f}
+.lvc-gap.ok .bt{color:#16866f}.lvc-gap.ok b{color:#16866f}
+.lvc-tot{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.lvc-tot .c{flex:1 1 92px;border:1px solid var(--line-strong);border-radius:10px;padding:9px 6px;text-align:center;background:var(--surface)}
+.lvc-tot .c.on{border-color:#c0342b;background:#fbeceb}
+.lvc-tot .c .k{font-size:11.5px;font-weight:800;color:var(--muted)}
+.lvc-tot .c.on .k{color:#c0342b}
+.lvc-tot .c .v{font-size:20px;font-weight:800;color:var(--accent);font-family:var(--font-num);line-height:1.15}
+.lvc-tot .c.on .v{color:#c0342b}
 .lvc-act{display:flex;gap:8px;flex-wrap:wrap}
 .lvc-act button{flex:1 1 160px;font-size:13.5px;font-weight:700;padding:11px 10px;border-radius:10px;cursor:pointer;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent)}
 .lvc-act button:hover{background:var(--accent-wash)}
@@ -929,7 +950,7 @@
     <div class="sec-head reveal">
       <span class="eyebrow">완토 진단 테스트 <b>· WANTO TEST</b></span>
       <h2>지금 내 토익, 몇 점일까?</h2>
-      <p>문법·어휘·전접부(전치사·접속사·접속부사)·Part 6·Part 7 총 30문제로 실력을 정밀 진단합니다. 5개 능력별로 <b>각 6문제씩</b> 고르게 출제됩니다. <b>예상 점수</b>를 즉시 확인하고, <b>상세 능력별 약점 분석</b>은 무료 상담 시 담당 선생님이 1:1로 알려드립니다. (매번 무작위 출제)</p>
+      <p><b>읽기(RC) 전용 진단</b>입니다 — 문법·어휘·전접부(전치사·접속사·접속부사)·Part 6·Part 7 총 30문제, 5개 능력별로 <b>각 6문제씩</b> 고르게 출제됩니다. 듣기(LC)는 문제 대신 <b>성적표 점수를 입력</b>받아 함께 분석합니다. <b>예상 점수</b>를 즉시 확인하고, <b>상세 능력별 약점 분석</b>은 무료 상담 시 담당 선생님이 1:1로 알려드립니다. (매번 무작위 출제)</p>
     </div>
 
     <div class="lvt reveal">
@@ -1242,10 +1263,10 @@
     var wrongHtml = wrongNums.length
       ? '<div style="background:#fff5f5;border:1px solid #f0b4b4;border-radius:12px;padding:13px 16px;font-size:14px;line-height:1.6;color:#7a1f1f;margin-bottom:10px">✕ <b>틀린 문항 ('+wrongNums.length+'개):</b> '+wrongNums.join(' · ')+'<br><span style="font-size:12.5px;color:#a44">아래 <b>내가 틀린 문제 확인하기</b>에서 정답·해설을 볼 수 있어요.</span></div>'
       : '<div style="background:#f0fbf3;border:1px solid #a7e0bb;border-radius:12px;padding:13px 16px;font-size:14px;color:#14683a;margin-bottom:10px">🎉 <b>전 문항 정답입니다!</b></div>';
-    var curHtml = renderCur(score, lvcFocus(abStat, ABIL));
+    lastScore=score; lastWrong=wrongHtml; lastFocusArr=lvcFocus(abStat, ABIL);
+    userLC=null; userRC=null;
     autoSave(score, abils, weakA);
-    $('lvtReport').innerHTML = wrongHtml + curHtml + '<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>여기까지는 요약입니다.</b><br><b>능력별 상세 성적표 · 취약 유형 · 4주 단위 상세 계획</b>은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
-    if($('lvcPrint')) $('lvcPrint').onclick=lvcPrintSheet;
+    paintReport();
     buildReview();
     if($('lvtReviewBtn')){ $('lvtReviewBtn').style.display=''; $('lvtReviewBtn').textContent='내가 틀린 문제 확인하기'; }
     if($('lvtReview')) $('lvtReview').classList.remove('on');
@@ -1253,7 +1274,7 @@
   }
   // ── 진단 점수 → 맞춤 커리큘럼 (student_simple.py의 4단계와 동일 기준) ──
   var LVC=[
-    {max:449, band:'0 ~ 450점', name:'기초반', goal:'450점', sess:'수업 8번', dur:'약 1개월', mins:'70분',
+    {max:449, band:'0 ~ 450점', name:'기초반', goal:'450점', sess:'수업 8번', dur:'약 1개월', mins:'70분', lcIdx:1,
      lead:'지금은 <b>단어</b>가 점수를 결정합니다. 이 점수대에서 틀리는 문제의 대부분은 문법이 아니라 <b>단어를 몰라서</b>입니다. 문법은 깊게 파지 않고 <b>자리만</b> 잡습니다.',
      day:[['단어','30분','하루 <b>30개</b>. 뜻은 <b>맨 앞 하나만</b>. 새 30개 전에 어제 것 10개를 먼저.'],
           ['듣기','20분','<b>Part 1·2는 받아쓰기.</b> Part 3·4는 아직 듣지 말고 <b>스크립트를 읽고 해석</b>.'],
@@ -1261,7 +1282,7 @@
      books:'<b>VOCA All-in-One</b> DAY 01–20 · <b>Grammar All-in-One</b> CH 00–10 한 바퀴 · <b>1000제 RC</b> TEST 01의 Part 5(101–130번)만',
      skip:'가정법·도치 같은 예외 문법 / 긴 지문(Part 7) / Part 3·4를 귀로 듣는 것',
      nx:'하프 모의고사 <b>400점</b>을 넘으면 다음 단계(450~650점)로 올라갑니다.'},
-    {max:649, band:'450 ~ 650점', name:'중급반', goal:'650점', sess:'수업 16번', dur:'약 2개월', mins:'90분',
+    {max:649, band:'450 ~ 650점', name:'중급반', goal:'650점', sess:'수업 16번', dur:'약 2개월', mins:'90분', lcIdx:1,
      lead:'이 단계는 <b>습관 세 개</b>를 만드는 게 전부입니다 &mdash; 먼저 읽고 듣기 · <b>해석 후 쉐도잉</b> · <b>짝으로</b> 단어 외우기. 문법을 여기서 끝냅니다.',
      day:[['단어','30분','하루 <b>30개</b>. 여기서부터는 <b>짝으로</b> &mdash; make a decision처럼 덩어리로.'],
           ['받아쓰기 · 쉐도잉','30분','Part 1·2는 받아쓰기. <b>Part 3·4는 해석 후 쉐도잉</b>, 같은 세트 3번.'],
@@ -1269,7 +1290,7 @@
      books:'<b>VOCA All-in-One</b> DAY 21–40(1,192개 완주) · <b>Grammar All-in-One</b> 2회독 + 실전 388제 · <b>1000제 RC</b> TEST 02–05',
      skip:'삼중지문 / 패러프레이징 노트 / ○△× 표시하며 풀기 / 읽기 75분 완주 훈련',
      nx:'중간에 하프 모의 <b>550점</b>, 마지막 실전 2번에서 <b>650점</b>.'},
-    {max:849, band:'650 ~ 850점', name:'고득점반', goal:'850점', sess:'수업 20번', dur:'약 2.5개월', mins:'120분',
+    {max:849, band:'650 ~ 850점', name:'고득점반', goal:'850점', sess:'수업 20번', dur:'약 2.5개월', mins:'120분', lcIdx:2,
      lead:'새 문법은 거의 없습니다. 이 단계는 <b>실수 제거와 속도</b>가 전부입니다. 틀린 이유를 <b>태그로 분류</b>해 같은 실수를 반복하지 않게 만듭니다.',
      day:[['실전 · 오답','60분','실전을 풀고 <b>틀린 이유를 태그</b>로 분류해 모읍니다.'],
           ['직독직해','30분','앞에서부터 끊어 읽기. 되돌아가지 않는 <b>속도</b>를 만듭니다.'],
@@ -1277,7 +1298,7 @@
      books:'<b>VOCA All-in-One</b> DAY 01–40 회독 · <b>1000제 RC</b> TEST 06–10 · <b>1000제 2</b> TEST 01–03 · <b>어휘 노트</b>(짝표현·동의어)',
      skip:'새 문법책 구입 / 새 단어 DAY 나가기(회독으로 대체)',
      nx:'듣기 8개 · 읽기 10개 안쪽으로 틀리기. <b>이게 850점</b>입니다.'},
-    {max:9999, band:'850점 이상', name:'만점반', goal:'950점', sess:'수업 16번', dur:'약 2개월', mins:'150분',
+    {max:9999, band:'850점 이상', name:'만점반', goal:'950점', sess:'수업 16번', dur:'약 2개월', mins:'150분', lcIdx:2,
      lead:'오답이 아니라 <b>△(확신 없이 맞힌 문항)</b>를 관리하는 단계입니다. ○/△/×로 표시하고 <b>△는 맞아도 전부 다시</b> 봅니다.',
      day:[['실전 · △ 관리','80분','△는 맞아도 전수 리뷰. 목표는 △ 30개 &rarr; <b>10개 아래로</b>.'],
           ['숙어 · 실수 고치기','40분','어휘 노트 PART 5 숙어 하루 8개 + 실수 <b>5유형</b>을 절차로 고정.'],
@@ -1342,6 +1363,52 @@
         '<div class="lvc-act"><button type="button" id="lvcPrint">📄 내 커리큘럼 인쇄 · PDF 저장</button></div>'+
       '</div></div>';
   }
+  // ── 실제 토익 성적표의 LC/RC 점수(선택 입력) ──
+  var userLC=null, userRC=null;
+  function hasReal(){ return userLC!=null && userRC!=null; }
+  function effScore(){ return hasReal() ? (userLC+userRC) : lastScore; }
+
+  // LC와 RC의 차이로 이번 기간에 어디에 무게를 둘지 정한다.
+  function gapBox(L){
+    if(!hasReal()) return '';
+    var gap=userLC-userRC, ab=Math.abs(gap);
+    var lcCard=(L.day[L.lcIdx]||L.day[1]);
+    if(ab<50){
+      return '<div class="lvc-gap ok"><div class="bt">듣기와 읽기가 균형입니다</div>'+
+        '두 영역 차이가 <b>'+ab+'점</b>입니다. 한쪽으로 치우치지 않았으니 <b>커리큘럼을 그대로</b> 진행하세요.</div>';
+    }
+    var hi = gap>0 ? '듣기(LC)' : '읽기(RC)', lo = gap>0 ? '읽기(RC)' : '듣기(LC)';
+    var h='<div class="lvc-gap"><div class="bt">'+hi+'가 '+lo+'보다 '+ab+'점 높습니다</div>';
+    h+='두 영역을 같이 올리려 하면 <b>둘 다 안 오릅니다.</b> 이번 기간에는 <b>'+lo+'</b>에 무게를 두세요.';
+    if(gap>0){
+      h+='<br>매일 할 것에서 <b>'+lcCard[0]+' '+lcCard[1]+'</b>'+(ab>=100?'을 절반으로 줄이고':'을 조금 줄이고')+
+         ', 그 시간을 <b>'+L.day[0][0]+'</b>에 더하세요.';
+    } else {
+      h+='<br>매일 할 것에서 <b>'+lcCard[0]+' '+lcCard[1]+'</b>을 늘리고, <b>Part 1 · 2 받아쓰기</b>부터 소리를 잡으세요.';
+    }
+    h+='</div>';
+    return h;
+  }
+  function totBox(){
+    if(!hasReal()) return '';
+    var lo = userLC<userRC ? 'rc' : (userRC<userLC ? 'lc' : '');
+    return '<div class="lvc-tot">'+
+      '<div class="c"><div class="k">전체</div><div class="v">'+(userLC+userRC)+'</div></div>'+
+      '<div class="c'+(lo==='lc'?' on':'')+'"><div class="k">듣기 LC</div><div class="v">'+userLC+'</div></div>'+
+      '<div class="c'+(lo==='rc'?' on':'')+'"><div class="k">읽기 RC</div><div class="v">'+userRC+'</div></div>'+
+      '</div>';
+  }
+  function scoreInputBox(){
+    return '<div class="lvc-sc">'+
+      '<div class="h">📄 토익 성적표가 있으면 점수를 넣어보세요 <span style="font-weight:600;color:var(--muted);font-size:12.5px">(선택)</span></div>'+
+      '<div class="d">이 진단은 <b>읽기(RC)만</b> 봅니다. 듣기는 문제 대신 <b>성적표 점수</b>로 확인합니다. '+
+        '넣으면 <b>듣기와 읽기 중 어디에 무게를 둘지</b>까지 알려드립니다.</div>'+
+      '<div class="row">'+
+        '<span class="f">LC <input id="lvcLC" type="number" min="5" max="495" step="5" placeholder="290"'+(userLC!=null?' value="'+userLC+'"':'')+'></span>'+
+        '<span class="f">RC <input id="lvcRC" type="number" min="5" max="495" step="5" placeholder="150"'+(userRC!=null?' value="'+userRC+'"':'')+'></span>'+
+        '<button type="button" id="lvcApply">'+(hasReal()?'다시 반영':'반영하기')+'</button>'+
+      '</div><div class="err" id="lvcErr" style="display:none"></div></div>';
+  }
   function name0(){ var n=($('lvtName')&&$('lvtName').value||'').trim(); return n?n+'님 ':''; }
   // 관리 페이지(다른 IIFE)에서 같은 커리큘럼·리포트를 쓰기 위한 통로
   window.WT_DIAG={ ABIL:ABIL, RX:RX, levelOf:lvcOf, openSheet:lvcOpenSheet };
@@ -1349,8 +1416,9 @@
   function lvcPrintSheet(){
     if(!lastCur) return;
     lvcOpenSheet({ name:($('lvtName')&&$('lvtName').value||'').trim(),
-      score:($('lvtScore').textContent||'').trim(),
+      score:(hasReal()? (userLC+userRC) : ($('lvtScore').textContent||'').trim()),
       level:($('lvtLevel').textContent||'').replace('예상 레벨 — ','').trim(),
+      lc:userLC, rc:userRC,
       L:lastCur, focus:lastFocus, abils:null });
   }
   // o = {name, score, level, L(커리큘럼), focus[], abils{} }
@@ -1439,7 +1507,14 @@
       +'<div class="printbar"><span>완벽한토익 · 진단 결과 맞춤 커리큘럼</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>'
       +'<div class="hd"><div class="l"><div class="k">D I A G N O S I S</div><div class="t">'
         +(nm?esc2(nm)+' 학생 ':'')+(o.abils?'진단 리포트':'맞춤 커리큘럼')+'</div></div>'
-      +'<div class="r"><div class="g">진단 예상 점수</div><div class="n">'+esc2(score)+'점</div><div class="s">'+esc2(lvl)+'</div></div></div>'
+      +'<div class="r"><div class="g">'+(o.lc!=null&&o.rc!=null?'성적표 총점':'진단 예상 점수')+'</div><div class="n">'+esc2(score)+'점</div>'
+        +'<div class="s">'+(o.lc!=null&&o.rc!=null?('LC '+o.lc+' · RC '+o.rc):esc2(lvl))+'</div></div></div>'
+      +((o.lc!=null&&o.rc!=null&&Math.abs(o.lc-o.rc)>=50)
+        ? '<div class="fc" style="margin-top:4mm"><div class="bt">'+(o.lc>o.rc?'듣기(LC)':'읽기(RC)')+'가 '
+          +(o.lc>o.rc?'읽기(RC)':'듣기(LC)')+'보다 '+Math.abs(o.lc-o.rc)+'점 높습니다</div>'
+          +'두 영역을 같이 올리려 하면 둘 다 안 오릅니다. 이번 기간에는 <b>'+(o.lc>o.rc?'읽기(RC)':'듣기(LC)')+'</b>에 무게를 두세요.'
+          +'<div class="sm">이 진단은 읽기(RC) 30문항만 측정합니다. LC 점수는 성적표에서 입력받은 값입니다.</div></div>'
+        : '')
       +abHtml
       +rxHtml
       +'<h3>추천 <span>'+L.name+'</span> &mdash; '+L.band+' <small>목표 '+L.goal+' · '+L.sess+' · '+L.dur+'</small></h3>'
@@ -1462,6 +1537,27 @@
     w.document.open(); w.document.write(doc); w.document.close();
   }
 
+  var lastScore=0, lastWrong='', lastFocusArr=[];
+  var LOCK='<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.7;color:var(--ink)">🔒 <b>여기까지는 요약입니다.</b><br><b>능력별 상세 성적표 · 취약 유형 · 4주 단위 상세 계획</b>은 <b>무료 상담 신청 시 담당 선생님이 직접 분석</b>해 1:1로 알려드립니다.<br><span style="color:var(--muted);font-size:12.5px">아래 신청서를 작성하시면 선생님이 결과를 확인 후 연락드립니다.</span></div>';
+  function paintReport(){
+    var L=lvcOf(effScore());
+    $('lvtReport').innerHTML = lastWrong + scoreInputBox() + totBox() + gapBox(L)
+      + renderCur(effScore(), lastFocusArr) + LOCK;
+    if($('lvcPrint')) $('lvcPrint').onclick=lvcPrintSheet;
+    var ap=$('lvcApply');
+    if(ap) ap.onclick=function(){
+      var lc=parseInt(($('lvcLC').value||'').replace(/[^0-9]/g,''),10);
+      var rc=parseInt(($('lvcRC').value||'').replace(/[^0-9]/g,''),10);
+      var er=$('lvcErr');
+      function bad(m){ er.textContent=m; er.style.display=''; }
+      if(isNaN(lc)||isNaN(rc)) return bad('LC와 RC 점수를 모두 넣어주세요.');
+      if(lc<5||lc>495||rc<5||rc>495) return bad('LC·RC는 각각 5~495점 사이입니다.');
+      userLC=lc; userRC=rc;
+      paintReport();
+      var box=document.querySelector('#lvtReport .lvc-tot');
+      if(box) box.scrollIntoView({behavior:'smooth',block:'center'});
+    };
+  }
   function buildReview(){
     var h='';
     for(var i=0;i<Q.length;i++){
@@ -1488,7 +1584,7 @@
     var payload={ name:(p.name||'회원'), phone:(p.phone||null), score:score,
       level:($('lvtLevel').textContent||'').replace('예상 레벨 — ',''),
       ab_infer:abils.infer, ab_locate:abils.locate, ab_connect:abils.connect,
-      ab_vocab:abils.vocab, ab_gram:abils.gram,
+      ab_vocab:abils.vocab, ab_gram:abils.gram, lc_score:userLC, rc_score:userRC,
       weak:(weakA?weakA.ko:''), detail:lastReportText, student_id:p.id };
     window.sb.from('diagnostics').insert(payload).then(function(r){
       if(r&&!r.error) autoSaved=true;
@@ -1516,7 +1612,7 @@
       if(btn){ btn.disabled=true; btn.textContent='접수 중...'; }
       var payload={ name:name, phone:phone, score:score, level:level,
         ab_infer:(ab.infer!=null?ab.infer:null), ab_locate:(ab.locate!=null?ab.locate:null), ab_connect:(ab.connect!=null?ab.connect:null), ab_vocab:(ab.vocab!=null?ab.vocab:null), ab_gram:(ab.gram!=null?ab.gram:null),
-        weak:(lastDiag?lastDiag.weak:''), detail:lastReportText,
+        weak:(lastDiag?lastDiag.weak:''), detail:lastReportText, lc_score:userLC, rc_score:userRC,
         student_id:(window.WT_PROFILE?window.WT_PROFILE.id:null) };
       if(window.sb){
         if(autoSaved){   // 로그인 상태라 이미 저장됨 — 같은 결과를 두 번 남기지 않는다
@@ -4464,6 +4560,12 @@
     h+='<div><span style="color:var(--muted);font-size:12.5px">예상 점수</span><br><b style="font-size:22px">'+(d.score!=null?d.score+'점':'-')+'</b></div>';
     h+='<div><span style="color:var(--muted);font-size:12.5px">레벨</span><br><b style="font-size:18px">'+esc(d.level||'-')+'</b></div>';
     if(avgv!=null) h+='<div><span style="color:var(--muted);font-size:12.5px">평균 정답률</span><br><b style="font-size:18px;color:'+diagColor(avgv)+'">'+avgv+'%</b></div>';
+    if(d.lc_score!=null&&d.rc_score!=null){
+      var g=d.lc_score-d.rc_score;
+      h+='<div><span style="color:var(--muted);font-size:12.5px">성적표 LC / RC</span><br>'
+        +'<b style="font-size:18px">'+d.lc_score+' / '+d.rc_score+'</b>'
+        +'<span style="font-size:12.5px;color:'+(Math.abs(g)>=50?'#c0342b':'var(--muted)')+';font-weight:700"> (차이 '+Math.abs(g)+')</span></div>';
+    }
     h+='<div><span style="color:var(--muted);font-size:12.5px">취약 영역</span><br><b style="font-size:16px;color:#c0342b">'+esc(d.weak||'-')+'</b></div></div>';
     h+='<div style="margin-top:12px;font-weight:800;font-size:13.5px;color:var(--ink-soft)">📊 능력별 정답률 <span style="font-weight:600;color:var(--muted);font-size:12px">· 항목당 6문항 · 주황선 = 수험자 평균(참고값)</span></div>';
     var AB=(window.WT_DIAG&&window.WT_DIAG.ABIL)||[];
@@ -4509,8 +4611,11 @@
       var dd=(window.__wtDiag||[]).filter(function(x){return String(x.id)===sh.getAttribute('data-diagsheet');})[0];
       if(!dd) return;
       var ab={infer:dd.ab_infer,locate:dd.ab_locate,connect:dd.ab_connect,vocab:dd.ab_vocab,gram:dd.ab_gram};
-      window.WT_DIAG.openSheet({ name:(dd.name||''), score:(dd.score!=null?dd.score:''), level:(dd.level||''),
-        L:window.WT_DIAG.levelOf(dd.score), abils:ab, focus:[] });
+      var real=(dd.lc_score!=null&&dd.rc_score!=null);
+      var sc=real?(dd.lc_score+dd.rc_score):dd.score;
+      window.WT_DIAG.openSheet({ name:(dd.name||''), score:(sc!=null?sc:''), level:(dd.level||''),
+        lc:(real?dd.lc_score:null), rc:(real?dd.rc_score:null),
+        L:window.WT_DIAG.levelOf(sc), abils:ab, focus:[] });
     }
   });
   if($('diagTable')) $('diagTable').addEventListener('click', async function(e){
