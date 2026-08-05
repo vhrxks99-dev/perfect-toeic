@@ -3377,85 +3377,136 @@
      perfect-toeic.com/#checkin 으로 연다. 로그인 없이 도는 화면이라
      최초 1회 관리자 PIN으로 기기를 등록하고, 그 뒤엔 토큰으로만 동작한다. -->
 <style>
-  /* 아이패드 사파리는 주소창 때문에 100vh 가 화면보다 크다. dvh 로 실제 보이는 높이를 쓴다. */
-  #kiosk{position:fixed;inset:0;height:100%;height:100dvh;z-index:99999;background:#f5f6f8;display:none;flex-direction:column;
-         font-family:var(--font-sans,system-ui);color:#1a1d21;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
-  #kiosk.on{display:flex}
-  .kk-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;background:#fff;border-bottom:1px solid #e6e8ec}
-  .kk-brand{font-weight:900;font-size:19px;letter-spacing:-.02em}
-  .kk-icon{border:0;background:transparent;font-size:20px;line-height:1;padding:8px;border-radius:10px;cursor:pointer;color:#5b6270}
-  .kk-icon:active{background:#eef0f3}
-  .kk-sub{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px 0}
-  .kk-clock{font-size:15px;font-weight:700;color:#5b6270;font-variant-numeric:tabular-nums}
-  .kk-hist{border:0;background:#2b3440;color:#fff;font-weight:800;font-size:13.5px;padding:9px 15px;border-radius:9px;cursor:pointer}
-  .kk-mid{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:8px 20px;min-height:64px;overflow:hidden}
-  .kk-ask{font-size:clamp(17px,2.4vw,22px);font-weight:800;color:#2b3440}
-  .kk-dots{display:flex;gap:clamp(16px,3vw,30px)}
-  .kk-dot{width:clamp(34px,5vw,52px);height:6px;border-radius:3px;background:#c9cdd4;transition:background .12s}
-  .kk-dot.f{background:#8bc53f}
-  .kk-msg{min-height:22px;font-size:14.5px;font-weight:700;color:#c0342b;text-align:center}
-  .kk-pad{background:#1c2740;padding:8px 12px 0;flex:0 0 auto}
-  .kk-hint{text-align:center;color:#cfd6e4;font-size:13px;font-weight:700;padding:4px 0 8px}
-  .kk-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:820px;margin:0 auto}
-  .kk-key{border:0;border-radius:12px;background:#2a3654;color:#fff;font-size:clamp(20px,3vw,29px);font-weight:800;
-          padding:clamp(8px,1.5vh,15px) 0;cursor:pointer;font-family:inherit}
-  .kk-key:active{background:#3b4a6e}
-  .kk-key.sm{font-size:clamp(14px,1.8vw,17px);background:transparent;color:#cfd6e4}
-  .kk-key.sm:active{background:#2a3654}
-  .kk-actions{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:8px}
-  .kk-act{border:0;padding:clamp(12px,2vh,19px) 0;padding-bottom:calc(clamp(12px,2vh,19px) + env(safe-area-inset-bottom,0px));
-          font-size:clamp(18px,2.4vw,25px);font-weight:900;cursor:pointer;font-family:inherit}
-  .kk-in{background:#8bc53f;color:#12240a}
-  .kk-in:active{background:#7ab233}
-  .kk-out{background:#e8eaee;color:#2b3440}
-  .kk-out:active{background:#d7dae0}
-  .kk-cover{position:absolute;inset:0;background:rgba(16,20,26,.55);display:none;align-items:center;justify-content:center;padding:22px}
+  /* 완벽한토익 등원관리.
+     레퍼런스(위 흰색 / 아래 남색 키패드)와 겹치지 않게 좌우 2단으로 짰다.
+     왼쪽 = 브랜드·시계·입력한 번호·등원/하원, 오른쪽 = 키패드.
+     아이패드 사파리는 주소창 때문에 100vh 가 화면보다 크므로 dvh 를 쓴다. */
+  #kiosk{position:fixed;inset:0;height:100%;height:100dvh;z-index:99999;display:none;
+         background:linear-gradient(150deg,#F4F7FD 0%,#EAF1FE 55%,#E3EBFA 100%);
+         font-family:var(--font-sans,system-ui);color:#15181E;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+  #kiosk.on{display:block}
+  .kk-shell{height:100%;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
+            gap:clamp(12px,2vw,26px);padding:clamp(12px,2.2vh,22px) clamp(14px,2.4vw,30px);
+            padding-bottom:calc(clamp(12px,2.2vh,22px) + env(safe-area-inset-bottom,0px))}
+  .kk-col{min-width:0;min-height:0;display:flex;flex-direction:column}
+
+  /* ── 왼쪽 ── */
+  .kk-head{display:flex;align-items:center;gap:clamp(9px,1.4vw,15px);flex:0 0 auto}
+  .kk-logo{height:clamp(44px,7vh,72px);width:auto;display:block}
+  .kk-wordmark{font-weight:900;font-size:clamp(19px,2.3vw,25px);letter-spacing:-.03em;color:#15181E}
+  .kk-tag{background:#1F62E0;color:#fff;font-weight:800;font-size:clamp(11.5px,1.35vw,14px);
+          padding:7px 14px;border-radius:999px;letter-spacing:.02em;white-space:nowrap}
+  .kk-when{margin-top:clamp(8px,1.6vh,16px);flex:0 0 auto}
+  .kk-date{font-size:clamp(13px,1.5vw,17px);font-weight:700;color:#697079}
+  .kk-time{font-size:clamp(34px,5.4vw,58px);font-weight:900;letter-spacing:-.045em;line-height:1.02;
+           color:#15181E;font-variant-numeric:tabular-nums;margin-top:2px}
+  .kk-time small{font-size:.42em;font-weight:800;color:#697079;margin-left:8px;letter-spacing:0}
+
+  .kk-entry{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;min-height:0;gap:clamp(8px,1.6vh,15px)}
+  .kk-label{font-size:clamp(13.5px,1.6vw,17px);font-weight:800;color:#1F62E0;letter-spacing:.01em}
+  .kk-code{display:flex;gap:clamp(8px,1.3vw,15px)}
+  .kk-cell{flex:1 1 0;min-width:0;aspect-ratio:1/1.1;max-height:clamp(64px,15vh,132px);
+           background:#fff;border:2px solid #DCE5F6;border-radius:clamp(10px,1.4vw,16px);
+           display:flex;align-items:center;justify-content:center;
+           font-size:clamp(30px,5.4vw,62px);font-weight:900;color:#15181E;
+           font-variant-numeric:tabular-nums;transition:border-color .12s,box-shadow .12s;box-shadow:0 1px 0 rgba(21,24,30,.04)}
+  .kk-cell.on{border-color:#1F62E0;box-shadow:0 4px 16px rgba(31,98,224,.16)}
+  .kk-cell.cur{border-color:#9CBBF2;border-style:dashed}
+  .kk-cell i{display:block;width:38%;height:3px;border-radius:2px;background:#CCD2DC}
+  .kk-msg{min-height:clamp(18px,2.4vh,24px);font-size:clamp(12.5px,1.45vw,15px);font-weight:800;color:#C0342B;line-height:1.4}
+
+  .kk-acts{display:grid;grid-template-columns:1.35fr 1fr;gap:clamp(8px,1.2vw,14px);flex:0 0 auto}
+  .kk-act{border:0;border-radius:clamp(12px,1.6vw,18px);cursor:pointer;font-family:inherit;font-weight:900;
+          padding:clamp(13px,2.4vh,24px) 0;font-size:clamp(18px,2.5vw,28px);letter-spacing:-.02em;line-height:1.15}
+  .kk-act span{display:block;font-size:clamp(10.5px,1.15vw,12.5px);font-weight:700;opacity:.72;margin-top:3px;letter-spacing:.04em}
+  .kk-in{background:#1F62E0;color:#fff;box-shadow:0 6px 18px rgba(31,98,224,.28)}
+  .kk-in:active{background:#154FBE;box-shadow:none;transform:translateY(1px)}
+  .kk-out{background:#fff;color:#3D4149;border:2px solid #CCD2DC}
+  .kk-out:active{background:#EEF2F9;transform:translateY(1px)}
+
+  /* ── 오른쪽 (키패드) ── */
+  .kk-right{background:rgba(255,255,255,.72);border:1px solid #DCE5F6;border-radius:clamp(14px,2vw,24px);
+            padding:clamp(10px,1.6vh,18px);box-shadow:0 10px 30px rgba(21,40,80,.07)}
+  .kk-tools{display:flex;gap:8px;justify-content:flex-end;flex:0 0 auto;margin-bottom:clamp(8px,1.2vh,12px)}
+  .kk-tool{border:1px solid #DCE5F6;background:#fff;color:#3D4149;font-family:inherit;font-weight:800;
+           font-size:clamp(11.5px,1.25vw,13.5px);padding:8px 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  .kk-tool:active{background:#EEF2F9}
+  .kk-keys{flex:1 1 auto;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);
+           gap:clamp(7px,1.1vh,12px);min-height:0}
+  .kk-key{border:1px solid #E1E8F5;border-radius:clamp(10px,1.4vw,16px);background:#fff;color:#15181E;
+          font-size:clamp(22px,3.4vw,40px);font-weight:800;cursor:pointer;font-family:inherit;
+          font-variant-numeric:tabular-nums;box-shadow:0 1px 0 rgba(21,24,30,.05);padding:0}
+  .kk-key:active{background:#EAF1FE;border-color:#9CBBF2;transform:translateY(1px)}
+  .kk-key.sm{font-size:clamp(12.5px,1.5vw,17px);font-weight:800;color:#697079;background:#F7F9FD}
+  .kk-key.sm:active{background:#EAF1FE}
+
+  /* ── 세로(초상) 화면에서는 위/아래로 ── */
+  @media (orientation:portrait){
+    .kk-shell{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:clamp(10px,1.6vh,18px)}
+    .kk-time{font-size:clamp(34px,9vw,58px)}
+    .kk-cell{max-height:clamp(52px,9vh,92px);font-size:clamp(24px,8vw,44px)}
+    .kk-key{font-size:clamp(20px,6vw,34px)}
+    .kk-act{font-size:clamp(17px,4.6vw,24px)}
+  }
+  .kk-cover{position:absolute;inset:0;background:rgba(13,22,40,.5);display:none;align-items:center;justify-content:center;padding:22px}
   .kk-cover.on{display:flex}
-  .kk-panel{background:#fff;border-radius:18px;padding:26px 24px;width:min(560px,94vw);max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}
-  .kk-big{font-size:clamp(24px,4vw,34px);font-weight:900;text-align:center;letter-spacing:-.02em}
-  .kk-when{text-align:center;color:#5b6270;font-weight:700;margin-top:6px;font-size:15px}
-  .kk-rem{margin-top:16px;border-radius:12px;padding:14px 16px;text-align:center;font-weight:800;font-size:17px}
-  .kk-ok{background:#eefaf3;color:#0f7a52}
-  .kk-warn{background:#fdf0ef;color:#c0342b}
+  .kk-panel{background:#fff;border-radius:20px;padding:clamp(20px,3vh,30px) clamp(18px,3vw,28px);width:min(560px,94vw);
+            max-height:88vh;overflow:auto;box-shadow:0 22px 60px rgba(13,22,40,.32)}
+  .kk-big{font-size:clamp(22px,3.6vw,32px);font-weight:900;text-align:center;letter-spacing:-.03em;line-height:1.3}
+  .kk-at{text-align:center;color:#697079;font-weight:800;margin-top:8px;font-size:clamp(13px,1.5vw,16px);font-variant-numeric:tabular-nums}
+  .kk-rem{margin-top:16px;border-radius:14px;padding:15px 16px;text-align:center;font-weight:800;font-size:clamp(15px,1.8vw,18px);line-height:1.5}
+  .kk-ok{background:#EAF1FE;color:#154FBE}
+  .kk-warn{background:#FDF0EF;color:#C0342B}
   .kk-pick{display:flex;flex-direction:column;gap:9px;margin-top:16px}
-  .kk-pickbtn{border:1.5px solid #d7dae0;background:#fff;border-radius:12px;padding:15px 16px;font-size:17px;font-weight:800;text-align:left;cursor:pointer;font-family:inherit;color:#1a1d21}
-  .kk-pickbtn:active{background:#eef0f3}
-  .kk-close{width:100%;margin-top:18px;border:0;border-radius:12px;background:#2b3440;color:#fff;font-weight:800;font-size:16px;padding:14px 0;cursor:pointer;font-family:inherit}
-  .kk-field{width:100%;font-size:26px;text-align:center;letter-spacing:.35em;padding:14px;border:1.5px solid #d7dae0;border-radius:12px;margin-top:14px;font-family:inherit}
-  .kk-lbl{font-weight:800;font-size:15px;color:#2b3440}
-  .kk-note{font-size:13px;color:#5b6270;font-weight:600;margin-top:8px;line-height:1.6}
+  .kk-pickbtn{border:2px solid #DCE5F6;background:#fff;border-radius:14px;padding:16px;font-size:17px;font-weight:800;text-align:left;cursor:pointer;font-family:inherit;color:#15181E}
+  .kk-pickbtn:active{background:#EAF1FE}
+  .kk-close{width:100%;margin-top:18px;border:0;border-radius:14px;background:#1F62E0;color:#fff;font-weight:900;font-size:16px;padding:15px 0;cursor:pointer;font-family:inherit}
+  .kk-close:active{background:#154FBE}
+  .kk-field{width:100%;font-size:26px;text-align:center;letter-spacing:.35em;padding:14px;border:2px solid #DCE5F6;border-radius:14px;margin-top:14px;font-family:inherit}
+  .kk-note{font-size:13.5px;color:#697079;font-weight:600;margin-top:8px;line-height:1.65}
   .kk-htable{width:100%;border-collapse:collapse;margin-top:14px;font-size:15px}
-  .kk-htable th,.kk-htable td{padding:9px 6px;border-bottom:1px solid #eceef1;text-align:left}
-  .kk-htable th{font-size:12.5px;color:#5b6270}
-  @media (max-width:640px){ .kk-brand{font-size:16px} }
+  .kk-htable th,.kk-htable td{padding:10px 6px;border-bottom:1px solid #EEF2F9;text-align:left}
+  .kk-htable th{font-size:12.5px;color:#697079}
 </style>
 <div id="kiosk" aria-hidden="true">
-  <div class="kk-top">
-    <button class="kk-icon" id="kkSound" title="소리">🔊</button>
-    <div class="kk-brand">완벽한토익</div>
-    <button class="kk-icon" id="kkGear" title="설정">⚙️</button>
-  </div>
-  <div class="kk-sub">
-    <div class="kk-clock" id="kkClock"></div>
-    <button class="kk-hist" id="kkHistBtn">출석이력보기</button>
-  </div>
-  <div class="kk-mid">
-    <div class="kk-ask">출결번호를 입력해주세요.</div>
-    <div class="kk-dots" id="kkDots"><i class="kk-dot"></i><i class="kk-dot"></i><i class="kk-dot"></i><i class="kk-dot"></i></div>
-    <div class="kk-msg" id="kkMsg"></div>
-  </div>
-  <div class="kk-pad">
-    <div class="kk-hint">휴대폰 뒷번호 4자리를 누른 뒤 등원 또는 하원을 눌러주세요.</div>
-    <div class="kk-keys">
-      <button class="kk-key" data-kk="1">1</button><button class="kk-key" data-kk="2">2</button><button class="kk-key" data-kk="3">3</button>
-      <button class="kk-key" data-kk="4">4</button><button class="kk-key" data-kk="5">5</button><button class="kk-key" data-kk="6">6</button>
-      <button class="kk-key" data-kk="7">7</button><button class="kk-key" data-kk="8">8</button><button class="kk-key" data-kk="9">9</button>
-      <button class="kk-key sm" data-kk="clear">↺ 다시입력</button><button class="kk-key" data-kk="0">0</button><button class="kk-key sm" data-kk="back">⌫</button>
-    </div>
-    <div class="kk-actions">
-      <button class="kk-act kk-in" data-kk-go="in">등원</button>
-      <button class="kk-act kk-out" data-kk-go="out">하원</button>
-    </div>
+  <div class="kk-shell">
+    <section class="kk-col kk-left">
+      <div class="kk-head">
+        <img class="kk-logo" id="kkLogo" alt="완벽한토익" style="display:none">
+        <div class="kk-wordmark" id="kkWord">완벽한토익</div>
+        <div class="kk-tag">등원관리</div>
+      </div>
+      <div class="kk-when">
+        <div class="kk-date" id="kkDate"></div>
+        <div class="kk-time" id="kkTime"></div>
+      </div>
+      <div class="kk-entry">
+        <div class="kk-label">휴대폰 뒷번호 4자리를 눌러주세요</div>
+        <div class="kk-code" id="kkCode">
+          <div class="kk-cell"><i></i></div><div class="kk-cell"><i></i></div>
+          <div class="kk-cell"><i></i></div><div class="kk-cell"><i></i></div>
+        </div>
+        <div class="kk-msg" id="kkMsg"></div>
+      </div>
+      <div class="kk-acts">
+        <button class="kk-act kk-in" data-kk-go="in">등원<span>학원에 왔어요</span></button>
+        <button class="kk-act kk-out" data-kk-go="out">하원<span>집에 가요</span></button>
+      </div>
+    </section>
+
+    <section class="kk-col kk-right">
+      <div class="kk-tools">
+        <button class="kk-tool" id="kkHistBtn">오늘 등원 현황</button>
+        <button class="kk-tool" id="kkSound" title="알림음">🔊</button>
+        <button class="kk-tool" id="kkGear" title="설정">⚙️</button>
+      </div>
+      <div class="kk-keys">
+        <button class="kk-key" data-kk="1">1</button><button class="kk-key" data-kk="2">2</button><button class="kk-key" data-kk="3">3</button>
+        <button class="kk-key" data-kk="4">4</button><button class="kk-key" data-kk="5">5</button><button class="kk-key" data-kk="6">6</button>
+        <button class="kk-key" data-kk="7">7</button><button class="kk-key" data-kk="8">8</button><button class="kk-key" data-kk="9">9</button>
+        <button class="kk-key sm" data-kk="clear">지우기</button><button class="kk-key" data-kk="0">0</button><button class="kk-key sm" data-kk="back">← 한 칸</button>
+      </div>
+    </section>
   </div>
 
   <div class="kk-cover" id="kkCover"><div class="kk-panel" id="kkPanel"></div></div>
@@ -5487,18 +5538,31 @@
     }catch(e){}
   }
 
-  function drawDots(){
-    var ds=$('kkDots').children;
-    for(var i=0;i<ds.length;i++) ds[i].classList.toggle('f', i<buf.length);
+  // 누른 숫자를 칸에 그대로 보여준다. (가려서 표시하면 잘못 눌러도 모른다)
+  function drawCode(){
+    var cells=$('kkCode').children;
+    for(var i=0;i<cells.length;i++){
+      var c=cells[i];
+      if(i<buf.length){ c.textContent=buf.charAt(i); c.className='kk-cell on'; }
+      else { c.innerHTML='<i></i>'; c.className='kk-cell'+(i===buf.length?' cur':''); }
+    }
   }
   function say(t){ $('kkMsg').textContent=t||''; }
-  function reset(){ buf=''; drawDots(); say(''); }
+  function reset(){ buf=''; drawCode(); say(''); }
 
   function clock(){
     var d=new Date(), DW=['일','월','화','수','목','금','토'];
     var h=d.getHours(), ap=h<12?'오전':'오후', hh=h%12; if(hh===0) hh=12;
     var p=function(n){ return (n<10?'0':'')+n; };
-    $('kkClock').textContent=d.getFullYear()+'. '+p(d.getMonth()+1)+'. '+p(d.getDate())+'. ('+DW[d.getDay()]+') '+ap+' '+p(hh)+' : '+p(d.getMinutes());
+    $('kkDate').textContent=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+DW[d.getDay()]+'요일';
+    $('kkTime').innerHTML=p(hh)+':'+p(d.getMinutes())+'<small>'+ap+'</small>';
+  }
+  // 사이트 헤더의 로고를 그대로 가져다 쓴다 (이미지가 파일 안에 들어 있음)
+  function useLogo(){
+    try{
+      var src=(document.querySelector('.logo')||{}).src||'';
+      if(src){ $('kkLogo').src=src; $('kkLogo').style.display=''; $('kkWord').style.display='none'; }
+    }catch(e){}
   }
 
   function cover(html){
@@ -5577,7 +5641,7 @@
           : '<div class="kk-rem kk-ok">남은 횟수 <b style="font-size:22px">'+rem+'회</b></div>';
       }
       cover('<div class="kk-big">'+(kind==='in'?'✅ ':'👋 ')+head+'</div>'
-          + '<div class="kk-when">'+esc(d.at||'')+(d.already?' 등원함':'')+'</div>'
+          + '<div class="kk-at">'+esc(d.at||'')+(d.already?' 등원함':'')+'</div>'
           + remBox
           + '<button class="kk-close" id="kkDone">확인</button>');
       $('kkDone').onclick=function(){ hideCover(); reset(); };
@@ -5628,8 +5692,8 @@
     if(k){
       var v=k.getAttribute('data-kk');
       if(v==='clear') reset();
-      else if(v==='back'){ buf=buf.slice(0,-1); drawDots(); say(''); }
-      else if(buf.length<4){ buf+=v; drawDots(); say(''); }
+      else if(v==='back'){ buf=buf.slice(0,-1); drawCode(); say(''); }
+      else if(buf.length<4){ buf+=v; drawCode(); say(''); }
       return;
     }
     if(g) go(g.getAttribute('data-kk-go'));
@@ -5639,8 +5703,8 @@
   $('kkSound').onclick=function(){ try{ localStorage.setItem(SOUND_KEY, soundOn()?'off':'on'); }catch(e){} syncSound(); beep('in'); };
   document.addEventListener('keydown', function(e){
     if(!box.classList.contains('on')) return;
-    if(e.key>='0'&&e.key<='9'&&buf.length<4){ buf+=e.key; drawDots(); say(''); }
-    else if(e.key==='Backspace'){ buf=buf.slice(0,-1); drawDots(); }
+    if(e.key>='0'&&e.key<='9'&&buf.length<4){ buf+=e.key; drawCode(); say(''); }
+    else if(e.key==='Backspace'){ buf=buf.slice(0,-1); drawCode(); }
     else if(e.key==='Enter'){ go('in'); }
   });
 
@@ -5648,7 +5712,7 @@
   function open(){
     box.classList.add('on'); box.setAttribute('aria-hidden','false');
     document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden';
-    syncSound(); clock(); reset();
+    useLogo(); syncSound(); clock(); reset();
     if(tickTimer) clearInterval(tickTimer);
     tickTimer=setInterval(clock,1000);
     if(!token()) askPair();
