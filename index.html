@@ -4927,6 +4927,8 @@
     var box=$('sumBox'); if(!box) return;
     var from=($('sumFrom')&&$('sumFrom').value)||'', to=($('sumTo')&&$('sumTo').value)||'';
     if(!from||!to){ box.style.display='none'; return; }
+    // 원장님 전용. 다른 역할이 어떤 경로로 불러도 그리지 않는다.
+    if(!isMasterNow()){ box.style.display='none'; box.innerHTML=''; return; }
     if(from>to){ box.style.display=''; box.innerHTML='<div class="ps-head"><span>수납 집계</span></div><div style="padding:12px 14px;color:#c0342b;font-weight:700">시작일이 종료일보다 늦습니다.</div>'; return; }
     if(!sb) return;
     // 결제일이 비어 있는 옛 자료도 빠지지 않게 넉넉히 가져와 화면에서 거른다.
@@ -5014,12 +5016,11 @@
     var mm=isOps();
     if($('pyAddForm')) $('pyAddForm').style.display = mm ? '' : 'none';
     if($('pyScopeNote')) $('pyScopeNote').style.display = mm ? 'none' : '';
-    // 학원 전체 수납 집계는 원장님·매니저만. 선생님에게는 본인 담당 건만 보이므로
-    // '총 매출액'이라는 이름의 반쪽짜리 숫자가 되어 오해를 부른다.
-    ['sumHead','sumForm','sumBox'].forEach(function(id){
-      if($(id)) $(id).style.display = mm ? (id==='sumBox' ? $(id).style.display : '') : 'none';
-    });
-    if(!mm && $('sumBox')) $('sumBox').style.display='none';
+    // 학원 전체 수납 집계는 원장님 전용(2026-08-05 원장 지시). 매니저·선생님 모두 숨긴다.
+    // 선생님에게는 본인 담당 건만 보이므로 '총 매출액'이 반쪽짜리 숫자가 되기도 한다.
+    var onlyMaster=isMasterNow();
+    ['sumHead','sumForm'].forEach(function(id){ if($(id)) $(id).style.display = onlyMaster ? '' : 'none'; });
+    if(!onlyMaster && $('sumBox')){ $('sumBox').style.display='none'; $('sumBox').innerHTML=''; }
   }
   // 학생을 고르면 그 학생의 담당 선생님과 그 선생님의 배분율을 자동으로 채운다. (원장님이 손으로 고칠 수 있음)
   function syncPayTeacher(){
