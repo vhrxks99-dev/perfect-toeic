@@ -831,6 +831,24 @@
 .lvt-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px}
 .lvt-count{font-family:var(--font-num);font-weight:800;font-size:15px;color:var(--ink);white-space:nowrap}
 .lvt-count i{color:var(--muted);font-style:normal;font-weight:600}
+.lvt-timebox{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:18px 0 4px}
+.lvt-timebox .tb-h{font-size:13.5px;font-weight:800;color:var(--ink-soft);margin-bottom:10px}
+.lvt-timebox .tb-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13px}
+.lvt-timebox .tb-nm{width:64px;font-weight:700;color:var(--ink-soft)}
+.lvt-timebox .tb-track{flex:1;background:#eef1f6;border-radius:7px;height:18px;position:relative;overflow:hidden}
+.lvt-timebox .tb-fill{height:100%;border-radius:7px}
+.lvt-timebox .tb-goal{position:absolute;top:-2px;bottom:-2px;width:2px;background:#c9762c}
+.lvt-timebox .tb-v{width:126px;text-align:right;font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.lvt-timebox .tb-note{font-size:12.5px;color:var(--muted);margin-top:9px;line-height:1.6}
+.lvt-timer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:-6px 0 18px}
+.lvt-tm{display:flex;align-items:baseline;gap:7px}
+.lvt-tm-r{justify-content:flex-end}
+.lvt-tm i{font-style:normal;font-size:12px;font-weight:700;color:var(--muted)}
+.lvt-tm b{font-family:var(--font-num);font-size:17px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.lvt-tm u{text-decoration:none;font-size:11.5px;font-weight:700;color:var(--muted)}
+.lvt-tm.warn b{color:#c9762c}
+.lvt-tm.over b{color:#c0342b}
+.lvt-tm.over u{color:#c0342b}
 .lvt-bar{flex:1;height:7px;background:var(--line);border-radius:99px;overflow:hidden}
 .lvt-bar-fill{height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .35s cubic-bezier(.22,1,.36,1)}
 .lvt-tag{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:6px;background:var(--accent-wash);color:var(--accent);white-space:nowrap}
@@ -966,10 +984,10 @@
         <div class="lvt-intro">
           <span class="lvt-badge">● 완토 진단 테스트</span>
           <h3>내 실력, 지금 바로 진단</h3>
-          <p class="lvt-intro-p">문법·어휘·전치사/접속사/접속부사·Part 6·Part 7 총 21문제로 구성했습니다. 정밀 진단 후 <b>예상 점수</b>를 바로 알려드리고, <b>상세 능력별 분석</b>은 상담 신청 시 선생님이 확인해 드려요.</p>
+          <p class="lvt-intro-p">문법·어휘·전치사/접속사/접속부사·Part 6·Part 7 총 30문제로 구성했습니다. <b>제한시간 20분</b>이며 실제 시험처럼 시간이 다 되면 자동 제출됩니다. 문제마다 <b>걸린 시간이 기록</b>되어, 어디에서 시간을 뺏기는지도 함께 진단합니다.</p>
           <div class="lvt-meta">
-            <div><b>21</b><span>문항</span></div>
-            <div><b>약 6분</b><span>소요 시간</span></div>
+            <div><b>30</b><span>문항</span></div>
+            <div><b>20분</b><span>제한시간</span></div>
             <div><b>즉시</b><span>점수 확인</span></div>
           </div>
           <button class="btn btn-primary" id="lvtStart">진단 시작하기 <span class="arrow">→</span></button>
@@ -982,6 +1000,10 @@
           <span class="lvt-count"><span id="lvtNow">1</span><i> / <span id="lvtTotQ">30</span></i></span>
           <div class="lvt-bar"><div class="lvt-bar-fill" id="lvtFill"></div></div>
           <span class="lvt-tag" id="lvtTag">기본</span>
+        </div>
+        <div class="lvt-timer">
+          <span class="lvt-tm" id="lvtQTime"><i>이 문제</i><b id="lvtQSec">0초</b><u id="lvtQGoal">목표 30초</u></span>
+          <span class="lvt-tm lvt-tm-r" id="lvtTotTime"><i>남은 시간</i><b id="lvtLeft">20:00</b></span>
         </div>
         <div class="lvt-passage" id="lvtPassage" style="display:none"></div>
         <p class="lvt-q" id="lvtQ"></p>
@@ -1000,6 +1022,7 @@
           <div class="lvt-range" id="lvtRange"></div>
           <div class="lvt-level" id="lvtLevel"></div>
           <p class="lvt-desc" id="lvtDesc"></p>
+          <div class="lvt-timebox" id="lvtTimeBox"></div>
           <div class="lvt-report" id="lvtReport"></div>
           <form class="lvt-lead" id="lvtLead" autocomplete="on">
             <div class="lvt-lead-head">🎯 이 결과로 완벽한토익 1:1 무료 상담받기</div>
@@ -1166,6 +1189,96 @@
   var W={easy:30,medium:48,hard:62}, BASE=130;
   var Q=[], idx=0, ans=[], lastReportText='', lastDiag=null;
   var $=function(id){return document.getElementById(id);};
+  // ── 문항별 시간 측정 ──────────────────────────────────────────────
+  // 유형별 목표 시간(초). 원장 기준: 문법 10 / 전접부·어휘·Part 6 30 / Part 7 60.
+  // 30문항 합계 = 1,180초 → 올림해서 제한시간 20분.
+  var TGT={'문법':10,'어휘':30,'전접부':30,'P6':30,'P7':60};
+  var times=[], qStart=0, limitMs=0, endAt=0, tickId=null, lastTimes=null, ranOut=false;
+  function limitOf(list){ var s=0; for(var i=0;i<list.length;i++) s+=(TGT[list[i].cat]||30); return Math.ceil(s/60)*60; }
+  function mmss(s){ if(s<0)s=0; var m=Math.floor(s/60), x=s%60; return m+':'+(x<10?'0':'')+x; }
+  function secTxt(s){ if(s<60) return s+'초'; var m=Math.floor(s/60), x=s%60; return x? m+'분 '+x+'초' : m+'분'; }
+  // 한 문항에 머문 시간을 누적한다(이전 문제로 돌아갔다 와도 합산).
+  function commitTime(){ if(qStart){ times[idx]=(times[idx]||0)+(Date.now()-qStart); qStart=0; } }
+  function curSec(){ return Math.floor(((times[idx]||0)+(qStart?Date.now()-qStart:0))/1000); }
+  function tick(){
+    if(!Q.length||!Q[idx]) return;
+    var goal=TGT[Q[idx].cat]||30, s=curSec(), w=$('lvtQTime');
+    if($('lvtQSec')) $('lvtQSec').textContent=s+'초';
+    if($('lvtQGoal')) $('lvtQGoal').textContent='목표 '+goal+'초';
+    if(w){ w.classList.toggle('over', s>goal); w.classList.toggle('warn', s<=goal && s>goal*0.7); }
+    var left=Math.ceil((endAt-Date.now())/1000), lw=$('lvtTotTime');
+    if($('lvtLeft')) $('lvtLeft').textContent=mmss(left);
+    if(lw){ lw.classList.toggle('over', left<=60); lw.classList.toggle('warn', left>60&&left<=180); }
+    if(left<=0){ stopTimer(); commitTime(); ranOut=true; result(); }
+  }
+  function startTimer(){ stopTimer(); endAt=Date.now()+limitMs; tickId=setInterval(tick,250); tick(); }
+  function stopTimer(){ if(tickId){ clearInterval(tickId); tickId=null; } }
+  // 결과 저장·리포트용 요약. 문항별 {번호, 유형, 걸린초, 목표초}
+  function timeSummary(){
+    // times[i]가 없으면 그 문항은 화면에 뜬 적도 없다 = 미도달(v:0).
+    // 1초 안에 찍은 문항도 '푼 것'이므로 0초라고 미도달로 오해하면 안 된다.
+    var arr=[], tot=0;
+    for(var i=0;i<Q.length;i++){
+      var raw=times[i], vis=(raw!=null);
+      var s=vis?Math.round(raw/1000):0, g=TGT[Q[i].cat]||30;
+      tot+=s; arr.push({n:i+1,c:Q[i].cat,s:s,t:g,v:vis?1:0});
+    }
+    return { total:tot, items:arr, skip:arr.filter(function(x){return !x.v;}).length,
+             over:arr.filter(function(x){return x.v && x.s>x.t;}) };
+  }
+  // 유형별 평균 시간(초)과 목표 대비. 학생 결과·선생님 리포트가 함께 쓴다.
+  // ⚠️ 시간이 다 돼 자동 제출되면 손대지 못한 문항이 0초로 남는다.
+  //    이걸 평균에 넣으면 "Part 7까지 못 갔는데 Part 7이 빠르다"고 나온다.
+  //    그래서 0초 문항은 평균에서 빼고 '미도달'로 따로 센다.
+  function timeByCat(items){
+    var by={};
+    CATS.forEach(function(c){ by[c]={n:0,s:0,g:TGT[c]||30,over:0,skip:0}; });
+    (items||[]).forEach(function(x){
+      if(!by[x.c]) by[x.c]={n:0,s:0,g:(x.t||30),over:0,skip:0};
+      var seen=(x.v!=null)?!!x.v:(x.s>0);   // v 없는 옛 기록은 0초를 미도달로 본다
+      if(!seen){ by[x.c].skip++; return; }
+      by[x.c].n++; by[x.c].s+=x.s; if(x.s>(x.t||by[x.c].g)) by[x.c].over++;
+    });
+    return CATS.filter(function(c){ return by[c] && (by[c].n||by[c].skip); }).map(function(c){
+      return { c:c, n:by[c].n, skip:by[c].skip, avg:by[c].n?Math.round(by[c].s/by[c].n):null,
+               tot:by[c].s, goal:by[c].g, over:by[c].over };
+    });
+  }
+  function paintTimeBox(){
+    var box=$('lvtTimeBox'); if(!box||!lastTimes) return;
+    var lim=Math.round(limitMs/1000), t=lastTimes;
+    var h='<div class="tb-h">⏱ 시간 분석 <span style="font-weight:600;color:var(--muted);font-size:12px">· 주황선 = 유형별 목표 시간</span></div>';
+    h+='<div class="tb-row"><div class="tb-nm">전체</div><div class="tb-v" style="width:auto;flex:1;text-align:left">'
+      +'<b style="font-size:16px;color:'+(ranOut?'#c0342b':(t.total>lim?'#c9762c':'#0a7d3f'))+'">'+secTxt(t.total)+'</b>'
+      +'<span style="color:var(--muted);font-family:var(--font-sans)"> / 제한 '+secTxt(lim)+'</span>'
+      +(ranOut?'<span style="color:#c0342b;font-weight:800;font-family:var(--font-sans)"> · 시간 초과로 자동 제출</span>':'')+'</div></div>';
+    var skipped=0;
+    timeByCat(t.items).forEach(function(r){
+      skipped+=r.skip;
+      if(r.avg==null){
+        h+='<div class="tb-row"><div class="tb-nm">'+r.c+'</div>'
+          +'<div class="tb-track"></div>'
+          +'<div class="tb-v" style="color:#c0342b;font-weight:800">손대지 못함</div></div>';
+        return;
+      }
+      var ratio=Math.min(100, Math.round(r.avg/(r.goal*2)*100));
+      var col=(r.avg>r.goal)?'#c0342b':'#0a7d3f';
+      h+='<div class="tb-row"><div class="tb-nm">'+r.c+'</div>'
+        +'<div class="tb-track"><div class="tb-fill" style="width:'+ratio+'%;background:'+col+'"></div>'
+        +'<div class="tb-goal" style="left:50%"></div></div>'
+        +'<div class="tb-v"><b style="color:'+col+'">'+r.avg+'초</b><span style="color:var(--muted)"> / 목표 '+r.goal+'초</span>'
+        +(r.skip?'<br><span style="color:#c0342b;font-size:11.5px">미도달 '+r.skip+'문항</span>':'')+'</div></div>';
+    });
+    if(skipped) h+='<div class="tb-note" style="color:#c0342b"><b>시간이 부족해 '+skipped+'문항은 풀지 못했습니다.</b> 평균 시간은 실제로 푼 문항만 계산했습니다.</div>';
+    if(t.over.length){
+      h+='<div class="tb-note">목표 시간을 넘긴 문항 <b>'+t.over.length+'개</b> — '
+        + t.over.slice(0,12).map(function(x){ return 'Q'+x.n+'('+x.s+'초)'; }).join(' · ')
+        + (t.over.length>12?' 외 '+(t.over.length-12)+'개':'') + '</div>';
+    } else if(!skipped){
+      h+='<div class="tb-note">모든 문항을 목표 시간 안에 풀었습니다. 속도는 충분합니다.</div>';
+    }
+    box.innerHTML=h;
+  }
   function blank(t){return t.replace("___",'<span class="blank">________</span>');}
   function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
   // 5개 능력에 각 6문항씩 = 총 30문항. 능력별 문항 수가 같아야 정답률 비교가 성립한다.
@@ -1228,6 +1341,7 @@
       box.appendChild(b);
     });
     if(ans[idx]!=null){ var chosen=box.querySelectorAll('.lvt-opt')[ans[idx]]; if(chosen) chosen.classList.add('sel'); }
+    qStart=Date.now(); tick();
     updateNav();
   }
   function updateNav(){
@@ -1237,9 +1351,10 @@
     nx.textContent = last ? '결과 보기 →' : '다음 문제 →';
     nx.disabled = !answered; nx.classList.toggle('is-off', !answered);
   }
-  function next(){ idx++; if(idx<Q.length){ render(); } else { result(); } }
-  function prev(){ if(idx>0){ idx--; render(); } }
+  function next(){ commitTime(); idx++; if(idx<Q.length){ render(); } else { result(); } }
+  function prev(){ if(idx>0){ commitTime(); idx--; render(); } }
   function result(){
+    stopTimer(); commitTime(); lastTimes=timeSummary();
     var earned=0, totw=0, correct=0, stat={};
     CATS.forEach(function(c){ stat[c]={c:0,t:0}; });
     for(var i=0;i<Q.length;i++){
@@ -1270,6 +1385,7 @@
     var wrongHtml = wrongNums.length
       ? '<div style="background:#fff5f5;border:1px solid #f0b4b4;border-radius:12px;padding:13px 16px;font-size:14px;line-height:1.6;color:#7a1f1f;margin-bottom:10px">✕ <b>틀린 문항 ('+wrongNums.length+'개):</b> '+wrongNums.join(' · ')+'<br><span style="font-size:12.5px;color:#a44">아래 <b>내가 틀린 문제 확인하기</b>에서 정답·해설을 볼 수 있어요.</span></div>'
       : '<div style="background:#f0fbf3;border:1px solid #a7e0bb;border-radius:12px;padding:13px 16px;font-size:14px;color:#14683a;margin-bottom:10px">🎉 <b>전 문항 정답입니다!</b></div>';
+    paintTimeBox();
     lastScore=score; lastWrong=wrongHtml; lastFocusArr=lvcFocus(abStat, ABIL);
     userLC=null; userRC=null;
     autoSave(score, abils, weakA);
@@ -1398,7 +1514,8 @@
   }
   function name0(){ var n=($('lvtName')&&$('lvtName').value||'').trim(); return n?n+'님 ':''; }
   // 관리 페이지(다른 IIFE)에서 같은 커리큘럼·리포트를 쓰기 위한 통로
-  window.WT_DIAG={ ABIL:ABIL, RX:RX, levelOf:lvcOf, openSheet:lvcOpenSheet };
+  window.WT_DIAG={ ABIL:ABIL, RX:RX, levelOf:lvcOf, openSheet:lvcOpenSheet,
+                   TGT:TGT, byCat:timeByCat, secTxt:secTxt };
 
   function lvcPrintSheet(){
     if(!lastCur) return;
@@ -1581,15 +1698,22 @@
       level:($('lvtLevel').textContent||'').replace('예상 레벨 — ',''),
       ab_infer:abils.infer, ab_locate:abils.locate, ab_connect:abils.connect,
       ab_vocab:abils.vocab, ab_gram:abils.gram, lc_score:userLC, rc_score:userRC,
-      weak:(weakA?weakA.ko:''), detail:lastReportText, student_id:p.id };
+      weak:(weakA?weakA.ko:''), detail:lastReportText, student_id:p.id,
+      total_sec:(lastTimes?lastTimes.total:null), timed_out:ranOut,
+      times:(lastTimes?lastTimes.items:null) };
     window.sb.from('diagnostics').insert(payload).then(function(r){
       if(r&&!r.error) autoSaved=true;
     });
   }
-  $('lvtStart').onclick=function(){ Q=build(); idx=0; ans=[]; if($('lvtTotQ')) $('lvtTotQ').textContent=Q.length; render(); pane('lvtQuiz'); };
+  $('lvtStart').onclick=function(){
+    Q=build(); idx=0; ans=[]; times=[]; ranOut=false;
+    if($('lvtTotQ')) $('lvtTotQ').textContent=Q.length;
+    limitMs=limitOf(Q)*1000; startTimer();
+    render(); pane('lvtQuiz');
+  };
   $('lvtPrev').onclick=function(){ prev(); };
-  $('lvtNext').onclick=function(){ if(ans[idx]==null) return; if(idx<Q.length-1){ idx++; render(); } else { result(); } };
-  $('lvtRetry').onclick=function(){ idx=0; ans=[]; pane('lvtIntro'); };
+  $('lvtNext').onclick=function(){ if(ans[idx]==null) return; next(); };
+  $('lvtRetry').onclick=function(){ stopTimer(); idx=0; ans=[]; times=[]; pane('lvtIntro'); };
   $('lvtReviewBtn').onclick=function(){ var r=$('lvtReview'); r.classList.toggle('on'); this.textContent=r.classList.contains('on')?'닫기':'내가 틀린 문제 확인하기'; };
   var lead=$('lvtLead');
   if(lead){
@@ -1609,7 +1733,9 @@
       var payload={ name:name, phone:phone, score:score, level:level,
         ab_infer:(ab.infer!=null?ab.infer:null), ab_locate:(ab.locate!=null?ab.locate:null), ab_connect:(ab.connect!=null?ab.connect:null), ab_vocab:(ab.vocab!=null?ab.vocab:null), ab_gram:(ab.gram!=null?ab.gram:null),
         weak:(lastDiag?lastDiag.weak:''), detail:lastReportText, lc_score:userLC, rc_score:userRC,
-        student_id:(window.WT_PROFILE?window.WT_PROFILE.id:null) };
+        student_id:(window.WT_PROFILE?window.WT_PROFILE.id:null),
+        total_sec:(lastTimes?lastTimes.total:null), timed_out:ranOut,
+        times:(lastTimes?lastTimes.items:null) };
       if(window.sb){
         if(autoSaved){   // 로그인 상태라 이미 저장됨 — 같은 결과를 두 번 남기지 않는다
           done(name+'님, 진단 상담 신청이 접수되었습니다! 담당 선생님이 결과를 확인하고 연락드리겠습니다.', true);
@@ -3322,7 +3448,7 @@
   </div>
 </div>
 <div class="wa-overlay" id="waMy" aria-hidden="true">
-  <div class="wa-card wa-admin">
+  <div class="wa-card">
     <button class="wa-x" id="waMyClose" aria-label="닫기">&times;</button>
     <div class="wa-head">내 정보 <span id="waMyName" class="dash-badge"></span></div>
     <div class="wa-sub" id="myEmail"></div>
@@ -3345,6 +3471,14 @@
       <p class="wa-err" id="myErr"></p>
       <button class="btn btn-primary" id="mySave" type="button">내 정보 저장</button>
     </div>
+  </div>
+</div>
+<!-- 내 학습 — 숙제·일정·결제·출석. 예전엔 '내 정보' 안에 있었으나 찾기 어려워 분리함 -->
+<div class="wa-overlay" id="waLearn" aria-hidden="true">
+  <div class="wa-card wa-admin">
+    <button class="wa-x" id="waLearnClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">내 학습 <span id="waLearnName" class="dash-badge"></span></div>
+    <div class="wa-sub">숙제와 수업 일정, 남은 수강 횟수를 한눈에 확인하세요.</div>
     <div class="dash-list-head">🎫 내 수강권 (남은 수업 횟수)</div>
     <div class="dash-note" id="myPass"></div>
     <div class="dash-list-head">📝 내 숙제 <span style="color:var(--muted);font-weight:700;font-size:12px">담당 선생님이 내준 숙제</span></div>
@@ -3785,7 +3919,7 @@
     function links(){
       var h='';
       if(s.role==='admin'||s.role==='manager'||s.role==='master') h+='<a class="wa-link" id="waAdminOpen">관리 페이지</a>';
-      if(s.role==='student') h+='<a class="wa-link" id="waBookOpen">수업 예약</a>';
+      if(s.role==='student') h+='<a class="wa-link" id="waLearnOpen">내 학습</a><a class="wa-link" id="waBookOpen">수업 예약</a>';
       h+='<a class="wa-link" id="waMyOpen">내 정보</a><a class="wa-link" id="waLogout">로그아웃</a>';
       return h;
     }
@@ -3793,7 +3927,7 @@
     if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
-      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waBookOpenM">수업 예약</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
+      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waLearnOpenM">내 학습</a><a href="#" id="waBookOpenM">수업 예약</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
       : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
   }
@@ -3811,6 +3945,8 @@
       ['waMasterOpenM','click',function(e){e.preventDefault();closeDrawer();openMaster();}],
       ['waMyOpen','click',function(){openMy();}],
       ['waMyOpenM','click',function(e){e.preventDefault();closeDrawer();openMy();}],
+      ['waLearnOpen','click',function(){openLearn();}],
+      ['waLearnOpenM','click',function(e){e.preventDefault();closeDrawer();openLearn();}],
       ['waBookOpen','click',function(){openBooking();}],
       ['waBookOpenM','click',function(e){e.preventDefault();closeDrawer();openBooking();}]
     ].forEach(function(m){ var el=$(m[0]); if(el) el.addEventListener(m[1],m[2]); });
@@ -3906,7 +4042,7 @@
   // 표를 보다가 실수로 클릭할 때마다 페이지가 통째로 닫힌다. 닫기는 X 버튼과 Esc로만.
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape' && $('waAdmin') && $('waAdmin').classList.contains('on')){
-      var others=['waModal','waRecovery','waBooking','waMy','waPayEdit','waEdit','waGoal','waEnd'].filter(function(id){ return $(id) && $(id).classList.contains('on'); });
+      var others=['waModal','waRecovery','waBooking','waMy','waLearn','waPayEdit','waEdit','waGoal','waEnd'].filter(function(id){ return $(id) && $(id).classList.contains('on'); });
       if(!others.length) $('waAdmin').classList.remove('on');
     }
   });
@@ -4056,6 +4192,7 @@
 
   function openMaster(){ openAdmin(); }
   async function openMy(){ if(!profile) return; await renderMy(); $('waMy').classList.add('on'); }
+  async function openLearn(){ if(!profile||!$('waLearn')) return; await renderLearn(); $('waLearn').classList.add('on'); }
 
   // 카카오 간편로그인 (활성 인증 블록)
   if($('waKakao')) $('waKakao').onclick=async function(){
@@ -5064,6 +5201,47 @@
           +'<span style="color:var(--muted)"> / 평균 '+r.a.avg+'</span> '
           +'<b style="color:'+(gap<0?'#c9762c':'#0a7d3f')+'">'+(gap>0?'+':'')+gap+'</b></div></div>';
     });
+    // ⏱ 시간 분석 — 어디에서 시간을 뺏겼는지
+    if(window.WT_DIAG && window.WT_DIAG.byCat && (d.total_sec!=null || d.times)){
+      var tItems=d.times; if(typeof tItems==='string'){ try{ tItems=JSON.parse(tItems); }catch(e){ tItems=null; } }
+      var stx=window.WT_DIAG.secTxt;
+      h+='<div style="margin-top:16px;font-weight:800;font-size:13.5px;color:var(--ink-soft)">⏱ 시간 분석 '
+        +'<span style="font-weight:600;color:var(--muted);font-size:12px">· 유형별 문항당 평균 · 목표 대비</span></div>';
+      h+='<div style="margin:8px 0 4px;font-size:13px">전체 소요 <b style="font-size:16px">'+(d.total_sec!=null?stx(d.total_sec):'-')+'</b>'
+        + (d.timed_out?' <b style="color:#c0342b">· 시간 초과로 자동 제출</b>':'') + '</div>';
+      var cats=window.WT_DIAG.byCat(tItems||[]);
+      if(!cats.length){ h+='<div style="color:var(--muted);font-size:13px">문항별 기록 없음 (기능 추가 전 진단입니다)</div>'; }
+      var skipTot=0;
+      cats.forEach(function(r){
+        skipTot+=r.skip;
+        if(r.avg==null){
+          h+='<div style="display:flex;align-items:center;gap:10px;margin:7px 0">'
+            +'<div style="width:86px;font-size:12.5px;font-weight:700;color:var(--ink-soft)">'+esc(r.c)+'</div>'
+            +'<div style="flex:1"></div>'
+            +'<div style="width:150px;text-align:right;font-size:12.5px;color:#c0342b;font-weight:800">손대지 못함 ('+r.skip+'문항)</div></div>';
+          return;
+        }
+        var ratio=Math.min(100, Math.round(r.avg/(r.goal*2)*100));
+        var col=(r.avg>r.goal)?'#c0342b':'#0a7d3f';
+        h+='<div style="display:flex;align-items:center;gap:10px;margin:7px 0">'
+          +'<div style="width:86px;font-size:12.5px;font-weight:700;color:var(--ink-soft)">'+esc(r.c)+'</div>'
+          +'<div style="flex:1;background:#eef1f6;border-radius:8px;height:20px;position:relative;overflow:hidden">'
+            +'<div style="width:'+ratio+'%;height:100%;background:'+col+';border-radius:8px"></div>'
+            +'<div style="position:absolute;left:50%;top:-2px;bottom:-2px;width:2px;background:#c9762c"></div></div>'
+          +'<div style="width:150px;text-align:right;font-size:12.5px"><b style="color:'+col+'">'+r.avg+'초</b>'
+            +'<span style="color:var(--muted)"> / 목표 '+r.goal+'초</span>'
+            +(r.over?' <b style="color:#c0342b">초과 '+r.over+'</b>':'')
+            +(r.skip?' <b style="color:#c0342b">미도달 '+r.skip+'</b>':'')+'</div></div>';
+      });
+      if(skipTot) h+='<div style="margin-top:8px;font-size:12.5px;color:#c0342b;font-weight:700">시간이 부족해 '+skipTot+'문항 미도달 — 평균은 실제로 푼 문항만 계산</div>';
+      if(tItems && tItems.length){
+        var slow=tItems.filter(function(x){return x.s>(x.t||30);}).sort(function(a,b){return (b.s-b.t)-(a.s-a.t);});
+        if(slow.length) h+='<div style="margin-top:8px;font-size:12.5px;color:var(--ink-soft);line-height:1.7">'
+          +'<b>오래 걸린 문항 (목표 초과순)</b><br>'
+          + slow.slice(0,15).map(function(x){ return 'Q'+x.n+' '+esc(x.c)+' <b>'+x.s+'초</b><span style="color:var(--muted)">/'+x.t+'</span>'; }).join(' · ')
+          + (slow.length>15?' 외 '+(slow.length-15)+'개':'') + '</div>';
+      }
+    }
     // 추천 커리큘럼 + 리포트 인쇄
     if(window.WT_DIAG && d.score!=null){
       var L=window.WT_DIAG.levelOf(d.score);
@@ -5415,6 +5593,10 @@
     if($('myMarketing')) $('myMarketing').checked=!!profile.marketing;
     if($('myPw')) $('myPw').value='';
     if($('myErr')) $('myErr').textContent='';
+  }
+  // 내 학습 — 수강권·숙제·일정·결제·출석. '내 정보'와 분리된 별도 창.
+  async function renderLearn(){
+    if($('waLearnName')) $('waLearnName').textContent=roleTag(profile.role);
     if($('myschedTable')){
       var rows=[];
       if(sb){ var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-6*3600*1000).toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; }
@@ -5462,6 +5644,12 @@
   });
   if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
   if($('waMy')) $('waMy').addEventListener('click',function(e){ if(e.target===$('waMy')) $('waMy').classList.remove('on'); });
+  if($('waLearnClose')) $('waLearnClose').onclick=function(){ $('waLearn').classList.remove('on'); };
+  // ⚠️ 배경 클릭 닫기는 넣지 않는다 — wa-admin 카드는 양옆 여백이 곧 오버레이라
+  //    표 옆을 눌렀을 뿐인데 창이 닫힌다(관리 페이지에서 겪은 문제). 닫기는 X와 Esc로.
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape' && $('waLearn') && $('waLearn').classList.contains('on')) $('waLearn').classList.remove('on');
+  });
   if($('mySave')) $('mySave').onclick=async function(){
     if(!profile||!sb) return;
     var err=$('myErr'); err.textContent='';
