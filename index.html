@@ -3289,8 +3289,8 @@
         <p class="wa-err" id="pyErr"></p>
         <button class="btn btn-primary" id="pyAdd" type="button">＋ 정산 추가</button>
       </div>
-      <div class="dash-list-head">💰 수납 집계 <span style="font-weight:700;font-size:12px;color:var(--muted)">결제일 기준</span></div>
-      <div class="dash-form" style="margin-top:6px">
+      <div class="dash-list-head" id="sumHead">💰 수납 집계 <span style="font-weight:700;font-size:12px;color:var(--muted)">결제일 기준</span></div>
+      <div class="dash-form" style="margin-top:6px" id="sumForm">
         <div class="dash-row">
           <label>시작일<input type="date" id="sumFrom"></label>
           <label>종료일<input type="date" id="sumTo"></label>
@@ -3977,6 +3977,18 @@
   async function renderTable(){
     var m=[];
     if(sb){ var r=await sb.from('profiles').select('*').order('created_at',{ascending:false}); if(!r.error && r.data) m=r.data; }
+    // 배분율은 profiles 가 아니라 teacher_rates 에 있다. 행 보안 때문에
+    // 원장·매니저는 전체가, 선생님은 본인 것만 돌아온다.
+    // → 남의 배분율은 값 자체가 브라우저에 오지 않는다.
+    if(sb){
+      try{
+        var rr=await sb.from('teacher_rates').select('teacher_id,pay_rate');
+        if(!rr.error && rr.data){
+          var rmap={}; rr.data.forEach(function(x){ rmap[x.teacher_id]=Number(x.pay_rate); });
+          m.forEach(function(u){ if(rmap[u.id]!=null) u.pay_rate=rmap[u.id]; });
+        }
+      }catch(e){}
+    }
     window.__wtMembers=m;
     drawMembers();
   }
@@ -4019,7 +4031,11 @@
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'해당하는 회원이 없습니다.')+'</td></tr>'; return; }
     function rt(r,u){
       var tag = r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='manager'?'<b style="color:#7c3aed">매니저</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생'));
-      if(r==='admin'||r==='master'){ var pr=(u&&u.pay_rate!=null)?Number(u.pay_rate):50; tag+=' <span style="color:var(--muted);font-size:11.5px;font-weight:700">배분 '+pr+'%</span>'; }
+      // 배분율은 값을 아는 경우에만 보여준다. 선생님에게는 본인 것만 내려오므로
+      // 다른 강사·원장님 행에는 아무것도 뜨지 않는다. (모를 때 50%로 추측해 보여주면 안 됨)
+      if((r==='admin'||r==='master'||r==='manager') && u && u.pay_rate!=null){
+        tag+=' <span style="color:var(--muted);font-size:11.5px;font-weight:700">배분 '+Number(u.pay_rate)+'%</span>';
+      }
       return tag;
     }
     var tmap={}; all.forEach(function(x){ tmap[x.id]=x.name; });
@@ -4931,6 +4947,9 @@
     if(!$('pyTable')) return;
     var rows=[];
     if(sb && month){ var r=await sb.from('payments').select('*').eq('month',month).order('paid_at',{ascending:false}); if(!r.error&&r.data) rows=r.data; }
+    // 선생님은 본인이 담당 강사인 건만. 서버(RLS)에서도 같은 규칙으로 막지만,
+    // 화면에서도 걸러야 예전 데이터나 정책 누락 시에 남의 실지급액이 새지 않는다.
+    if(!isOps() && profile) rows=rows.filter(function(p){ return p.teacher_id===profile.id; });
     window.__wtPayments=rows;
     var total=rows.reduce(function(a,b){return a+payAmt(b);},0);
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
@@ -4949,6 +4968,12 @@
     var mm=isOps();
     if($('pyAddForm')) $('pyAddForm').style.display = mm ? '' : 'none';
     if($('pyScopeNote')) $('pyScopeNote').style.display = mm ? 'none' : '';
+    // 학원 전체 수납 집계는 원장님·매니저만. 선생님에게는 본인 담당 건만 보이므로
+    // '총 매출액'이라는 이름의 반쪽짜리 숫자가 되어 오해를 부른다.
+    ['sumHead','sumForm','sumBox'].forEach(function(id){
+      if($(id)) $(id).style.display = mm ? (id==='sumBox' ? $(id).style.display : '') : 'none';
+    });
+    if(!mm && $('sumBox')) $('sumBox').style.display='none';
   }
   // 학생을 고르면 그 학생의 담당 선생님과 그 선생님의 배분율을 자동으로 채운다. (원장님이 손으로 고칠 수 있음)
   function syncPayTeacher(){
@@ -5795,7 +5820,12 @@
     var row=cb.closest('tr'); if(row&&row.lastElementChild){ row.lastElementChild.innerHTML=hwProgTag(x); }
   });
   if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
-  if($('waMy')) $('waMy').addEventListener('click',function(e){ if(e.target===$('waMy')) $('waMy').classList.remove('on'); });
+  // 내 정보도 입력 폼이라 배경 클릭으로 닫지 않는다. X 버튼과 Esc 로만.
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape' || !$('waMy') || !$('waMy').classList.contains('on')) return;
+    $('waMy').classList.remove('on');
+    if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+  });
   if($('waLearnClose')) $('waLearnClose').onclick=function(){ $('waLearn').classList.remove('on'); };
   // ⚠️ 배경 클릭 닫기는 넣지 않는다 — wa-admin 카드는 양옆 여백이 곧 오버레이라
   //    표 옆을 눌렀을 뿐인데 창이 닫힌다(관리 페이지에서 겪은 문제). 닫기는 X와 Esc로.
@@ -5912,7 +5942,13 @@
   }
   function closeBooking(){ if($('waBooking')) $('waBooking').classList.remove('on'); }
   if($('waBookClose')) $('waBookClose').onclick=closeBooking;
-  if($('waBooking')) $('waBooking').addEventListener('click',function(e){ if(e.target===$('waBooking')) closeBooking(); });
+  // 배경 클릭으로는 닫지 않는다 — 날짜·과목을 고르다 옆을 눌러 닫히는 것을 막는다.
+  // 닫기는 X 버튼과 Esc 키로만. (로그인 창·관리 페이지·내 학습과 동일)
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Escape' || !$('waBooking') || !$('waBooking').classList.contains('on')) return;
+    closeBooking();
+    if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+  });
   if($('waBookDate')) $('waBookDate').addEventListener('change', loadBookSlots);
 
   async function loadBookSlots(){
