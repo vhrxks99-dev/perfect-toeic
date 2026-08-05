@@ -1,6 +1,14 @@
 -- ============================================================
 -- 학생 수업 예약 (선생님 승인제, 2시간 단위, 이름 비노출)
--- Supabase SQL Editor 에 붙여넣고 RUN 하세요.
+-- Supabase SQL Editor 에 붙여넣고 RUN 하세요. (여러 번 실행해도 안전)
+--
+-- 예약 가능 시간 (2026-08-05 변경)
+--   10:00~12:00 · 13:00~15:00 · 15:00~17:00
+--   17:00~19:00 · 19:00~21:00 · 21:00~23:00
+--   (12~13시는 비움)
+-- ※ 시간대를 또 바꾸려면 아래 v_hours 배열과 request_booking 의
+--    검증 배열 두 곳을 반드시 같이 고칠 것. 한쪽만 고치면
+--    화면에는 보이는데 누르면 "예약 가능한 시간이 아니에요"가 뜬다.
 -- ============================================================
 
 -- 1) schedules 에 상태 컬럼 추가 (pending=승인대기 / confirmed=확정)
@@ -20,7 +28,7 @@ declare
   v_teacher_name text;
   v_room_count int;
   v_slots jsonb := '[]'::jsonb;
-  v_hours int[] := array[10,12,14,16,18,20];
+  v_hours int[] := array[10,13,15,17,19,21];   -- ↔ request_booking 검증 배열과 같아야 함
   h int; s_ts timestamptz; e_ts timestamptz;
   busy_teacher int; busy_rooms int; avail boolean;
 begin
@@ -69,7 +77,8 @@ begin
   if v_teacher is null then return jsonb_build_object('ok',false,'msg','담당 선생님 배정 후 이용할 수 있어요.'); end if;
   if p_start !~ '^[0-9]{2}:00$' then return jsonb_build_object('ok',false,'msg','잘못된 시간이에요.'); end if;
   h := split_part(p_start,':',1)::int;
-  if h <> all (array[10,12,14,16,18,20]) then return jsonb_build_object('ok',false,'msg','예약 가능한 시간이 아니에요.'); end if;
+  -- ↔ free_slots 의 v_hours 와 같아야 함
+  if h <> all (array[10,13,15,17,19,21]) then return jsonb_build_object('ok',false,'msg','예약 가능한 시간이 아니에요.'); end if;
   select name into v_teacher_name from public.profiles where id = v_teacher;
   s_ts := (p_date::timestamp + make_interval(hours => h)) at time zone 'Asia/Seoul';
   e_ts := s_ts + interval '2 hours';
@@ -94,3 +103,12 @@ grant execute on function public.request_booking(date, text, text) to authentica
 drop policy if exists "sched_student_cancel" on public.schedules;
 create policy "sched_student_cancel" on public.schedules for delete
   using (student_id = auth.uid() and status = 'pending');
+
+-- 5) 확인 — 두 줄 모두 '새 시간대 적용됨' 이어야 정상
+select proname as 함수,
+       case when prosrc like '%10,13,15,17,19,21%'
+            then '새 시간대 적용됨 (10·13·15·17·19·21시)'
+            else '아직 옛 시간대 — 위 SQL이 실행되지 않았습니다' end as 확인
+from pg_proc
+where proname in ('free_slots','request_booking')
+order by proname;
