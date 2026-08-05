@@ -3296,7 +3296,7 @@
           <label style="flex:.7">구분<select id="pyKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
-          <label>수업 횟수권(회) <span class="wa-hint" id="pySessHint">대면 1회 60,000원</span><input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"></label>
+          <label>수업 횟수권(회) <span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span><input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"></label>
           <label>정산 월<input type="month" id="pyMonth"></label>
         </div>
         <div class="dash-row">
@@ -3546,7 +3546,7 @@
         <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
-        <label>횟수권(회) <span class="wa-hint" id="pyeSessHint">대면 1회 60,000원</span><input type="number" id="pyeSessions" min="0" placeholder="8+"></label>
+        <label>횟수권(회) <span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span><input type="number" id="pyeSessions" min="0" placeholder="8+"></label>
       </div>
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
@@ -4483,6 +4483,7 @@
     await loadRooms();
     fillSelects();
     computeStudentPool(); fillStudentSelects();
+    syncAddPrice(false);   // 처음 고른 학생에 맞춰 단가 안내를 띄운다(금액은 건드리지 않음)
     var now=new Date();
     if($('scDate')&&!$('scDate').value) $('scDate').value=ymd(now);
     if($('rmDate')&&!$('rmDate').value) $('rmDate').value=ymd(now);
@@ -5214,18 +5215,33 @@
   // 수업 1회 단가 — 대면 6만원 / 비대면 5만원. 학생의 '수업형태'로 자동 선택한다.
   // ※ 단가가 바뀌면 이 두 숫자만 고치면 된다.
   var SESSION_PRICE={ offline:60000, online:50000 };
-  function priceFor(mode){ return (mode==='online')?SESSION_PRICE.online:SESSION_PRICE.offline; }
-  function modeLabel(mode){ return (mode==='online')?'비대면':'대면'; }
+  // 수업형태가 정해지지 않은 학생은 단가를 알 수 없다 → 계산을 보류하고 알린다.
+  // (대면으로 넘겨짚으면 비대면 학생에게 1만원씩 더 청구된다)
+  function priceFor(mode){
+    if(mode==='online') return SESSION_PRICE.online;
+    if(mode==='offline') return SESSION_PRICE.offline;
+    return null;
+  }
+  function modeLabel(mode){ return (mode==='online')?'비대면':((mode==='offline')?'대면':''); }
   function studentMode(sid){
     var s=(_members||[]).filter(function(m){ return m.id===sid; })[0];
-    return (s&&s.lesson_mode)||'';   // 미지정이면 대면 단가로 본다
+    return (s&&s.lesson_mode)||'';
   }
   // 금액은 횟수를 바꿀 때만 자동으로 채운다. 할인 등으로 직접 고친 금액은 덮지 않는다.
   function applySessionPrice(sessId, amtId, hintId, mode, fillAmount){
     var se=$(sessId), ae=$(amtId); if(!se||!ae) return;
     var n=parseInt(se.value,10)||0, unit=priceFor(mode);
-    if(n>0 && fillAmount!==false) ae.value=n*unit;
     var hint=hintId?$(hintId):null;
+    if(unit==null){
+      // 수업형태 미지정 — 금액은 손대지 않고 안내만 띄운다
+      if(hint){
+        hint.textContent='수업형태 미지정 — 자동 계산 보류 (회원 관리에서 대면·비대면을 정해주세요)';
+        hint.style.color='#c0342b';
+      }
+      drawPayPreview(); return;
+    }
+    if(hint) hint.style.color='';
+    if(n>0 && fillAmount!==false) ae.value=n*unit;
     if(hint) hint.textContent = n>0
       ? (modeLabel(mode)+' 1회 '+unit.toLocaleString('ko-KR')+'원 × '+n+'회 = '+won(n*unit))
       : (modeLabel(mode)+' 1회 '+unit.toLocaleString('ko-KR')+'원');
