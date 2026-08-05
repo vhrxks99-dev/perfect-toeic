@@ -3000,6 +3000,7 @@
       </div>
       <label>관심 과목<select id="waSuInterest"><option value="">선택하세요</option><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option><option>토익+스피킹</option></select></label>
       <label>알게 된 경로<select id="waSuRoute"><option value="">선택하세요</option><option>인스타그램</option><option>네이버</option><option>숨고</option><option>지인 추천</option><option>블로그</option><option>기타</option></select></label>
+      <label>희망 선생님 <span class="wa-hint">(선택 · 학원에서 확인 후 정해집니다)</span><select id="waSuTeacher"><option value="">아직 정하지 않았어요</option></select></label>
       <label class="wa-check"><input type="checkbox" id="waSuMarketing"><span>이벤트·개강·혜택 등 마케팅 정보 수신에 동의합니다. <span class="wa-hint">(선택)</span></span></label>
       <label class="wa-check"><input type="checkbox" id="waSuAgree" required><span>개인정보 수집·이용에 동의합니다. <em>*</em></span></label>
       <p class="wa-err" id="waSuErr"></p>
@@ -3845,9 +3846,23 @@
   function today(){ var d=new Date(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
   var profile = null;
 
-  function openModal(tab){ $('waModal').classList.add('on'); setTab(tab||'login'); }
+  function openModal(tab){ $('waModal').classList.add('on'); setTab(tab||'login'); loadSignupTeachers(); }
   function closeModal(){ $('waModal').classList.remove('on'); }
   function setTab(t){ var ms=$('waModal'); ms.querySelectorAll('.wa-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===t);}); ms.querySelectorAll('.wa-form').forEach(function(f){f.classList.toggle('on',f.getAttribute('data-form')===t);}); }
+  // 가입 화면의 담당 선생님 목록. 비로그인이라 profiles 를 직접 못 읽으므로
+  // 이름만 돌려주는 teacher_list() 함수를 쓴다. 한 번만 불러온다.
+  var _suTeachersLoaded=false;
+  async function loadSignupTeachers(){
+    var sel=$('waSuTeacher');
+    if(!sel || _suTeachersLoaded || !sb) return;
+    try{
+      var r=await sb.rpc('teacher_list');
+      if(r.error || !r.data || !r.data.length) return;
+      sel.innerHTML='<option value="">아직 정하지 않았어요</option>'
+        + r.data.map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+' 선생님</option>'; }).join('');
+      _suTeachersLoaded=true;
+    }catch(e){}
+  }
   window.waOpenLogin = function(){ openModal('login'); };
   if($('waClose')) $('waClose').onclick = closeModal;
   // ⚠️ 배경(카드 옆 여백) 클릭으로는 닫지 않는다.
@@ -3890,8 +3905,18 @@
     if(!user){ err.textContent='가입에 실패했습니다. 다시 시도해주세요.'; return; }
     var ins=await sb.from('profiles').insert({ id:user.id, name:name, email:email, phone:phone, birth:birth, gender:gender, interest:interest, route:route, marketing:marketing });
     if(ins.error){ console.error('profile insert:', ins.error); }
+    // 학생이 고른 선생님은 '희망'으로만 기록한다. 실제 담당강사는 원장님이 확정한다.
+    // (담당강사는 정산 배분의 기준이라 학생이 직접 정하게 두지 않는다)
+    var wantT=$('waSuTeacher')?$('waSuTeacher').value:'';
+    var teacherMsg='';
+    if(wantT){
+      var ct=await sb.rpc('wish_teacher',{tid:wantT});
+      if(ct.error){ console.error('wish_teacher:', ct.error); }
+      else { var tOpt=$('waSuTeacher').options[$('waSuTeacher').selectedIndex];
+             teacherMsg='\n\n희망 선생님: '+(tOpt?tOpt.textContent:'')+'\n담당 선생님은 학원에서 확인 후 정해집니다.'; }
+    }
     $('waSignupForm').reset(); closeModal(); await refresh();
-    alert(name+'님, 회원가입이 완료되었습니다!');
+    alert(name+'님, 회원가입이 완료되었습니다!'+teacherMsg);
   });
 
   if($('waLoginForm')) $('waLoginForm').addEventListener('submit', async function(e){
@@ -4078,17 +4103,25 @@
     // 선생님은 '미배정' 학생을 본인 담당으로 가져오는 것만 가능(서버에서도 같은 규칙으로 막음).
     var staffOpts=all.filter(function(x){ return isStaffRole(x.role); })
                      .sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+    // 학생이 가입할 때 고른 '희망 선생님'. 확정은 원장님(또는 본인 담당으로 가져오는 선생님)이 한다.
+    function wishLine(u){
+      if(u.teacher_id || !u.wish_teacher_id) return '';
+      var wn=tmap[u.wish_teacher_id]||'-';
+      return '<div style="margin-top:3px;font-size:11.5px;white-space:nowrap;color:#b26a00;font-weight:700">'
+        + '희망 ' + esc(wn)
+        + ' <a class="wa-link" data-twish="'+esc(u.id)+'" data-twishid="'+esc(u.wish_teacher_id)+'" style="font-size:11.5px">확정</a></div>';
+    }
     function teacherCell(u){
       if(u.role!=='student') return '<td>-</td>';
       if(isOps()){
         var o='<option value="">미배정</option>'+staffOpts.map(function(t){
           return '<option value="'+esc(t.id)+'"'+(u.teacher_id===t.id?' selected':'')+'>'+esc(t.name)+'</option>'; }).join('');
-        return '<td><select data-tset="'+esc(u.id)+'" style="'+pickStyle('var(--line)','#fff','var(--ink)')+'">'+o+'</select></td>';
+        return '<td><select data-tset="'+esc(u.id)+'" style="'+pickStyle('var(--line)','#fff','var(--ink)')+'">'+o+'</select>'+wishLine(u)+'</td>';
       }
       if(u.teacher_id) return '<td>'+esc(tmap[u.teacher_id]||'-')+'</td>';
       if(profile && profile.role==='admin')
-        return '<td><a class="wa-link" data-tmine="'+esc(u.id)+'" style="font-size:12.5px;white-space:nowrap">+ 내 담당으로</a></td>';
-      return '<td><span style="color:var(--muted)">미배정</span></td>';
+        return '<td><a class="wa-link" data-tmine="'+esc(u.id)+'" style="font-size:12.5px;white-space:nowrap">+ 내 담당으로</a>'+wishLine(u)+'</td>';
+      return '<td><span style="color:var(--muted)">미배정</span>'+wishLine(u)+'</td>';
     }
     var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당강사</th><th>구분</th><th>수업형태</th><th>점수·목표</th><th>수강상태</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     m.forEach(function(u){
@@ -4117,6 +4150,19 @@
   });
   if($('waTable')) $('waTable').addEventListener('focusin', function(e){
     var sel=e.target; if(sel&&sel.getAttribute&&sel.getAttribute('data-tset')!=null) sel.setAttribute('data-prev',sel.value);
+  });
+  // 희망 선생님을 그대로 확정 (원장·매니저는 아무나, 선생님은 본인일 때만 — 서버가 검사)
+  if($('waTable')) $('waTable').addEventListener('click', async function(e){
+    var w=(e.target&&e.target.closest)?e.target.closest('[data-twish]'):null; if(!w||!sb) return;
+    e.preventDefault();
+    var sid=w.getAttribute('data-twish'), wid=w.getAttribute('data-twishid');
+    var mem=(window.__wtMembers||[]).filter(function(x){return x.id===sid;})[0];
+    var tname=(window.__wtMembers||[]).filter(function(x){return x.id===wid;})[0];
+    if(!confirm((mem?mem.name:'이 학생')+' 학생의 담당강사를 '+(tname?tname.name:'')+' 선생님으로 확정할까요?')) return;
+    var rw=await sb.rpc('set_teacher',{target:sid,tid:wid});
+    if(rw.error){ alert('확정 실패: '+rw.error.message); return; }
+    if(mem) mem.teacher_id=wid;
+    drawMembers();
   });
   // 선생님이 미배정 학생을 본인 담당으로 가져오기
   if($('waTable')) $('waTable').addEventListener('click', async function(e){
