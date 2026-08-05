@@ -3479,6 +3479,9 @@
       <p class="wa-err" id="myErr"></p>
       <button class="btn btn-primary" id="mySave" type="button">내 정보 저장</button>
     </div>
+    <div id="myQuitWrap" style="display:none;margin-top:22px;padding-top:16px;border-top:1px solid var(--line);text-align:center">
+      <a href="#" id="myQuit" style="font-size:12.5px;color:var(--muted);text-decoration:underline;text-underline-offset:3px">회원 탈퇴</a>
+    </div>
   </div>
 </div>
 <!-- 내 학습 — 숙제·일정·결제·출석. 예전엔 '내 정보' 안에 있었으나 찾기 어려워 분리함 -->
@@ -4019,6 +4022,39 @@
   }
   // 회원 목록 구분: 학생과 선생님(원장·매니저 포함)을 갈라서 본다.
   var memberFilter='all';
+  // ── 표 정렬 ─────────────────────────────────────────────────
+  // 값이 비어 있는 행은 오름차순·내림차순 어느 쪽이든 항상 아래로 보낸다.
+  // (빈칸이 맨 위에 몰리면 목록을 훑기 어렵다)
+  var memberSort={ key:'created_at', dir:'desc' };
+  var ROLE_RANK={ master:0, manager:1, admin:2, student:3 };
+  function numOf(v){ var s=String(v==null?'':v).replace(/[^0-9]/g,''); return s?parseInt(s,10):null; }
+  var SORT_KEYS={
+    name:       function(u){ return (u.name||'').trim()||null; },
+    teacher:    function(u,tmap){ return u.role==='student' ? (tmap[u.teacher_id]||null) : null; },
+    role:       function(u){ var r=ROLE_RANK[u.role]; return r==null?null:r; },
+    lesson_mode:function(u){ return u.role==='student' ? (u.lesson_mode||null) : null; },
+    score:      function(u){ return u.role==='student' ? (numOf(u.current_score)!=null?numOf(u.current_score):numOf(u.goal_score)) : null; },
+    status:     function(u){ return u.role==='student' ? (u.status==='ended'?1:0) : null; },
+    created_at: function(u){ return u.created_at||null; }
+  };
+  function sortMembers(list, tmap){
+    var get=SORT_KEYS[memberSort.key]; if(!get) return;
+    var sign=(memberSort.dir==='asc')?1:-1;
+    list.sort(function(a,b){
+      var x=get(a,tmap), y=get(b,tmap);
+      if(x==null && y==null) return 0;
+      if(x==null) return 1;          // 빈 값은 방향과 무관하게 뒤로
+      if(y==null) return -1;
+      if(typeof x==='number' && typeof y==='number') return (x-y)*sign;
+      return String(x).localeCompare(String(y),'ko')*sign;
+    });
+  }
+  function sortableTh(key, label){
+    var on=(memberSort.key===key);
+    var arrow=on ? (memberSort.dir==='asc'?' ▲':' ▼') : '';
+    return '<th data-msort="'+key+'" style="cursor:pointer;white-space:nowrap;'+(on?'color:var(--accent)':'')+'" title="눌러서 정렬">'
+      + esc(label) + '<span style="font-size:10px">' + arrow + '</span></th>';
+  }
   function isStaffRole(r){ return r==='admin'||r==='master'||r==='manager'; }
   function drawMembers(){
     var all=window.__wtMembers||[];
@@ -4064,6 +4100,7 @@
       return tag;
     }
     var tmap={}; all.forEach(function(x){ tmap[x.id]=x.name; });
+    sortMembers(m, tmap);
     var mm=isMasterNow();
     // 학생 전용 칸 두 개. 선생님·원장님 행에는 의미가 없어 '-'만 보인다.
     function pickStyle(line,bg,fg){ return 'font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;border:1px solid '+line+';background:'+bg+';color:'+fg; }
@@ -4123,15 +4160,26 @@
         return '<td><a class="wa-link" data-tmine="'+esc(u.id)+'" style="font-size:12.5px;white-space:nowrap">+ 내 담당으로</a>'+wishLine(u)+'</td>';
       return '<td><span style="color:var(--muted)">미배정</span>'+wishLine(u)+'</td>';
     }
-    var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당강사</th><th>구분</th><th>수업형태</th><th>점수·목표</th><th>수강상태</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    var h='<tr>'+sortableTh('name','이름')+'<th>이메일</th><th>연락처</th><th>관심과목</th>'
+      + sortableTh('teacher','담당강사') + sortableTh('role','구분') + sortableTh('lesson_mode','수업형태')
+      + sortableTh('score','점수·목표') + sortableTh('status','수강상태') + sortableTh('created_at','가입일')
+      + (mm?'<th>관리</th>':'')+'</tr>';
     m.forEach(function(u){
-      var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">삭제</a></td>' : '';
+      var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">탈퇴</a></td>' : '';
       var tn = teacherCell(u);
       h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
     $('waTable').innerHTML=h;
   }
   if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
   if($('waTeacherFilter')) $('waTeacherFilter').addEventListener('change', drawMembers);
+  // 머리글 클릭 = 정렬. 같은 칸을 또 누르면 오름/내림이 뒤집힌다.
+  if($('waTable')) $('waTable').addEventListener('click', function(e){
+    var th=(e.target&&e.target.closest)?e.target.closest('th[data-msort]'):null; if(!th) return;
+    var key=th.getAttribute('data-msort');
+    if(memberSort.key===key) memberSort.dir=(memberSort.dir==='asc')?'desc':'asc';
+    else memberSort={ key:key, dir:(key==='created_at')?'desc':'asc' };
+    drawMembers();
+  });
   if($('waRoleFilter')) $('waRoleFilter').addEventListener('click', function(e){
     var b=(e.target&&e.target.closest)?e.target.closest('[data-mrole]'):null; if(!b) return;
     memberFilter=b.getAttribute('data-mrole');
@@ -4289,13 +4337,19 @@
     $('waERateWrap').style.display=(r==='admin'||r==='master')?'':'none';
   }
   if($('waERole')) $('waERole').addEventListener('change', toggleRateField);
+  // 회원 탈퇴 처리 — 로그인 계정까지 지운다.
+  // 예전에는 profiles 행만 지워서 그 사람이 다시 로그인할 수 있었다.
   async function delMember(u){
-    if(profile && u.id===profile.id){ alert('본인(원장님) 계정은 여기서 삭제할 수 없습니다.'); return; }
-    if(!confirm(u.name+' ('+u.email+') 회원을 삭제할까요?\n\n※ 회원 프로필이 삭제됩니다. (로그인 계정 자체의 완전 삭제는 추후 서버 기능으로 추가할 수 있어요.)')) return;
+    if(profile && u.id===profile.id){ alert('본인(원장님) 계정은 여기서 탈퇴시킬 수 없습니다.'); return; }
     if(!sb) return;
-    var r=await sb.from('profiles').delete().eq('id',u.id);
-    if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    if(!confirm(u.name+' ('+u.email+') 회원을 탈퇴 처리할까요?\n\n· 로그인 계정과 회원 정보가 삭제됩니다.\n· 이 사람은 더 이상 로그인할 수 없습니다.\n· 되돌릴 수 없습니다.\n\n※ 정산·수업 기록은 이름이 남아 그대로 보존됩니다.')) return;
+    var typed=prompt('실수를 막기 위해 회원 이름 "'+u.name+'" 을(를) 그대로 입력해주세요.');
+    if(typed===null) return;
+    if((typed||'').trim()!==(u.name||'').trim()){ alert('이름이 일치하지 않아 취소했습니다.'); return; }
+    var r=await sb.rpc('delete_member',{target:u.id});
+    if(r.error){ alert('탈퇴 처리 실패: '+r.error.message); return; }
     await renderTable();
+    alert(u.name+' 회원이 탈퇴 처리되었습니다.');
   }
   if($('waEditClose')) $('waEditClose').onclick=function(){ $('waEdit').classList.remove('on'); };
   if($('waEdit')) $('waEdit').addEventListener('click',function(e){ if(e.target===$('waEdit')) $('waEdit').classList.remove('on'); });
@@ -5805,7 +5859,23 @@
     if($('myMarketing')) $('myMarketing').checked=!!profile.marketing;
     if($('myPw')) $('myPw').value='';
     if($('myErr')) $('myErr').textContent='';
+    // 탈퇴는 학생만. 강사·원장 계정은 정산 배분과 얽혀 있어 원장님이 처리한다.
+    if($('myQuitWrap')) $('myQuitWrap').style.display = (profile.role==='student') ? '' : 'none';
   }
+  // 회원 탈퇴 — 되돌릴 수 없으므로 이름을 직접 입력해 확인받는다
+  if($('myQuit')) $('myQuit').onclick=async function(e){
+    e.preventDefault();
+    if(!sb||!profile) return;
+    if(!confirm('정말 탈퇴하시겠어요?\n\n· 로그인 계정과 회원 정보가 삭제됩니다.\n· 숙제·수업 예약·내 학습 기록을 더 이상 볼 수 없습니다.\n· 되돌릴 수 없습니다.\n\n(학원의 수강·결제 장부는 회계상 보관됩니다)')) return;
+    var typed=prompt('확인을 위해 본인 이름 "'+profile.name+'" 을(를) 그대로 입력해주세요.');
+    if(typed===null) return;
+    if((typed||'').trim()!==(profile.name||'').trim()){ alert('이름이 일치하지 않아 취소했습니다.'); return; }
+    var r=await sb.rpc('delete_my_account');
+    if(r.error){ alert('탈퇴 실패: '+r.error.message); return; }
+    try{ await sb.auth.signOut(); }catch(e2){}
+    alert('탈퇴 처리되었습니다. 그동안 이용해 주셔서 감사합니다.');
+    location.reload();
+  };
   // 내 학습 — 수강권·숙제·일정·결제·출석. '내 정보'와 분리된 별도 창.
   async function renderLearn(){
     if($('waLearnName')) $('waLearnName').textContent=roleTag(profile.role);
