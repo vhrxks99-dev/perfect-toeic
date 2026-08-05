@@ -3167,9 +3167,19 @@
 
       <div id="kioskAdmin" style="display:none">
         <div class="dash-list-head">📱 등원관리 (아이패드 키오스크)</div>
-        <div class="dash-note" style="margin-top:0">
-          학원 아이패드 사파리에서 <b>perfect-toeic.com/#checkin</b> 을 열고, 아래 PIN을 한 번 넣으면 등원 화면이 됩니다.
-          (사파리 <b>공유 → 홈 화면에 추가</b> 하면 앱처럼 전체화면으로 떠요.)<br>
+        <div style="border:1.5px solid var(--line-strong);border-radius:12px;padding:14px 16px;margin-top:8px;background:var(--surface-2)">
+          <div style="font-weight:800;font-size:13px;color:var(--muted)">아이패드에서 열 주소</div>
+          <div id="kioUrl" style="font-family:var(--font-mono);font-size:clamp(15px,2vw,19px);font-weight:800;margin:6px 0 12px;word-break:break-all">https://perfect-toeic.com/checkin</div>
+          <div class="wa-admin-actions" style="margin:0">
+            <button class="btn btn-primary" id="kioCopy" type="button">📋 주소 복사</button>
+            <button class="btn btn-ghost" id="kioOpen" type="button">↗ 새 창으로 열기</button>
+          </div>
+          <div class="dash-note" style="margin-top:10px">
+            주소를 잊으셨으면 여기서 <b>복사</b>해 아이패드로 보내세요. 아이패드 사파리에서 열고 아래 PIN을 한 번 넣으면 등원 화면이 됩니다.
+            사파리 <b>공유(↑) → 홈 화면에 추가</b> 하면 앱처럼 아이콘이 생겨서 다음부터는 주소가 아예 필요 없어요.
+          </div>
+        </div>
+        <div class="dash-note">
           학생이 휴대폰 <b>뒷번호 4자리</b>를 누르고 <b>등원</b>을 누르면 횟수권이 1회 자동 차감되고, 이 표에 바로 반영됩니다.
         </div>
         <div class="dash-form" style="margin-top:10px">
@@ -5079,6 +5089,22 @@
     $('kioErr').textContent=''; alert('PIN을 저장했어요. 이미 등록된 아이패드는 그대로 쓸 수 있습니다.');
   };
   if($('kioReload')) $('kioReload').onclick=function(){ loadKiosk(); };
+  // 주소 복사 / 새 창으로 열기
+  if($('kioCopy')) $('kioCopy').onclick=async function(){
+    var url=($('kioUrl')&&$('kioUrl').textContent||'').trim();
+    var done=false;
+    try{ await navigator.clipboard.writeText(url); done=true; }catch(e){}
+    if(!done){
+      // 구형 브라우저·비보안 연결 대비
+      try{ var ta=document.createElement('textarea'); ta.value=url; ta.style.position='fixed'; ta.style.opacity='0';
+           document.body.appendChild(ta); ta.select(); done=document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
+    }
+    alert(done ? ('주소를 복사했어요.\n\n'+url+'\n\n카카오톡으로 아이패드에 보내거나 직접 입력하세요.') : ('복사가 안 되네요. 직접 적어주세요.\n\n'+url));
+  };
+  if($('kioOpen')) $('kioOpen').onclick=function(){
+    // 파일로 열어 본 경우에도 동작하도록 현재 경로 기준으로 연다
+    window.open(location.pathname+'#checkin','_blank');
+  };
   if($('kioTable')) $('kioTable').addEventListener('click', async function(e){
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-kio-del]'):null; if(!a) return;
     e.preventDefault();
