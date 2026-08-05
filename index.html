@@ -5217,6 +5217,9 @@
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ err.textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
     if(!tid && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
+    // 횟수권을 빠뜨리면 학생의 남은 수업 횟수가 안 올라가는데, 화면에는 아무 표시가 없어
+    // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
+    if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
       teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:kind };
