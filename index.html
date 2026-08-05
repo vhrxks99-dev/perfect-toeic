@@ -3078,7 +3078,10 @@
 .wa-dash{max-width:920px}
 /* 관리 페이지: 팝업이 아닌 전체 화면 페이지로 */
 #waAdmin.wa-overlay{padding:0;background:var(--paper);align-items:flex-start;justify-content:center;overflow:auto}
-#waAdmin .wa-card{max-width:1180px;width:100%;max-height:none;min-height:100vh;border-radius:0;box-shadow:none;padding:24px clamp(16px,4vw,48px) 64px}
+/* 관리 페이지는 표가 많아 화면을 넓게 쓴다. 1180px로 묶어두면 회원 표에
+   가로 스크롤이 생겨 수정·탈퇴 버튼이 화면 밖으로 밀린다. */
+#waAdmin .wa-card{max-width:1680px;width:100%;max-height:none;min-height:100vh;border-radius:0;box-shadow:none;padding:24px clamp(16px,3vw,40px) 64px}
+#waAdmin .wa-table th,#waAdmin .wa-table td{padding-left:10px;padding-right:10px}
 #waAdmin .wa-table-wrap{max-height:none}
 #waAdmin .wa-x{top:18px;right:22px;font-size:30px;z-index:5}
 #waAdmin .wa-head{font-size:23px}
@@ -4052,8 +4055,9 @@
   function sortableTh(key, label){
     var on=(memberSort.key===key);
     var arrow=on ? (memberSort.dir==='asc'?' ▲':' ▼') : '';
+    // label 은 코드 안에 박아 둔 고정 문구라 그대로 넣는다(작은 부제에 태그를 쓴다).
     return '<th data-msort="'+key+'" style="cursor:pointer;white-space:nowrap;'+(on?'color:var(--accent)':'')+'" title="눌러서 정렬">'
-      + esc(label) + '<span style="font-size:10px">' + arrow + '</span></th>';
+      + label + '<span style="font-size:10px">' + arrow + '</span></th>';
   }
   function isStaffRole(r){ return r==='admin'||r==='master'||r==='manager'; }
   function drawMembers(){
@@ -4160,14 +4164,19 @@
         return '<td><a class="wa-link" data-tmine="'+esc(u.id)+'" style="font-size:12.5px;white-space:nowrap">+ 내 담당으로</a>'+wishLine(u)+'</td>';
       return '<td><span style="color:var(--muted)">미배정</span>'+wishLine(u)+'</td>';
     }
-    var h='<tr>'+sortableTh('name','이름')+'<th>이메일</th><th>연락처</th><th>관심과목</th>'
+    // 이메일·연락처는 따로 칸을 두지 않고 이름 아래에 작게 붙인다.
+    // 칸이 열한 개면 가로 스크롤이 생겨 오른쪽 끝의 수정·탈퇴가 안 보인다.
+    var h='<tr>'+sortableTh('name','이름 <span style="font-weight:600;color:var(--muted);font-size:11px">· 이메일 · 연락처</span>')+'<th>관심과목</th>'
       + sortableTh('teacher','담당강사') + sortableTh('role','구분') + sortableTh('lesson_mode','수업형태')
       + sortableTh('score','점수·목표') + sortableTh('status','수강상태') + sortableTh('created_at','가입일')
       + (mm?'<th>관리</th>':'')+'</tr>';
     m.forEach(function(u){
       var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">탈퇴</a></td>' : '';
       var tn = teacherCell(u);
-      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
+      var idCell='<td><div style="font-weight:700;color:var(--ink)">'+esc(u.name)+'</div>'
+        +'<div style="font-size:11.5px;color:var(--muted);line-height:1.5">'+esc(u.email)
+        +(u.phone?(' · '+esc(u.phone)):'')+'</div></td>';
+      h+='<tr>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
     $('waTable').innerHTML=h;
   }
   if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
