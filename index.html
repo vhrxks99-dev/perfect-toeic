@@ -3164,6 +3164,25 @@
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
       <div class="dash-list-head">최근 출석 내역</div>
       <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
+
+      <div id="kioskAdmin" style="display:none">
+        <div class="dash-list-head">📱 등원관리 (아이패드 키오스크)</div>
+        <div class="dash-note" style="margin-top:0">
+          학원 아이패드 사파리에서 <b>perfect-toeic.com/#checkin</b> 을 열고, 아래 PIN을 한 번 넣으면 등원 화면이 됩니다.
+          (사파리 <b>공유 → 홈 화면에 추가</b> 하면 앱처럼 전체화면으로 떠요.)<br>
+          학생이 휴대폰 <b>뒷번호 4자리</b>를 누르고 <b>등원</b>을 누르면 횟수권이 1회 자동 차감되고, 이 표에 바로 반영됩니다.
+        </div>
+        <div class="dash-form" style="margin-top:10px">
+          <div class="dash-row">
+            <label>관리자 PIN <span class="wa-hint">(숫자 4~8자리)</span><input type="text" id="kioPin" inputmode="numeric" maxlength="8" placeholder="0000"></label>
+            <label>&nbsp;<button class="btn btn-primary" id="kioSave" type="button">PIN 저장</button></label>
+          </div>
+          <p class="wa-err" id="kioErr"></p>
+        </div>
+        <div class="dash-list-head">등록된 기기 <button class="btn btn-ghost" id="kioReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+        <div class="dash-note" style="margin-top:0">아이패드를 잃어버렸거나 바꿨다면 <b>해제</b>를 누르세요. 그 기기는 즉시 등원 처리를 못 하게 됩니다.</div>
+        <div class="wa-table-wrap"><table class="wa-table" id="kioTable"></table></div>
+      </div>
     </div>
 
     <div class="dash-pane" data-dpane="work">
@@ -3354,6 +3373,94 @@
     </div>
   </div>
 </div>
+<!-- ================= 등원관리 (아이패드 키오스크) =================
+     perfect-toeic.com/#checkin 으로 연다. 로그인 없이 도는 화면이라
+     최초 1회 관리자 PIN으로 기기를 등록하고, 그 뒤엔 토큰으로만 동작한다. -->
+<style>
+  /* 아이패드 사파리는 주소창 때문에 100vh 가 화면보다 크다. dvh 로 실제 보이는 높이를 쓴다. */
+  #kiosk{position:fixed;inset:0;height:100%;height:100dvh;z-index:99999;background:#f5f6f8;display:none;flex-direction:column;
+         font-family:var(--font-sans,system-ui);color:#1a1d21;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
+  #kiosk.on{display:flex}
+  .kk-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;background:#fff;border-bottom:1px solid #e6e8ec}
+  .kk-brand{font-weight:900;font-size:19px;letter-spacing:-.02em}
+  .kk-icon{border:0;background:transparent;font-size:20px;line-height:1;padding:8px;border-radius:10px;cursor:pointer;color:#5b6270}
+  .kk-icon:active{background:#eef0f3}
+  .kk-sub{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px 0}
+  .kk-clock{font-size:15px;font-weight:700;color:#5b6270;font-variant-numeric:tabular-nums}
+  .kk-hist{border:0;background:#2b3440;color:#fff;font-weight:800;font-size:13.5px;padding:9px 15px;border-radius:9px;cursor:pointer}
+  .kk-mid{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:8px 20px;min-height:64px;overflow:hidden}
+  .kk-ask{font-size:clamp(17px,2.4vw,22px);font-weight:800;color:#2b3440}
+  .kk-dots{display:flex;gap:clamp(16px,3vw,30px)}
+  .kk-dot{width:clamp(34px,5vw,52px);height:6px;border-radius:3px;background:#c9cdd4;transition:background .12s}
+  .kk-dot.f{background:#8bc53f}
+  .kk-msg{min-height:22px;font-size:14.5px;font-weight:700;color:#c0342b;text-align:center}
+  .kk-pad{background:#1c2740;padding:8px 12px 0;flex:0 0 auto}
+  .kk-hint{text-align:center;color:#cfd6e4;font-size:13px;font-weight:700;padding:4px 0 8px}
+  .kk-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:820px;margin:0 auto}
+  .kk-key{border:0;border-radius:12px;background:#2a3654;color:#fff;font-size:clamp(20px,3vw,29px);font-weight:800;
+          padding:clamp(8px,1.5vh,15px) 0;cursor:pointer;font-family:inherit}
+  .kk-key:active{background:#3b4a6e}
+  .kk-key.sm{font-size:clamp(14px,1.8vw,17px);background:transparent;color:#cfd6e4}
+  .kk-key.sm:active{background:#2a3654}
+  .kk-actions{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:8px}
+  .kk-act{border:0;padding:clamp(12px,2vh,19px) 0;padding-bottom:calc(clamp(12px,2vh,19px) + env(safe-area-inset-bottom,0px));
+          font-size:clamp(18px,2.4vw,25px);font-weight:900;cursor:pointer;font-family:inherit}
+  .kk-in{background:#8bc53f;color:#12240a}
+  .kk-in:active{background:#7ab233}
+  .kk-out{background:#e8eaee;color:#2b3440}
+  .kk-out:active{background:#d7dae0}
+  .kk-cover{position:absolute;inset:0;background:rgba(16,20,26,.55);display:none;align-items:center;justify-content:center;padding:22px}
+  .kk-cover.on{display:flex}
+  .kk-panel{background:#fff;border-radius:18px;padding:26px 24px;width:min(560px,94vw);max-height:88vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.3)}
+  .kk-big{font-size:clamp(24px,4vw,34px);font-weight:900;text-align:center;letter-spacing:-.02em}
+  .kk-when{text-align:center;color:#5b6270;font-weight:700;margin-top:6px;font-size:15px}
+  .kk-rem{margin-top:16px;border-radius:12px;padding:14px 16px;text-align:center;font-weight:800;font-size:17px}
+  .kk-ok{background:#eefaf3;color:#0f7a52}
+  .kk-warn{background:#fdf0ef;color:#c0342b}
+  .kk-pick{display:flex;flex-direction:column;gap:9px;margin-top:16px}
+  .kk-pickbtn{border:1.5px solid #d7dae0;background:#fff;border-radius:12px;padding:15px 16px;font-size:17px;font-weight:800;text-align:left;cursor:pointer;font-family:inherit;color:#1a1d21}
+  .kk-pickbtn:active{background:#eef0f3}
+  .kk-close{width:100%;margin-top:18px;border:0;border-radius:12px;background:#2b3440;color:#fff;font-weight:800;font-size:16px;padding:14px 0;cursor:pointer;font-family:inherit}
+  .kk-field{width:100%;font-size:26px;text-align:center;letter-spacing:.35em;padding:14px;border:1.5px solid #d7dae0;border-radius:12px;margin-top:14px;font-family:inherit}
+  .kk-lbl{font-weight:800;font-size:15px;color:#2b3440}
+  .kk-note{font-size:13px;color:#5b6270;font-weight:600;margin-top:8px;line-height:1.6}
+  .kk-htable{width:100%;border-collapse:collapse;margin-top:14px;font-size:15px}
+  .kk-htable th,.kk-htable td{padding:9px 6px;border-bottom:1px solid #eceef1;text-align:left}
+  .kk-htable th{font-size:12.5px;color:#5b6270}
+  @media (max-width:640px){ .kk-brand{font-size:16px} }
+</style>
+<div id="kiosk" aria-hidden="true">
+  <div class="kk-top">
+    <button class="kk-icon" id="kkSound" title="소리">🔊</button>
+    <div class="kk-brand">완벽한토익</div>
+    <button class="kk-icon" id="kkGear" title="설정">⚙️</button>
+  </div>
+  <div class="kk-sub">
+    <div class="kk-clock" id="kkClock"></div>
+    <button class="kk-hist" id="kkHistBtn">출석이력보기</button>
+  </div>
+  <div class="kk-mid">
+    <div class="kk-ask">출결번호를 입력해주세요.</div>
+    <div class="kk-dots" id="kkDots"><i class="kk-dot"></i><i class="kk-dot"></i><i class="kk-dot"></i><i class="kk-dot"></i></div>
+    <div class="kk-msg" id="kkMsg"></div>
+  </div>
+  <div class="kk-pad">
+    <div class="kk-hint">휴대폰 뒷번호 4자리를 누른 뒤 등원 또는 하원을 눌러주세요.</div>
+    <div class="kk-keys">
+      <button class="kk-key" data-kk="1">1</button><button class="kk-key" data-kk="2">2</button><button class="kk-key" data-kk="3">3</button>
+      <button class="kk-key" data-kk="4">4</button><button class="kk-key" data-kk="5">5</button><button class="kk-key" data-kk="6">6</button>
+      <button class="kk-key" data-kk="7">7</button><button class="kk-key" data-kk="8">8</button><button class="kk-key" data-kk="9">9</button>
+      <button class="kk-key sm" data-kk="clear">↺ 다시입력</button><button class="kk-key" data-kk="0">0</button><button class="kk-key sm" data-kk="back">⌫</button>
+    </div>
+    <div class="kk-actions">
+      <button class="kk-act kk-in" data-kk-go="in">등원</button>
+      <button class="kk-act kk-out" data-kk-go="out">하원</button>
+    </div>
+  </div>
+
+  <div class="kk-cover" id="kkCover"><div class="kk-panel" id="kkPanel"></div></div>
+</div>
+
 <!-- 수강 종료 사유. 퇴원률은 '중도 퇴원'만 세야 하므로 반드시 물어본다. -->
 <div class="wa-overlay" id="waEnd" aria-hidden="true">
   <div class="wa-card">
@@ -3925,6 +4032,7 @@
     await loadHomework();
     if($('csDate')&&!$('csDate').value) $('csDate').value=ymd(now);
     if($('evMonth')&&!$('evMonth').value) $('evMonth').value=ym(now);
+    await loadKiosk();
     fillConsultTeacher();
     await loadConsults();
     await loadEval();
@@ -4516,7 +4624,7 @@
     var pays=[], atts=[];
     if(sb){
       var r1=await sb.from('payments').select('student_id,sessions'); if(!r1.error&&r1.data) pays=r1.data;
-      var r2=await sb.from('attendance').select('id,student_id,student_name,attended_on,created_at').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
+      var r2=await sb.from('attendance').select('id,student_id,student_name,attended_on,created_at,checked_in_at,checked_out_at,source').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
     }
     var purchased={}, attended={};
     pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
@@ -4534,14 +4642,14 @@
     else {
       var h='<tr><th>학생</th><th>구매</th><th>출석</th><th>남은 횟수</th><th>출석 처리</th></tr>';
       fst.forEach(function(s){ var pu=purchased[s.id]||0, at=attended[s.id]||0, rem=pu-at;
-        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+at+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'"'+(rem<=0?' disabled':'')+'>출석 −1</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소 +1</button></td></tr>'; });
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+at+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'">출석 −1</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소 +1</button></td></tr>'; });
       $('attTable').innerHTML=h;
     }
     if($('attHistTable')){
       var mm=isOps();
       var fatts=q?atts.filter(function(a){return (a.student_name||'').toLowerCase().indexOf(q)>=0;}):atts;
       if(!fatts.length){ $('attHistTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; }
-      else { var hh='<tr><th>출석일</th><th>학생</th>'+(mm?'<th>관리</th>':'')+'</tr>'; fatts.slice(0,60).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td>'+(mm?'<td><a class="wa-link del" data-attdel="'+esc(a.id)+'">삭제</a></td>':'')+'</tr>'; }); $('attHistTable').innerHTML=hh; }
+      else { var hh='<tr><th>출석일</th><th>학생</th><th>등원</th><th>하원</th><th>경로</th>'+(mm?'<th>관리</th>':'')+'</tr>'; fatts.slice(0,60).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td><td>'+(a.checked_in_at?hm(a.checked_in_at):'-')+'</td><td>'+(a.checked_out_at?hm(a.checked_out_at):'-')+'</td><td style="color:var(--muted);font-size:12px">'+(a.source==='kiosk'?'아이패드':'수기')+'</td>'+(mm?'<td><a class="wa-link del" data-attdel="'+esc(a.id)+'">삭제</a></td>':'')+'</tr>'; }); $('attHistTable').innerHTML=hh; }
     }
   }
   if($('attReload')) $('attReload').onclick=loadAttendance;
@@ -4558,7 +4666,7 @@
     if(minus){
       var sid=minus.getAttribute('data-attid'); var st=_members.filter(function(m){return m.id===sid;})[0]; if(!st) return;
       if(!confirm(st.name+' 학생 출석 처리할까요? (남은 횟수 −1)')) return;
-      var r=await sb.from('attendance').insert({student_id:sid, student_name:st.name, attended_on:ymd(new Date()), admin_id:(profile?profile.id:null)});
+      var r=await sb.from('attendance').insert({student_id:sid, student_name:st.name, attended_on:ymd(new Date()), admin_id:(profile?profile.id:null), checked_in_at:new Date().toISOString(), source:'manual'});
       if(r.error){ alert('출석 처리 실패: '+r.error.message); return; }
       await loadAttendance();
     } else if(plus){
@@ -4891,6 +4999,43 @@
     c.querySelectorAll('.dash-tab[data-dtab="eval"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
     if(!ops && c.querySelector('.dash-pane[data-dpane="eval"].on')) dashTab('members');
   }
+
+  // ================= 등원 키오스크 관리 (원장님 전용) =================
+  async function loadKiosk(){
+    var wrap=$('kioskAdmin'); if(!wrap) return;
+    if(!isMasterNow()){ wrap.style.display='none'; return; }
+    wrap.style.display='';
+    if(!sb) return;
+    var p=await sb.rpc('kiosk_get_pin');
+    if(!p.error && $('kioPin')) $('kioPin').value=p.data||'';
+    var d=await sb.from('kiosk_devices').select('*').order('created_at',{ascending:false});
+    var rows=(!d.error&&d.data)?d.data:[];
+    if(!$('kioTable')) return;
+    if(!rows.length){ $('kioTable').innerHTML='<tr><td class="wa-empty">아직 등록된 기기가 없습니다.</td></tr>'; return; }
+    var h='<tr><th>기기</th><th>등록일</th><th>마지막 사용</th><th>관리</th></tr>';
+    rows.forEach(function(k){
+      h+='<tr><td>'+esc(k.label||'기기')+'</td><td style="white-space:nowrap">'+esc((k.created_at||'').slice(0,10))+'</td>'
+       + '<td style="white-space:nowrap">'+(k.last_seen_at?fmtDT(k.last_seen_at):'-')+'</td>'
+       + '<td><a class="wa-link" data-kio-del="'+esc(k.token)+'" style="color:#c0342b">해제</a></td></tr>';
+    });
+    $('kioTable').innerHTML=h;
+  }
+  if($('kioSave')) $('kioSave').onclick=async function(){
+    if(!sb) return;
+    var v=($('kioPin').value||'').trim();
+    var r=await sb.rpc('set_kiosk_pin',{new_pin:v});
+    if(r.error){ $('kioErr').textContent='저장 실패: '+r.error.message; return; }
+    $('kioErr').textContent=''; alert('PIN을 저장했어요. 이미 등록된 아이패드는 그대로 쓸 수 있습니다.');
+  };
+  if($('kioReload')) $('kioReload').onclick=function(){ loadKiosk(); };
+  if($('kioTable')) $('kioTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('a[data-kio-del]'):null; if(!a) return;
+    e.preventDefault();
+    if(!sb || !confirm('이 기기의 등록을 해제할까요?\n해당 아이패드는 다시 PIN을 넣어야 씁니다.')) return;
+    var r=await sb.from('kiosk_devices').delete().eq('token',a.getAttribute('data-kio-del'));
+    if(r.error){ alert('해제 실패: '+r.error.message); return; }
+    await loadKiosk();
+  });
 
   // ================= 상담 장부 =================
   // 상담은 회원가입 전 사람도 대상이라 profiles 가 아니라 consults 테이블에 남긴다.
@@ -5302,6 +5447,221 @@
     }catch(e){}
   })();
   refresh();
+})();
+</script>
+<script>
+/* ================= 등원관리 키오스크 =================
+   #checkin 으로 열리는 전체화면. 사이트의 다른 부분과 완전히 분리해 둔다.
+   기기 등록 토큰은 이 아이패드의 localStorage 에만 남는다. */
+(function(){
+  var $=function(id){ return document.getElementById(id); };
+  var box=$('kiosk'); if(!box) return;
+  var TOKEN_KEY='wt_kiosk_token', SOUND_KEY='wt_kiosk_sound';
+  var buf='', busy=false, tickTimer=null, autoTimer=null;
+  var sb=null;
+  function client(){
+    if(sb) return sb;
+    if(window.sb){ sb=window.sb; return sb; }
+    try{ if(window.supabase && window.WT_SB_URL) sb=window.supabase.createClient(window.WT_SB_URL, window.WT_SB_KEY); }catch(e){}
+    return sb;
+  }
+  function token(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } }
+  function setToken(v){ try{ v?localStorage.setItem(TOKEN_KEY,v):localStorage.removeItem(TOKEN_KEY); }catch(e){} }
+  function soundOn(){ try{ return localStorage.getItem(SOUND_KEY)!=='off'; }catch(e){ return true; } }
+
+  // 짧은 알림음. 파일 없이 그때그때 만든다.
+  var actx=null;
+  function beep(kind){
+    if(!soundOn()) return;
+    try{
+      actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      var seq = kind==='bad' ? [[320,0],[240,.14]] : (kind==='out' ? [[520,0],[660,.09]] : [[660,0],[880,.09]]);
+      seq.forEach(function(s){
+        var o=actx.createOscillator(), g=actx.createGain();
+        o.type='sine'; o.frequency.value=s[0];
+        var t=actx.currentTime+s[1];
+        g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.22,t+.02);
+        g.gain.exponentialRampToValueAtTime(.0001,t+.16);
+        o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+.18);
+      });
+    }catch(e){}
+  }
+
+  function drawDots(){
+    var ds=$('kkDots').children;
+    for(var i=0;i<ds.length;i++) ds[i].classList.toggle('f', i<buf.length);
+  }
+  function say(t){ $('kkMsg').textContent=t||''; }
+  function reset(){ buf=''; drawDots(); say(''); }
+
+  function clock(){
+    var d=new Date(), DW=['일','월','화','수','목','금','토'];
+    var h=d.getHours(), ap=h<12?'오전':'오후', hh=h%12; if(hh===0) hh=12;
+    var p=function(n){ return (n<10?'0':'')+n; };
+    $('kkClock').textContent=d.getFullYear()+'. '+p(d.getMonth()+1)+'. '+p(d.getDate())+'. ('+DW[d.getDay()]+') '+ap+' '+p(hh)+' : '+p(d.getMinutes());
+  }
+
+  function cover(html){
+    $('kkPanel').innerHTML=html;
+    $('kkCover').classList.add('on');
+  }
+  function hideCover(){
+    $('kkCover').classList.remove('on');
+    if(autoTimer){ clearTimeout(autoTimer); autoTimer=null; }
+  }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+  // ---- 기기 등록 (최초 1회) ----
+  function askPair(err){
+    cover('<div class="kk-big">등원 키오스크 설정</div>'
+      + '<div class="kk-note" style="text-align:center;margin-top:10px">이 기기를 등원 키오스크로 등록합니다.<br>관리자 PIN을 입력해 주세요. (처음 PIN은 <b>0000</b>)</div>'
+      + '<input class="kk-field" id="kkPin" type="tel" inputmode="numeric" maxlength="8" placeholder="••••">'
+      + '<div class="kk-note" style="color:#c0342b;text-align:center;min-height:20px">'+esc(err||'')+'</div>'
+      + '<button class="kk-close" id="kkPairGo">확인</button>');
+    var f=$('kkPin'); if(f) setTimeout(function(){ try{f.focus();}catch(e){} },50);
+    $('kkPairGo').onclick=async function(){
+      var c=client(); if(!c){ askPair('연결에 실패했습니다. 인터넷을 확인해 주세요.'); return; }
+      var pin=($('kkPin').value||'').trim();
+      var r=await c.rpc('kiosk_pair',{pin:pin,label:(navigator.platform||'기기')});
+      if(r.error){ askPair(r.error.message||'PIN이 올바르지 않습니다.'); beep('bad'); return; }
+      setToken(r.data); hideCover(); reset(); beep('in');
+    };
+  }
+
+  // ---- 등원/하원 ----
+  async function go(kind){
+    if(busy) return;
+    if(!token()){ askPair(); return; }
+    if(buf.length!==4){ say('뒷번호 4자리를 눌러주세요.'); beep('bad'); return; }
+    var c=client(); if(!c){ say('연결에 실패했습니다.'); return; }
+    busy=true; say('확인 중…');
+    try{
+      var lk=await c.rpc('kiosk_lookup',{tok:token(),last4:buf});
+      if(lk.error){
+        if(/등록되지 않은 기기/.test(lk.error.message||'')){ setToken(''); askPair('기기 등록이 해제되었습니다. 다시 등록해 주세요.'); }
+        else { say(lk.error.message||'조회에 실패했습니다.'); beep('bad'); }
+        return;
+      }
+      var list=lk.data||[];
+      if(!list.length){ say('등록된 학생이 없습니다. 데스크에 문의해 주세요.'); beep('bad'); return; }
+      if(list.length===1){ await mark(list[0].sid, kind); return; }
+      // 뒷자리가 같은 학생이 여럿이면 고르게 한다
+      cover('<div class="kk-big">본인을 선택해 주세요</div>'
+        + '<div class="kk-note" style="text-align:center">뒷번호가 같은 학생이 여러 명입니다.</div>'
+        + '<div class="kk-pick">'+list.map(function(s){
+            return '<button class="kk-pickbtn" data-pick="'+esc(s.sid)+'">'+esc(s.sname)+'</button>';
+          }).join('')+'</div>'
+        + '<button class="kk-close" id="kkPickCancel">취소</button>');
+      $('kkPickCancel').onclick=function(){ hideCover(); reset(); };
+      $('kkPanel').querySelectorAll('[data-pick]').forEach(function(b){
+        b.onclick=function(){ hideCover(); mark(b.getAttribute('data-pick'), kind); };
+      });
+    } finally { busy=false; }
+  }
+
+  async function mark(sid, kind){
+    var c=client(); if(!c) return;
+    busy=true; say('처리 중…');
+    try{
+      var r=await c.rpc('kiosk_mark',{tok:token(),student:sid,kind:kind});
+      if(r.error){ say(r.error.message||'처리에 실패했습니다.'); beep('bad'); return; }
+      var d=r.data||{};
+      var rem=(d.remaining==null)?null:Number(d.remaining);
+      var warn = (rem!==null && rem<=0);
+      var head = d.already ? (esc(d.name)+'님은 이미 등원했어요')
+               : (esc(d.name)+'님 '+(kind==='in'?'등원':'하원')+' 완료');
+      var remBox='';
+      if(kind==='in' && rem!==null){
+        remBox = warn
+          ? '<div class="kk-rem kk-warn">⚠️ 남은 횟수 <b style="font-size:22px">'+rem+'회</b><br>재등록이 필요합니다. 데스크에 문의해 주세요.</div>'
+          : '<div class="kk-rem kk-ok">남은 횟수 <b style="font-size:22px">'+rem+'회</b></div>';
+      }
+      cover('<div class="kk-big">'+(kind==='in'?'✅ ':'👋 ')+head+'</div>'
+          + '<div class="kk-when">'+esc(d.at||'')+(d.already?' 등원함':'')+'</div>'
+          + remBox
+          + '<button class="kk-close" id="kkDone">확인</button>');
+      $('kkDone').onclick=function(){ hideCover(); reset(); };
+      beep(warn?'bad':(kind==='out'?'out':'in'));
+      autoTimer=setTimeout(function(){ hideCover(); reset(); }, warn?7000:3500);
+    } finally { busy=false; }
+  }
+
+  // ---- 오늘 등원 현황 ----
+  async function history(){
+    if(!token()){ askPair(); return; }
+    var c=client(); if(!c) return;
+    var r=await c.rpc('kiosk_today',{tok:token()});
+    if(r.error){ cover('<div class="kk-big">불러오지 못했어요</div><div class="kk-note" style="text-align:center">'+esc(r.error.message)+'</div><button class="kk-close" id="kkHClose">닫기</button>'); $('kkHClose').onclick=hideCover; return; }
+    var rows=r.data||[];
+    var body = rows.length
+      ? rows.map(function(x){ return '<tr><td><b>'+esc(x.sname||'')+'</b></td><td>'+esc(x.in_at||'-')+'</td><td>'+esc(x.out_at||'-')+'</td></tr>'; }).join('')
+      : '<tr><td colspan="3" style="color:#5b6270;padding:18px 0;text-align:center">오늘 등원한 학생이 아직 없습니다.</td></tr>';
+    cover('<div class="kk-big">오늘 등원 현황</div>'
+      + '<div class="kk-note" style="text-align:center">모두 '+rows.length+'명</div>'
+      + '<table class="kk-htable"><tr><th>이름</th><th>등원</th><th>하원</th></tr>'+body+'</table>'
+      + '<button class="kk-close" id="kkHClose">닫기</button>');
+    $('kkHClose').onclick=hideCover;
+  }
+
+  // ---- 설정 ----
+  function settings(){
+    cover('<div class="kk-big">설정</div>'
+      + '<div class="kk-note">이 기기는 '+(token()?'<b>등록됨</b>':'<b style="color:#c0342b">등록 안 됨</b>')+' 상태입니다.</div>'
+      + '<div class="kk-pick">'
+      + '<button class="kk-pickbtn" id="kkToggleSound">알림음 '+(soundOn()?'끄기':'켜기')+'</button>'
+      + '<button class="kk-pickbtn" id="kkUnpair" style="color:#c0342b">이 기기 등록 해제</button>'
+      + '<button class="kk-pickbtn" id="kkExit">키오스크 나가기 (홈페이지로)</button>'
+      + '</div>'
+      + '<div class="kk-note">PIN 변경은 홈페이지 관리 페이지 → 출석 탭에서 원장님이 하실 수 있어요.</div>'
+      + '<button class="kk-close" id="kkSClose">닫기</button>');
+    $('kkSClose').onclick=hideCover;
+    $('kkToggleSound').onclick=function(){ try{ localStorage.setItem(SOUND_KEY, soundOn()?'off':'on'); }catch(e){} syncSound(); settings(); };
+    $('kkUnpair').onclick=function(){ if(confirm('이 기기의 등록을 해제할까요?\n다시 쓰려면 관리자 PIN을 넣어야 합니다.')){ setToken(''); hideCover(); askPair(); } };
+    $('kkExit').onclick=function(){ location.hash=''; };
+  }
+  function syncSound(){ $('kkSound').textContent = soundOn()?'🔊':'🔇'; }
+
+  // ---- 입력 ----
+  box.addEventListener('click', function(e){
+    var k=e.target.closest?e.target.closest('[data-kk]'):null;
+    var g=e.target.closest?e.target.closest('[data-kk-go]'):null;
+    if(k){
+      var v=k.getAttribute('data-kk');
+      if(v==='clear') reset();
+      else if(v==='back'){ buf=buf.slice(0,-1); drawDots(); say(''); }
+      else if(buf.length<4){ buf+=v; drawDots(); say(''); }
+      return;
+    }
+    if(g) go(g.getAttribute('data-kk-go'));
+  });
+  $('kkHistBtn').onclick=history;
+  $('kkGear').onclick=settings;
+  $('kkSound').onclick=function(){ try{ localStorage.setItem(SOUND_KEY, soundOn()?'off':'on'); }catch(e){} syncSound(); beep('in'); };
+  document.addEventListener('keydown', function(e){
+    if(!box.classList.contains('on')) return;
+    if(e.key>='0'&&e.key<='9'&&buf.length<4){ buf+=e.key; drawDots(); say(''); }
+    else if(e.key==='Backspace'){ buf=buf.slice(0,-1); drawDots(); }
+    else if(e.key==='Enter'){ go('in'); }
+  });
+
+  // ---- 열고 닫기 ----
+  function open(){
+    box.classList.add('on'); box.setAttribute('aria-hidden','false');
+    document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden';
+    syncSound(); clock(); reset();
+    if(tickTimer) clearInterval(tickTimer);
+    tickTimer=setInterval(clock,1000);
+    if(!token()) askPair();
+  }
+  function close(){
+    box.classList.remove('on'); box.setAttribute('aria-hidden','true');
+    document.documentElement.style.overflow=''; document.body.style.overflow='';
+    hideCover();
+    if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
+  }
+  function apply(){ (location.hash||'').replace(/^#/,'')==='checkin' ? open() : close(); }
+  window.addEventListener('hashchange', apply);
+  apply();
 })();
 </script>
 <style>
