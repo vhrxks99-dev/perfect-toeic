@@ -9,6 +9,13 @@
 <meta name="naver-site-verification" content="f45a4f889443d24feb9020d38a0239bf241c047d" />
 <meta name="google-site-verification" content="N7EyZBOB_ufyw9qg4dPkHLFRir2nrUkGzs_4lqloQQA" />
 <link rel="canonical" href="https://perfect-toeic.com/">
+<!-- 파비콘 (로고 심볼 기반) — ?v= 는 브라우저가 옛 아이콘을 계속 쓰지 않도록 붙인 것 -->
+<link rel="icon" href="/favicon.ico?v=1" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=1">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png?v=1">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=1">
+<link rel="manifest" href="/site.webmanifest?v=1">
+<meta name="theme-color" content="#1F62E0">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="완벽한토익">
 <meta property="og:title" content="완벽한토익 | 강서·신촌·홍대 | 토익·토스·오픽·영어회화">
@@ -3128,6 +3135,7 @@
     <div class="dash-pane" data-dpane="pay">
       <div class="dash-form" id="pyAddForm">
         <div class="dash-row">
+          <label style="flex:.7">구분<select id="pyKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"></label>
@@ -3148,7 +3156,24 @@
         <p class="wa-err" id="pyErr"></p>
         <button class="btn btn-primary" id="pyAdd" type="button">＋ 정산 추가</button>
       </div>
-      <div class="dash-list-head">
+      <div class="dash-list-head">💰 수납 집계 <span style="font-weight:700;font-size:12px;color:var(--muted)">결제일 기준</span></div>
+      <div class="dash-form" style="margin-top:6px">
+        <div class="dash-row">
+          <label>시작일<input type="date" id="sumFrom"></label>
+          <label>종료일<input type="date" id="sumTo"></label>
+          <label style="flex:2">빠른 선택
+            <div class="wa-admin-actions" style="margin:0">
+              <button class="btn btn-ghost" type="button" data-sumq="thismonth">이번 달</button>
+              <button class="btn btn-ghost" type="button" data-sumq="lastmonth">지난 달</button>
+              <button class="btn btn-ghost" type="button" data-sumq="thisyear">올해</button>
+              <button class="btn btn-primary" type="button" id="sumGo">집계</button>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div id="sumBox" class="pay-sum" style="display:none"></div>
+
+      <div class="dash-list-head" style="margin-top:16px">
         <label style="font-weight:700;font-size:13px">조회 월 <input type="month" id="pyFilter" style="margin-left:6px;padding:7px 9px;border:1.5px solid var(--line-strong);border-radius:8px"></label>
         <span id="pyTotal" class="dash-total"></span>
       </div>
@@ -3339,6 +3364,7 @@
     <div class="wa-sub" id="pyeStudent"></div>
     <div class="wa-form on" style="display:flex">
       <div class="wa-row">
+        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
         <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="8+"></label>
@@ -4086,6 +4112,8 @@
     await loadSchedules(); await renderCalendar();
     if($('opDate')&&!$('opDate').value) $('opDate').value=ymd(now);
     await loadPayments($('pyFilter')?$('pyFilter').value:ym(now));
+    if($('sumFrom')&&!$('sumFrom').value) setSumRange('thismonth');
+    await loadSummary();
     await loadAttendance();
     await loadWork();
     if(isOps()) await loadOplog();
@@ -4500,9 +4528,14 @@
     var t=(_members||[]).filter(function(m){return m.id===id;})[0];
     return (t && t.pay_rate!=null) ? Number(t.pay_rate) : DEFAULT_PAY_RATE;
   }
+  // 환불 건은 금액을 빼는 방향으로 센다. DB에는 항상 양수로 저장하고 kind 로만 구분한다.
+  function isRefund(p){ return p && p.kind==='refund'; }
+  function payAmt(p){ return (isRefund(p)?-1:1) * (p.amount||0); }
+  // 집계 기준 날짜: 결제일이 우선, 없으면 정산 월의 1일로 본다.
+  function payDate(p){ return (p&&p.paid_at) ? p.paid_at : ((p&&p.month) ? (p.month+'-01') : ''); }
   // 한 건의 배분 계산. 강사 몫에서 원천징수를 뗀 금액이 실지급액.
   function payShare(p){
-    var amount=p.amount||0;
+    var amount=payAmt(p);
     var rate=(p.pay_rate!=null)?Number(p.pay_rate):DEFAULT_PAY_RATE;
     var wh=(p.withhold_rate!=null)?Number(p.withhold_rate):DEFAULT_WITHHOLD;
     var gross=Math.round(amount*rate/100);
@@ -4541,12 +4574,88 @@
     if(guessed) h+='<div class="ps-warn">※ 배분율이 저장되지 않은 예전 결제는 기본 '+DEFAULT_PAY_RATE+'%로 계산했습니다.</div>';
     box.innerHTML=h; box.style.display='';
   }
+  // ---- 기간별 수납 집계 (결제일 기준) ----
+  function ymdLocal(d){ return ymd(d); }
+  function setSumRange(kind){
+    var now=new Date(), a, b;
+    if(kind==='thismonth'){ a=new Date(now.getFullYear(),now.getMonth(),1); b=new Date(now.getFullYear(),now.getMonth()+1,0); }
+    else if(kind==='lastmonth'){ a=new Date(now.getFullYear(),now.getMonth()-1,1); b=new Date(now.getFullYear(),now.getMonth(),0); }
+    else { a=new Date(now.getFullYear(),0,1); b=new Date(now.getFullYear(),11,31); }
+    if($('sumFrom')) $('sumFrom').value=ymdLocal(a);
+    if($('sumTo')) $('sumTo').value=ymdLocal(b);
+  }
+  async function loadSummary(){
+    var box=$('sumBox'); if(!box) return;
+    var from=($('sumFrom')&&$('sumFrom').value)||'', to=($('sumTo')&&$('sumTo').value)||'';
+    if(!from||!to){ box.style.display='none'; return; }
+    if(from>to){ box.style.display=''; box.innerHTML='<div class="ps-head"><span>수납 집계</span></div><div style="padding:12px 14px;color:#c0342b;font-weight:700">시작일이 종료일보다 늦습니다.</div>'; return; }
+    if(!sb) return;
+    // 결제일이 비어 있는 옛 자료도 빠지지 않게 넉넉히 가져와 화면에서 거른다.
+    var r=await sb.from('payments').select('*');
+    var all=(!r.error&&r.data)?r.data:[];
+    var rows=all.filter(function(p){ var d=payDate(p); return d && d>=from && d<=to; });
+    var noDate=all.filter(function(p){ return !p.paid_at && p.month; }).length;
+
+    var byMethod={}, cardDetail={}, inSum=0, inCnt=0, reSum=0, reCnt=0;
+    rows.forEach(function(p){
+      var m=p.method||'(미기재)';
+      var isCard=CARD_ISSUERS.indexOf(m)>=0 || m==='카드';
+      var key=isCard?'카드':m;
+      if(!byMethod[key]) byMethod[key]={ inAmt:0, inCnt:0, reAmt:0, reCnt:0 };
+      var g=byMethod[key];
+      if(isRefund(p)){ g.reAmt+=(p.amount||0); g.reCnt++; reSum+=(p.amount||0); reCnt++; }
+      else { g.inAmt+=(p.amount||0); g.inCnt++; inSum+=(p.amount||0); inCnt++; }
+      if(isCard){ var cn=(m==='카드')?'카드사 미기재':m; cardDetail[cn]=(cardDetail[cn]||0)+((isRefund(p)?-1:1)*(p.amount||0)); }
+    });
+
+    var order=PAY_CATS.filter(function(c){ return byMethod[c]; })
+                .concat(Object.keys(byMethod).filter(function(k){ return PAY_CATS.indexOf(k)<0; }));
+    var body='';
+    order.forEach(function(k){
+      var g=byMethod[k], net=g.inAmt-g.reAmt;
+      body+='<tr><td><b>'+esc(k)+'</b></td>'
+          + '<td style="text-align:right;white-space:nowrap">'+won(g.inAmt)+' <span style="color:var(--muted);font-size:11.5px">'+g.inCnt+'건</span></td>'
+          + '<td style="text-align:right;white-space:nowrap">'+(g.reAmt?('<span style="color:#c0342b">−'+won(g.reAmt)+'</span> <span style="color:var(--muted);font-size:11.5px">'+g.reCnt+'건</span>'):'-')+'</td>'
+          + '<td style="text-align:right;white-space:nowrap"><b>'+won(net)+'</b></td></tr>';
+    });
+    if(!order.length) body='<tr><td colspan="4" class="wa-empty">이 기간에 등록된 정산 내역이 없습니다.</td></tr>';
+
+    var cards=Object.keys(cardDetail).sort(function(a,b){ return cardDetail[b]-cardDetail[a]; });
+    var cardLine = cards.length
+      ? '<div style="padding:8px 14px 12px;font-size:12.5px;color:var(--muted);font-weight:700;line-height:1.9">카드사별 &mdash; '
+        + cards.map(function(c){ return esc(c)+' <b style="color:var(--ink)">'+won(cardDetail[c])+'</b>'; }).join(' &nbsp;·&nbsp; ') + '</div>'
+      : '';
+
+    box.style.display='';
+    box.innerHTML='<div class="ps-head"><span>'+esc(from)+' ~ '+esc(to)+' 수납 집계</span>'
+      + '<span class="ps-total">총 매출액 '+won(inSum-reSum)+'</span></div>'
+      + '<div class="wa-table-wrap"><table class="wa-table">'
+      + '<tr><th>결제수단</th><th style="text-align:right">수납</th><th style="text-align:right">환불</th><th style="text-align:right">합계</th></tr>'
+      + body
+      + '<tr style="background:var(--surface-2)"><td><b>전체</b></td>'
+      + '<td style="text-align:right;white-space:nowrap"><b>'+won(inSum)+'</b> <span style="color:var(--muted);font-size:11.5px">'+inCnt+'건</span></td>'
+      + '<td style="text-align:right;white-space:nowrap"><b style="color:#c0342b">'+(reSum?('−'+won(reSum)):won(0))+'</b> <span style="color:var(--muted);font-size:11.5px">'+reCnt+'건</span></td>'
+      + '<td style="text-align:right;white-space:nowrap"><b style="color:var(--accent);font-size:15px">'+won(inSum-reSum)+'</b></td></tr>'
+      + '</table></div>'
+      + cardLine
+      + (noDate?('<div style="padding:0 14px 12px;font-size:12.5px;color:#b26a00;font-weight:700">※ 결제일이 비어 있는 자료 '+noDate+'건은 정산 월 1일로 계산했습니다.</div>'):'');
+  }
+  if($('sumGo')) $('sumGo').onclick=loadSummary;
+  ['sumFrom','sumTo'].forEach(function(id){ if($(id)) $(id).addEventListener('change', loadSummary); });
+  (function(){
+    var wrap=$('pyAddForm')?$('pyAddForm').parentNode:null; if(!wrap) return;
+    wrap.addEventListener('click', function(e){
+      var b=(e.target&&e.target.closest)?e.target.closest('[data-sumq]'):null; if(!b) return;
+      setSumRange(b.getAttribute('data-sumq')); loadSummary();
+    });
+  })();
+
   async function loadPayments(month){
     if(!$('pyTable')) return;
     var rows=[];
     if(sb && month){ var r=await sb.from('payments').select('*').eq('month',month).order('paid_at',{ascending:false}); if(!r.error&&r.data) rows=r.data; }
     window.__wtPayments=rows;
-    var total=rows.reduce(function(a,b){return a+(b.amount||0);},0);
+    var total=rows.reduce(function(a,b){return a+payAmt(b);},0);
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
     renderPaySummary(rows, month);
     if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 정산 내역이 없습니다.</td></tr>'; return; }
@@ -4556,7 +4665,7 @@
       var s=payShare(p);
       var tn = p.teacher_id ? esc(p.teacher_name||'-') : '<span style="color:#b26a00;font-weight:700">미지정</span>';
       var net = p.teacher_id ? (won(s.net)+' <span style="color:var(--muted);font-size:11.5px">('+s.rate+'%)</span>') : '-';
-      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):won(p.amount))+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
@@ -4594,7 +4703,11 @@
     if(!student){ err.textContent='학생을 선택하세요.'; return; }
     if(!amount||amount<=0){ err.textContent='금액을 입력하세요.'; return; }
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
+    var kind=($('pyKind')&&$('pyKind').value==='refund')?'refund':'payment';
+    // 환불은 되돌려 주는 돈이라 횟수권을 함께 파는 일이 없다. 실수로 남아 있으면 무시한다.
+    if(kind==='refund') sessions=0;
     if(sessions>0 && sessions<8){ err.textContent='수업 횟수권은 최소 8회부터 구매 가능합니다.'; return; }
+    if(kind==='refund' && !confirm(student.name+' 학생에게 '+won(amount)+'을 환불한 것으로 등록할까요?\n\n총 매출액에서 이 금액이 빠집니다.')) return;
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
@@ -4602,10 +4715,10 @@
     if(!tid && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
-      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null) };
+      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:kind };
     var r=await sb.from('payments').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
     $('pyAmount').value=''; $('pyMemo').value=''; $('pySessions').value=''; drawPayPreview();
-    await loadPayments($('pyFilter').value||month); await loadAttendance();
+    await loadPayments($('pyFilter').value||month); await loadAttendance(); await loadSummary();
   };
   if($('pyFilter')) $('pyFilter').onchange=function(){ loadPayments($('pyFilter').value); };
   var PAY_CATS=['카드','계좌이체','현금','카카오페이','네이버페이'];
@@ -4624,6 +4737,7 @@
   function openPayEdit(p){
     editingPayId=p.id;
     if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
+    if($('pyeKind')) $('pyeKind').value=(p.kind==='refund')?'refund':'payment';
     if($('pyeAmount')) $('pyeAmount').value=p.amount||'';
     if($('pyeMonth')) $('pyeMonth').value=p.month||'';
     var _m=p.method||PAY_CATS[0], _isCard=CARD_ISSUERS.indexOf(_m)>=0;
@@ -4659,6 +4773,8 @@
     if(!amount||amount<=0){ $('pyeErr').textContent='금액을 입력하세요.'; return; }
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
     var sessions=parseInt($('pyeSessions').value,10)||0;
+    var ekind=($('pyeKind')&&$('pyeKind').value==='refund')?'refund':'payment';
+    if(ekind==='refund') sessions=0;
     if(sessions>0 && sessions<8){ $('pyeErr').textContent='수업 횟수권은 최소 8회부터입니다.'; return; }
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
@@ -4666,11 +4782,11 @@
     if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var patch={ amount:amount, month:$('pyeMonth').value, method:payMethodVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
-      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null) };
+      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:ekind };
     var r=await sb.from('payments').update(patch).eq('id',editingPayId);
     if(r.error){ $('pyeErr').textContent='저장 실패: '+r.error.message; return; }
     $('waPayEdit').classList.remove('on');
-    await loadPayments($('pyFilter').value); await loadAttendance();
+    await loadPayments($('pyFilter').value); await loadAttendance(); await loadSummary();
   };
   if($('pyTable')) $('pyTable').addEventListener('click', async function(e){
     var t=(e.target&&e.target.closest)?e.target:null; if(!t||!t.closest) return;
