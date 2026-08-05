@@ -3278,8 +3278,8 @@
         </div>
         <div class="dash-note" style="margin-top:0">
           <b>배정 규칙</b> &mdash; ① 비대면 학생은 강의장을 잡지 않습니다 &nbsp;·&nbsp;
-          ② <b>주차가 필요한 학생은 별관</b> &nbsp;·&nbsp;
-          ③ 본원이 모자라면 <b>‘겹치면 별관’으로 표시된 선생님</b>이 먼저 별관으로 &nbsp;·&nbsp;
+          ② <b>주차가 필요한 학생은 미플</b> &nbsp;·&nbsp;
+          ③ 학원 강의장이 모자라면 <b>‘겹치면 미플’로 표시된 선생님</b>이 먼저 미플로 &nbsp;·&nbsp;
           ④ 같은 선생님이 연달아 수업하면 <b>같은 건물</b>로 몰아 이동을 줄입니다.<br>
           자동 배정은 <b>비어 있는 수업만</b> 채웁니다. 이미 정해 둔 강의장은 건드리지 않아요.
         </div>
@@ -4185,8 +4185,8 @@
            + '<option value="online"'+(v==='online'?' selected':'')+'>비대면</option></select></td>';
     }
     // 강의장 관련 칸.
-    //  학생 → 주차가 필요하면 배정 때 별관(스터디룸)으로 보낸다.
-    //  강사 → '양보'로 두면 시간이 겹쳐 본원이 모자랄 때 이 사람이 먼저 별관으로 간다.
+    //  학생 → 주차가 필요하면 배정 때 미플 강의장으로 보낸다.
+    //  강사 → '양보'로 두면 시간이 겹쳐 학원 강의장이 모자랄 때 이 사람이 먼저 미플로 간다.
     function parkCell(u){
       if(u.role==='student'){
         var on=!!u.parking;
@@ -4199,8 +4199,8 @@
         var y=!!u.room_yield;
         var st2=y?pickStyle('#b7d4c4','#eefaf3','#0f7a52'):pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
         return '<td style="white-space:nowrap"><select data-yield-for="'+esc(u.id)+'" style="'+st2+'">'
-             + '<option value=""'+(y?'':' selected')+'>본원 우선</option>'
-             + '<option value="1"'+(y?' selected':'')+'>겹치면 별관</option></select></td>';
+             + '<option value=""'+(y?'':' selected')+'>학원 우선</option>'
+             + '<option value="1"'+(y?' selected':'')+'>겹치면 미플</option></select></td>';
       }
       return '<td style="color:var(--muted)">-</td>';
     }
@@ -4619,9 +4619,9 @@
     renderRooms();
   }
   // ================= 강의장 배정 =================
-  // 규칙: 비대면=방 없음 / 주차 필요=별관 / 본원 부족하면 '양보' 강사가 별관 /
+  // 규칙: 비대면=방 없음 / 주차 필요=미플 / 학원 부족하면 '양보' 강사가 미플 /
   //       같은 선생님 연속 수업은 같은 건물(이동 최소화)
-  var MOVE_MIN=5;      // 본원 ↔ 별관 이동 시간(분)
+  var MOVE_MIN=5;      // 학원 ↔ 미플 이동 시간(분)
   var _asRows=[];
   function stuOf(s){
     if(!s.student_id) return null;
@@ -4633,7 +4633,7 @@
   function overlap(a,b){ return new Date(a.starts_at)<new Date(b.ends_at) && new Date(b.starts_at)<new Date(a.ends_at); }
 
   function roomsByBuilding(name){
-    return (_rooms||[]).filter(function(r){ return r.active!==false && (r.building==='별관'?'별관':'본원')===name; });
+    return (_rooms||[]).filter(function(r){ return r.active!==false && (r.building==='미플'?'미플':'학원')===name; });
   }
   // 그 시간에 이미 쓰고 있는 방을 뺀 목록
   function freeRooms(target, all, list){
@@ -4672,12 +4672,12 @@
     var opts=(_rooms||[]).filter(function(x){ return x.active!==false; });
     var warns=[];
 
-    // 경고 1: 주차 필요한데 본원에 잡힘 / 경고 2: 같은 선생님 연속 수업 건물 이동 / 경고 3: 같은 방 겹침
+    // 경고 1: 주차 필요한데 학원에 잡힘 / 경고 2: 같은 선생님 연속 수업 건물 이동 / 경고 3: 같은 방 겹침
     rows.forEach(function(s){
       if(!s.room_id) return;
       var bd=roomBuilding(s.room_id);
-      if(needsParking(s) && bd==='본원')
-        warns.push({t:'park', s:s, msg:'<b>'+esc(s.student_name||'학생')+'</b> 학생은 <b>주차가 필요</b>한데 '+esc(roomName(s.room_id))+'(본원)에 잡혀 있어요.'});
+      if(needsParking(s) && bd==='학원')
+        warns.push({t:'park', s:s, msg:'<b>'+esc(s.student_name||'학생')+'</b> 학생은 <b>주차가 필요</b>한데 '+esc(roomName(s.room_id))+'(학원)에 잡혀 있어요.'});
       if(isOnlineLesson(s))
         warns.push({t:'online', s:s, msg:'<b>'+esc(s.student_name||'학생')+'</b> 학생은 <b>비대면</b>인데 강의장이 잡혀 있어요.'});
     });
@@ -4724,9 +4724,9 @@
       var cur=s.room_id?String(s.room_id):'';
       var bd=cur?roomBuilding(cur):'';
       var stl=!cur?pickRoomStyle('#e5b4b0','#fdf0ef','#c0342b')
-             :(bd==='별관'?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8'));
+             :(bd==='미플'?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8'));
       var sel='<select data-asroom="'+esc(s.id)+'" style="'+stl+'"><option value="">미배정</option>'
-        + opts.map(function(r){ return '<option value="'+r.id+'"'+(String(r.id)===cur?' selected':'')+'>'+esc(r.name)+' ('+((r.building==='별관')?'별관':'본원')+')</option>'; }).join('')
+        + opts.map(function(r){ return '<option value="'+r.id+'"'+(String(r.id)===cur?' selected':'')+'>'+esc(r.name)+' ('+((r.building==='미플')?'미플':'학원')+')</option>'; }).join('')
         + '</select>';
       h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(s.teacher_name||'-')+'</td>'
        + '<td>'+esc(s.student_name||'-')+'</td><td style="white-space:nowrap">'+mode+'</td><td style="white-space:nowrap">'+sel+'</td></tr>';
@@ -4742,10 +4742,10 @@
     var rows=(_asRows||[]).slice();
     var todo=rows.filter(function(s){ return !s.room_id && !isOnlineLesson(s); });
     if(!todo.length){ alert('자동으로 채울 수업이 없습니다.'); return; }
-    var main=roomsByBuilding('본원'), annex=roomsByBuilding('별관');
+    var main=roomsByBuilding('학원'), annex=roomsByBuilding('미플');
     if(!main.length && !annex.length){ alert('사용 가능한 강의장이 없습니다.'); return; }
 
-    // 주차 필요 건을 먼저 (별관을 선점해야 하므로), 그다음 시간 순
+    // 주차 필요 건을 먼저 (미플을 선점해야 하므로), 그다음 시간 순
     todo.sort(function(a,b){
       var pa=needsParking(a)?0:1, pb=needsParking(b)?0:1;
       if(pa!==pb) return pa-pb;
@@ -4755,11 +4755,11 @@
     var plan=[], failed=[];
     todo.forEach(function(s){
       var order;
-      if(needsParking(s)) order=annex.concat(main);                    // 주차 → 별관 먼저
-      else if(teacherYields(s.teacher_id)) order=annex.concat(main);   // 양보 강사 → 별관 먼저
+      if(needsParking(s)) order=annex.concat(main);                    // 주차 → 미플 먼저
+      else if(teacherYields(s.teacher_id)) order=annex.concat(main);   // 양보 강사 → 미플 먼저
       else {
         var nb=neighborBuilding(s, rows);                              // 이동 최소화
-        order = (nb==='별관') ? annex.concat(main) : main.concat(annex);
+        order = (nb==='미플') ? annex.concat(main) : main.concat(annex);
       }
       var free=freeRooms(s, rows, order);
       if(!free.length){ failed.push(s); return; }
@@ -4802,17 +4802,17 @@
   });
 
   function pickRoomStyle(line,bg,fg){ return 'font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;border:1px solid '+line+';background:'+bg+';color:'+fg; }
-  function roomBuilding(id){ var r=(_rooms||[]).filter(function(x){return String(x.id)===String(id);})[0]; return (r&&r.building==='별관')?'별관':(r?'본원':''); }
+  function roomBuilding(id){ var r=(_rooms||[]).filter(function(x){return String(x.id)===String(id);})[0]; return (r&&r.building==='미플')?'미플':(r?'학원':''); }
   function renderRooms(){
     if(!$('rmTable')) return;
     if(!_rooms.length){ $('rmTable').innerHTML='<tr><td class="wa-empty">등록된 강의장이 없습니다.</td></tr>'; return; }
     var h='<tr><th>강의장</th><th>건물</th><th>정원</th><th>상태</th><th>관리</th></tr>';
     _rooms.forEach(function(r){
-      var b=(r.building==='별관')?'별관':'본원';
-      var bs=(b==='별관')?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8');
+      var b=(r.building==='미플')?'미플':'학원';
+      var bs=(b==='미플')?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8');
       var bcell='<td style="white-space:nowrap"><select data-rmbuild="'+r.id+'" style="'+bs+'">'
-        + '<option value="본원"'+(b==='본원'?' selected':'')+'>본원</option>'
-        + '<option value="별관"'+(b==='별관'?' selected':'')+'>별관</option></select></td>';
+        + '<option value="학원"'+(b==='학원'?' selected':'')+'>학원</option>'
+        + '<option value="미플"'+(b==='미플'?' selected':'')+'>미플</option></select></td>';
       h+='<tr><td>'+esc(r.name)+'</td>'+bcell+'<td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
     $('rmTable').innerHTML=h;
   }
