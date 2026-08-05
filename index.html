@@ -3264,6 +3264,30 @@
       <div class="cal-legend" id="calLegend"></div>
       <div class="cal-scroll" id="calScroll"><div class="cal-grid" id="calGrid"></div></div>
       <div class="cal-month" id="calMonthGrid" style="display:none"></div>
+      <div class="dash-list-head">🏫 강의장 배정 <span style="font-weight:700;font-size:12px;color:var(--muted)">구글 캘린더에서 온 수업은 강의장이 비어 있습니다</span></div>
+      <div class="dash-form" style="margin-top:6px">
+        <div class="dash-row">
+          <label>시작일<input type="date" id="asFrom"></label>
+          <label>종료일<input type="date" id="asTo"></label>
+          <label style="flex:2">&nbsp;
+            <div class="wa-admin-actions" style="margin:0">
+              <button class="btn btn-ghost" type="button" id="asReload">🔄 불러오기</button>
+              <button class="btn btn-primary" type="button" id="asAuto">✨ 규칙대로 자동 배정</button>
+            </div>
+          </label>
+        </div>
+        <div class="dash-note" style="margin-top:0">
+          <b>배정 규칙</b> &mdash; ① 비대면 학생은 강의장을 잡지 않습니다 &nbsp;·&nbsp;
+          ② <b>주차가 필요한 학생은 별관</b> &nbsp;·&nbsp;
+          ③ 본원이 모자라면 <b>‘겹치면 별관’으로 표시된 선생님</b>이 먼저 별관으로 &nbsp;·&nbsp;
+          ④ 같은 선생님이 연달아 수업하면 <b>같은 건물</b>로 몰아 이동을 줄입니다.<br>
+          자동 배정은 <b>비어 있는 수업만</b> 채웁니다. 이미 정해 둔 강의장은 건드리지 않아요.
+        </div>
+        <p class="wa-err" id="asErr"></p>
+      </div>
+      <div id="asWarn" class="dash-note" style="display:none"></div>
+      <div class="wa-table-wrap"><table class="wa-table" id="asTable"></table></div>
+
       <div class="dash-list-head">다가오는 수업 <span id="scCount" style="color:var(--muted);font-weight:700"></span></div>
       <div id="scRoomNote" class="dash-note" style="margin-top:0;display:none"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="scTable"></table></div>
@@ -4160,6 +4184,26 @@
            + '<option value="offline"'+(v==='offline'?' selected':'')+'>대면</option>'
            + '<option value="online"'+(v==='online'?' selected':'')+'>비대면</option></select></td>';
     }
+    // 강의장 관련 칸.
+    //  학생 → 주차가 필요하면 배정 때 별관(스터디룸)으로 보낸다.
+    //  강사 → '양보'로 두면 시간이 겹쳐 본원이 모자랄 때 이 사람이 먼저 별관으로 간다.
+    function parkCell(u){
+      if(u.role==='student'){
+        var on=!!u.parking;
+        var st=on?pickStyle('#b9cbe8','#eef4fd','#1d4ed8'):pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
+        return '<td style="white-space:nowrap"><select data-park-for="'+esc(u.id)+'" style="'+st+'">'
+             + '<option value=""'+(on?'':' selected')+'>불필요</option>'
+             + '<option value="1"'+(on?' selected':'')+'>주차 필요</option></select></td>';
+      }
+      if(isStaffRole(u.role)){
+        var y=!!u.room_yield;
+        var st2=y?pickStyle('#b7d4c4','#eefaf3','#0f7a52'):pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
+        return '<td style="white-space:nowrap"><select data-yield-for="'+esc(u.id)+'" style="'+st2+'">'
+             + '<option value=""'+(y?'':' selected')+'>본원 우선</option>'
+             + '<option value="1"'+(y?' selected':'')+'>겹치면 별관</option></select></td>';
+      }
+      return '<td style="color:var(--muted)">-</td>';
+    }
     // 점수·목표: 눌러서 입력하는 칸. 선생님도 담당 학생 것을 적을 수 있다.
     function goalCell(u){
       if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
@@ -4198,6 +4242,7 @@
     // 칸이 열한 개면 가로 스크롤이 생겨 오른쪽 끝의 수정·탈퇴가 안 보인다.
     var h='<tr>'+sortableTh('name','이름 <span style="font-weight:600;color:var(--muted);font-size:11px">· 이메일 · 연락처</span>')+'<th>관심과목</th>'
       + sortableTh('teacher','담당강사') + sortableTh('role','구분') + sortableTh('lesson_mode','수업형태')
+      + '<th>주차 · 강의장</th>'
       + sortableTh('score','점수·목표') + sortableTh('status','수강상태') + sortableTh('created_at','가입일')
       + (mm?'<th>관리</th>':'')+'</tr>';
     m.forEach(function(u){
@@ -4206,7 +4251,7 @@
       var idCell='<td><div style="font-weight:700;color:var(--ink)">'+esc(u.name)+'</div>'
         +'<div style="font-size:11.5px;color:var(--muted);line-height:1.5">'+esc(u.email)
         +(u.phone?(' · '+esc(u.phone)):'')+'</div></td>';
-      h+='<tr>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
+      h+='<tr>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+parkCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
     $('waTable').innerHTML=h;
   }
   if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
@@ -4289,19 +4334,24 @@
   if($('waTable')) $('waTable').addEventListener('change', async function(e){
     var sel=e.target; if(!sel||!sel.getAttribute) return;
     var sid=sel.getAttribute('data-status-for'), mid=sel.getAttribute('data-mode-for');
-    var id=sid||mid; if(!id) return;
+    var pid=sel.getAttribute('data-park-for'), yid=sel.getAttribute('data-yield-for');
+    var id=sid||mid||pid||yid; if(!id) return;
     var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(id);})[0];
     var v=sel.value;
     var prev = sid ? ((u&&u.status==='ended')?'ended':'active')
-                   : ((u&&(u.lesson_mode==='online'||u.lesson_mode==='offline'))?u.lesson_mode:'');
+             : mid ? ((u&&(u.lesson_mode==='online'||u.lesson_mode==='offline'))?u.lesson_mode:'')
+             : pid ? ((u&&u.parking)?'1':'')
+             :       ((u&&u.room_yield)?'1':'');
     if(v===prev) return;
     if(!sb){ sel.value=prev; return; }
     // 종료로 바꿀 때는 사유를 물어본다 (퇴원률 집계 때문에)
     if(sid && v==='ended'){ sel.value=prev; openEnd(u); return; }
     var r = sid ? await sb.rpc('set_student_status',{target:id,new_status:v,reason:null})
-                : await sb.rpc('set_lesson_mode',{target:id,new_mode:v});
-    if(r.error){ alert((sid?'수강 상태':'수업 형태')+' 변경 실패: '+r.error.message); sel.value=prev; return; }
-    if(u){ if(sid) u.status=v; else u.lesson_mode=(v||null); }
+            : mid ? await sb.rpc('set_lesson_mode',{target:id,new_mode:v})
+            : pid ? await sb.rpc('set_student_parking',{target:id,on_off:(v==='1')})
+            :       await sb.rpc('set_room_yield',{target:id,on_off:(v==='1')});
+    if(r.error){ alert((sid?'수강 상태':mid?'수업 형태':pid?'주차 표시':'강의장 양보')+' 변경 실패: '+r.error.message); sel.value=prev; return; }
+    if(u){ if(sid) u.status=v; else if(mid) u.lesson_mode=(v||null); else if(pid) u.parking=(v==='1'); else u.room_yield=(v==='1'); }
     drawMembers();
     if(sid) await loadTeacherAlerts();
   });
@@ -4497,6 +4547,12 @@
     await loadPayments($('pyFilter')?$('pyFilter').value:ym(now));
     if($('sumFrom')&&!$('sumFrom').value) setSumRange('thismonth');
     await loadSummary();
+    // 강의장 배정 화면은 기본으로 오늘부터 2주를 본다
+    if($('asFrom')&&!$('asFrom').value){
+      var a2=new Date(now), b2=new Date(now); b2.setDate(b2.getDate()+14);
+      $('asFrom').value=ymd(a2); if($('asTo')) $('asTo').value=ymd(b2);
+    }
+    await loadRoomAssign();
     await loadAttendance();
     await loadWork();
     if(isOps()) await loadOplog();
@@ -4562,11 +4618,202 @@
     if(sb){ var r=await sb.from('rooms').select('*').order('id'); if(!r.error&&r.data) _rooms=r.data; }
     renderRooms();
   }
+  // ================= 강의장 배정 =================
+  // 규칙: 비대면=방 없음 / 주차 필요=별관 / 본원 부족하면 '양보' 강사가 별관 /
+  //       같은 선생님 연속 수업은 같은 건물(이동 최소화)
+  var MOVE_MIN=5;      // 본원 ↔ 별관 이동 시간(분)
+  var _asRows=[];
+  function stuOf(s){
+    if(!s.student_id) return null;
+    return (_members||[]).filter(function(m){ return m.id===s.student_id; })[0]||null;
+  }
+  function isOnlineLesson(s){ var st=stuOf(s); return !!(st && st.lesson_mode==='online'); }
+  function needsParking(s){ var st=stuOf(s); return !!(st && st.parking); }
+  function teacherYields(tid){ var t=(_members||[]).filter(function(m){ return m.id===tid; })[0]; return !!(t && t.room_yield); }
+  function overlap(a,b){ return new Date(a.starts_at)<new Date(b.ends_at) && new Date(b.starts_at)<new Date(a.ends_at); }
+
+  function roomsByBuilding(name){
+    return (_rooms||[]).filter(function(r){ return r.active!==false && (r.building==='별관'?'별관':'본원')===name; });
+  }
+  // 그 시간에 이미 쓰고 있는 방을 뺀 목록
+  function freeRooms(target, all, list){
+    var busy={};
+    all.forEach(function(s){
+      if(String(s.id)===String(target.id) || !s.room_id) return;
+      if(overlap(s,target)) busy[String(s.room_id)]=1;
+    });
+    return list.filter(function(r){ return !busy[String(r.id)]; });
+  }
+  // 같은 선생님의 바로 앞/뒤 수업이 있는 건물 (이동 최소화용)
+  function neighborBuilding(target, all){
+    var best=null, bestGap=1e9;
+    all.forEach(function(s){
+      if(String(s.id)===String(target.id) || !s.room_id || s.teacher_id!==target.teacher_id) return;
+      var gap=Math.min(
+        Math.abs(new Date(target.starts_at)-new Date(s.ends_at)),
+        Math.abs(new Date(s.starts_at)-new Date(target.ends_at)));
+      var mins=gap/60000;
+      if(mins<=180 && mins<bestGap){ bestGap=mins; best=roomBuilding(s.room_id); }
+    });
+    return best;
+  }
+
+  async function loadRoomAssign(){
+    if(!$('asTable')) return;
+    var from=($('asFrom')&&$('asFrom').value)||'', to=($('asTo')&&$('asTo').value)||'';
+    if(!from||!to||!sb) return;
+    var a=new Date(from+'T00:00'), b=new Date(to+'T00:00'); b.setDate(b.getDate()+1);
+    var r=await sb.from('schedules').select('*').gte('starts_at',a.toISOString()).lt('starts_at',b.toISOString()).order('starts_at');
+    _asRows=(!r.error&&r.data)?r.data:[];
+    drawRoomAssign();
+  }
+  function drawRoomAssign(){
+    var rows=_asRows||[];
+    var opts=(_rooms||[]).filter(function(x){ return x.active!==false; });
+    var warns=[];
+
+    // 경고 1: 주차 필요한데 본원에 잡힘 / 경고 2: 같은 선생님 연속 수업 건물 이동 / 경고 3: 같은 방 겹침
+    rows.forEach(function(s){
+      if(!s.room_id) return;
+      var bd=roomBuilding(s.room_id);
+      if(needsParking(s) && bd==='본원')
+        warns.push({t:'park', s:s, msg:'<b>'+esc(s.student_name||'학생')+'</b> 학생은 <b>주차가 필요</b>한데 '+esc(roomName(s.room_id))+'(본원)에 잡혀 있어요.'});
+      if(isOnlineLesson(s))
+        warns.push({t:'online', s:s, msg:'<b>'+esc(s.student_name||'학생')+'</b> 학생은 <b>비대면</b>인데 강의장이 잡혀 있어요.'});
+    });
+    // 건물 이동 경고 (같은 선생님, 쉬는 시간이 이동 시간보다 짧을 때)
+    var byT={};
+    rows.forEach(function(s){ if(s.room_id&&s.teacher_id){ (byT[s.teacher_id]=byT[s.teacher_id]||[]).push(s); } });
+    Object.keys(byT).forEach(function(tid){
+      var list=byT[tid].slice().sort(function(x,y){ return new Date(x.starts_at)-new Date(y.starts_at); });
+      for(var i=1;i<list.length;i++){
+        var prev=list[i-1], cur=list[i];
+        var gap=(new Date(cur.starts_at)-new Date(prev.ends_at))/60000;
+        if(gap<0 || gap>120) continue;
+        if(roomBuilding(prev.room_id)!==roomBuilding(cur.room_id) && gap<MOVE_MIN+5){
+          warns.push({t:'move', s:cur, msg:'<b>'+esc(cur.teacher_name||'선생님')+'</b> — '+fmtDT(prev.starts_at)+' '+esc(roomName(prev.room_id))
+            +' 다음 '+fmtDT(cur.starts_at)+' '+esc(roomName(cur.room_id))+'. 쉬는 시간 <b>'+Math.round(gap)+'분</b>인데 <b>건물을 옮겨야</b> 해요(이동 '+MOVE_MIN+'분).'});
+        }
+      }
+    });
+    // 같은 방 겹침
+    for(var i=0;i<rows.length;i++) for(var j=i+1;j<rows.length;j++){
+      if(rows[i].room_id && rows[i].room_id===rows[j].room_id && overlap(rows[i],rows[j]))
+        warns.push({t:'dup', s:rows[j], msg:'<b>'+esc(roomName(rows[i].room_id))+'</b>이(가) '+fmtDT(rows[j].starts_at)+'에 <b>두 수업</b>과 겹칩니다.'});
+    }
+
+    var wb=$('asWarn');
+    if(wb){
+      if(!warns.length){ wb.style.display='none'; wb.innerHTML=''; }
+      else {
+        wb.style.display='';
+        wb.innerHTML='<div style="font-weight:800;color:#c0342b;margin-bottom:6px">⚠️ 확인이 필요한 배정 '+warns.length+'건</div>'
+          + warns.slice(0,25).map(function(w){ return '<div style="padding:3px 0;line-height:1.6">· '+w.msg+'</div>'; }).join('')
+          + (warns.length>25?('<div style="color:var(--muted);font-size:12px">…외 '+(warns.length-25)+'건</div>'):'');
+      }
+    }
+
+    var need=rows.filter(function(s){ return !s.room_id && !isOnlineLesson(s); }).length;
+    if(!rows.length){ $('asTable').innerHTML='<tr><td class="wa-empty">이 기간에 수업이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>날짜·시간</th><th>선생님</th><th>학생</th><th>수업형태</th><th>강의장</th></tr>';
+    rows.forEach(function(s){
+      var st=stuOf(s);
+      var mode = isOnlineLesson(s) ? '<span style="color:#0f7a52;font-weight:800">비대면</span>'
+               : (needsParking(s) ? '<span style="color:#1d4ed8;font-weight:800">대면 · 주차</span>'
+               : (st&&st.lesson_mode==='offline' ? '대면' : '<span style="color:var(--muted)">미지정</span>'));
+      var cur=s.room_id?String(s.room_id):'';
+      var bd=cur?roomBuilding(cur):'';
+      var stl=!cur?pickRoomStyle('#e5b4b0','#fdf0ef','#c0342b')
+             :(bd==='별관'?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8'));
+      var sel='<select data-asroom="'+esc(s.id)+'" style="'+stl+'"><option value="">미배정</option>'
+        + opts.map(function(r){ return '<option value="'+r.id+'"'+(String(r.id)===cur?' selected':'')+'>'+esc(r.name)+' ('+((r.building==='별관')?'별관':'본원')+')</option>'; }).join('')
+        + '</select>';
+      h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(s.teacher_name||'-')+'</td>'
+       + '<td>'+esc(s.student_name||'-')+'</td><td style="white-space:nowrap">'+mode+'</td><td style="white-space:nowrap">'+sel+'</td></tr>';
+    });
+    $('asTable').innerHTML=h;
+    if($('asErr')) $('asErr').textContent = need?('강의장이 비어 있는 대면 수업 '+need+'건'):'';
+  }
+  function roomName(id){ var r=(_rooms||[]).filter(function(x){ return String(x.id)===String(id); })[0]; return r?r.name:'(삭제된 강의장)'; }
+
+  // 규칙대로 자동 배정 — 비어 있는 것만 채운다
+  async function autoAssign(){
+    if(!sb) return;
+    var rows=(_asRows||[]).slice();
+    var todo=rows.filter(function(s){ return !s.room_id && !isOnlineLesson(s); });
+    if(!todo.length){ alert('자동으로 채울 수업이 없습니다.'); return; }
+    var main=roomsByBuilding('본원'), annex=roomsByBuilding('별관');
+    if(!main.length && !annex.length){ alert('사용 가능한 강의장이 없습니다.'); return; }
+
+    // 주차 필요 건을 먼저 (별관을 선점해야 하므로), 그다음 시간 순
+    todo.sort(function(a,b){
+      var pa=needsParking(a)?0:1, pb=needsParking(b)?0:1;
+      if(pa!==pb) return pa-pb;
+      return new Date(a.starts_at)-new Date(b.starts_at);
+    });
+
+    var plan=[], failed=[];
+    todo.forEach(function(s){
+      var order;
+      if(needsParking(s)) order=annex.concat(main);                    // 주차 → 별관 먼저
+      else if(teacherYields(s.teacher_id)) order=annex.concat(main);   // 양보 강사 → 별관 먼저
+      else {
+        var nb=neighborBuilding(s, rows);                              // 이동 최소화
+        order = (nb==='별관') ? annex.concat(main) : main.concat(annex);
+      }
+      var free=freeRooms(s, rows, order);
+      if(!free.length){ failed.push(s); return; }
+      var pick=free[0];
+      s.room_id=pick.id;                 // 이후 계산에 반영되도록 메모리에도 반영
+      plan.push({ id:s.id, room_id:pick.id, name:pick.name });
+    });
+
+    if(!plan.length){ alert('배정할 수 있는 빈 강의장이 없습니다.\n시간이 겹치는 수업이 강의장 수보다 많습니다.'); await loadRoomAssign(); return; }
+    var msg='아래처럼 '+plan.length+'건을 배정할까요?\n\n'
+      + plan.slice(0,12).map(function(p){
+          var s=rows.filter(function(x){return String(x.id)===String(p.id);})[0];
+          return '· '+fmtDT(s.starts_at)+' '+(s.student_name||'')+' → '+p.name;
+        }).join('\n')
+      + (plan.length>12?('\n…외 '+(plan.length-12)+'건'):'')
+      + (failed.length?('\n\n※ '+failed.length+'건은 빈 강의장이 없어 배정하지 못했습니다.'):'');
+    if(!confirm(msg)){ await loadRoomAssign(); return; }
+
+    var fail=0;
+    for(var i=0;i<plan.length;i++){
+      var u=await sb.from('schedules').update({room_id:plan[i].room_id}).eq('id',plan[i].id);
+      if(u.error) fail++;
+    }
+    await loadRoomAssign(); await loadSchedules(); await renderCalendar();
+    alert(fail?('배정 완료. 다만 '+fail+'건은 저장에 실패했습니다.'):(plan.length+'건을 배정했습니다.'));
+  }
+  if($('asReload')) $('asReload').onclick=function(){ loadRoomAssign(); };
+  if($('asAuto')) $('asAuto').onclick=autoAssign;
+  ['asFrom','asTo'].forEach(function(id){ if($(id)) $(id).addEventListener('change', loadRoomAssign); });
+  if($('asTable')) $('asTable').addEventListener('change', async function(e){
+    var sel=e.target; if(!sel||!sel.getAttribute||!sel.getAttribute('data-asroom')) return;
+    if(!sb) return;
+    var id=sel.getAttribute('data-asroom'), v=sel.value||null;
+    var u=await sb.from('schedules').update({room_id:v}).eq('id',id);
+    if(u.error){ alert('강의장 변경 실패: '+u.error.message); await loadRoomAssign(); return; }
+    var s=(_asRows||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    if(s) s.room_id=v;
+    drawRoomAssign();
+    await loadSchedules(); await renderCalendar();
+  });
+
+  function pickRoomStyle(line,bg,fg){ return 'font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;border:1px solid '+line+';background:'+bg+';color:'+fg; }
+  function roomBuilding(id){ var r=(_rooms||[]).filter(function(x){return String(x.id)===String(id);})[0]; return (r&&r.building==='별관')?'별관':(r?'본원':''); }
   function renderRooms(){
     if(!$('rmTable')) return;
     if(!_rooms.length){ $('rmTable').innerHTML='<tr><td class="wa-empty">등록된 강의장이 없습니다.</td></tr>'; return; }
-    var h='<tr><th>강의장</th><th>정원</th><th>상태</th><th>관리</th></tr>';
-    _rooms.forEach(function(r){ h+='<tr><td>'+esc(r.name)+'</td><td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
+    var h='<tr><th>강의장</th><th>건물</th><th>정원</th><th>상태</th><th>관리</th></tr>';
+    _rooms.forEach(function(r){
+      var b=(r.building==='별관')?'별관':'본원';
+      var bs=(b==='별관')?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8');
+      var bcell='<td style="white-space:nowrap"><select data-rmbuild="'+r.id+'" style="'+bs+'">'
+        + '<option value="본원"'+(b==='본원'?' selected':'')+'>본원</option>'
+        + '<option value="별관"'+(b==='별관'?' selected':'')+'>별관</option></select></td>';
+      h+='<tr><td>'+esc(r.name)+'</td>'+bcell+'<td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
     $('rmTable').innerHTML=h;
   }
   if($('rmAdd')) $('rmAdd').onclick=async function(){
@@ -4575,6 +4822,15 @@
     var r=await sb.from('rooms').insert({name:name,capacity:cap}); if(r.error){ alert('추가 실패: '+r.error.message); return; }
     $('rmName').value=''; await loadRooms(); fillSelects();
   };
+  if($('rmTable')) $('rmTable').addEventListener('change', async function(e){
+    var sel=e.target; if(!sel||!sel.getAttribute||!sel.getAttribute('data-rmbuild')) return;
+    if(!sb) return;
+    var id=sel.getAttribute('data-rmbuild'), v=sel.value;
+    var u=await sb.from('rooms').update({building:v}).eq('id',id);
+    if(u.error){ alert('건물 변경 실패: '+u.error.message); await loadRooms(); return; }
+    await loadRooms();
+    if(typeof loadRoomAssign==='function') await loadRoomAssign();
+  });
   if($('rmTable')) $('rmTable').addEventListener('click', async function(e){
     var t=(e.target&&e.target.closest)?e.target:null; if(!t||!t.closest) return;
     var ed=t.closest('a[data-rmedit]'), dl=t.closest('a[data-rmdel]');
