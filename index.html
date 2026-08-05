@@ -3042,6 +3042,8 @@
       <button class="dash-tab" data-dtab="oplog">운영일지</button>
       <button class="dash-tab" data-dtab="diag">진단결과</button>
       <button class="dash-tab" data-dtab="hw">숙제</button>
+      <button class="dash-tab" data-dtab="consult">상담</button>
+      <button class="dash-tab" data-dtab="eval">선생님 평가</button>
     </div>
 
     <div id="waAlerts" class="wa-alerts" style="display:none"></div>
@@ -3219,6 +3221,50 @@
       <div style="margin:10px 0 2px"><input id="hwListSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="hwTable"></table></div>
     </div>
+
+    <div class="dash-pane" data-dpane="consult">
+      <div class="dash-form">
+        <div class="dash-row">
+          <label>상담일<input type="date" id="csDate"></label>
+          <label>이름<input type="text" id="csName" placeholder="상담받은 분 이름"></label>
+          <label>연락처<input type="tel" id="csPhone" placeholder="010-1234-5678"></label>
+        </div>
+        <div class="dash-row">
+          <label>상담한 선생님<select id="csTeacher"></select></label>
+          <label>유입 경로<input type="text" id="csChannel" placeholder="네이버 / 지인소개 / 방문 등"></label>
+        </div>
+        <label>메모 <span class="wa-hint">(선택)</span><input type="text" id="csMemo" placeholder="상담 내용, 희망 시간대 등"></label>
+        <p class="wa-err" id="csErr"></p>
+        <button class="btn btn-primary" id="csAdd" type="button">＋ 상담 등록</button>
+      </div>
+      <div class="dash-list-head">상담 목록 <button class="btn btn-ghost" id="csReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="dash-note" style="margin-top:0">상담 결과를 <b>등록함 / 등록 안 함</b>으로 바꾸면 선생님 평가의 <b>상담 전환율</b>에 반영됩니다. ‘대기’인 건은 아직 결과가 안 나온 것으로 보고 계산에서 빼요.</div>
+      <div id="csSummary" class="dash-note" style="margin-top:8px"></div>
+      <div class="wa-table-wrap"><table class="wa-table" id="csTable"></table></div>
+    </div>
+
+    <div class="dash-pane" data-dpane="eval">
+      <div class="dash-form">
+        <div class="dash-row">
+          <label>기준 월<input type="month" id="evMonth"></label>
+          <label>집계 범위<select id="evScope">
+            <option value="month">선택한 달</option>
+            <option value="all">전체 기간</option>
+          </select></label>
+        </div>
+        <button class="btn btn-primary" id="evReload" type="button">🔄 다시 계산</button>
+      </div>
+      <div class="dash-list-head">선생님별 지표</div>
+      <div class="dash-note" style="margin-top:0">
+        <b>출석률</b> = 출석 체크된 수업 ÷ 학생이 연결된 지난 수업 &nbsp;·&nbsp;
+        <b>재등록률</b> = 결제한 학생 중 2번 이상 결제한 학생 &nbsp;·&nbsp;
+        <b>상담 전환율</b> = 등록함 ÷ (등록함＋등록 안 함) &nbsp;·&nbsp;
+        <b>퇴원율</b> = 중도 퇴원 ÷ 담당 학생 전체<br>
+        ※ 구글 캘린더에서 이름만 넘어온 수업은 출석과 짝지을 수 없어 출석률 계산에서 빠집니다.
+      </div>
+      <div class="wa-table-wrap"><table class="wa-table" id="evTable"></table></div>
+      <div id="evNote" class="dash-note"></div>
+    </div>
   </div>
 </div>
 <div class="wa-overlay" id="waMy" aria-hidden="true">
@@ -3298,12 +3344,47 @@
         <label>현재 점수<input type="text" id="waECurrent"></label>
         <label>목표 점수<input type="text" id="waEGoal"></label>
       </div>
+      <label>목표 기간<input type="text" id="waEPeriod" placeholder="예: 2026년 10월까지 / 3개월"></label>
       <label>가입 경로<input type="text" id="waERoute"></label>
       <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
       <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">매니저</option><option value="master">원장님</option></select></label>
       <label id="waERateWrap" style="display:none">강사 배분율(%)<input type="number" id="waERate" min="0" max="100" step="0.1" placeholder="50"><span style="font-weight:600;font-size:12px;color:var(--muted)">이 강사가 맡은 학생 매출에서 가져가는 비율입니다. 여기서 원천징수 3.3%를 뗀 금액이 실지급액이 됩니다.</span></label>
       <p class="wa-err" id="waEErr"></p>
       <button class="btn btn-primary" id="waESave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+<!-- 수강 종료 사유. 퇴원률은 '중도 퇴원'만 세야 하므로 반드시 물어본다. -->
+<div class="wa-overlay" id="waEnd" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waEndClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">수강 종료</div>
+    <div class="wa-sub" id="waEndWho"></div>
+    <div class="wa-form on" style="display:flex">
+      <div style="font-weight:800;font-size:13.5px;margin-bottom:2px">종료 사유를 골라주세요</div>
+      <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="graduated" checked style="width:auto;margin:0">목표 달성 · 수료</label>
+      <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="quit" style="width:auto;margin:0">중도 퇴원</label>
+      <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="etc" style="width:auto;margin:0">기타 / 미기재</label>
+      <span style="font-size:12px;color:var(--muted);font-weight:600">‘중도 퇴원’만 선생님 평가의 퇴원율에 들어갑니다. 종료하면 다음수업·숙제 알림에서 빠져요.</span>
+      <p class="wa-err" id="waEndErr"></p>
+      <button class="btn btn-primary" id="waEndSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+<!-- 점수·목표 빠른 입력. 회원 정보 수정과 달리 담당 선생님도 쓸 수 있다. -->
+<div class="wa-overlay" id="waGoal" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waGoalClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">점수 · 목표</div>
+    <div class="wa-sub" id="waGoalWho"></div>
+    <div class="wa-form on" style="display:flex">
+      <div class="wa-row">
+        <label>현재 점수<input type="text" id="waGCurrent" placeholder="예: 620"></label>
+        <label>목표 점수<input type="text" id="waGGoal" placeholder="예: 800"></label>
+      </div>
+      <label>목표 기간<input type="text" id="waGPeriod" placeholder="예: 2026년 10월까지 / 3개월"></label>
+      <p class="wa-err" id="waGErr"></p>
+      <button class="btn btn-primary" id="waGSave" type="button">저장</button>
     </div>
   </div>
 </div>
@@ -3579,11 +3660,45 @@
     }
     var tmap={}; all.forEach(function(x){ tmap[x.id]=x.name; });
     var mm=isMasterNow();
-    var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당쌤</th><th>구분</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    // 학생 전용 칸 두 개. 선생님·원장님 행에는 의미가 없어 '-'만 보인다.
+    function pickStyle(line,bg,fg){ return 'font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;border:1px solid '+line+';background:'+bg+';color:'+fg; }
+    // 수강 상태: '수강 종료'로 두면 알림에서 빠진다.
+    function statusCell(u){
+      if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
+      var ended=(u.status==='ended');
+      var st=ended?pickStyle('#e5b4b0','#fdf0ef','#c0342b'):pickStyle('var(--line,#e3e6ea)','#fff','var(--ink,#222)');
+      var why = ended ? ('<br><span style="color:var(--muted);font-size:11.5px">'+(u.end_reason==='quit'?'중도 퇴원':(u.end_reason==='graduated'?'수료':'기타'))+'</span>') : '';
+      return '<td style="white-space:nowrap"><select data-status-for="'+esc(u.id)+'" style="'+st+'">'
+           + '<option value="active"'+(ended?'':' selected')+'>수강 중</option>'
+           + '<option value="ended"'+(ended?' selected':'')+'>수강 종료</option></select>'+why+'</td>';
+    }
+    // 수업 형태: 대면 / 비대면. 비워두면 '미지정'.
+    function modeCell(u){
+      if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
+      var v=(u.lesson_mode==='online'||u.lesson_mode==='offline')?u.lesson_mode:'';
+      var st = v==='online' ? pickStyle('#b7d4c4','#eefaf3','#0f7a52')
+             : v==='offline' ? pickStyle('#b9cbe8','#eef4fd','#1d4ed8')
+             : pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
+      return '<td style="white-space:nowrap"><select data-mode-for="'+esc(u.id)+'" style="'+st+'">'
+           + '<option value=""'+(v?'':' selected')+'>미지정</option>'
+           + '<option value="offline"'+(v==='offline'?' selected':'')+'>대면</option>'
+           + '<option value="online"'+(v==='online'?' selected':'')+'>비대면</option></select></td>';
+    }
+    // 점수·목표: 눌러서 입력하는 칸. 선생님도 담당 학생 것을 적을 수 있다.
+    function goalCell(u){
+      if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
+      var cur=(u.current_score||'').trim(), gl=(u.goal_score||'').trim(), pd=(u.goal_period||'').trim();
+      var txt='';
+      if(cur||gl) txt=esc(cur||'?')+' <span style="color:var(--muted)">→</span> <b>'+esc(gl||'?')+'</b>';
+      if(pd) txt+=(txt?'<br>':'')+'<span style="color:var(--muted);font-size:11.5px">'+esc(pd)+'</span>';
+      if(!txt) txt='<span style="color:var(--muted)">+ 입력</span>';
+      return '<td><a class="wa-link" data-goal-for="'+esc(u.id)+'" style="font-size:12.5px;line-height:1.45;display:inline-block">'+txt+'</a></td>';
+    }
+    var h='<tr><th>이름</th><th>이메일</th><th>연락처</th><th>관심과목</th><th>담당쌤</th><th>구분</th><th>수업형태</th><th>점수·목표</th><th>수강상태</th><th>가입일</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     m.forEach(function(u){
       var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">삭제</a></td>' : '';
       var tn = (u.role==='student') ? (u.teacher_id?esc(tmap[u.teacher_id]||'-'):'<span style="color:var(--muted)">미배정</span>') : '-';
-      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+rt(u.role,u)+'</td><td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
+      h+='<tr><td>'+esc(u.name)+'</td><td>'+esc(u.email)+'</td><td>'+esc(u.phone||'-')+'</td><td>'+esc(u.interest||'-')+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>'; });
     $('waTable').innerHTML=h;
   }
   if($('waSearch')) $('waSearch').addEventListener('input', drawMembers);
@@ -3597,7 +3712,7 @@
   // 표를 보다가 실수로 클릭할 때마다 페이지가 통째로 닫힌다. 닫기는 X 버튼과 Esc로만.
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape' && $('waAdmin') && $('waAdmin').classList.contains('on')){
-      var others=['waModal','waRecovery','waBooking','waMy','waPayEdit','waEdit'].filter(function(id){ return $(id) && $(id).classList.contains('on'); });
+      var others=['waModal','waRecovery','waBooking','waMy','waPayEdit','waEdit','waGoal','waEnd'].filter(function(id){ return $(id) && $(id).classList.contains('on'); });
       if(!others.length) $('waAdmin').classList.remove('on');
     }
   });
@@ -3606,17 +3721,90 @@
   // ---- 회원 수정/삭제 (마스터 전용) ----
   var editingId=null, editingRole='student', editingTeacher='', editingRate=50;
   if($('waTable')) $('waTable').addEventListener('click', function(e){
+    var g=(e.target && e.target.closest)?e.target.closest('a[data-goal-for]'):null;
+    if(g){ e.preventDefault(); var gu=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(g.getAttribute('data-goal-for'));})[0]; if(gu) openGoal(gu); return; }
     var a=(e.target && e.target.closest)?e.target.closest('a[data-act]'):null; if(!a) return;
     e.preventDefault();
     var id=a.getAttribute('data-id'), act=a.getAttribute('data-act');
     var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(id);})[0]; if(!u) return;
     if(act==='edit') openEdit(u); else if(act==='del') delMember(u);
   });
+  // 수강 상태 / 수업 형태 드롭다운 (선생님·원장님 모두 변경 가능 — 전용 RPC로만)
+  if($('waTable')) $('waTable').addEventListener('change', async function(e){
+    var sel=e.target; if(!sel||!sel.getAttribute) return;
+    var sid=sel.getAttribute('data-status-for'), mid=sel.getAttribute('data-mode-for');
+    var id=sid||mid; if(!id) return;
+    var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(id);})[0];
+    var v=sel.value;
+    var prev = sid ? ((u&&u.status==='ended')?'ended':'active')
+                   : ((u&&(u.lesson_mode==='online'||u.lesson_mode==='offline'))?u.lesson_mode:'');
+    if(v===prev) return;
+    if(!sb){ sel.value=prev; return; }
+    // 종료로 바꿀 때는 사유를 물어본다 (퇴원률 집계 때문에)
+    if(sid && v==='ended'){ sel.value=prev; openEnd(u); return; }
+    var r = sid ? await sb.rpc('set_student_status',{target:id,new_status:v,reason:null})
+                : await sb.rpc('set_lesson_mode',{target:id,new_mode:v});
+    if(r.error){ alert((sid?'수강 상태':'수업 형태')+' 변경 실패: '+r.error.message); sel.value=prev; return; }
+    if(u){ if(sid) u.status=v; else u.lesson_mode=(v||null); }
+    drawMembers();
+    if(sid) await loadTeacherAlerts();
+  });
+  // ---- 수강 종료 사유 ----
+  var endId=null;
+  function openEnd(u){
+    endId=u.id;
+    if($('waEndWho')) $('waEndWho').textContent=(u.name||'')+' 학생을 수강 종료로 바꿉니다.';
+    var pick=(u.end_reason==='quit'||u.end_reason==='etc')?u.end_reason:'graduated';
+    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ r.checked=(r.value===pick); });
+    if($('waEndErr')) $('waEndErr').textContent='';
+    $('waEnd').classList.add('on');
+  }
+  function closeEnd(){ if($('waEnd')) $('waEnd').classList.remove('on'); endId=null; }
+  if($('waEndClose')) $('waEndClose').onclick=closeEnd;
+  if($('waEnd')) $('waEnd').addEventListener('click',function(e){ if(e.target===$('waEnd')) closeEnd(); });
+  if($('waEndSave')) $('waEndSave').onclick=async function(){
+    if(!endId||!sb) return;
+    var picked='etc';
+    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ if(r.checked) picked=r.value; });
+    var r=await sb.rpc('set_student_status',{target:endId,new_status:'ended',reason:picked});
+    if(r.error){ $('waEndErr').textContent='저장 실패: '+r.error.message; return; }
+    var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(endId);})[0];
+    if(u){ u.status='ended'; u.end_reason=picked; if(!u.ended_at) u.ended_at=new Date().toISOString(); }
+    closeEnd();
+    drawMembers();
+    await loadTeacherAlerts();
+  };
+
+  // ---- 점수·목표 빠른 입력 (선생님·원장님) ----
+  var goalId=null;
+  function openGoal(u){
+    goalId=u.id;
+    if($('waGoalWho')) $('waGoalWho').textContent=(u.name||'')+' 학생';
+    if($('waGCurrent')) $('waGCurrent').value=u.current_score||'';
+    if($('waGGoal')) $('waGGoal').value=u.goal_score||'';
+    if($('waGPeriod')) $('waGPeriod').value=u.goal_period||'';
+    if($('waGErr')) $('waGErr').textContent='';
+    $('waGoal').classList.add('on');
+  }
+  function closeGoal(){ if($('waGoal')) $('waGoal').classList.remove('on'); goalId=null; }
+  if($('waGoalClose')) $('waGoalClose').onclick=closeGoal;
+  if($('waGoal')) $('waGoal').addEventListener('click',function(e){ if(e.target===$('waGoal')) closeGoal(); });
+  if($('waGSave')) $('waGSave').onclick=async function(){
+    if(!goalId||!sb) return;
+    var cur=$('waGCurrent').value.trim(), gl=$('waGGoal').value.trim(), pd=$('waGPeriod').value.trim();
+    var r=await sb.rpc('set_student_goal',{target:goalId,cur:cur,goal:gl,period:pd});
+    if(r.error){ $('waGErr').textContent='저장 실패: '+r.error.message; return; }
+    var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(goalId);})[0];
+    if(u){ u.current_score=cur||null; u.goal_score=gl||null; u.goal_period=pd||null; }
+    closeGoal();
+    drawMembers();
+  };
   function openEdit(u){
     editingId=u.id;
     $('waEditEmail').textContent=u.email;
     $('waEName').value=u.name||''; $('waEPhone').value=u.phone||''; $('waEInterest').value=u.interest||'';
     $('waECurrent').value=u.current_score||''; $('waEGoal').value=u.goal_score||''; $('waERoute').value=u.route||'';
+    if($('waEPeriod')) $('waEPeriod').value=u.goal_period||'';
     editingRole=u.role||'student'; editingTeacher=u.teacher_id||'';
     if($('waETeacher')){ var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';}); $('waETeacher').innerHTML='<option value="">미배정</option>'+ts.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join(''); $('waETeacher').value=u.teacher_id||''; }
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
@@ -3645,7 +3833,7 @@
   if($('waESave')) $('waESave').onclick=async function(){
     if(!editingId||!sb) return;
     var newRole=$('waERole').value;
-    var patch={ name:$('waEName').value.trim(), phone:($('waEPhone').value.trim()||null), interest:($('waEInterest').value.trim()||null), current_score:($('waECurrent').value.trim()||null), goal_score:($('waEGoal').value.trim()||null), route:($('waERoute').value.trim()||null) };
+    var patch={ name:$('waEName').value.trim(), phone:($('waEPhone').value.trim()||null), interest:($('waEInterest').value.trim()||null), current_score:($('waECurrent').value.trim()||null), goal_score:($('waEGoal').value.trim()||null), goal_period:(($('waEPeriod')?$('waEPeriod').value.trim():'')||null), route:($('waERoute').value.trim()||null) };
     if(!patch.name){ $('waEErr').textContent='이름은 필수입니다.'; return; }
     var wasSelf = profile && editingId===profile.id;
     var r=await sb.from('profiles').update(patch).eq('id',editingId);
@@ -3665,8 +3853,9 @@
   };
   function downloadFile(name,content,type){ var b=new Blob([content],{type:type}); var u=URL.createObjectURL(b); var a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(u);},1000); }
   if($('waExportCsv')) $('waExportCsv').onclick=function(){
-    var m=window.__wtMembers||[]; var rows=[['이름','이메일','연락처','생년월일','성별','관심과목','현재점수','목표점수','가입경로','마케팅동의','구분','가입일']];
-    m.forEach(function(u){ rows.push([u.name,u.email,u.phone||'',u.birth||'',u.gender||'',u.interest||'',u.current_score||'',u.goal_score||'',u.route||'',(u.marketing?'동의':'미동의'),roleTag(u.role),(u.created_at||'').slice(0,10)]); });
+    var m=window.__wtMembers||[]; var rows=[['이름','이메일','연락처','생년월일','성별','관심과목','현재점수','목표점수','목표기간','수업형태','수강상태','가입경로','마케팅동의','구분','가입일']];
+    var modeTxt=function(v){ return v==='online'?'비대면':(v==='offline'?'대면':''); };
+    m.forEach(function(u){ rows.push([u.name,u.email,u.phone||'',u.birth||'',u.gender||'',u.interest||'',u.current_score||'',u.goal_score||'',u.goal_period||'',(u.role==='student'?modeTxt(u.lesson_mode):''),(u.role==='student'?(u.status==='ended'?'수강 종료':'수강 중'):''),u.route||'',(u.marketing?'동의':'미동의'),roleTag(u.role),(u.created_at||'').slice(0,10)]); });
     var csv='﻿'+rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\r\n');
     downloadFile('완토_회원_'+today()+'.csv', csv,'text/csv');
   };
@@ -3734,6 +3923,11 @@
     if(isOps()) await loadOplog();
     await loadDiag();
     await loadHomework();
+    if($('csDate')&&!$('csDate').value) $('csDate').value=ymd(now);
+    if($('evMonth')&&!$('evMonth').value) $('evMonth').value=ym(now);
+    fillConsultTeacher();
+    await loadConsults();
+    await loadEval();
     await loadTeacherAlerts();
     applyRoleScope();
     applyTabRoles();
@@ -3930,13 +4124,26 @@
     if(!raw || !normName(raw)) return false;      // 이름이 없거나 "(빈)"처럼 괄호만 있는 것
     return !NOT_STUDENT.some(function(w){ return raw.indexOf(w)>=0; });
   }
+  // 회원 관리에서 '수강 종료'로 표시한 학생. 이들은 다음 수업을 잡을 필요가 없으므로
+  // 알림에 띄우지 않는다. 구글 캘린더에서 이름만 넘어온 수업(회원 연결 안 됨)도
+  // 이름이 같으면 같이 제외한다. 이름 비교는 normName 이라 "김서영(비대면)" = "김서영".
+  function endedStudentKeys(){
+    var out={};
+    (_members||[]).forEach(function(m){
+      if(m.status!=='ended') return;
+      out['id:'+m.id]=1;
+      var n=normName(m.name); if(n) out['nm:'+n]=1;
+    });
+    return out;
+  }
   async function computeTeacherAlerts(){
     if(!sb || !profile) return [];
+    var ended=endedStudentKeys();
     var meId=profile.id, now=new Date();
     var start=new Date(now); start.setDate(start.getDate()-2); start.setHours(0,0,0,0); // 오늘 포함 최근 3일
     var end=new Date(now); end.setDate(end.getDate()+1); end.setHours(0,0,0,0);
     var recent=await fetchRange(start,end);
-    var mine=recent.filter(function(s){ return s.teacher_id===meId && isStudentEntry(s) && new Date(s.ends_at)<now; });
+    var mine=recent.filter(function(s){ return s.teacher_id===meId && isStudentEntry(s) && new Date(s.ends_at)<now && !ended[stuKey(s.student_id,s.student_name)]; });
     if(!mine.length) return [];
     // 내 학생들의 예정 수업 (미래)
     var hasFuture={};
@@ -4680,7 +4887,181 @@
     var c=$('waAdmin'); if(!c) return;
     var ops=isOps();
     c.querySelectorAll('.dash-tab[data-dtab="oplog"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
+    // 선생님 평가는 서로의 수치가 보이므로 원장님·매니저에게만 연다.
+    c.querySelectorAll('.dash-tab[data-dtab="eval"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
+    if(!ops && c.querySelector('.dash-pane[data-dpane="eval"].on')) dashTab('members');
   }
+
+  // ================= 상담 장부 =================
+  // 상담은 회원가입 전 사람도 대상이라 profiles 가 아니라 consults 테이블에 남긴다.
+  var _consults=[];
+  var CS_RESULT={pending:'대기', registered:'등록함', lost:'등록 안 함'};
+  async function loadConsults(){
+    if(!$('csTable')) return;
+    if(sb){ var r=await sb.from('consults').select('*').order('consulted_on',{ascending:false}); if(!r.error&&r.data) _consults=r.data; }
+    drawConsults();
+  }
+  function drawConsults(){
+    var rows=_consults||[];
+    var reg=0, lost=0;
+    rows.forEach(function(c){ if(c.result==='registered') reg++; else if(c.result==='lost') lost++; });
+    var decided=reg+lost;
+    if($('csSummary')) $('csSummary').innerHTML='전체 상담 <b>'+rows.length+'건</b> · 등록 <b>'+reg+'건</b> · 등록 안 함 <b>'+lost+'건</b> · 대기 <b>'+(rows.length-decided)+'건</b> &nbsp;→&nbsp; 전환율 <b style="color:var(--accent);font-size:15px">'+(decided?Math.round(reg/decided*100)+'%':'-')+'</b>';
+    if(!rows.length){ $('csTable').innerHTML='<tr><td class="wa-empty">아직 등록된 상담이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>상담일</th><th>이름</th><th>연락처</th><th>상담 선생님</th><th>유입 경로</th><th>메모</th><th>결과</th><th>관리</th></tr>';
+    rows.forEach(function(c){
+      var v=c.result||'pending';
+      var col = v==='registered' ? '#0f7a52' : (v==='lost' ? '#c0342b' : 'var(--muted,#888)');
+      h+='<tr><td style="white-space:nowrap">'+esc(c.consulted_on||'')+'</td><td>'+esc(c.name||'')+'</td><td>'+esc(c.phone||'-')+'</td><td>'+esc(c.teacher_name||'-')+'</td><td>'+esc(c.channel||'-')+'</td><td style="font-size:12.5px;color:var(--muted)">'+esc(c.memo||'')+'</td>'
+       + '<td style="white-space:nowrap"><select data-cs-result="'+esc(c.id)+'" style="font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;border:1px solid var(--line,#e3e6ea);color:'+col+'">'
+       + '<option value="pending"'+(v==='pending'?' selected':'')+'>대기</option>'
+       + '<option value="registered"'+(v==='registered'?' selected':'')+'>등록함</option>'
+       + '<option value="lost"'+(v==='lost'?' selected':'')+'>등록 안 함</option></select></td>'
+       + '<td><a class="wa-link" data-cs-del="'+esc(c.id)+'" style="color:#c0342b">삭제</a></td></tr>';
+    });
+    $('csTable').innerHTML=h;
+  }
+  function fillConsultTeacher(){
+    if(!$('csTeacher')) return;
+    var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';});
+    $('csTeacher').innerHTML='<option value="">미지정</option>'+ts.map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>'; }).join('');
+    if(profile && ts.some(function(t){return t.id===profile.id;})) $('csTeacher').value=profile.id;
+  }
+  if($('csAdd')) $('csAdd').onclick=async function(){
+    if(!sb) return;
+    var name=($('csName').value||'').trim();
+    if(!name){ $('csErr').textContent='이름은 필수입니다.'; return; }
+    var tid=$('csTeacher')?$('csTeacher').value:'';
+    var tname=(_members||[]).filter(function(m){return m.id===tid;})[0];
+    var row={ consulted_on:($('csDate').value||ymd(new Date())), name:name,
+              phone:(($('csPhone').value||'').trim()||null), channel:(($('csChannel').value||'').trim()||null),
+              teacher_id:(tid||null), teacher_name:(tname?tname.name:null),
+              memo:(($('csMemo').value||'').trim()||null), result:'pending' };
+    var r=await sb.from('consults').insert(row);
+    if(r.error){ $('csErr').textContent='등록 실패: '+r.error.message; return; }
+    $('csErr').textContent=''; $('csName').value=''; $('csPhone').value=''; $('csChannel').value=''; $('csMemo').value='';
+    await loadConsults();
+  };
+  if($('csReload')) $('csReload').onclick=function(){ loadConsults(); };
+  if($('csTable')) $('csTable').addEventListener('change', async function(e){
+    var sel=e.target; if(!sel||!sel.getAttribute||!sel.getAttribute('data-cs-result')) return;
+    if(!sb) return;
+    var id=sel.getAttribute('data-cs-result'), v=sel.value;
+    var patch={ result:v, decided_on:(v==='pending'?null:ymd(new Date())) };
+    var r=await sb.from('consults').update(patch).eq('id',id);
+    if(r.error){ alert('결과 저장 실패: '+r.error.message); await loadConsults(); return; }
+    var c=(_consults||[]).filter(function(x){return String(x.id)===String(id);})[0];
+    if(c){ c.result=v; c.decided_on=patch.decided_on; }
+    drawConsults();
+  });
+  if($('csTable')) $('csTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('a[data-cs-del]'):null; if(!a) return;
+    e.preventDefault();
+    if(!sb || !confirm('이 상담 기록을 삭제할까요?')) return;
+    var r=await sb.from('consults').delete().eq('id',a.getAttribute('data-cs-del'));
+    if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await loadConsults();
+  });
+
+  // ================= 선생님 평가 =================
+  function pct(n,d){ return d>0 ? Math.round(n/d*100) : null; }
+  function pctTxt(n,d,good){
+    var v=pct(n,d);
+    if(v===null) return '<span style="color:var(--muted)">-</span>';
+    var col = good===false ? (v>=30?'#c0342b':(v>=15?'#b45309':'var(--ink,#222)'))
+                           : (v>=80?'#0f7a52':(v>=50?'var(--ink,#222)':'#c0342b'));
+    return '<b style="color:'+col+';font-size:15px">'+v+'%</b> <span style="color:var(--muted);font-size:11.5px">('+n+'/'+d+')</span>';
+  }
+  async function loadEval(){
+    if(!$('evTable')) return;
+    if(!sb){ $('evTable').innerHTML='<tr><td class="wa-empty">연결이 필요합니다.</td></tr>'; return; }
+    var scope=$('evScope')?$('evScope').value:'month';
+    var mv=($('evMonth')&&$('evMonth').value)||ym(new Date());
+    var from=null, to=null;
+    if(scope==='month'){
+      var p=mv.split('-'); from=new Date(parseInt(p[0],10), parseInt(p[1],10)-1, 1);
+      to=new Date(from); to.setMonth(to.getMonth()+1);
+    }
+    var now=new Date();
+    var teachers=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';});
+    if(!teachers.length){ $('evTable').innerHTML='<tr><td class="wa-empty">선생님으로 등록된 회원이 없습니다.</td></tr>'; return; }
+
+    // 1) 지난 수업 (출석률 분모) — 학생 회원이 연결된 것만
+    var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at').not('student_id','is',null);
+    if(from){ sq=sq.gte('starts_at',from.toISOString()).lt('starts_at',to.toISOString()); }
+    var sr=await sq;
+    var scheds=(!sr.error&&sr.data)?sr.data.filter(function(s){ return new Date(s.ends_at)<now; }):[];
+
+    // 2) 출석 기록
+    var aq=sb.from('attendance').select('student_id,attended_on');
+    if(from){ aq=aq.gte('attended_on',ymd(from)).lt('attended_on',ymd(to)); }
+    var ar=await aq;
+    var attSet={};
+    if(!ar.error&&ar.data) ar.data.forEach(function(a){ attSet[a.student_id+'|'+a.attended_on]=1; });
+
+    // 3) 결제 (재등록률) — 기간과 무관하게 누적으로 본다. 두 번 이상 결제 = 재등록.
+    //    담당쌤이 안 찍힌 예전 결제는 그 학생의 현재 담당쌤으로 본다.
+    var stuTeacher={};
+    (_members||[]).forEach(function(m){ if(m.role==='student'&&m.teacher_id) stuTeacher[m.id]=m.teacher_id; });
+    var pr=await sb.from('payments').select('student_id,teacher_id,month,paid_at');
+    var pays=(!pr.error&&pr.data)?pr.data.map(function(p){
+      return { student_id:p.student_id, teacher_id:(p.teacher_id||stuTeacher[p.student_id]||null) };
+    }):[];
+
+    // 4) 상담
+    var cr=await sb.from('consults').select('teacher_id,result,consulted_on');
+    var cons=(!cr.error&&cr.data)?cr.data:[];
+
+    var rows=teachers.map(function(t){
+      // 출석률
+      var mySch=scheds.filter(function(s){ return s.teacher_id===t.id; });
+      var att=0;
+      mySch.forEach(function(s){ if(attSet[s.student_id+'|'+ymd(new Date(s.starts_at))]) att++; });
+
+      // 재등록률: 이 선생님 담당으로 결제된 학생별 결제 건수
+      var cnt={};
+      pays.forEach(function(p){ if(p.teacher_id!==t.id||!p.student_id) return; cnt[p.student_id]=(cnt[p.student_id]||0)+1; });
+      var ids=Object.keys(cnt), again=ids.filter(function(k){ return cnt[k]>=2; }).length;
+
+      // 상담 전환율
+      var myCons=cons.filter(function(c){
+        if(c.teacher_id!==t.id) return false;
+        if(!from) return true;
+        var d=new Date(c.consulted_on+'T00:00'); return d>=from && d<to;
+      });
+      var reg=myCons.filter(function(c){return c.result==='registered';}).length;
+      var lost=myCons.filter(function(c){return c.result==='lost';}).length;
+
+      // 퇴원율: 담당 학생 전체 중 '중도 퇴원'
+      var myStu=(_members||[]).filter(function(m){ return m.role==='student' && m.teacher_id===t.id; });
+      var quitList=myStu.filter(function(m){
+        if(m.status!=='ended'||m.end_reason!=='quit') return false;
+        if(!from) return true;
+        if(!m.ended_at) return false;
+        var d=new Date(m.ended_at); return d>=from && d<to;
+      });
+      var active=myStu.filter(function(m){ return m.status!=='ended'; }).length;
+
+      return { t:t, sch:mySch.length, att:att, payStu:ids.length, again:again,
+               reg:reg, lost:lost, stu:myStu.length, active:active, quit:quitList.length };
+    });
+
+    var h='<tr><th>선생님</th><th>담당 학생</th><th>수업/출석</th><th>출석률</th><th>재등록률</th><th>상담 전환율</th><th>퇴원율</th></tr>';
+    rows.forEach(function(r){
+      h+='<tr><td><b>'+esc(r.t.name)+'</b></td>'
+       + '<td style="white-space:nowrap">'+r.stu+'명 <span style="color:var(--muted);font-size:11.5px">(수강중 '+r.active+')</span></td>'
+       + '<td style="white-space:nowrap">'+r.sch+'회 / '+r.att+'회</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.att,r.sch,true)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.again,r.payStu,true)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.reg,r.reg+r.lost,true)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.quit,r.stu,false)+'</td></tr>';
+    });
+    $('evTable').innerHTML=h;
+    if($('evNote')) $('evNote').innerHTML='기준: <b>'+(from?(mv+' 한 달'):'전체 기간')+'</b>. 재등록률은 기간과 상관없이 <b>누적 결제 기록</b>으로 계산합니다(같은 학생이 2번 이상 결제하면 재등록).';
+  }
+  if($('evReload')) $('evReload').onclick=function(){ loadEval(); };
+  if($('evScope')) $('evScope').addEventListener('change', loadEval);
+  if($('evMonth')) $('evMonth').addEventListener('change', loadEval);
 
   // ================= 학생 대시보드 =================
   async function renderMy(){
