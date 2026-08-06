@@ -3376,6 +3376,7 @@
     <div class="dash-pane" data-dpane="att">
       <div class="dash-list-head" style="margin-top:6px">🎫 학생별 남은 수업 횟수 <button class="btn btn-ghost" id="attReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
       <div class="dash-note" style="margin-top:0">학생을 <b>출석 처리</b>하면 남은 횟수가 1회 차감됩니다. 횟수권은 정산 탭에서 판매(충전)합니다.</div>
+      <div id="attDue" class="dash-note" style="margin-top:8px;display:none"></div>
       <div style="margin:10px 0 2px"><input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
       <div class="dash-list-head">최근 출석 내역</div>
@@ -5658,6 +5659,10 @@
     if(sb){
       var r1=await sb.from('payments').select('student_id,sessions'); if(!r1.error&&r1.data) pays=r1.data;
       var r2=await sb.from('attendance').select('id,student_id,student_name,attended_on,created_at,checked_in_at,checked_out_at,source').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
+      // 결제 안내 대기열. payment_alert.sql 을 아직 안 돌렸으면 표가 없어 오류가 나는데,
+      // 그때는 안내만 못 보여줄 뿐 출석 화면은 그대로 돌아가야 한다.
+      var r3=await sb.from('notify_outbox').select('student_id,body,created_at,sent_at').eq('kind','payment_due').order('created_at',{ascending:false});
+      window.__wtNotify=(!r3.error&&r3.data)?r3.data:null;
     }
     var purchased={}, attended={};
     pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
@@ -5665,7 +5670,38 @@
     window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAtts=atts;
     drawAtt();
   }
+  // 남은 수업이 1회 이하인 학생 = 결제 안내 대상.
+  // 안내 문자가 나갔는지도 같이 보여준다(아직 발송 연동 전이라 '대기중'으로 뜬다).
+  function drawPaymentDue(){
+    if(!$('attDue')) return;
+    var purchased=window.__wtAttP||{}, attended=window.__wtAttD||{}, notif=window.__wtNotify;
+    var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'; });
+    var due=students.map(function(s){ return { s:s, rem:(purchased[s.id]||0)-(attended[s.id]||0) }; })
+                    .filter(function(x){ return x.rem<=1; })
+                    .sort(function(a,b){ return a.rem-b.rem; });
+    if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
+    var sentBy={};
+    if(notif) notif.forEach(function(n){ if(!sentBy[n.student_id]) sentBy[n.student_id]=n; });
+    var h='💳 <b>결제 안내가 필요한 학생 '+due.length+'명</b>';
+    if(notif===null) h+=' <span style="color:#c0342b;font-weight:700">(안내 대기열이 아직 없습니다 — payment_alert.sql 을 먼저 실행하세요)</span>';
+    h+='<div style="margin-top:6px;line-height:1.9">';
+    due.forEach(function(x){
+      var n=sentBy[x.s.id];
+      var tag = !notif ? ''
+              : (n ? (n.sent_at ? '<span style="color:#0f7a52;font-weight:800">안내 보냄</span>'
+                                : '<span style="color:#8a5a00;font-weight:800">보내는 중</span>')
+                   : '<span style="color:var(--muted)">안내 안 나감</span>');
+      h+='<span style="display:inline-block;margin-right:14px">'
+       + '<b>'+esc(x.s.name||'-')+'</b> '
+       + '<span style="color:'+(x.rem<=0?'#c0342b':'#8a5a00')+';font-weight:800">'+x.rem+'회</span>'
+       + (tag?' · '+tag:'') + '</span>';
+    });
+    h+='</div>';
+    $('attDue').innerHTML=h;
+    $('attDue').style.display='';
+  }
   function drawAtt(){
+    drawPaymentDue();
     var purchased=window.__wtAttP||{}, attended=window.__wtAttD||{}, atts=window.__wtAtts||[];
     var q=(($('attSearch')&&$('attSearch').value)||'').trim().toLowerCase();
     var students=_members.filter(function(m){return m.role==='student';});
