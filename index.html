@@ -5035,12 +5035,21 @@
     var startISO=slotISO(d,s), endISO=slotISO(d,en);
     if(endISO<=startISO){ err.textContent='종료 시간이 시작보다 빨라요.'; return; }
     var roomId=$('scRoom').value?parseInt($('scRoom').value,10):null;
+    var teacher=_members.filter(function(m){return m.id===$('scTeacher').value;})[0];
+    var student=_members.filter(function(m){return m.id===$('scStudent').value;})[0];
+    // 대면 수업은 강의장을 반드시 정한다(원장 지시). 미배정은 비대면 학생만.
+    // 학생을 안 고른 경우도 대면으로 본다(수업형태를 알 수 없으므로 안전한 쪽).
+    var isOnline = !!(student && student.lesson_mode==='online');
+    if(roomId==null && !isOnline){
+      err.textContent = student
+        ? '대면 수업은 강의장을 골라주세요. (미배정은 비대면 학생만 가능합니다)'
+        : '학생을 고르거나, 강의장을 골라주세요. (미배정은 비대면 학생만 가능합니다)';
+      return;
+    }
     if(roomId){
       var c=await sb.from('schedules').select('id').eq('room_id',roomId).lt('starts_at',endISO).gt('ends_at',startISO);
       if(!c.error && c.data && c.data.length){ err.textContent='해당 시간에 그 강의장이 이미 예약돼 있어요.'; return; }
     }
-    var teacher=_members.filter(function(m){return m.id===$('scTeacher').value;})[0];
-    var student=_members.filter(function(m){return m.id===$('scStudent').value;})[0];
     var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null) };
     var r=await sb.from('schedules').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
     $('scMemo').value=''; await loadSchedules();
