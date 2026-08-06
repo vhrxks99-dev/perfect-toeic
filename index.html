@@ -5148,8 +5148,28 @@
     try{ await loadAlertChecks(); }catch(e){}
     try{ alerts=await computeTeacherAlerts(); }catch(e){ alerts=[]; }
     try{ var pr=await sb.from('schedules').select('*').eq('teacher_id',profile.id).eq('status','pending').order('starts_at'); if(!pr.error&&pr.data) pend=pr.data; }catch(e){}
+    // 노쇼 후보 — 끝난 수업인데 그날 등원 기록이 없는 학생 (최근 7일)
+    var nosh=[];
+    try{
+      var sinceISO=new Date(Date.now()-7*864e5).toISOString();
+      var pastR=await sb.from('schedules').select('id,student_id,student_name,starts_at,ends_at')
+        .eq('teacher_id',profile.id).eq('status','confirmed')
+        .gte('starts_at',sinceISO).lt('ends_at',new Date().toISOString())
+        .order('starts_at',{ascending:false});
+      var past=(!pastR.error&&pastR.data)?pastR.data.filter(function(x){ return x.student_id; }):[];
+      if(past.length){
+        var sids=past.map(function(x){ return x.student_id; });
+        var atR=await sb.from('attendance').select('student_id,attended_on')
+          .in('student_id',sids).gte('attended_on', ymd(new Date(Date.now()-8*864e5)));
+        var got={}; if(!atR.error&&atR.data) atR.data.forEach(function(a){ got[a.student_id+'|'+a.attended_on]=1; });
+        nosh=past.filter(function(x){
+          var d=ymd(new Date(x.starts_at));
+          return !got[x.student_id+'|'+d] && !_alertChecks[ackKey('noshow',stuKey(x.student_id,x.student_name),d)];
+        }).slice(0,20);
+      }
+    }catch(e){ nosh=[]; }
     var undoH=ackUndoHtml();
-    if(!alerts.length && !pend.length){
+    if(!alerts.length && !pend.length && !nosh.length){
       // 알림이 없어도 '확인함'으로 지운 게 있으면 되돌릴 수 있어야 한다
       if(!undoH){ box.style.display='none'; box.innerHTML=''; return; }
       box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">0</span></div>'+undoH;
@@ -5164,7 +5184,13 @@
       if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched">스케줄로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
       return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(a.student)+'</b> 학생 — '+mdLabel(a.day)+' 수업 숙제가 안 나갔어요 <span class="wa-al-go" data-goto="hw">숙제로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
     }).join('');
-    box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">'+(alerts.length+pend.length)+'</span></div><ul>'+pendItems+items+'</ul>'+undoH;
+    var noshItems=nosh.map(function(s){
+      var d=ymd(new Date(s.starts_at));
+      var ack2='<button class="wa-al-ack" data-ack="'+esc('noshow|'+stuKey(s.student_id,s.student_name)+'|'+d)+'" data-ackname="'+esc(s.student_name||'')+'" title="차감하지 않고 이 알림만 지웁니다">그냥 넘기기</button>';
+      return '<li><span class="wa-al-tag t-req">노쇼?</span><b>'+esc(s.student_name||'학생')+'</b> 학생 — '+fmtDT(s.starts_at)+' 수업인데 등원 기록이 없어요'
+        + '<span class="wa-al-sp"></span><button class="wa-al-reject" data-noshow="'+esc(String(s.id))+'" data-nsname="'+esc(s.student_name||'학생')+'">노쇼 처리 (1회 차감)</button>'+ack2+'</li>';
+    }).join('');
+    box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">'+(alerts.length+pend.length+nosh.length)+'</span></div><ul>'+pendItems+noshItems+items+'</ul>'+undoH;
     box.style.display='';
   }
   // 최근 '확인함' 처리한 항목 — 잘못 눌렀을 때 되돌리기
@@ -5172,7 +5198,7 @@
     if(!_alertCheckRows.length) return '';
     var rows=_alertCheckRows.slice(0,20).map(function(x){
       return '<li><span class="wa-al-tag t-done">확인함</span><b>'+esc(x.student_name||x.student_key)+'</b> — '
-        + (x.kind==='next'?'다음수업':'숙제') + ' · ' + mdLabel(x.day)
+        + (x.kind==='next'?'다음수업':(x.kind==='noshow'?'노쇼':'숙제')) + ' · ' + mdLabel(x.day)
         + '<span class="wa-al-sp"></span><button class="wa-al-ack" data-unack="'+esc(String(x.id))+'">되돌리기</button></li>';
     }).join('');
     return '<details class="wa-al-undo"><summary>확인함으로 지운 알림 '+_alertCheckRows.length+'개</summary><ul>'+rows+'</ul></details>';
@@ -5184,6 +5210,7 @@
     var g=(t&&t.closest)?t.closest('[data-goto]'):null;
     var ak=(t&&t.closest)?t.closest('[data-ack]'):null;
     var un=(t&&t.closest)?t.closest('[data-unack]'):null;
+    var ns=(t&&t.closest)?t.closest('[data-noshow]'):null;
     if(ak){
       if(!sb||!profile) return;
       var parts=ak.getAttribute('data-ack').split('|');   // kind|student_key|day
@@ -5204,8 +5231,22 @@
       if(r4.error){ alert('되돌리기 실패: '+r4.error.message); return; }
       await loadTeacherAlerts(); return;
     }
-    if(ap){ if(!sb) return; var r=await sb.from('schedules').update({status:'confirmed'}).eq('id',ap.getAttribute('data-approve')); if(r.error){ alert('승인 실패: '+r.error.message); return; } await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
-    if(rj){ if(!sb) return; if(!confirm('이 예약 요청을 거절할까요?')) return; var r2=await sb.from('schedules').delete().eq('id',rj.getAttribute('data-reject')); if(r2.error){ alert('거절 실패: '+r2.error.message); return; } await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
+    // 승인·거절은 담당 선생님만 — 서버(RPC)가 검사한다. 화면에서 직접 고치지 않는다.
+    if(ap){ if(!sb) return;
+      var r=await sb.rpc('approve_booking',{p_id:ap.getAttribute('data-approve')});
+      if(r.error){ alert('승인 실패: '+r.error.message); return; }
+      await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
+    if(rj){ if(!sb) return; if(!confirm('이 예약 요청을 거절할까요?')) return;
+      var r2=await sb.rpc('reject_booking',{p_id:rj.getAttribute('data-reject')});
+      if(r2.error){ alert('거절 실패: '+r2.error.message); return; }
+      await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
+    // 노쇼 — 예약했는데 안 온 학생. 누르면 수업 1회가 차감된다.
+    if(ns){ if(!sb) return;
+      if(!confirm(ns.getAttribute('data-nsname')+' 학생을 노쇼로 처리할까요?\n\n수업 횟수가 1회 차감됩니다.')) return;
+      var r3=await sb.rpc('mark_noshow',{p_id:ns.getAttribute('data-noshow')});
+      if(r3.error){ alert('처리 실패: '+r3.error.message); return; }
+      if(r3.data && r3.data.ok===false){ alert(r3.data.msg||'처리하지 못했습니다.'); }
+      await loadAttendance(); await loadTeacherAlerts(); return; }
     if(g){ dashTab(g.getAttribute('data-goto')); }
   });
 
@@ -6677,7 +6718,16 @@
     var d=r.data||{};
     if(d.error==='no_teacher'){ box.innerHTML='<div class="wa-book-empty">담당 선생님 배정 후 예약할 수 있어요.<br>카카오톡 채널로 문의해주세요.</div>'; if($('waBookSub')) $('waBookSub').textContent='담당 선생님 배정 후 이용할 수 있어요.'; return; }
     if(d.error){ box.innerHTML='<div class="wa-book-empty">로그인 후 이용해주세요.</div>'; return; }
-    if($('waBookSub') && d.teacher_name) $('waBookSub').textContent='담당 '+d.teacher_name+' 선생님의 빈 시간을 골라 예약을 요청하세요. (2시간 단위)';
+    if($('waBookSub') && d.teacher_name){
+      // 몇 건이나 더 잡을 수 있는지 미리 알려준다(남은 수업 횟수와 4건 제한 중 빡빡한 쪽).
+      var leftTxt='';
+      try{
+        var lr=await sb.rpc('booking_left',{p_student:profile.id});
+        if(!lr.error && lr.data!=null) leftTxt=' · 지금 <b>'+lr.data+'건</b> 더 예약할 수 있어요 (최대 4건)';
+      }catch(e){}
+      $('waBookSub').innerHTML='담당 '+esc(d.teacher_name)+' 선생님의 빈 시간을 골라 예약을 요청하세요. (2시간 단위)'+leftTxt
+        + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. 취소는 수업 24시간 전까지 가능해요.</span>';
+    }
     var slots=d.slots||[];
     if(!slots.length){ box.innerHTML='<div class="wa-book-empty">예약 가능한 시간이 없어요.</div>'; return; }
     box.innerHTML=slots.map(function(sl){
@@ -6702,16 +6752,21 @@
     var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-2*3600*1000).toISOString()).order('starts_at').limit(50);
     var rows=(!r.error&&r.data)?r.data:[];
     if(!rows.length){ box.innerHTML='<div class="wa-book-empty">예약 내역이 없어요.</div>'; return; }
+    // 취소는 수업 24시간 전까지만. 그 뒤엔 선생님께 연락하셔야 한다(서버에서도 막는다).
+    var DAY_MS=24*3600*1000;
     box.innerHTML=rows.map(function(s){
       var st=(s.status==='pending')?'<span class="bm-st st-pending">승인대기</span>':'<span class="bm-st st-confirmed">확정</span>';
-      var cancel=(s.status==='pending')?'<span class="bm-cancel" data-cancel="'+esc(s.id)+'">취소</span>':'';
+      var canCancel=(new Date(s.starts_at)-Date.now())>DAY_MS;
+      var cancel=canCancel
+        ? '<span class="bm-cancel" data-cancel="'+esc(s.id)+'">취소</span>'
+        : '<span style="font-size:11.5px;color:var(--muted);margin-left:8px">24시간 이내 · 선생님께 문의</span>';
       return '<div class="bm"><span class="bm-t">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</span> <span style="color:var(--muted)">'+esc(s.subject||'')+'</span>'+st+cancel+'</div>';
     }).join('');
   }
   if($('waBookMine')) $('waBookMine').addEventListener('click', async function(e){
     var c=(e.target&&e.target.closest)?e.target.closest('[data-cancel]'):null; if(!c||!sb||!profile) return;
-    if(!confirm('이 예약 요청을 취소할까요?')) return;
-    var r=await sb.from('schedules').delete().eq('id',c.getAttribute('data-cancel')).eq('student_id',profile.id).eq('status','pending');
+    if(!confirm('이 예약을 취소할까요?')) return;
+    var r=await sb.from('schedules').delete().eq('id',c.getAttribute('data-cancel')).eq('student_id',profile.id);
     if(r.error){ alert('취소 실패: '+r.error.message); return; }
     await loadBookSlots(); await loadMyBookings();
   });
