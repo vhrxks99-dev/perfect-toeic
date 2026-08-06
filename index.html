@@ -5685,18 +5685,24 @@
     var h='💳 <b>결제 안내가 필요한 학생 '+due.length+'명</b>';
     if(notif===null) h+=' <span style="color:#c0342b;font-weight:700">(안내 대기열이 아직 없습니다 — payment_alert.sql 을 먼저 실행하세요)</span>';
     h+='<div style="margin-top:6px;line-height:1.9">';
+    var noPhone=0;
     due.forEach(function(x){
       var n=sentBy[x.s.id];
-      var tag = !notif ? ''
+      // 휴대폰 번호가 없으면 카카오 알림톡이 안 나간다(번호로 보내는 방식이라).
+      var hasPhone=!!String(x.s.phone||'').replace(/[^0-9]/g,'');
+      if(!hasPhone) noPhone++;
+      var tag = !hasPhone ? '<span style="color:#c0342b;font-weight:800">번호 없음</span>'
+              : (!notif ? ''
               : (n ? (n.sent_at ? '<span style="color:#0f7a52;font-weight:800">안내 보냄</span>'
                                 : '<span style="color:#8a5a00;font-weight:800">보내는 중</span>')
-                   : '<span style="color:var(--muted)">안내 안 나감</span>');
+                   : '<span style="color:var(--muted)">안내 안 나감</span>'));
       h+='<span style="display:inline-block;margin-right:14px">'
        + '<b>'+esc(x.s.name||'-')+'</b> '
        + '<span style="color:'+(x.rem<=0?'#c0342b':'#8a5a00')+';font-weight:800">'+x.rem+'회</span>'
        + (tag?' · '+tag:'') + '</span>';
     });
     h+='</div>';
+    if(noPhone) h+='<div style="margin-top:6px;color:#c0342b;font-weight:700">⚠️ '+noPhone+'명은 휴대폰 번호가 없어 카카오 알림톡이 나가지 않습니다. 회원 관리에서 번호를 채워주세요.</div>';
     // 실제로 나갈 문구를 그대로 보여준다(원장님 확인용).
     var last=notif&&notif.length?notif[0]:null;
     if(last&&last.body){
