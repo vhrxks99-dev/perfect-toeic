@@ -4570,7 +4570,7 @@
   }
   function fillSelects(){
     var teachers=_members.filter(function(m){return m.role==='admin'||m.role==='master';});
-    if($('scRoom')) $('scRoom').innerHTML=_rooms.map(function(r){ return '<option value="'+r.id+'">'+esc(r.name)+'</option>'; }).join('');
+    if($('scRoom')) $('scRoom').innerHTML=_rooms.filter(function(r){ return r.active!==false; }).map(function(r){ return '<option value="'+r.id+'">'+esc(roomLabel(r))+'</option>'; }).join('');
     if($('scTeacher')){ $('scTeacher').innerHTML=teachers.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>'; }).join(''); if(profile) $('scTeacher').value=profile.id; }
   }
   var _studentPool=[];
@@ -4634,6 +4634,17 @@
 
   function roomsByBuilding(name){
     return (_rooms||[]).filter(function(r){ return r.active!==false && (r.building==='미플'?'미플':'학원')===name; });
+  }
+  // 강의장 이름 뒤에 정원을 붙인다 — "강의장 A (4인)"
+  // 정원이 안 적혀 있으면 이름만 쓴다.
+  function roomLabel(r){
+    if(!r) return '-';
+    var c=parseInt(r.capacity,10);
+    return r.name + ((c>0) ? ' ('+c+'인)' : '');
+  }
+  function roomLabelById(id){
+    var r=(_rooms||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    return r?roomLabel(r):'-';
   }
   // 그 시간에 이미 쓰고 있는 방을 뺀 목록
   function freeRooms(target, all, list){
@@ -4726,7 +4737,7 @@
       var stl=!cur?pickRoomStyle('#e5b4b0','#fdf0ef','#c0342b')
              :(bd==='미플'?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8'));
       var sel='<select data-asroom="'+esc(s.id)+'" style="'+stl+'"><option value="">미배정</option>'
-        + opts.map(function(r){ return '<option value="'+r.id+'"'+(String(r.id)===cur?' selected':'')+'>'+esc(r.name)+' ('+((r.building==='미플')?'미플':'학원')+')</option>'; }).join('')
+        + opts.map(function(r){ return '<option value="'+r.id+'"'+(String(r.id)===cur?' selected':'')+'>'+esc(roomLabel(r))+' · '+((r.building==='미플')?'미플':'학원')+'</option>'; }).join('')
         + '</select>';
       h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(s.teacher_name||'-')+'</td>'
        + '<td>'+esc(s.student_name||'-')+'</td><td style="white-space:nowrap">'+mode+'</td><td style="white-space:nowrap">'+sel+'</td></tr>';
@@ -4815,7 +4826,7 @@
       var bcell='<td style="white-space:nowrap"><select data-rmbuild="'+r.id+'" style="'+bs+'">'
         + '<option value="학원"'+(b==='학원'?' selected':'')+'>학원</option>'
         + '<option value="미플"'+(b==='미플'?' selected':'')+'>미플</option></select></td>';
-      h+='<tr><td>'+esc(r.name)+'</td>'+bcell+'<td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
+      h+='<tr><td>'+esc(r.name)+'</td>'+bcell+'<td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link" data-rmcap="'+r.id+'">정원수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
     $('rmTable').innerHTML=h;
   }
   if($('rmAdd')) $('rmAdd').onclick=async function(){
@@ -4835,7 +4846,20 @@
   });
   if($('rmTable')) $('rmTable').addEventListener('click', async function(e){
     var t=(e.target&&e.target.closest)?e.target:null; if(!t||!t.closest) return;
-    var ed=t.closest('a[data-rmedit]'), dl=t.closest('a[data-rmdel]');
+    var ed=t.closest('a[data-rmedit]'), dl=t.closest('a[data-rmdel]'), cp=t.closest('a[data-rmcap]');
+    if(cp){
+      var cid=cp.getAttribute('data-rmcap');
+      var curc=(_rooms.filter(function(x){return String(x.id)===String(cid);})[0]||{}).capacity||1;
+      var v=prompt('정원(몇 명까지 들어가는 방인지)을 숫자로 입력하세요', curc);
+      if(v===null) return;
+      var n=parseInt(v,10);
+      if(!(n>0)){ alert('1 이상의 숫자를 입력하세요.'); return; }
+      var uc=await sb.from('rooms').update({capacity:n}).eq('id',cid);
+      if(uc.error){ alert('정원 수정 실패: '+uc.error.message); return; }
+      await loadRooms(); fillSelects();
+      if(typeof loadRoomAssign==='function') await loadRoomAssign();
+      return;
+    }
     if(ed){ var id=ed.getAttribute('data-rmedit'); var cur=(_rooms.filter(function(x){return String(x.id)===String(id);})[0]||{}).name||''; var nm=prompt('새 강의장 이름을 입력하세요', cur); if(nm===null) return; nm=nm.trim(); if(!nm) return; var u=await sb.from('rooms').update({name:nm}).eq('id',id); if(u.error){ alert('수정 실패: '+u.error.message); return; } await loadRooms(); fillSelects(); return; }
     if(dl){ if(!confirm('이 강의장을 삭제할까요? (기존 스케줄은 강의장 미지정으로 남습니다)')) return; var r=await sb.from('rooms').delete().eq('id',dl.getAttribute('data-rmdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } await loadRooms(); fillSelects(); return; }
   });
@@ -4848,8 +4872,8 @@
     var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null) busy[x.room_id]=true; });
     var free=_rooms.filter(function(rm){ return rm.active!==false && !busy[rm.id]; });
     var busyRooms=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
-    $('rmResult').innerHTML='<b>✅ 빈 강의장:</b> '+(free.length?free.map(function(x){return esc(x.name);}).join(', '):'없음')
-      +(busyRooms.length?'<br><span style="color:var(--muted)">사용중: '+busyRooms.map(function(x){return esc(x.name);}).join(', ')+'</span>':'');
+    $('rmResult').innerHTML='<b>✅ 빈 강의장:</b> '+(free.length?free.map(function(x){return esc(roomLabel(x));}).join(', '):'없음')
+      +(busyRooms.length?'<br><span style="color:var(--muted)">사용중: '+busyRooms.map(function(x){return esc(roomLabel(x));}).join(', ')+'</span>':'');
   };
 
   // ---- 스케줄 ----
@@ -4882,7 +4906,7 @@
     var h='<option value="">(미지정)</option>';
     _rooms.forEach(function(r){
       if(r.active===false) return;
-      h+='<option value="'+esc(String(r.id))+'"'+(String(sel)===String(r.id)?' selected':'')+'>'+esc(r.name)+'</option>';
+      h+='<option value="'+esc(String(r.id))+'"'+(String(sel)===String(r.id)?' selected':'')+'>'+esc(roomLabel(r))+'</option>';
     });
     return h;
   }
@@ -5187,7 +5211,7 @@
     var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null) busy[x.room_id]=true; });
     var free=_rooms.filter(function(rm){ return rm.active!==false && !busy[rm.id]; });
     var busyR=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
-    $('scFree').innerHTML='🟢 빈 강의장: <b>'+(free.length?free.map(function(x){return esc(x.name);}).join(', '):'없음')+'</b>'+(busyR.length?' &nbsp;&nbsp;🔴 사용중: '+busyR.map(function(x){return esc(x.name);}).join(', '):'');
+    $('scFree').innerHTML='🟢 빈 강의장: <b>'+(free.length?free.map(function(x){return esc(roomLabel(x));}).join(', '):'없음')+'</b>'+(busyR.length?' &nbsp;&nbsp;🔴 사용중: '+busyR.map(function(x){return esc(roomLabel(x));}).join(', '):'');
   }
   if($('scDate')) $('scDate').onchange=updateScFree;
   if($('scStart')) $('scStart').onchange=updateScFree;
