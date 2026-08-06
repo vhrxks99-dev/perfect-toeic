@@ -4651,7 +4651,10 @@
   }
   function fillSelects(){
     var teachers=_members.filter(function(m){return m.role==='admin'||m.role==='master';});
-    if($('scRoom')) $('scRoom').innerHTML=_rooms.filter(function(r){ return r.active!==false; }).map(function(r){ return '<option value="'+r.id+'">'+esc(roomLabel(r))+'</option>'; }).join('');
+    // 강의장을 안 잡는 수업도 있다(비대면 등) → '미배정'을 기본값으로 둔다.
+    // 예전엔 강의장 A 가 기본으로 잡혀서, 필요 없는 수업에도 방이 물렸다.
+    if($('scRoom')) $('scRoom').innerHTML='<option value="">미배정 (강의장 없음)</option>'
+      + _rooms.filter(function(r){ return r.active!==false; }).map(function(r){ return '<option value="'+r.id+'">'+esc(roomLabel(r))+'</option>'; }).join('');
     if($('scTeacher')){ $('scTeacher').innerHTML=teachers.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>'; }).join(''); if(profile) $('scTeacher').value=profile.id; }
   }
   var _studentPool=[];
@@ -4990,7 +4993,7 @@
     $('scTable').innerHTML=h;
   }
   function roomOptions(sel){
-    var h='<option value="">(미지정)</option>';
+    var h='<option value="">미배정</option>';   // '강의장 배정' 표와 같은 말로 통일
     _rooms.forEach(function(r){
       if(r.active===false) return;
       h+='<option value="'+esc(String(r.id))+'"'+(String(sel)===String(r.id)?' selected':'')+'>'+esc(roomLabel(r))+'</option>';
