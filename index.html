@@ -3026,6 +3026,24 @@
     </form>
   </div>
 </div>
+<!-- 수업 수정 — 학생은 취소·변경을 못 하므로 선생님이 여기서 직접 고친다 -->
+<div class="wa-overlay" id="waSchedEdit" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waSeClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">수업 수정</div>
+    <div class="wa-sub" id="waSeWho"></div>
+    <form id="waSchedEditForm" autocomplete="off">
+      <label>날짜<input type="date" id="waSeDate" required></label>
+      <label>시작<select id="waSeStart" class="timesel" required></select></label>
+      <label>종료<select id="waSeEnd" class="timesel" required></select></label>
+      <label>강의장<select id="waSeRoom"></select></label>
+      <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
+      <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
+      <p class="wa-err" id="waSeErr"></p>
+      <button class="btn btn-primary" type="submit">저장</button>
+    </form>
+  </div>
+</div>
 <!-- 필수 정보 입력 — 이름·이메일·휴대폰이 하나라도 없으면 사이트를 못 쓰게 막는다.
      카카오 로그인은 이름만 주고 이메일·번호를 안 주는 경우가 있어서,
      계정이 만들어진 뒤에 여기서 받아낸다. 닫기 버튼이 없다(일부러). -->
@@ -4988,7 +5006,7 @@
       h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td>'
        + '<td><select class="sc-room'+(s.room_id==null?' none':'')+'" data-scroom="'+esc(String(s.id))+'">'+roomOptions(s.room_id)+'</select></td>'
        + '<td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.student_name||'-')+pend+'</td><td>'+esc(s.memo||'')+'</td>'
-       + '<td><a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>';
+       + '<td style="white-space:nowrap"><a class="wa-link" data-scedit="'+s.id+'">수정</a> &nbsp;<a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>';
     });
     $('scTable').innerHTML=h;
   }
@@ -5055,10 +5073,55 @@
     $('scMemo').value=''; await loadSchedules();
   };
   if($('scTable')) $('scTable').addEventListener('click', async function(e){
+    var ed=(e.target&&e.target.closest)?e.target.closest('a[data-scedit]'):null;
+    if(ed){ openSchedEdit(ed.getAttribute('data-scedit')); return; }
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-scdel]'):null; if(!a) return;
     if(!confirm('이 수업 스케줄을 삭제할까요?')) return;
     var r=await sb.from('schedules').delete().eq('id',a.getAttribute('data-scdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
     await loadSchedules(); await renderCalendar();
+  });
+
+  // ---- 수업 수정 (선생님·원장님 전용) ----
+  // 학생은 예약을 취소·변경할 수 없다(원장 지시). 대신 여기서 사람이 고친다.
+  var _seId=null;
+  function openSchedEdit(id){
+    var s=(window.__wtSchedules||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    if(!s){ alert('수업 정보를 찾지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
+    _seId=id;
+    var st=new Date(s.starts_at), en=new Date(s.ends_at);
+    fillTimeSelects();
+    $('waSeWho').textContent=(s.student_name||'학생 미지정')+' · '+(s.teacher_name||'선생님 미지정')
+      + (s.status==='pending'?' · 승인대기':'');
+    $('waSeDate').value=ymd(st);
+    $('waSeStart').value=pad(st.getHours())+':'+pad(st.getMinutes());
+    $('waSeEnd').value=pad(en.getHours())+':'+pad(en.getMinutes());
+    if($('waSeRoom')) $('waSeRoom').innerHTML=roomOptions(s.room_id);
+    if($('waSeSubject')) $('waSeSubject').value=s.subject||'토익';
+    $('waSeMemo').value=s.memo||'';
+    $('waSeErr').textContent='';
+    $('waSchedEdit').classList.add('on');
+  }
+  function closeSchedEdit(){ if($('waSchedEdit')) $('waSchedEdit').classList.remove('on'); _seId=null; }
+  if($('waSeClose')) $('waSeClose').onclick=closeSchedEdit;
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && $('waSchedEdit') && $('waSchedEdit').classList.contains('on')){ e.stopImmediatePropagation(); closeSchedEdit(); }
+  });
+  if($('waSchedEditForm')) $('waSchedEditForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var err=$('waSeErr'); err.textContent='';
+    if(!_seId||!sb) return;
+    var d=$('waSeDate').value, s1=$('waSeStart').value, e1=$('waSeEnd').value;
+    if(!d||!s1||!e1){ err.textContent='날짜·시작·종료 시간을 입력하세요.'; return; }
+    var startISO=slotISO(d,s1), endISO=slotISO(d,e1);
+    if(endISO<=startISO){ err.textContent='종료 시간이 시작보다 빨라요.'; return; }
+    var roomId=$('waSeRoom').value?parseInt($('waSeRoom').value,10):null;
+    var patch={ starts_at:startISO, ends_at:endISO, room_id:roomId,
+                subject:$('waSeSubject').value, memo:($('waSeMemo').value.trim()||null) };
+    var r=await sb.from('schedules').update(patch).eq('id',_seId);
+    // 겹침·강의장 규칙은 서버가 막는다. 그 메시지를 그대로 보여준다.
+    if(r.error){ err.textContent=r.error.message; return; }
+    closeSchedEdit();
+    await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadTeacherAlerts();
   });
 
   // ---- 선생님 알림: 최근 수업 후 다음 일정/숙제 누락 ----
@@ -6726,7 +6789,7 @@
         if(!lr.error && lr.data!=null) leftTxt=' · 지금 <b>'+lr.data+'건</b> 더 예약할 수 있어요 (최대 4건)';
       }catch(e){}
       $('waBookSub').innerHTML='담당 '+esc(d.teacher_name)+' 선생님의 빈 시간을 골라 예약을 요청하세요. (2시간 단위)'+leftTxt
-        + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. 취소는 수업 24시간 전까지 가능해요.</span>';
+        + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>변경·취소는 선생님께 문의</b>해주세요.</span>';
     }
     var slots=d.slots||[];
     if(!slots.length){ box.innerHTML='<div class="wa-book-empty">예약 가능한 시간이 없어요.</div>'; return; }
@@ -6752,24 +6815,14 @@
     var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-2*3600*1000).toISOString()).order('starts_at').limit(50);
     var rows=(!r.error&&r.data)?r.data:[];
     if(!rows.length){ box.innerHTML='<div class="wa-book-empty">예약 내역이 없어요.</div>'; return; }
-    // 취소는 수업 24시간 전까지만. 그 뒤엔 선생님께 연락하셔야 한다(서버에서도 막는다).
-    var DAY_MS=24*3600*1000;
+    // 학생은 취소·변경을 할 수 없다(원장 지시).
+    // 선생님마다 사정이 달라 사람이 확인해야 하므로, 문의로만 안내한다.
     box.innerHTML=rows.map(function(s){
       var st=(s.status==='pending')?'<span class="bm-st st-pending">승인대기</span>':'<span class="bm-st st-confirmed">확정</span>';
-      var canCancel=(new Date(s.starts_at)-Date.now())>DAY_MS;
-      var cancel=canCancel
-        ? '<span class="bm-cancel" data-cancel="'+esc(s.id)+'">취소</span>'
-        : '<span style="font-size:11.5px;color:var(--muted);margin-left:8px">24시간 이내 · 선생님께 문의</span>';
-      return '<div class="bm"><span class="bm-t">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</span> <span style="color:var(--muted)">'+esc(s.subject||'')+'</span>'+st+cancel+'</div>';
+      return '<div class="bm"><span class="bm-t">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</span> <span style="color:var(--muted)">'+esc(s.subject||'')+'</span>'+st
+        + '<span style="font-size:11.5px;color:var(--muted);margin-left:8px">변경·취소는 선생님께 문의</span></div>';
     }).join('');
   }
-  if($('waBookMine')) $('waBookMine').addEventListener('click', async function(e){
-    var c=(e.target&&e.target.closest)?e.target.closest('[data-cancel]'):null; if(!c||!sb||!profile) return;
-    if(!confirm('이 예약을 취소할까요?')) return;
-    var r=await sb.from('schedules').delete().eq('id',c.getAttribute('data-cancel')).eq('student_id',profile.id);
-    if(r.error){ alert('취소 실패: '+r.error.message); return; }
-    await loadBookSlots(); await loadMyBookings();
-  });
 
   // PKCE 방식(코드 교환 후)엔 이 이벤트로 복구 모달을 띄움
   if(sb && sb.auth && sb.auth.onAuthStateChange){
