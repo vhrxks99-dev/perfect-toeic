@@ -5697,6 +5697,13 @@
        + (tag?' · '+tag:'') + '</span>';
     });
     h+='</div>';
+    // 실제로 나갈 문구를 그대로 보여준다(원장님 확인용).
+    var last=notif&&notif.length?notif[0]:null;
+    if(last&&last.body){
+      h+='<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:800">보낼 문구 미리보기</summary>'
+       + '<pre style="white-space:pre-wrap;font-family:var(--font-sans);font-size:13px;line-height:1.7;margin:8px 0 0;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface)">'
+       + esc(last.body) + '</pre></details>';
+    }
     $('attDue').innerHTML=h;
     $('attDue').style.display='';
   }
