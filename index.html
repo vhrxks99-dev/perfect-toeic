@@ -4778,13 +4778,15 @@
       + (failed.length?('\n\n※ '+failed.length+'건은 빈 강의장이 없어 배정하지 못했습니다.'):'');
     if(!confirm(msg)){ await loadRoomAssign(); return; }
 
-    var fail=0;
+    // 화면이 보고 있는 기간 밖의 수업이 그 방을 쓰고 있으면 서버가 막는다.
+    // 그때 나오는 안내문(어느 방이 누구 수업과 겹치는지)을 그대로 보여준다.
+    var fail=0, why='';
     for(var i=0;i<plan.length;i++){
       var u=await sb.from('schedules').update({room_id:plan[i].room_id}).eq('id',plan[i].id);
-      if(u.error) fail++;
+      if(u.error){ fail++; if(!why) why=(u.error.message||''); }
     }
     await loadRoomAssign(); await loadSchedules(); await renderCalendar();
-    alert(fail?('배정 완료. 다만 '+fail+'건은 저장에 실패했습니다.'):(plan.length+'건을 배정했습니다.'));
+    alert(fail?('배정 완료. 다만 '+fail+'건은 저장하지 못했습니다.'+(why?('\n\n이유: '+why):'')):(plan.length+'건을 배정했습니다.'));
   }
   if($('asReload')) $('asReload').onclick=function(){ loadRoomAssign(); };
   if($('asAuto')) $('asAuto').onclick=autoAssign;
