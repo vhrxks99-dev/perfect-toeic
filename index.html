@@ -3278,7 +3278,7 @@
         </div>
         <div class="dash-note" style="margin-top:0">
           <b>배정 규칙</b> &mdash; ① 비대면 학생은 강의장을 잡지 않습니다 &nbsp;·&nbsp;
-          ② <b>주차가 필요한 학생은 미플</b> &nbsp;·&nbsp;
+          ② <b>주차가 필요한 학생은 미플(옆건물)</b> &nbsp;·&nbsp;
           ③ 학원 강의장이 모자라면 <b>‘겹치면 미플’로 표시된 선생님</b>이 먼저 미플로 &nbsp;·&nbsp;
           ④ 같은 선생님이 연달아 수업하면 <b>같은 건물</b>로 몰아 이동을 줄입니다.<br>
           자동 배정은 <b>비어 있는 수업만</b> 채웁니다. 이미 정해 둔 강의장은 건드리지 않아요.
@@ -4635,12 +4635,18 @@
   function roomsByBuilding(name){
     return (_rooms||[]).filter(function(r){ return r.active!==false && (r.building==='미플'?'미플':'학원')===name; });
   }
-  // 강의장 이름 뒤에 정원을 붙인다 — "강의장 A (4인)"
+  // 강의장 이름 뒤에 정원과 건물을 붙인다.
+  //   학원 건물  → "강의장 A (4인)"
+  //   미플 건물  → "강의장 C (4인 · 옆건물)"
+  // 옆 건물은 걸어서 5분이라 선생님이 방을 고를 때 바로 알아야 한다.
   // 정원이 안 적혀 있으면 이름만 쓴다.
   function roomLabel(r){
     if(!r) return '-';
+    var bits=[];
     var c=parseInt(r.capacity,10);
-    return r.name + ((c>0) ? ' ('+c+'인)' : '');
+    if(c>0) bits.push(c+'인');
+    if(r.building==='미플') bits.push('옆건물');
+    return r.name + (bits.length ? ' ('+bits.join(' · ')+')' : '');
   }
   function roomLabelById(id){
     var r=(_rooms||[]).filter(function(x){ return String(x.id)===String(id); })[0];
@@ -4737,7 +4743,7 @@
       var stl=!cur?pickRoomStyle('#e5b4b0','#fdf0ef','#c0342b')
              :(bd==='미플'?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8'));
       var sel='<select data-asroom="'+esc(s.id)+'" style="'+stl+'"><option value="">미배정</option>'
-        + opts.map(function(r){ return '<option value="'+r.id+'"'+(String(r.id)===cur?' selected':'')+'>'+esc(roomLabel(r))+' · '+((r.building==='미플')?'미플':'학원')+'</option>'; }).join('')
+        + opts.map(function(r){ return '<option value="'+r.id+'"'+(String(r.id)===cur?' selected':'')+'>'+esc(roomLabel(r))+'</option>'; }).join('')
         + '</select>';
       h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(s.teacher_name||'-')+'</td>'
        + '<td>'+esc(s.student_name||'-')+'</td><td style="white-space:nowrap">'+mode+'</td><td style="white-space:nowrap">'+sel+'</td></tr>';
@@ -4824,8 +4830,8 @@
       var b=(r.building==='미플')?'미플':'학원';
       var bs=(b==='미플')?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8');
       var bcell='<td style="white-space:nowrap"><select data-rmbuild="'+r.id+'" style="'+bs+'">'
-        + '<option value="학원"'+(b==='학원'?' selected':'')+'>학원</option>'
-        + '<option value="미플"'+(b==='미플'?' selected':'')+'>미플</option></select></td>';
+        + '<option value="학원"'+(b==='학원'?' selected':'')+'>학원 본원</option>'
+        + '<option value="미플"'+(b==='미플'?' selected':'')+'>미플 (옆건물)</option></select></td>';
       h+='<tr><td>'+esc(r.name)+'</td>'+bcell+'<td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link" data-rmcap="'+r.id+'">정원수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
     $('rmTable').innerHTML=h;
   }
