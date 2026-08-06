@@ -4003,9 +4003,20 @@
         else {
           var meta=user.user_metadata||{};
           var nm=meta.name||meta.full_name||meta.nickname||meta.user_name||(user.email||'').split('@')[0]||'회원';
-          var np={ id:user.id, email:(user.email||null), name:nm, role:'student' };
-          await sb.from('profiles').insert(np);
+          // role 은 넣지 않는다. 표의 기본값(student)이 들어가고,
+          // authenticated 에게는 role 칸 쓰기 권한이 없어 같이 보내면 통째로 거부된다.
+          var np={ id:user.id, email:(user.email||null), name:nm };
+          var ins2=await sb.from('profiles').insert(np);
           var pr2=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+          // 저장이 실패했는데 그냥 넘어가면, 본인은 가입된 줄 알지만
+          // 회원 목록에는 안 뜬다(2026-08-06 카카오 가입자에게 실제로 생긴 일).
+          // 조용히 넘기지 말고 알린다.
+          if(!pr2.data){
+            console.error('[회원정보 저장 실패]', ins2 && ins2.error);
+            alert('가입은 되었지만 회원 정보 저장에 실패했습니다.\n\n'
+                + '원장님께 알려주세요. 아래 내용을 함께 전해주시면 빠릅니다.\n'
+                + ((ins2 && ins2.error && ins2.error.message) ? ins2.error.message : '알 수 없는 오류'));
+          }
           profile = pr2.data ? pr2.data : np;
         }
       }
