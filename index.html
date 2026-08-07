@@ -3153,6 +3153,24 @@
 .pr-line .pr-more{margin-left:auto}
 .pr-items{margin-top:10px}
 .pr-items .wa-table{font-size:12.5px}
+/* ---- 숙제 탭: 모바일에서 입력칸이 좁아 글이 잘게 쪼개지고 글씨가 작던 문제 ---- */
+#hwContent{line-height:1.65}
+.hw-item{padding:2px 0}
+@media(max-width:640px){
+  /* 입력칸 — 폰에서 넉넉하게. 16px 미만이면 iOS가 화면을 확대해버려서 16px 고정 */
+  #hwContent{min-height:190px;font-size:16px !important;line-height:1.7;padding:12px 13px !important}
+  #hwStudentSearch,#hwStudent,#hwDue,#hwListSearch,#hwTeacherFilter{font-size:16px !important;padding:11px 12px !important}
+  #hwTeacherFilter{width:100%}
+  /* 숙제 목록 — 표를 카드로 바꿔 한 건씩 넓게 본다 */
+  #hwTable, #hwTable tbody, #hwTable tr, #hwTable td{display:block;width:100%}
+  #hwTable tr.hw-head{display:none}                     /* 머리글 줄만 숨김(빈 목록 안내는 그대로 보여야 함) */
+  #hwTable tr{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+  #hwTable td{border:none;padding:3px 0;white-space:normal !important;font-size:15px;color:var(--ink)}
+  #hwTable td:before{content:attr(data-l);display:block;font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:2px}
+  #hwTable td[data-l="숙제"]{margin:8px 0;font-size:15.5px;line-height:1.75}
+  #hwTable td[data-l="숙제"] .hw-item{padding:4px 0}
+  .wa-table-wrap:has(#hwTable){border:none;border-radius:0}
+}
 .pr-sum{border:1.5px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:14px;background:var(--accent-wash)}
 .pr-sum-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:13.5px;font-weight:700;color:var(--ink-soft)}
 .pr-sum-row b{font-family:var(--font-num);font-size:15px;color:var(--ink)}
@@ -3499,7 +3517,11 @@
       </div>
       <div class="dash-list-head">숙제 목록 <button class="btn btn-ghost" id="hwReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
       <div class="dash-note" style="margin-top:0">등록하면 <b>해당 학생 페이지(내 숙제)</b>에 바로 표시됩니다. 학생이 완료하면 ✅ 표시돼요.</div>
-      <div style="margin:10px 0 2px"><input id="hwListSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
+      <div class="mem-filters">
+        <select id="hwTeacherFilter" title="선생님으로 걸러 보기" style="display:none"><option value="">선생님 전체</option></select>
+        <span id="hwCount" class="wa-hint"></span>
+        <input id="hwListSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off">
+      </div>
       <div class="wa-table-wrap"><table class="wa-table" id="hwTable"></table></div>
     </div>
 
@@ -6258,7 +6280,17 @@
     if(!$('hwTable')) return;
     var rows=[];
     if(sb){ var r=await sb.from('homeworks').select('*').order('created_at',{ascending:false}).limit(500); if(!r.error&&r.data) rows=r.data; }
-    if(!isOps()) rows=rows.filter(function(x){ return x.teacher_id===(profile&&profile.id); });
+    // 원장·매니저는 전부 본다. 선생님은 '내 담당 학생'의 숙제만 본다.
+    // 예전엔 x.teacher_id(=숙제를 쓴 사람)로 걸렀는데, 그러면 다른 선생님이 내 학생에게
+    // 낸 숙제가 안 보이고, 담당이 바뀐 옛 학생 숙제는 계속 보였다.
+    if(!isOps()){
+      var meId=profile&&profile.id;
+      var mineStu={}, hasMembers=false;
+      (_members||[]).forEach(function(m){ hasMembers=true; if(m.teacher_id&&m.teacher_id===meId) mineStu[m.id]=1; });
+      rows = hasMembers
+        ? rows.filter(function(x){ return mineStu[x.student_id]; })
+        : rows.filter(function(x){ return x.teacher_id===meId; });  // 회원 명단이 아직 안 왔을 때의 안전장치
+    }
     window.__wtHw=rows;
     drawHw();
   }
@@ -6267,17 +6299,49 @@
   function hwProgress(x){ var items=hwItems(x.content), d=hwDoneArr(x), done=0; for(var i=0;i<items.length;i++){ if(d[i]) done++; } return {done:done,total:items.length}; }
   function hwProgTag(x){ var p=hwProgress(x); return (p.total>0 && p.done>=p.total) ? '<b style="color:#16a34a">완료 ✅</b>' : ('<b>'+p.done+'/'+p.total+'</b>'); }
   function fmtDue(d){ if(!d) return '-'; var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d); if(!m) return d; var dt=new Date(+m[1],+m[2]-1,+m[3]); var w=['일','월','화','수','목','금','토'][dt.getDay()]; return m[1]+'.'+m[2]+'.'+m[3]+' ('+w+')'; }
+  // 원장·매니저 전용 선생님 고르기 칸. 선생님 명단은 회원 목록에서 매번 다시 채운다
+  // (새 선생님이 생겨도 자동 반영). 선생님 본인에게는 어차피 담당 학생 것만 내려오므로 숨긴다.
+  function hwFillTeacherFilter(){
+    var tf=$('hwTeacherFilter'); if(!tf) return '';
+    if(!isOps()){ tf.style.display='none'; tf.value=''; return ''; }
+    tf.style.display='';
+    var keep=tf.value;
+    var staff=(_members||[]).filter(function(m){ return isStaffRole(m.role); })
+                            .sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+    tf.innerHTML='<option value="">선생님 전체</option><option value="none">담당강사 미배정</option>'
+      + staff.map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+' 담당</option>'; }).join('');
+    tf.value=keep;
+    if(tf.value!==keep) tf.value='';   // 그 선생님이 사라졌으면 전체로 되돌린다
+    return tf.value;
+  }
   function drawHw(){
     if(!$('hwTable')) return;
     var rows=window.__wtHw||[];
+    // 숙제를 '쓴 사람'이 아니라 그 학생의 담당강사로 거른다(담당이 바뀌면 같이 따라간다).
+    var tsel=hwFillTeacherFilter();
+    if(tsel){
+      var owner={};
+      (_members||[]).forEach(function(m){ if(m.role==='student') owner[m.id]=m.teacher_id||''; });
+      rows = (tsel==='none')
+        ? rows.filter(function(x){ return !owner[x.student_id]; })   // 탈퇴해 명단에 없는 학생도 여기에 들어온다
+        : rows.filter(function(x){ return owner[x.student_id]===tsel; });
+    }
+    var nScope=rows.length;
     var q=(($('hwListSearch')&&$('hwListSearch').value)||'').trim().toLowerCase();
     if(q) rows=rows.filter(function(x){ return (x.student_name||'').toLowerCase().indexOf(q)>=0; });
-    if(!rows.length){ $('hwTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'등록된 숙제가 없습니다.')+'</td></tr>'; return; }
-    var h='<tr><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>마감</th><th>진행</th><th>관리</th></tr>';
+    if($('hwCount')) $('hwCount').textContent='('+nScope+'건'+(q?(' · 검색 '+rows.length+'건'):'')+')';
+    if(!rows.length){
+      var msg = q ? '검색 결과가 없습니다.'
+              : (tsel==='none' ? '담당강사가 없는 학생의 숙제가 없습니다.'
+              : (tsel ? '이 선생님 담당 학생의 숙제가 없습니다.' : '등록된 숙제가 없습니다.'));
+      $('hwTable').innerHTML='<tr><td class="wa-empty">'+msg+'</td></tr>'; return;
+    }
+    var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>마감</th><th>진행</th><th>관리</th></tr>';
     rows.forEach(function(x){
       var items=hwItems(x.content), d=hwDoneArr(x);
-      var itemHtml = items.length ? items.map(function(it,i){ return '<div>'+(d[i]?'✅':'⬜')+' '+esc(it)+'</div>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
-      h+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td>'+itemHtml+'</td><td style="white-space:nowrap">'+esc(fmtDue(x.due_date))+'</td><td style="white-space:nowrap">'+hwProgTag(x)+'</td><td style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      var itemHtml = items.length ? items.map(function(it,i){ return '<div class="hw-item">'+(d[i]?'✅':'⬜')+' '+esc(it)+'</div>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
+      // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="마감" style="white-space:nowrap">'+esc(fmtDue(x.due_date))+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
@@ -6285,6 +6349,7 @@
   function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwDue')) $('hwDue').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
   if($('hwReload')) $('hwReload').onclick=loadHomework;
   if($('hwListSearch')) $('hwListSearch').addEventListener('input', drawHw);
+  if($('hwTeacherFilter')) $('hwTeacherFilter').addEventListener('change', drawHw);
   if($('hwAdd')) $('hwAdd').onclick=async function(){
     if(!sb||!profile) return;
     var err=$('hwErr'); if(err) err.textContent='';
