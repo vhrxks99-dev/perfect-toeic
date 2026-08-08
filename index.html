@@ -4505,6 +4505,8 @@
       if($('prMonth') && !$('prMonth').value) $('prMonth').value=ym(new Date());
       loadPayroll();
     }
+    // 달력은 탭이 숨어 있는 동안 폭이 0이라 스크롤 계산이 안 먹는다. 열릴 때 다시 맞춘다.
+    if(name==='sched' && typeof centerToday==='function') setTimeout(centerToday, 0);
   }
   (function(){ var c=$('waAdmin'); if(c) c.querySelectorAll('.dash-tab').forEach(function(b){ b.onclick=function(){ dashTab(b.getAttribute('data-dtab')); }; }); })();
 
@@ -5278,12 +5280,17 @@
       cols+='<div class="cal-col'+(isToday?' is-today':'')+'" style="min-width:'+(roomCols.length*96)+'px">'+head+'<div class="cal-rooms">'+rcols+'</div></div>';
     }
     $('calGrid').innerHTML=axis+cols;
-    // 주 뷰는 가로로 길다. 오늘 열이 화면 가운데 오도록 밀어준다.
-    var tcol=$('calGrid').querySelector('.cal-col.is-today'), sc=$('calScroll');
-    if(tcol && sc){
-      var r1=tcol.getBoundingClientRect(), r2=sc.getBoundingClientRect();
-      sc.scrollLeft += (r1.left - r2.left) - (sc.clientWidth - r1.width)/2;
-    }
+    centerToday();
+  }
+  // 주 뷰는 가로로 길다. 오늘 열이 화면 가운데 오도록 밀어준다.
+  // 탭이 숨어 있으면 폭이 0이라 계산이 안 되므로, 그때는 아무것도 하지 않고 넘어간다
+  // (수업 스케줄 탭을 열 때 dashTab 이 다시 부른다).
+  function centerToday(){
+    var grid=$('calGrid'), sc=$('calScroll');
+    if(!grid || !sc || !sc.clientWidth) return;
+    var tcol=grid.querySelector('.cal-col.is-today'); if(!tcol) return;
+    var r1=tcol.getBoundingClientRect(), r2=sc.getBoundingClientRect();
+    sc.scrollLeft += (r1.left - r2.left) - (sc.clientWidth - r1.width)/2;
   }
   async function renderMonth(){
     var y=calCur.getFullYear(), mo=calCur.getMonth();
