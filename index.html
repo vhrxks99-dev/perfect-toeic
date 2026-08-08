@@ -3198,14 +3198,16 @@
 .cal-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
 .cal-grid{display:flex;min-width:700px}
 .cal-axis{flex:0 0 42px;background:var(--surface-2)}
-.cal-head-sp{height:60px;border-bottom:1px solid var(--line)}
+.cal-head-sp{height:72px;border-bottom:1px solid var(--line)}
 .cal-hr{height:44px;font-size:10px;color:var(--muted);text-align:right;padding-right:5px;box-sizing:border-box}
 .cal-col{flex:1 1 0;min-width:0;border-left:1px solid var(--line)}
 /* 날짜 밑에 강의장 칸을 하나 더 둔다 — 어느 방에 잡힌 수업인지 한눈에 보이게(원장 지시) */
 .cal-rooms{display:flex}
-.cal-rcol{flex:1 1 0;min-width:84px;border-left:1px solid var(--line)}
+.cal-rcol{flex:1 1 0;min-width:104px;border-left:1px solid var(--line)}
 .cal-rcol:first-child{border-left:none}
-.cal-rhead{height:22px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:10.5px;font-weight:800;color:var(--ink-soft);background:var(--surface-2);white-space:nowrap;overflow:hidden}
+/* 강의장 이름을 정원·건물까지 그대로 적는다(원장 지시). 길면 두 줄로 접히므로
+   높이를 34px 로 고정해 왼쪽 시간축(.cal-head-sp 72px = 38+34)과 어긋나지 않게 한다. */
+.cal-rhead{height:34px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 4px;box-sizing:border-box;border-bottom:1px solid var(--line);font-size:10.5px;line-height:1.2;font-weight:800;color:var(--ink-soft);background:var(--surface-2);overflow:hidden}
 .cal-rhead.none{color:#e8892b}
 .cal-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
 .cal-search input{flex:0 0 240px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;font-family:inherit}
@@ -4622,13 +4624,6 @@
     var r=(_rooms||[]).filter(function(x){ return String(x.id)===String(id); })[0];
     return r?roomLabel(r):'-';
   }
-  // 달력 강의장 칸 머리글용 짧은 이름. 칸이 좁아 '강의장 A (4인)'은 잘린다.
-  // 옆건물(미플)은 자리를 옮겨야 하므로 짧게라도 남긴다.
-  function shortRoomLabel(r){
-    if(!r) return '미배정';
-    var n=String(r.name||'').replace(/^강의장\s*/,'');
-    return n + (r.building==='미플' ? '·옆' : '');
-  }
   // 그 시간에 이미 쓰고 있는 방을 뺀 목록
   function freeRooms(target, all, list){
     var busy={};
@@ -5224,7 +5219,7 @@
     // 날짜 밑에 강의장 칸을 만들고 그 칸에 수업을 넣는다(원장 지시 2026-08-08).
     // 마지막 '미배정' 칸이 없으면 비대면 수업과 아직 방을 안 정한 수업이 달력에서 사라진다.
     var roomCols=_rooms.filter(function(r){ return r.active!==false; })
-                       .map(function(r){ return {id:r.id, label:shortRoomLabel(r)}; });
+                       .map(function(r){ return {id:r.id, label:roomLabel(r)}; });
     roomCols.push({id:null, label:'미배정'});
     for(var i=0;i<nDays;i++){
       var day=new Date(start); day.setDate(day.getDate()+i); var key=ymd(day);
@@ -5257,9 +5252,9 @@
         rcols+='<div class="cal-rcol"><div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>'
              + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
       });
-      // 강의장 칸이 84px 밑으로 찌그러지지 않게 날짜 칸의 최소 너비를 강의장 수에 맞춘다.
+      // 강의장 칸이 104px 밑으로 찌그러지지 않게 날짜 칸의 최소 너비를 강의장 수에 맞춘다.
       // (안 걸면 주 뷰에서 칸이 겹쳐 보인다 — 가로 스크롤은 .cal-scroll 이 처리한다)
-      cols+='<div class="cal-col" style="min-width:'+(roomCols.length*84)+'px">'+head+'<div class="cal-rooms">'+rcols+'</div></div>';
+      cols+='<div class="cal-col" style="min-width:'+(roomCols.length*104)+'px">'+head+'<div class="cal-rooms">'+rcols+'</div></div>';
     }
     $('calGrid').innerHTML=axis+cols;
   }
