@@ -3419,6 +3419,31 @@
       <div id="asWarn" class="dash-note" style="display:none"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="asTable"></table></div>
 
+      <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="dash-note" style="margin-top:0">여기 넣어둔 날짜·시간에는 <b>학생이 수업 예약을 걸 수 없습니다.</b> 선생님을 <b>학원 전체 휴무</b>로 두면 모든 선생님이 한 번에 쉽니다.<br>휴무는 수업이 아니라서 스케줄표·강의장 배정·정산에 섞이지 않습니다.</div>
+      <div class="dash-form" style="margin-top:8px">
+        <div class="dash-row">
+          <label>선생님<select id="offTeacher"></select></label>
+          <label>날짜<input type="date" id="offDate"></label>
+          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span>
+            <label style="flex-direction:row;align-items:center;gap:6px;font-weight:700;white-space:nowrap;margin:0">
+              <input type="checkbox" id="offAllDay" checked style="width:auto;margin:0">종일
+            </label>
+          </label>
+        </div>
+        <div class="dash-row" id="offHourRow" style="display:none">
+          <label>시작<select id="offStart" class="timesel"></select></label>
+          <label>종료<select id="offEnd" class="timesel"></select></label>
+          <label style="flex:2">사유<input type="text" id="offReason" placeholder="예: 휴가 / 개인사정"></label>
+        </div>
+        <div class="dash-row" id="offReasonRow">
+          <label style="flex:2">사유<input type="text" id="offReasonAll" placeholder="예: 휴가 / 개인사정 / 설 연휴"></label>
+        </div>
+        <p class="wa-err" id="offErr"></p>
+        <button class="btn btn-primary" id="offAdd" type="button">＋ 휴무 추가</button>
+      </div>
+      <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
+
       <div class="dash-list-head">다가오는 수업 <span id="scCount" style="color:var(--muted);font-weight:700"></span></div>
       <div id="scRoomNote" class="dash-note" style="margin-top:0;display:none"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="scTable"></table></div>
@@ -4559,6 +4584,7 @@
     syncAddPrice(false);   // 처음 고른 학생에 맞춰 단가 안내를 띄운다(금액은 건드리지 않음)
     var now=new Date();
     if($('scDate')&&!$('scDate').value) $('scDate').value=ymd(now);
+    if($('offDate')&&!$('offDate').value) $('offDate').value=ymd(now);
     if($('pyMonth')&&!$('pyMonth').value) $('pyMonth').value=ym(now);
     if($('pyPaid')&&!$('pyPaid').value) $('pyPaid').value=ymd(now);
     if($('pyFilter')&&!$('pyFilter').value) $('pyFilter').value=ym(now);
@@ -4575,6 +4601,7 @@
       $('asFrom').value=ymd(a2); if($('asTo')) $('asTo').value=ymd(b2);
     }
     await loadRoomAssign();
+    await loadOffs();
     await loadAttendance();
     await loadWork();
     if(isOps()) await loadOplog();
@@ -5374,6 +5401,94 @@
   if($('calDay')) $('calDay').onclick=function(){ calMode='day'; renderCalendar(); };
   if($('calWeekBtn')) $('calWeekBtn').onclick=function(){ calMode='week'; renderCalendar(); };
   if($('calMonth')) $('calMonth').onclick=function(){ calMode='month'; renderCalendar(); };
+
+  // ---- 휴무 (선생님별 · 학원 전체) ----
+  // 휴무를 수업 일정으로 넣으면 스케줄표·강의장 배정·정산에 수업인 척 섞인다. 그래서 따로 둔다.
+  var _offs=null;   // null = teacher_off.sql 을 아직 안 돌린 상태
+  async function loadOffs(){
+    if(!$('offTable')) return;
+    if(sb){
+      var r=await sb.from('teacher_off').select('*').gte('off_date', ymd(new Date(Date.now()-30*86400000))).order('off_date');
+      _offs=(!r.error&&r.data)?r.data:null;
+    }
+    fillOffTeacher();
+    drawOffs();
+  }
+  function fillOffTeacher(){
+    var sel=$('offTeacher'); if(!sel) return;
+    var keep=sel.value;
+    var teachers=_members.filter(function(m){ return m.role==='admin'||m.role==='manager'||m.role==='master'; });
+    var h='';
+    // 학원 전체 휴무는 원장·매니저만 넣을 수 있다(서버 규칙과 같음)
+    if(isOps()) h+='<option value="__all__">🏫 학원 전체 휴무</option>';
+    teachers.forEach(function(t){ h+='<option value="'+esc(t.id)+'">'+esc(t.name||'-')+'</option>'; });
+    sel.innerHTML=h;
+    if(keep) sel.value=keep;
+    // 선생님 계정은 본인만 고를 수 있다
+    if(!isOps() && profile){ sel.value=profile.id; sel.disabled=true; }
+  }
+  function drawOffs(){
+    if(!$('offTable')) return;
+    if(_offs===null){
+      $('offTable').innerHTML='<tr><td class="wa-empty" style="color:#c0342b">휴무 표가 아직 없습니다 — teacher_off.sql 을 먼저 실행하세요.</td></tr>';
+      if($('offCount')) $('offCount').textContent='';
+      return;
+    }
+    if($('offCount')) $('offCount').textContent='('+_offs.length+'건)';
+    if(!_offs.length){ $('offTable').innerHTML='<tr><td class="wa-empty">등록된 휴무가 없습니다.</td></tr>'; return; }
+    var h='<tr><th>날짜</th><th>대상</th><th>시간</th><th>사유</th><th>관리</th></tr>';
+    _offs.forEach(function(o){
+      var who = o.teacher_id==null ? '<b style="color:#c0342b">학원 전체</b>'
+              : esc((_members.filter(function(m){return m.id===o.teacher_id;})[0]||{}).name || '(퇴사·삭제된 계정)');
+      var when = o.all_day ? '종일' : (pad(o.start_hour)+':00 ~ '+pad(o.end_hour)+':00');
+      h+='<tr><td style="white-space:nowrap">'+esc(o.off_date)+'</td><td>'+who+'</td>'
+       + '<td style="white-space:nowrap">'+when+'</td><td>'+esc(o.reason||'')+'</td>'
+       + '<td><a class="wa-link del" data-offdel="'+esc(String(o.id))+'">삭제</a></td></tr>';
+    });
+    $('offTable').innerHTML=h;
+  }
+  if($('offAllDay')) $('offAllDay').onchange=function(){
+    var all=$('offAllDay').checked;
+    if($('offHourRow')) $('offHourRow').style.display=all?'none':'';
+    if($('offReasonRow')) $('offReasonRow').style.display=all?'':'none';
+  };
+  if($('offAdd')) $('offAdd').onclick=async function(){
+    var err=$('offErr'); err.textContent='';
+    if(!sb) return;
+    var who=$('offTeacher').value, day=$('offDate').value, all=$('offAllDay').checked;
+    if(!who){ err.textContent='선생님을 골라주세요.'; return; }
+    if(!day){ err.textContent='날짜를 골라주세요.'; return; }
+    var row={ teacher_id:(who==='__all__'?null:who), off_date:day, all_day:all,
+              reason:((all?$('offReasonAll').value:$('offReason').value)||'').trim()||null,
+              created_by:(profile?profile.id:null) };
+    if(!all){
+      var sv=$('offStart').value||'', ev=$('offEnd').value||'';
+      var s=parseInt(sv.split(':')[0],10), e=parseInt(ev.split(':')[0],10);
+      if(isNaN(s)||isNaN(e)){ err.textContent='시작·종료 시간을 골라주세요.'; return; }
+      // 휴무는 정시 단위로만 받는다. 30분을 고르면 분이 조용히 버려져 예상과 달라진다.
+      if(sv.split(':')[1]!=='00' || ev.split(':')[1]!=='00'){ err.textContent='휴무는 정시(00분)로만 정할 수 있어요. 예: 14:00 ~ 18:00'; return; }
+      if(e<=s){ err.textContent='종료가 시작보다 빨라요.'; return; }
+      row.start_hour=s; row.end_hour=e;
+    }
+    var r=await sb.from('teacher_off').insert(row);
+    if(r.error){
+      err.textContent = (r.error.message.indexOf('teacher_off')>=0 && r.error.code==='42P01')
+        ? '휴무 표가 아직 없습니다. teacher_off.sql 을 먼저 실행해주세요.'
+        : '등록 실패: '+r.error.message;
+      return;
+    }
+    if($('offReason')) $('offReason').value='';
+    if($('offReasonAll')) $('offReasonAll').value='';
+    await loadOffs();
+  };
+  if($('offTable')) $('offTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('a[data-offdel]'):null; if(!a) return;
+    e.preventDefault();
+    if(!sb || !confirm('이 휴무를 지울까요?\n\n지우면 그 시간에 학생이 다시 예약할 수 있습니다.')) return;
+    var r=await sb.from('teacher_off').delete().eq('id',a.getAttribute('data-offdel'));
+    if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await loadOffs();
+  });
 
   // ---- 스케줄 폼: 선택 시간대 빈 강의장 실시간 표시 ----
   async function updateScFree(){
