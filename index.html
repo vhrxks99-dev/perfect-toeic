@@ -3040,7 +3040,10 @@
       <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
       <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
       <p class="wa-err" id="waSeErr"></p>
-      <button class="btn btn-primary" type="submit">저장</button>
+      <div class="wa-admin-actions" style="margin:0">
+        <button class="btn btn-primary" type="submit">저장</button>
+        <button class="btn btn-ghost" type="button" id="waSeDel" style="color:#c0342b">이 수업 삭제</button>
+      </div>
     </form>
   </div>
 </div>
@@ -3221,7 +3224,8 @@
 .cal-sun .dd{color:#c0342b}
 .cal-body{position:relative;background:var(--surface);cursor:pointer}
 .cal-line{position:absolute;left:0;right:0;border-top:1px solid var(--line);opacity:.6}
-.cal-ev{position:absolute;background:var(--accent-wash);border:1px solid var(--accent);border-left:3px solid var(--accent);border-radius:5px;padding:2px 4px;font-size:10.5px;line-height:1.28;color:var(--ink);overflow:hidden;box-sizing:border-box}
+.cal-ev{position:absolute;background:var(--accent-wash);border:1px solid var(--accent);border-left:3px solid var(--accent);border-radius:5px;padding:2px 4px;font-size:10.5px;line-height:1.28;color:var(--ink);overflow:hidden;box-sizing:border-box;cursor:pointer}
+.cal-ev:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(0,0,0,.12)}
 .cal-ev b{font-weight:800;display:block;font-size:10.5px;color:var(--accent)}
 .cal-empty-note{font-size:12px;color:var(--muted);text-align:center;padding:8px}
 .cal-modes{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
@@ -4964,7 +4968,10 @@
   // 학생은 예약을 취소·변경할 수 없다(원장 지시). 대신 여기서 사람이 고친다.
   var _seId=null;
   function openSchedEdit(id){
-    var s=(window.__wtSchedules||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    // '다가오는 수업' 목록과 달력이 서로 다른 기간을 들고 있다. 지난 주 수업은 목록에 없으므로
+    // 달력이 가져온 것(__wtCalRows)까지 같이 뒤진다.
+    var pool=(window.__wtSchedules||[]).concat(window.__wtCalRows||[]);
+    var s=pool.filter(function(x){ return String(x.id)===String(id); })[0];
     if(!s){ alert('수업 정보를 찾지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
     _seId=id;
     var st=new Date(s.starts_at), en=new Date(s.ends_at);
@@ -5002,6 +5009,17 @@
     closeSchedEdit();
     await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadTeacherAlerts();
   });
+  // 달력에서 바로 지울 수 있게 (중복으로 잡힌 수업 정리용). 지우면 수업 횟수도 1회 돌아온다.
+  if($('waSeDel')) $('waSeDel').onclick=async function(){
+    if(!_seId||!sb) return;
+    var who=($('waSeWho')&&$('waSeWho').textContent)||'';
+    if(!confirm('이 수업을 삭제할까요?\n\n'+who+'\n'+$('waSeDate').value+' '+$('waSeStart').value+'~'+$('waSeEnd').value
+                +'\n\n삭제하면 학생 수업 횟수가 1회 돌아옵니다.')) return;
+    var r=await sb.from('schedules').delete().eq('id',_seId);
+    if(r.error){ $('waSeErr').textContent='삭제 실패: '+r.error.message; return; }
+    closeSchedEdit();
+    await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadAttendance(); await loadTeacherAlerts();
+  };
 
   // ---- 선생님 알림: 최근 수업 후 다음 일정/숙제 누락 ----
   // 구글 캘린더에서 가져온 수업에는 student_id 가 없고 일정 제목에서 딴 학생 이름만 있다.
@@ -5218,6 +5236,7 @@
       else { var e2=new Date(end); e2.setDate(e2.getDate()-1); $('calTitle').textContent=(start.getMonth()+1)+'월 '+start.getDate()+'일 ~ '+(e2.getMonth()+1)+'월 '+e2.getDate()+'일'; }
     }
     var rows=await fetchRange(start,end);
+    window.__wtCalRows=rows;   // 달력 블록을 눌러 수정할 때 여기서 찾는다
     var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
     var bodyH=(DAY_END-DAY_START)*HOUR_H;
     var axis='<div class="cal-axis"><div class="cal-head-sp"></div>';
@@ -5254,8 +5273,8 @@
           var subj=(s.subject && s.subject!=='토익') ? '<b style="color:'+col+'">'+esc(s.subject)+'</b>' : '';
           // 시각은 왼쪽 시간축과 블록 위치로 이미 드러난다. 마우스를 올리면 보이게만 둔다.
           // 선생님 이름은 화면에서 뺐으므로 여기(툴팁)에는 반드시 남긴다.
-          var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ');
-          return '<div class="cal-ev" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+subj+(who?who:'')+'</div>';
+          var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ')+' — 클릭하면 수정';
+          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+subj+(who?who:'')+'</div>';
         }).join('');
         rcols+='<div class="cal-rcol"><div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>'
              + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
@@ -5353,7 +5372,10 @@
 
   // ---- 캘린더 클릭 → 날짜/시간 자동 입력 ----
   if($('calGrid')) $('calGrid').addEventListener('click', function(e){
-    if(e.target.closest && e.target.closest('.cal-ev')) return;
+    // 수업 블록을 누르면 바로 수정 창을 연다.
+    // (예전에는 아무 반응이 없어서 '고칠 방법이 없다'는 얘기가 나왔다 — 원장 지적 2026-08-08)
+    var ev=(e.target.closest)?e.target.closest('.cal-ev'):null;
+    if(ev){ var sid=ev.getAttribute('data-scid'); if(sid) openSchedEdit(sid); return; }
     var body=(e.target.closest)?e.target.closest('.cal-body'):null; if(!body) return;
     var rect=body.getBoundingClientRect(); var y=e.clientY-rect.top;
     var mins=Math.round((y/HOUR_H*60)/30)*30 + DAY_START*60;
