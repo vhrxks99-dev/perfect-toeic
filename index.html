@@ -3235,7 +3235,8 @@
 .cal-title{font-weight:800;font-size:15px;flex:1;min-width:120px;text-align:center;letter-spacing:-.01em}
 .cal-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
 .cal-grid{display:flex;min-width:700px}
-.cal-axis{flex:0 0 42px;background:var(--surface-2)}
+/* 가로로 밀어도 시간축은 왼쪽에 붙여 둔다. 안 그러면 몇 시 줄인지 알 수 없다. */
+.cal-axis{flex:0 0 42px;background:var(--surface-2);position:sticky;left:0;z-index:5;border-right:1px solid var(--line-strong)}
 .cal-head-sp{height:60px;border-bottom:1px solid var(--line)}
 .cal-hr{height:44px;font-size:10px;color:var(--muted);text-align:right;padding-right:5px;box-sizing:border-box}
 /* 선의 굵기로 층을 나눈다 — 하루 경계는 굵고 진하게, 강의장 경계는 얇게.
@@ -3253,7 +3254,8 @@
 .cal-today-tag{font-size:10px;font-weight:800;color:#fff;background:var(--accent);border-radius:999px;padding:1px 7px;letter-spacing:-.02em}
 /* 지금 이 시각 — 오늘 열에만 그린다 */
 .cal-now{position:absolute;left:0;right:0;border-top:2px solid #e11d48;z-index:4;pointer-events:none}
-.cal-now::before{content:'';position:absolute;left:0;top:-4px;width:7px;height:7px;border-radius:50%;background:#e11d48}
+/* 동그라미는 맨 왼쪽 강의장 칸에만. 방마다 찍으면 점이 줄줄이 늘어서 지저분하다. */
+.cal-rcol:first-child .cal-now::before{content:'';position:absolute;left:0;top:-4px;width:7px;height:7px;border-radius:50%;background:#e11d48}
 /* 강의장 이름은 한 줄로 적는다(원장 지시). 높이 22px 고정 →
    왼쪽 시간축 여백(.cal-head-sp)은 38+22=60px 이어야 격자가 어긋나지 않는다. */
 .cal-rhead{height:22px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 3px;box-sizing:border-box;border-bottom:1px solid var(--line);font-size:10.5px;font-weight:800;color:var(--ink-soft);background:var(--surface-2);white-space:nowrap;overflow:hidden}
