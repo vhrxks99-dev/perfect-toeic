@@ -3198,9 +3198,19 @@
 .cal-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
 .cal-grid{display:flex;min-width:700px}
 .cal-axis{flex:0 0 42px;background:var(--surface-2)}
-.cal-head-sp{height:38px;border-bottom:1px solid var(--line)}
+.cal-head-sp{height:60px;border-bottom:1px solid var(--line)}
 .cal-hr{height:44px;font-size:10px;color:var(--muted);text-align:right;padding-right:5px;box-sizing:border-box}
-.cal-col{flex:1 1 0;min-width:90px;border-left:1px solid var(--line)}
+.cal-col{flex:1 1 0;min-width:0;border-left:1px solid var(--line)}
+/* 날짜 밑에 강의장 칸을 하나 더 둔다 — 어느 방에 잡힌 수업인지 한눈에 보이게(원장 지시) */
+.cal-rooms{display:flex}
+.cal-rcol{flex:1 1 0;min-width:84px;border-left:1px solid var(--line)}
+.cal-rcol:first-child{border-left:none}
+.cal-rhead{height:22px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:10.5px;font-weight:800;color:var(--ink-soft);background:var(--surface-2);white-space:nowrap;overflow:hidden}
+.cal-rhead.none{color:#e8892b}
+.cal-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
+.cal-search input{flex:0 0 240px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;font-family:inherit}
+.cal-search .hit{font-size:12px;font-weight:700;color:var(--muted)}
+.cal-ev.dim{opacity:.12}
 .cal-colhead{height:38px;display:flex;align-items:center;justify-content:center;gap:5px;border-bottom:1px solid var(--line);font-size:12px;font-weight:800;color:var(--ink-soft);background:var(--surface-2)}
 .cal-colhead.today{background:var(--accent-wash);color:var(--accent)}
 .cal-colhead .dd{font-size:15px;color:var(--ink)}
@@ -3313,6 +3323,11 @@
         <div class="cal-title" id="calTitle"></div>
         <button class="btn btn-ghost" id="calNext" type="button">→</button>
         <button class="btn btn-ghost" id="calToday" type="button">오늘</button>
+      </div>
+      <div class="cal-search">
+        <input type="text" id="scSearch" placeholder="🔍 학생 이름 검색" autocomplete="off">
+        <button class="btn btn-ghost" type="button" id="scSearchClear">지우기</button>
+        <span class="hit" id="scSearchInfo"></span>
       </div>
       <div class="cal-legend" id="calLegend"></div>
       <div class="cal-scroll" id="calScroll"><div class="cal-grid" id="calGrid"></div></div>
@@ -3428,41 +3443,12 @@
 
     <div class="dash-pane" data-dpane="att">
       <div class="dash-list-head" style="margin-top:6px">🎫 학생별 남은 수업 횟수 <button class="btn btn-ghost" id="attReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
-      <div class="dash-note" style="margin-top:0">학생을 <b>출석 처리</b>하면 남은 횟수가 1회 차감됩니다. 횟수권은 정산 탭에서 판매(충전)합니다.</div>
+      <div class="dash-note" style="margin-top:0"><b>수업 스케줄을 잡으면</b> 남은 횟수가 1회 차감됩니다. 스케줄을 지우면 다시 1회 돌아옵니다. 횟수권은 수납 탭에서 판매(충전)합니다.<br>구글 캘린더에서 넘어온 수업과 <b>승인 전 예약 요청</b>은 차감하지 않습니다. 아래 <b>출석 기록</b>은 출결 확인용이라 남은 횟수와 무관합니다.</div>
       <div id="attDue" class="dash-note" style="margin-top:8px;display:none"></div>
       <div style="margin:10px 0 2px"><input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
       <div class="dash-list-head">최근 출석 내역</div>
       <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
-
-      <div id="kioskAdmin" style="display:none">
-        <div class="dash-list-head">📱 등원관리 (아이패드 키오스크)</div>
-        <div style="border:1.5px solid var(--line-strong);border-radius:12px;padding:14px 16px;margin-top:8px;background:var(--surface-2)">
-          <div style="font-weight:800;font-size:13px;color:var(--muted)">아이패드에서 열 주소</div>
-          <div id="kioUrl" style="font-family:var(--font-mono);font-size:clamp(15px,2vw,19px);font-weight:800;margin:6px 0 12px;word-break:break-all">https://perfect-toeic.com/checkin</div>
-          <div class="wa-admin-actions" style="margin:0">
-            <button class="btn btn-primary" id="kioCopy" type="button">📋 주소 복사</button>
-            <button class="btn btn-ghost" id="kioOpen" type="button">↗ 새 창으로 열기</button>
-          </div>
-          <div class="dash-note" style="margin-top:10px">
-            주소를 잊으셨으면 여기서 <b>복사</b>해 아이패드로 보내세요. 아이패드 사파리에서 열고 아래 PIN을 한 번 넣으면 등원 화면이 됩니다.
-            사파리 <b>공유(↑) → 홈 화면에 추가</b> 하면 앱처럼 아이콘이 생겨서 다음부터는 주소가 아예 필요 없어요.
-          </div>
-        </div>
-        <div class="dash-note">
-          학생이 휴대폰 <b>뒷번호 4자리</b>를 누르고 <b>등원</b>을 누르면 횟수권이 1회 자동 차감되고, 이 표에 바로 반영됩니다.
-        </div>
-        <div class="dash-form" style="margin-top:10px">
-          <div class="dash-row">
-            <label>관리자 PIN <span class="wa-hint">(숫자 4~8자리)</span><input type="text" id="kioPin" inputmode="numeric" maxlength="8" placeholder="0000"></label>
-            <label>&nbsp;<button class="btn btn-primary" id="kioSave" type="button">PIN 저장</button></label>
-          </div>
-          <p class="wa-err" id="kioErr"></p>
-        </div>
-        <div class="dash-list-head">등록된 기기 <button class="btn btn-ghost" id="kioReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
-        <div class="dash-note" style="margin-top:0">아이패드를 잃어버렸거나 바꿨다면 <b>해제</b>를 누르세요. 그 기기는 즉시 등원 처리를 못 하게 됩니다.</div>
-        <div class="wa-table-wrap"><table class="wa-table" id="kioTable"></table></div>
-      </div>
     </div>
 
     <div class="dash-pane" data-dpane="work">
@@ -3670,145 +3656,6 @@
     </div>
   </div>
 </div>
-<!-- ================= 등원관리 (아이패드 키오스크) =================
-     perfect-toeic.com/#checkin 으로 연다. 로그인 없이 도는 화면이라
-     최초 1회 관리자 PIN으로 기기를 등록하고, 그 뒤엔 토큰으로만 동작한다. -->
-<style>
-  /* 완벽한토익 등원관리.
-     레퍼런스(위 흰색 / 아래 남색 키패드)와 겹치지 않게 좌우 2단으로 짰다.
-     왼쪽 = 브랜드·시계·입력한 번호·등원/하원, 오른쪽 = 키패드.
-     아이패드 사파리는 주소창 때문에 100vh 가 화면보다 크므로 dvh 를 쓴다. */
-  #kiosk{position:fixed;inset:0;height:100%;height:100dvh;z-index:99999;display:none;
-         background:linear-gradient(150deg,#F4F7FD 0%,#EAF1FE 55%,#E3EBFA 100%);
-         font-family:var(--font-sans,system-ui);color:#15181E;-webkit-user-select:none;user-select:none;overscroll-behavior:none}
-  #kiosk.on{display:block}
-  .kk-shell{height:100%;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);
-            gap:clamp(12px,2vw,26px);padding:clamp(12px,2.2vh,22px) clamp(14px,2.4vw,30px);
-            padding-bottom:calc(clamp(12px,2.2vh,22px) + env(safe-area-inset-bottom,0px))}
-  .kk-col{min-width:0;min-height:0;display:flex;flex-direction:column}
-
-  /* ── 왼쪽 ── */
-  .kk-head{display:flex;align-items:center;gap:clamp(9px,1.4vw,15px);flex:0 0 auto}
-  .kk-logo{height:clamp(44px,7vh,72px);width:auto;display:block}
-  .kk-wordmark{font-weight:900;font-size:clamp(19px,2.3vw,25px);letter-spacing:-.03em;color:#15181E}
-  .kk-tag{background:#1F62E0;color:#fff;font-weight:800;font-size:clamp(11.5px,1.35vw,14px);
-          padding:7px 14px;border-radius:999px;letter-spacing:.02em;white-space:nowrap}
-  .kk-when{margin-top:clamp(8px,1.6vh,16px);flex:0 0 auto}
-  .kk-date{font-size:clamp(13px,1.5vw,17px);font-weight:700;color:#697079}
-  .kk-time{font-size:clamp(34px,5.4vw,58px);font-weight:900;letter-spacing:-.045em;line-height:1.02;
-           color:#15181E;font-variant-numeric:tabular-nums;margin-top:2px}
-  .kk-time small{font-size:.42em;font-weight:800;color:#697079;margin-left:8px;letter-spacing:0}
-
-  .kk-entry{flex:1 1 auto;display:flex;flex-direction:column;justify-content:center;min-height:0;gap:clamp(8px,1.6vh,15px)}
-  .kk-label{font-size:clamp(13.5px,1.6vw,17px);font-weight:800;color:#1F62E0;letter-spacing:.01em}
-  .kk-code{display:flex;gap:clamp(8px,1.3vw,15px)}
-  .kk-cell{flex:1 1 0;min-width:0;aspect-ratio:1/1.1;max-height:clamp(64px,15vh,132px);
-           background:#fff;border:2px solid #DCE5F6;border-radius:clamp(10px,1.4vw,16px);
-           display:flex;align-items:center;justify-content:center;
-           font-size:clamp(30px,5.4vw,62px);font-weight:900;color:#15181E;
-           font-variant-numeric:tabular-nums;transition:border-color .12s,box-shadow .12s;box-shadow:0 1px 0 rgba(21,24,30,.04)}
-  .kk-cell.on{border-color:#1F62E0;box-shadow:0 4px 16px rgba(31,98,224,.16)}
-  .kk-cell.cur{border-color:#9CBBF2;border-style:dashed}
-  .kk-cell i{display:block;width:38%;height:3px;border-radius:2px;background:#CCD2DC}
-  .kk-msg{min-height:clamp(18px,2.4vh,24px);font-size:clamp(12.5px,1.45vw,15px);font-weight:800;color:#C0342B;line-height:1.4}
-
-  .kk-acts{display:grid;grid-template-columns:1.35fr 1fr;gap:clamp(8px,1.2vw,14px);flex:0 0 auto}
-  .kk-act{border:0;border-radius:clamp(12px,1.6vw,18px);cursor:pointer;font-family:inherit;font-weight:900;
-          padding:clamp(13px,2.4vh,24px) 0;font-size:clamp(18px,2.5vw,28px);letter-spacing:-.02em;line-height:1.15}
-  .kk-act span{display:block;font-size:clamp(10.5px,1.15vw,12.5px);font-weight:700;opacity:.72;margin-top:3px;letter-spacing:.04em}
-  .kk-in{background:#1F62E0;color:#fff;box-shadow:0 6px 18px rgba(31,98,224,.28)}
-  .kk-in:active{background:#154FBE;box-shadow:none;transform:translateY(1px)}
-  .kk-out{background:#fff;color:#3D4149;border:2px solid #CCD2DC}
-  .kk-out:active{background:#EEF2F9;transform:translateY(1px)}
-
-  /* ── 오른쪽 (키패드) ── */
-  .kk-right{background:rgba(255,255,255,.72);border:1px solid #DCE5F6;border-radius:clamp(14px,2vw,24px);
-            padding:clamp(10px,1.6vh,18px);box-shadow:0 10px 30px rgba(21,40,80,.07)}
-  .kk-tools{display:flex;gap:8px;justify-content:flex-end;flex:0 0 auto;margin-bottom:clamp(8px,1.2vh,12px)}
-  .kk-tool{border:1px solid #DCE5F6;background:#fff;color:#3D4149;font-family:inherit;font-weight:800;
-           font-size:clamp(11.5px,1.25vw,13.5px);padding:8px 13px;border-radius:999px;cursor:pointer;white-space:nowrap}
-  .kk-tool:active{background:#EEF2F9}
-  .kk-keys{flex:1 1 auto;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);
-           gap:clamp(7px,1.1vh,12px);min-height:0}
-  .kk-key{border:1px solid #E1E8F5;border-radius:clamp(10px,1.4vw,16px);background:#fff;color:#15181E;
-          font-size:clamp(22px,3.4vw,40px);font-weight:800;cursor:pointer;font-family:inherit;
-          font-variant-numeric:tabular-nums;box-shadow:0 1px 0 rgba(21,24,30,.05);padding:0}
-  .kk-key:active{background:#EAF1FE;border-color:#9CBBF2;transform:translateY(1px)}
-  .kk-key.sm{font-size:clamp(12.5px,1.5vw,17px);font-weight:800;color:#697079;background:#F7F9FD}
-  .kk-key.sm:active{background:#EAF1FE}
-
-  /* ── 세로(초상) 화면에서는 위/아래로 ── */
-  @media (orientation:portrait){
-    .kk-shell{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);gap:clamp(10px,1.6vh,18px)}
-    .kk-time{font-size:clamp(34px,9vw,58px)}
-    .kk-cell{max-height:clamp(52px,9vh,92px);font-size:clamp(24px,8vw,44px)}
-    .kk-key{font-size:clamp(20px,6vw,34px)}
-    .kk-act{font-size:clamp(17px,4.6vw,24px)}
-  }
-  .kk-cover{position:absolute;inset:0;background:rgba(13,22,40,.5);display:none;align-items:center;justify-content:center;padding:22px}
-  .kk-cover.on{display:flex}
-  .kk-panel{background:#fff;border-radius:20px;padding:clamp(20px,3vh,30px) clamp(18px,3vw,28px);width:min(560px,94vw);
-            max-height:88vh;overflow:auto;box-shadow:0 22px 60px rgba(13,22,40,.32)}
-  .kk-big{font-size:clamp(22px,3.6vw,32px);font-weight:900;text-align:center;letter-spacing:-.03em;line-height:1.3}
-  .kk-at{text-align:center;color:#697079;font-weight:800;margin-top:8px;font-size:clamp(13px,1.5vw,16px);font-variant-numeric:tabular-nums}
-  .kk-rem{margin-top:16px;border-radius:14px;padding:15px 16px;text-align:center;font-weight:800;font-size:clamp(15px,1.8vw,18px);line-height:1.5}
-  .kk-ok{background:#EAF1FE;color:#154FBE}
-  .kk-warn{background:#FDF0EF;color:#C0342B}
-  .kk-pick{display:flex;flex-direction:column;gap:9px;margin-top:16px}
-  .kk-pickbtn{border:2px solid #DCE5F6;background:#fff;border-radius:14px;padding:16px;font-size:17px;font-weight:800;text-align:left;cursor:pointer;font-family:inherit;color:#15181E}
-  .kk-pickbtn:active{background:#EAF1FE}
-  .kk-close{width:100%;margin-top:18px;border:0;border-radius:14px;background:#1F62E0;color:#fff;font-weight:900;font-size:16px;padding:15px 0;cursor:pointer;font-family:inherit}
-  .kk-close:active{background:#154FBE}
-  .kk-field{width:100%;font-size:26px;text-align:center;letter-spacing:.35em;padding:14px;border:2px solid #DCE5F6;border-radius:14px;margin-top:14px;font-family:inherit}
-  .kk-note{font-size:13.5px;color:#697079;font-weight:600;margin-top:8px;line-height:1.65}
-  .kk-htable{width:100%;border-collapse:collapse;margin-top:14px;font-size:15px}
-  .kk-htable th,.kk-htable td{padding:10px 6px;border-bottom:1px solid #EEF2F9;text-align:left}
-  .kk-htable th{font-size:12.5px;color:#697079}
-</style>
-<div id="kiosk" aria-hidden="true">
-  <div class="kk-shell">
-    <section class="kk-col kk-left">
-      <div class="kk-head">
-        <img class="kk-logo" id="kkLogo" alt="완벽한토익" style="display:none">
-        <div class="kk-wordmark" id="kkWord">완벽한토익</div>
-        <div class="kk-tag">등원관리</div>
-      </div>
-      <div class="kk-when">
-        <div class="kk-date" id="kkDate"></div>
-        <div class="kk-time" id="kkTime"></div>
-      </div>
-      <div class="kk-entry">
-        <div class="kk-label">휴대폰 뒷번호 4자리를 눌러주세요</div>
-        <div class="kk-code" id="kkCode">
-          <div class="kk-cell"><i></i></div><div class="kk-cell"><i></i></div>
-          <div class="kk-cell"><i></i></div><div class="kk-cell"><i></i></div>
-        </div>
-        <div class="kk-msg" id="kkMsg"></div>
-      </div>
-      <div class="kk-acts">
-        <button class="kk-act kk-in" data-kk-go="in">등원<span>학원에 왔어요</span></button>
-        <button class="kk-act kk-out" data-kk-go="out">하원<span>집에 가요</span></button>
-      </div>
-    </section>
-
-    <section class="kk-col kk-right">
-      <div class="kk-tools">
-        <button class="kk-tool" id="kkHistBtn">오늘 등원 현황</button>
-        <button class="kk-tool" id="kkSound" title="알림음">🔊</button>
-        <button class="kk-tool" id="kkGear" title="설정">⚙️</button>
-      </div>
-      <div class="kk-keys">
-        <button class="kk-key" data-kk="1">1</button><button class="kk-key" data-kk="2">2</button><button class="kk-key" data-kk="3">3</button>
-        <button class="kk-key" data-kk="4">4</button><button class="kk-key" data-kk="5">5</button><button class="kk-key" data-kk="6">6</button>
-        <button class="kk-key" data-kk="7">7</button><button class="kk-key" data-kk="8">8</button><button class="kk-key" data-kk="9">9</button>
-        <button class="kk-key sm" data-kk="clear">지우기</button><button class="kk-key" data-kk="0">0</button><button class="kk-key sm" data-kk="back">← 한 칸</button>
-      </div>
-    </section>
-  </div>
-
-  <div class="kk-cover" id="kkCover"><div class="kk-panel" id="kkPanel"></div></div>
-</div>
-
 <!-- 수강 종료 사유. 퇴원률은 '중도 퇴원'만 세야 하므로 반드시 물어본다. -->
 <div class="wa-overlay" id="waEnd" aria-hidden="true">
   <div class="wa-card">
@@ -4681,7 +4528,6 @@
     await loadHomework();
     if($('csDate')&&!$('csDate').value) $('csDate').value=ymd(now);
     if($('evMonth')&&!$('evMonth').value) $('evMonth').value=ym(now);
-    await loadKiosk();
     fillConsultTeacher();
     await loadConsults();
     await loadEval();
@@ -4775,6 +4621,13 @@
   function roomLabelById(id){
     var r=(_rooms||[]).filter(function(x){ return String(x.id)===String(id); })[0];
     return r?roomLabel(r):'-';
+  }
+  // 달력 강의장 칸 머리글용 짧은 이름. 칸이 좁아 '강의장 A (4인)'은 잘린다.
+  // 옆건물(미플)은 자리를 옮겨야 하므로 짧게라도 남긴다.
+  function shortRoomLabel(r){
+    if(!r) return '미배정';
+    var n=String(r.name||'').replace(/^강의장\s*/,'');
+    return n + (r.building==='미플' ? '·옆' : '');
   }
   // 그 시간에 이미 쓰고 있는 방을 뺀 목록
   function freeRooms(target, all, list){
@@ -5025,12 +4878,13 @@
     var h='<tr><th>일시</th><th>강의장</th><th>과목</th><th>선생님</th><th>학생</th><th>메모</th><th>관리</th></tr>';
     rows.forEach(function(s){
       var pend=(s.status==='pending')?' <span style="color:#e8892b;font-weight:800;font-size:11px">⏳요청</span>':'';
-      h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td>'
+      h+='<tr data-stu="'+esc(s.student_name||'-')+'"><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td>'
        + '<td><select class="sc-room'+(s.room_id==null?' none':'')+'" data-scroom="'+esc(String(s.id))+'">'+roomOptions(s.room_id)+'</select></td>'
        + '<td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.student_name||'-')+pend+'</td><td>'+esc(s.memo||'')+'</td>'
        + '<td style="white-space:nowrap"><a class="wa-link" data-scedit="'+s.id+'">수정</a> &nbsp;<a class="wa-link del" data-scdel="'+s.id+'">삭제</a></td></tr>';
     });
     $('scTable').innerHTML=h;
+    applyScSearch();
   }
   function roomOptions(sel){
     var h='<option value="">미배정</option>';   // '강의장 배정' 표와 같은 말로 통일
@@ -5325,9 +5179,9 @@
       var r2=await sb.rpc('reject_booking',{p_id:rj.getAttribute('data-reject')});
       if(r2.error){ alert('거절 실패: '+r2.error.message); return; }
       await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
-    // 노쇼 — 예약했는데 안 온 학생. 누르면 수업 1회가 차감된다.
+    // 노쇼 — 예약했는데 안 온 학생. 횟수는 스케줄이 잡힐 때 이미 빠졌으므로 기록만 남긴다.
     if(ns){ if(!sb) return;
-      if(!confirm(ns.getAttribute('data-nsname')+' 학생을 노쇼로 처리할까요?\n\n수업 횟수가 1회 차감됩니다.')) return;
+      if(!confirm(ns.getAttribute('data-nsname')+' 학생을 노쇼로 기록할까요?\n\n수업 횟수는 스케줄이 잡힐 때 이미 차감됐습니다.')) return;
       var r3=await sb.rpc('mark_noshow',{p_id:ns.getAttribute('data-noshow')});
       if(r3.error){ alert('처리 실패: '+r3.error.message); return; }
       if(r3.data && r3.data.ok===false){ alert(r3.data.msg||'처리하지 못했습니다.'); }
@@ -5367,30 +5221,45 @@
     for(var hh=DAY_START; hh<DAY_END; hh++){ axis+='<div class="cal-hr">'+hh+':00</div>'; }
     axis+='</div>';
     var todayKey=ymd(new Date()), cols='';
+    // 날짜 밑에 강의장 칸을 만들고 그 칸에 수업을 넣는다(원장 지시 2026-08-08).
+    // 마지막 '미배정' 칸이 없으면 비대면 수업과 아직 방을 안 정한 수업이 달력에서 사라진다.
+    var roomCols=_rooms.filter(function(r){ return r.active!==false; })
+                       .map(function(r){ return {id:r.id, label:shortRoomLabel(r)}; });
+    roomCols.push({id:null, label:'미배정'});
     for(var i=0;i<nDays;i++){
       var day=new Date(start); day.setDate(day.getDate()+i); var key=ymd(day);
       var dowIdx=(day.getDay()+6)%7; var cls=(dowIdx===5?'cal-sat':(dowIdx===6?'cal-sun':''));
       var head='<div class="cal-colhead'+(key===todayKey?' today':'')+' '+cls+'">'+DOW[dowIdx]+'<span class="dd">'+day.getDate()+'</span></div>';
       var lines=''; for(var h2=1;h2<(DAY_END-DAY_START);h2++){ lines+='<div class="cal-line" style="top:'+(h2*HOUR_H)+'px"></div>'; }
-      var evs=(byDay[key]||[]).slice();
-      evs.forEach(function(s){ s.__st=minsFromStart(s.starts_at); var enM=minsFromStart(s.ends_at); if(enM<=s.__st){ enM=(DAY_END-DAY_START)*60; } s.__en=Math.max(s.__st+20, enM); });
-      layoutDay(evs);
-      var evHtml=evs.map(function(s){
-        var top=Math.max(0, s.__st/60*HOUR_H);
-        var hgt=Math.max(20, (s.__en-s.__st)/60*HOUR_H-2);
-        var w=100/(s.__lanes||1), left=(s.__lane||0)*w;
-        // 선생님은 블록 색과 범례로 이미 구분되므로 칸 안에는 학생 이름만 적는다(원장 지시).
-        // 선생님 이름까지 넣으면 '김태완 · 김서영(비대면)'처럼 길어져 정작 필요한 학생 이름이 잘린다.
-        var who=esc(s.student_name||'');
-        var room=s.room_id?('🏫'+esc(roomName(s.room_id))):'';
-        var col=teacherColor(s.teacher_id);
-        // 시각은 왼쪽 시간축과 블록 위치로 이미 드러난다. 칸 안에 또 적으면
-        // 좁은 블록에서 정작 필요한 학생 이름을 밀어낸다. 마우스를 올리면 보이게만 둔다.
-        // 선생님 이름은 화면에서 뺐으므로 여기(툴팁)에는 반드시 남긴다.
-        var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ');
-        return '<div class="cal-ev" title="'+esc(tip)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'"><b style="color:'+col+'">'+esc(s.subject||'')+'</b>'+(who?who:'')+(room?'<br>'+room:'')+'</div>';
-      }).join('');
-      cols+='<div class="cal-col">'+head+'<div class="cal-body" data-date="'+key+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
+      var dayEvs=(byDay[key]||[]);
+      var rcols='';
+      roomCols.forEach(function(rc){
+        var evs=dayEvs.filter(function(s){
+          return (rc.id==null) ? (s.room_id==null) : (String(s.room_id)===String(rc.id));
+        });
+        evs.forEach(function(s){ s.__st=minsFromStart(s.starts_at); var enM=minsFromStart(s.ends_at); if(enM<=s.__st){ enM=(DAY_END-DAY_START)*60; } s.__en=Math.max(s.__st+20, enM); });
+        layoutDay(evs);
+        var evHtml=evs.map(function(s){
+          var top=Math.max(0, s.__st/60*HOUR_H);
+          var hgt=Math.max(20, (s.__en-s.__st)/60*HOUR_H-2);
+          var w=100/(s.__lanes||1), left=(s.__lane||0)*w;
+          // 선생님은 블록 색과 범례로 이미 구분되므로 칸 안에는 학생 이름만 적는다(원장 지시).
+          // 강의장은 이제 칸 자체가 알려주므로 블록 안에서 뺐고(예전 '🏫강의장 A'),
+          // 과목도 대부분 '토익'이라 매 블록에 적으면 학생 이름을 밀어낸다 → 토익이 아닐 때만 적는다.
+          var who=esc(s.student_name||'');
+          var col=teacherColor(s.teacher_id);
+          var subj=(s.subject && s.subject!=='토익') ? '<b style="color:'+col+'">'+esc(s.subject)+'</b>' : '';
+          // 시각은 왼쪽 시간축과 블록 위치로 이미 드러난다. 마우스를 올리면 보이게만 둔다.
+          // 선생님 이름은 화면에서 뺐으므로 여기(툴팁)에는 반드시 남긴다.
+          var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ');
+          return '<div class="cal-ev" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+subj+(who?who:'')+'</div>';
+        }).join('');
+        rcols+='<div class="cal-rcol"><div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>'
+             + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
+      });
+      // 강의장 칸이 84px 밑으로 찌그러지지 않게 날짜 칸의 최소 너비를 강의장 수에 맞춘다.
+      // (안 걸면 주 뷰에서 칸이 겹쳐 보인다 — 가로 스크롤은 .cal-scroll 이 처리한다)
+      cols+='<div class="cal-col" style="min-width:'+(roomCols.length*84)+'px">'+head+'<div class="cal-rooms">'+rcols+'</div></div>';
     }
     $('calGrid').innerHTML=axis+cols;
   }
@@ -5420,7 +5289,39 @@
     else { if($('calScroll'))$('calScroll').style.display=''; if($('calMonthGrid'))$('calMonthGrid').style.display='none'; await renderGrid(calMode==='day'?1:7); }
     updateLegend();
     updateModeButtons();
+    applyScSearch();
   }
+
+  // ---- 학생 이름 검색 ----
+  // 지우는 게 아니라 흐리게만 한다 — 그 시간에 다른 수업이 있다는 사실이 같이 사라지면
+  // 빈 자리를 잘못 잡게 된다. '다가오는 수업' 표는 목록이라 아예 숨긴다.
+  function applyScSearch(){
+    var box=$('scSearch'); if(!box) return;
+    var q=String(box.value||'').trim().toLowerCase();
+    var hitCal=0, evs=document.querySelectorAll('#calGrid .cal-ev, #calMonthGrid .cal-chip');
+    [].forEach.call(evs, function(el){
+      if(!q){ el.classList.remove('dim'); return; }
+      var name=String(el.getAttribute('data-stu')||el.textContent||'').toLowerCase();
+      var hit=name.indexOf(q)>=0;
+      el.classList.toggle('dim', !hit);
+      if(hit) hitCal++;
+    });
+    var shown=0, total=0, tb=$('scTable');
+    if(tb){
+      [].forEach.call(tb.rows, function(tr){
+        if(!tr.getAttribute('data-stu')) return;   // 머리글·안내줄은 건드리지 않는다
+        total++;
+        var hit=!q || String(tr.getAttribute('data-stu')||'').toLowerCase().indexOf(q)>=0;
+        tr.style.display=hit?'':'none';
+        if(hit) shown++;
+      });
+      // 표가 아직 안 그려졌을 때 건수를 0으로 덮어쓰지 않는다
+      if($('scCount') && total) $('scCount').textContent = q ? ('('+shown+'/'+total+'건)') : ('('+total+'건)');
+    }
+    if($('scSearchInfo')) $('scSearchInfo').textContent = q ? ('달력 '+hitCal+'건 · 목록 '+shown+'건') : '';
+  }
+  if($('scSearch')) $('scSearch').addEventListener('input', applyScSearch);
+  if($('scSearchClear')) $('scSearchClear').onclick=function(){ if($('scSearch')) $('scSearch').value=''; applyScSearch(); };
   function calShift(dir){ if(calMode==='day') calCur.setDate(calCur.getDate()+dir); else if(calMode==='week') calCur.setDate(calCur.getDate()+dir*7); else calCur.setMonth(calCur.getMonth()+dir); renderCalendar(); }
   if($('calPrev')) $('calPrev').onclick=function(){ calShift(-1); };
   if($('calNext')) $('calNext').onclick=function(){ calShift(1); };
@@ -5459,6 +5360,12 @@
     if($('scDate')) $('scDate').value=body.getAttribute('data-date');
     if($('scStart')) $('scStart').value=pad(hh)+':'+pad(mm);
     if($('scEnd')) $('scEnd').value=pad(endh)+':'+pad(mm);
+    // 어느 강의장 칸을 눌렀는지도 폼에 넣어준다(빈 칸을 눌러 바로 그 방으로 잡을 수 있게).
+    if($('scRoom')){
+      var rid=body.getAttribute('data-room')||'';
+      var ok=[].some.call($('scRoom').options, function(o){ return o.value===rid; });
+      if(ok) $('scRoom').value=rid;
+    }
     updateScFree();
     if($('scDate') && $('scDate').scrollIntoView) $('scDate').scrollIntoView({behavior:'smooth',block:'center'});
   });
@@ -5887,19 +5794,34 @@
       var r3=await sb.from('notify_outbox').select('student_id,body,created_at,sent_at').eq('kind','payment_due').order('created_at',{ascending:false});
       window.__wtNotify=(!r3.error&&r3.data)?r3.data:null;
     }
-    var purchased={}, attended={};
+    // 2026-08-08 원장 지시로 차감 기준이 '출석'에서 '스케줄'로 바뀌었다.
+    // 서버 sessions_left() 와 같은 식으로 세야 화면과 알림이 어긋나지 않는다.
+    var scheds=[];
+    if(sb){ var r4=await sb.from('schedules').select('student_id,status,source'); if(!r4.error&&r4.data) scheds=r4.data; }
+    var purchased={}, attended={}, used={};
     pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
     atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
-    window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAtts=atts;
+    scheds.forEach(function(s){ if(countsAsUsed(s)) used[s.student_id]=(used[s.student_id]||0)+1; });
+    window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAttU=used; window.__wtAtts=atts;
     drawAtt();
+  }
+  // 횟수를 쓰는 수업인가.
+  //  · 회원으로 등록된 학생만(구글에서 이름만 넘어온 수업은 셀 수 없다)
+  //  · 승인 전 예약 요청(pending)은 아직 아니다
+  //  · 구글 캘린더에서 넘어온 수업은 세지 않는다(436건이 한꺼번에 차감되는 것을 막는다)
+  function countsAsUsed(s){
+    if(!s || !s.student_id) return false;
+    if((s.status||'confirmed')!=='confirmed') return false;
+    if((s.source||'web')==='gcal') return false;
+    return true;
   }
   // 남은 수업이 1회 이하인 학생 = 결제 안내 대상.
   // 안내 문자가 나갔는지도 같이 보여준다(아직 발송 연동 전이라 '대기중'으로 뜬다).
   function drawPaymentDue(){
     if(!$('attDue')) return;
-    var purchased=window.__wtAttP||{}, attended=window.__wtAttD||{}, notif=window.__wtNotify;
+    var purchased=window.__wtAttP||{}, used=window.__wtAttU||{}, notif=window.__wtNotify;
     var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'; });
-    var due=students.map(function(s){ return { s:s, rem:(purchased[s.id]||0)-(attended[s.id]||0) }; })
+    var due=students.map(function(s){ return { s:s, rem:(purchased[s.id]||0)-(used[s.id]||0) }; })
                     .filter(function(x){ return x.rem<=1; })
                     .sort(function(a,b){ return a.rem-b.rem; });
     if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
@@ -5938,30 +5860,31 @@
   }
   function drawAtt(){
     drawPaymentDue();
-    var purchased=window.__wtAttP||{}, attended=window.__wtAttD||{}, atts=window.__wtAtts||[];
+    var purchased=window.__wtAttP||{}, attended=window.__wtAttD||{}, used=window.__wtAttU||{}, atts=window.__wtAtts||[];
     var q=(($('attSearch')&&$('attSearch').value)||'').trim().toLowerCase();
     var students=_members.filter(function(m){return m.role==='student';});
     var fst=q?students.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):students;
     if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">등록된 학생이 없습니다.</td></tr>'; }
     else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; }
     else {
-      var h='<tr><th>학생</th><th>구매</th><th>출석</th><th>남은 횟수</th><th>출석 처리</th></tr>';
-      fst.forEach(function(s){ var pu=purchased[s.id]||0, at=attended[s.id]||0, rem=pu-at;
-        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+at+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'">출석 −1</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소 +1</button></td></tr>'; });
+      // '잡힌 수업'이 차감의 근거고, '출석'은 실제로 왔는지만 보는 칸이다(차감과 무관).
+      var h='<tr><th>학생</th><th>구매</th><th>잡힌 수업</th><th>남은 횟수</th><th>출석 기록</th><th>출석 남기기</th></tr>';
+      fst.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0, at=attended[s.id]||0, rem=pu-us;
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+us+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td>'+at+'회</td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'">출석</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소</button></td></tr>'; });
       $('attTable').innerHTML=h;
     }
     if($('attHistTable')){
       var mm=isOps();
       var fatts=q?atts.filter(function(a){return (a.student_name||'').toLowerCase().indexOf(q)>=0;}):atts;
       if(!fatts.length){ $('attHistTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; }
-      else { var hh='<tr><th>출석일</th><th>학생</th><th>등원</th><th>하원</th><th>경로</th>'+(mm?'<th>관리</th>':'')+'</tr>'; fatts.slice(0,60).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td><td>'+(a.checked_in_at?hm(a.checked_in_at):'-')+'</td><td>'+(a.checked_out_at?hm(a.checked_out_at):'-')+'</td><td style="color:var(--muted);font-size:12px">'+(a.source==='kiosk'?'아이패드':'수기')+'</td>'+(mm?'<td><a class="wa-link del" data-attdel="'+esc(a.id)+'">삭제</a></td>':'')+'</tr>'; }); $('attHistTable').innerHTML=hh; }
+      else { var hh='<tr><th>출석일</th><th>학생</th><th>등원</th><th>하원</th><th>경로</th>'+(mm?'<th>관리</th>':'')+'</tr>'; fatts.slice(0,60).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td><td>'+(a.checked_in_at?hm(a.checked_in_at):'-')+'</td><td>'+(a.checked_out_at?hm(a.checked_out_at):'-')+'</td><td style="color:var(--muted);font-size:12px">'+(a.source==='kiosk'?'아이패드(옛 등원기)':(a.source==='noshow'?'노쇼':'수기'))+'</td>'+(mm?'<td><a class="wa-link del" data-attdel="'+esc(a.id)+'">삭제</a></td>':'')+'</tr>'; }); $('attHistTable').innerHTML=hh; }
     }
   }
   if($('attReload')) $('attReload').onclick=loadAttendance;
   if($('attSearch')) $('attSearch').addEventListener('input', drawAtt);
   if($('attHistTable')) $('attHistTable').addEventListener('click', async function(e){
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-attdel]'):null; if(!a) return;
-    if(!confirm('이 출석 기록을 삭제할까요? (남은 횟수 +1)')) return;
+    if(!confirm('이 출석 기록을 삭제할까요?\n\n남은 횟수는 그대로입니다. 횟수를 되돌리려면 수업 스케줄을 지우세요.')) return;
     var r=await sb.from('attendance').delete().eq('id',a.getAttribute('data-attdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
     await loadAttendance();
   });
@@ -5970,13 +5893,13 @@
     var plus=(e.target&&e.target.closest)?e.target.closest('button[data-attundo]'):null;
     if(minus){
       var sid=minus.getAttribute('data-attid'); var st=_members.filter(function(m){return m.id===sid;})[0]; if(!st) return;
-      if(!confirm(st.name+' 학생 출석 처리할까요? (남은 횟수 −1)')) return;
+      if(!confirm(st.name+' 학생 오늘 출석으로 기록할까요?\n\n남은 횟수는 줄지 않습니다(스케줄 잡을 때 이미 차감).')) return;
       var r=await sb.from('attendance').insert({student_id:sid, student_name:st.name, attended_on:ymd(new Date()), admin_id:(profile?profile.id:null), checked_in_at:new Date().toISOString(), source:'manual'});
       if(r.error){ alert('출석 처리 실패: '+r.error.message); return; }
       await loadAttendance();
     } else if(plus){
       var sid2=plus.getAttribute('data-attundo'); var st2=_members.filter(function(m){return m.id===sid2;})[0]; if(!st2) return;
-      if(!confirm(st2.name+' 학생의 최근 출석 1건을 취소할까요? (남은 횟수 +1)')) return;
+      if(!confirm(st2.name+' 학생의 최근 출석 기록 1건을 지울까요?\n\n남은 횟수는 그대로입니다.')) return;
       var q=await sb.from('attendance').select('id').eq('student_id',sid2).order('created_at',{ascending:false}).limit(1);
       if(q.error||!q.data||!q.data.length){ alert('취소할 출석 내역이 없습니다.'); return; }
       var d=await sb.from('attendance').delete().eq('id',q.data[0].id);
@@ -6393,58 +6316,6 @@
     if(!ops && c.querySelector('.dash-pane[data-dpane="eval"].on')) dashTab('members');
   }
 
-  // ================= 등원 키오스크 관리 (원장님 전용) =================
-  async function loadKiosk(){
-    var wrap=$('kioskAdmin'); if(!wrap) return;
-    if(!isMasterNow()){ wrap.style.display='none'; return; }
-    wrap.style.display='';
-    if(!sb) return;
-    var p=await sb.rpc('kiosk_get_pin');
-    if(!p.error && $('kioPin')) $('kioPin').value=p.data||'';
-    var d=await sb.from('kiosk_devices').select('*').order('created_at',{ascending:false});
-    var rows=(!d.error&&d.data)?d.data:[];
-    if(!$('kioTable')) return;
-    if(!rows.length){ $('kioTable').innerHTML='<tr><td class="wa-empty">아직 등록된 기기가 없습니다.</td></tr>'; return; }
-    var h='<tr><th>기기</th><th>등록일</th><th>마지막 사용</th><th>관리</th></tr>';
-    rows.forEach(function(k){
-      h+='<tr><td>'+esc(k.label||'기기')+'</td><td style="white-space:nowrap">'+esc((k.created_at||'').slice(0,10))+'</td>'
-       + '<td style="white-space:nowrap">'+(k.last_seen_at?fmtDT(k.last_seen_at):'-')+'</td>'
-       + '<td><a class="wa-link" data-kio-del="'+esc(k.token)+'" style="color:#c0342b">해제</a></td></tr>';
-    });
-    $('kioTable').innerHTML=h;
-  }
-  if($('kioSave')) $('kioSave').onclick=async function(){
-    if(!sb) return;
-    var v=($('kioPin').value||'').trim();
-    var r=await sb.rpc('set_kiosk_pin',{new_pin:v});
-    if(r.error){ $('kioErr').textContent='저장 실패: '+r.error.message; return; }
-    $('kioErr').textContent=''; alert('PIN을 저장했어요. 이미 등록된 아이패드는 그대로 쓸 수 있습니다.');
-  };
-  if($('kioReload')) $('kioReload').onclick=function(){ loadKiosk(); };
-  // 주소 복사 / 새 창으로 열기
-  if($('kioCopy')) $('kioCopy').onclick=async function(){
-    var url=($('kioUrl')&&$('kioUrl').textContent||'').trim();
-    var done=false;
-    try{ await navigator.clipboard.writeText(url); done=true; }catch(e){}
-    if(!done){
-      // 구형 브라우저·비보안 연결 대비
-      try{ var ta=document.createElement('textarea'); ta.value=url; ta.style.position='fixed'; ta.style.opacity='0';
-           document.body.appendChild(ta); ta.select(); done=document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
-    }
-    alert(done ? ('주소를 복사했어요.\n\n'+url+'\n\n카카오톡으로 아이패드에 보내거나 직접 입력하세요.') : ('복사가 안 되네요. 직접 적어주세요.\n\n'+url));
-  };
-  if($('kioOpen')) $('kioOpen').onclick=function(){
-    // 파일로 열어 본 경우에도 동작하도록 현재 경로 기준으로 연다
-    window.open(location.pathname+'#checkin','_blank');
-  };
-  if($('kioTable')) $('kioTable').addEventListener('click', async function(e){
-    var a=(e.target&&e.target.closest)?e.target.closest('a[data-kio-del]'):null; if(!a) return;
-    e.preventDefault();
-    if(!sb || !confirm('이 기기의 등록을 해제할까요?\n해당 아이패드는 다시 PIN을 넣어야 씁니다.')) return;
-    var r=await sb.from('kiosk_devices').delete().eq('token',a.getAttribute('data-kio-del'));
-    if(r.error){ alert('해제 실패: '+r.error.message); return; }
-    await loadKiosk();
-  });
 
   // ================= 상담 장부 =================
   // 상담은 회원가입 전 사람도 대상이라 profiles 가 아니라 consults 테이블에 남긴다.
@@ -6676,15 +6547,19 @@
       else { var h2='<tr><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td>'+esc(p.month)+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
     }
     if($('myPass')){
-      var pu=0, atts=[];
+      // 차감 기준은 '수업이 잡혔는지'다(2026-08-08). 출석은 참고로만 보여준다.
+      var pu=0, atts=[], scs=[];
       if(sb){
         var rp=await sb.from('payments').select('sessions').eq('student_id',profile.id);
         if(!rp.error&&rp.data) rp.data.forEach(function(x){ pu+=(x.sessions||0); });
         var ra=await sb.from('attendance').select('attended_on,created_at').eq('student_id',profile.id).order('created_at',{ascending:false});
         if(!ra.error&&ra.data) atts=ra.data;
+        var rs=await sb.from('schedules').select('status,source,student_id').eq('student_id',profile.id);
+        if(!rs.error&&rs.data) scs=rs.data.filter(countsAsUsed);
       }
-      var rem=pu-atts.length;
-      $('myPass').innerHTML='구매 <b>'+pu+'회</b> · 출석 <b>'+atts.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>';
+      var rem=pu-scs.length;
+      $('myPass').innerHTML='구매 <b>'+pu+'회</b> · 잡힌 수업 <b>'+scs.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>'
+        + '<div style="margin-top:4px;font-size:12px;color:var(--muted)">수업 일정이 잡히면 1회 차감됩니다. (출석 기록 '+atts.length+'회)</div>';
       if($('myAttTable')){ if(!atts.length){ $('myAttTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; } else { var ah='<tr><th>출석일</th></tr>'; atts.slice(0,30).forEach(function(a){ ah+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td></tr>'; }); $('myAttTable').innerHTML=ah; } }
     }
     if($('myHwTable')){
@@ -6909,234 +6784,6 @@
     }catch(e){}
   })();
   refresh();
-})();
-</script>
-<script>
-/* ================= 등원관리 키오스크 =================
-   #checkin 으로 열리는 전체화면. 사이트의 다른 부분과 완전히 분리해 둔다.
-   기기 등록 토큰은 이 아이패드의 localStorage 에만 남는다. */
-(function(){
-  var $=function(id){ return document.getElementById(id); };
-  var box=$('kiosk'); if(!box) return;
-  var TOKEN_KEY='wt_kiosk_token', SOUND_KEY='wt_kiosk_sound';
-  var buf='', busy=false, tickTimer=null, autoTimer=null;
-  var sb=null;
-  function client(){
-    if(sb) return sb;
-    if(window.sb){ sb=window.sb; return sb; }
-    try{ if(window.supabase && window.WT_SB_URL) sb=window.supabase.createClient(window.WT_SB_URL, window.WT_SB_KEY); }catch(e){}
-    return sb;
-  }
-  function token(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } }
-  function setToken(v){ try{ v?localStorage.setItem(TOKEN_KEY,v):localStorage.removeItem(TOKEN_KEY); }catch(e){} }
-  function soundOn(){ try{ return localStorage.getItem(SOUND_KEY)!=='off'; }catch(e){ return true; } }
-
-  // 짧은 알림음. 파일 없이 그때그때 만든다.
-  var actx=null;
-  function beep(kind){
-    if(!soundOn()) return;
-    try{
-      actx=actx||new (window.AudioContext||window.webkitAudioContext)();
-      var seq = kind==='bad' ? [[320,0],[240,.14]] : (kind==='out' ? [[520,0],[660,.09]] : [[660,0],[880,.09]]);
-      seq.forEach(function(s){
-        var o=actx.createOscillator(), g=actx.createGain();
-        o.type='sine'; o.frequency.value=s[0];
-        var t=actx.currentTime+s[1];
-        g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.22,t+.02);
-        g.gain.exponentialRampToValueAtTime(.0001,t+.16);
-        o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t+.18);
-      });
-    }catch(e){}
-  }
-
-  // 누른 숫자를 칸에 그대로 보여준다. (가려서 표시하면 잘못 눌러도 모른다)
-  function drawCode(){
-    var cells=$('kkCode').children;
-    for(var i=0;i<cells.length;i++){
-      var c=cells[i];
-      if(i<buf.length){ c.textContent=buf.charAt(i); c.className='kk-cell on'; }
-      else { c.innerHTML='<i></i>'; c.className='kk-cell'+(i===buf.length?' cur':''); }
-    }
-  }
-  function say(t){ $('kkMsg').textContent=t||''; }
-  function reset(){ buf=''; drawCode(); say(''); }
-
-  function clock(){
-    var d=new Date(), DW=['일','월','화','수','목','금','토'];
-    var h=d.getHours(), ap=h<12?'오전':'오후', hh=h%12; if(hh===0) hh=12;
-    var p=function(n){ return (n<10?'0':'')+n; };
-    $('kkDate').textContent=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+DW[d.getDay()]+'요일';
-    $('kkTime').innerHTML=p(hh)+':'+p(d.getMinutes())+'<small>'+ap+'</small>';
-  }
-  // 사이트 헤더의 로고를 그대로 가져다 쓴다 (이미지가 파일 안에 들어 있음)
-  function useLogo(){
-    try{
-      var src=(document.querySelector('.logo')||{}).src||'';
-      if(src){ $('kkLogo').src=src; $('kkLogo').style.display=''; $('kkWord').style.display='none'; }
-    }catch(e){}
-  }
-
-  function cover(html){
-    $('kkPanel').innerHTML=html;
-    $('kkCover').classList.add('on');
-  }
-  function hideCover(){
-    $('kkCover').classList.remove('on');
-    if(autoTimer){ clearTimeout(autoTimer); autoTimer=null; }
-  }
-  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
-
-  // ---- 기기 등록 (최초 1회) ----
-  function askPair(err){
-    cover('<div class="kk-big">등원 키오스크 설정</div>'
-      + '<div class="kk-note" style="text-align:center;margin-top:10px">이 기기를 등원 키오스크로 등록합니다.<br>관리자 PIN을 입력해 주세요. (처음 PIN은 <b>0000</b>)</div>'
-      + '<input class="kk-field" id="kkPin" type="tel" inputmode="numeric" maxlength="8" placeholder="••••">'
-      + '<div class="kk-note" style="color:#c0342b;text-align:center;min-height:20px">'+esc(err||'')+'</div>'
-      + '<button class="kk-close" id="kkPairGo">확인</button>');
-    var f=$('kkPin'); if(f) setTimeout(function(){ try{f.focus();}catch(e){} },50);
-    $('kkPairGo').onclick=async function(){
-      var c=client(); if(!c){ askPair('연결에 실패했습니다. 인터넷을 확인해 주세요.'); return; }
-      var pin=($('kkPin').value||'').trim();
-      var r=await c.rpc('kiosk_pair',{pin:pin,label:(navigator.platform||'기기')});
-      if(r.error){ askPair(r.error.message||'PIN이 올바르지 않습니다.'); beep('bad'); return; }
-      setToken(r.data); hideCover(); reset(); beep('in');
-    };
-  }
-
-  // ---- 등원/하원 ----
-  async function go(kind){
-    if(busy) return;
-    if(!token()){ askPair(); return; }
-    if(buf.length!==4){ say('뒷번호 4자리를 눌러주세요.'); beep('bad'); return; }
-    var c=client(); if(!c){ say('연결에 실패했습니다.'); return; }
-    busy=true; say('확인 중…');
-    try{
-      var lk=await c.rpc('kiosk_lookup',{tok:token(),last4:buf});
-      if(lk.error){
-        if(/등록되지 않은 기기/.test(lk.error.message||'')){ setToken(''); askPair('기기 등록이 해제되었습니다. 다시 등록해 주세요.'); }
-        else { say(lk.error.message||'조회에 실패했습니다.'); beep('bad'); }
-        return;
-      }
-      var list=lk.data||[];
-      if(!list.length){ say('등록된 학생이 없습니다. 데스크에 문의해 주세요.'); beep('bad'); return; }
-      if(list.length===1){ await mark(list[0].sid, kind); return; }
-      // 뒷자리가 같은 학생이 여럿이면 고르게 한다
-      cover('<div class="kk-big">본인을 선택해 주세요</div>'
-        + '<div class="kk-note" style="text-align:center">뒷번호가 같은 학생이 여러 명입니다.</div>'
-        + '<div class="kk-pick">'+list.map(function(s){
-            return '<button class="kk-pickbtn" data-pick="'+esc(s.sid)+'">'+esc(s.sname)+'</button>';
-          }).join('')+'</div>'
-        + '<button class="kk-close" id="kkPickCancel">취소</button>');
-      $('kkPickCancel').onclick=function(){ hideCover(); reset(); };
-      $('kkPanel').querySelectorAll('[data-pick]').forEach(function(b){
-        b.onclick=function(){ hideCover(); mark(b.getAttribute('data-pick'), kind); };
-      });
-    } finally { busy=false; }
-  }
-
-  async function mark(sid, kind){
-    var c=client(); if(!c) return;
-    busy=true; say('처리 중…');
-    try{
-      var r=await c.rpc('kiosk_mark',{tok:token(),student:sid,kind:kind});
-      if(r.error){ say(r.error.message||'처리에 실패했습니다.'); beep('bad'); return; }
-      var d=r.data||{};
-      var rem=(d.remaining==null)?null:Number(d.remaining);
-      var warn = (rem!==null && rem<=0);
-      var head = d.already ? (esc(d.name)+'님은 이미 등원했어요')
-               : (esc(d.name)+'님 '+(kind==='in'?'등원':'하원')+' 완료');
-      var remBox='';
-      if(kind==='in' && rem!==null){
-        remBox = warn
-          ? '<div class="kk-rem kk-warn">⚠️ 남은 횟수 <b style="font-size:22px">'+rem+'회</b><br>재등록이 필요합니다. 데스크에 문의해 주세요.</div>'
-          : '<div class="kk-rem kk-ok">남은 횟수 <b style="font-size:22px">'+rem+'회</b></div>';
-      }
-      cover('<div class="kk-big">'+(kind==='in'?'✅ ':'👋 ')+head+'</div>'
-          + '<div class="kk-at">'+esc(d.at||'')+(d.already?' 등원함':'')+'</div>'
-          + remBox
-          + '<button class="kk-close" id="kkDone">확인</button>');
-      $('kkDone').onclick=function(){ hideCover(); reset(); };
-      beep(warn?'bad':(kind==='out'?'out':'in'));
-      autoTimer=setTimeout(function(){ hideCover(); reset(); }, warn?7000:3500);
-    } finally { busy=false; }
-  }
-
-  // ---- 오늘 등원 현황 ----
-  async function history(){
-    if(!token()){ askPair(); return; }
-    var c=client(); if(!c) return;
-    var r=await c.rpc('kiosk_today',{tok:token()});
-    if(r.error){ cover('<div class="kk-big">불러오지 못했어요</div><div class="kk-note" style="text-align:center">'+esc(r.error.message)+'</div><button class="kk-close" id="kkHClose">닫기</button>'); $('kkHClose').onclick=hideCover; return; }
-    var rows=r.data||[];
-    var body = rows.length
-      ? rows.map(function(x){ return '<tr><td><b>'+esc(x.sname||'')+'</b></td><td>'+esc(x.in_at||'-')+'</td><td>'+esc(x.out_at||'-')+'</td></tr>'; }).join('')
-      : '<tr><td colspan="3" style="color:#5b6270;padding:18px 0;text-align:center">오늘 등원한 학생이 아직 없습니다.</td></tr>';
-    cover('<div class="kk-big">오늘 등원 현황</div>'
-      + '<div class="kk-note" style="text-align:center">모두 '+rows.length+'명</div>'
-      + '<table class="kk-htable"><tr><th>이름</th><th>등원</th><th>하원</th></tr>'+body+'</table>'
-      + '<button class="kk-close" id="kkHClose">닫기</button>');
-    $('kkHClose').onclick=hideCover;
-  }
-
-  // ---- 설정 ----
-  function settings(){
-    cover('<div class="kk-big">설정</div>'
-      + '<div class="kk-note">이 기기는 '+(token()?'<b>등록됨</b>':'<b style="color:#c0342b">등록 안 됨</b>')+' 상태입니다.</div>'
-      + '<div class="kk-pick">'
-      + '<button class="kk-pickbtn" id="kkToggleSound">알림음 '+(soundOn()?'끄기':'켜기')+'</button>'
-      + '<button class="kk-pickbtn" id="kkUnpair" style="color:#c0342b">이 기기 등록 해제</button>'
-      + '<button class="kk-pickbtn" id="kkExit">키오스크 나가기 (홈페이지로)</button>'
-      + '</div>'
-      + '<div class="kk-note">PIN 변경은 홈페이지 관리 페이지 → 출석 탭에서 원장님이 하실 수 있어요.</div>'
-      + '<button class="kk-close" id="kkSClose">닫기</button>');
-    $('kkSClose').onclick=hideCover;
-    $('kkToggleSound').onclick=function(){ try{ localStorage.setItem(SOUND_KEY, soundOn()?'off':'on'); }catch(e){} syncSound(); settings(); };
-    $('kkUnpair').onclick=function(){ if(confirm('이 기기의 등록을 해제할까요?\n다시 쓰려면 관리자 PIN을 넣어야 합니다.')){ setToken(''); hideCover(); askPair(); } };
-    $('kkExit').onclick=function(){ location.hash=''; };
-  }
-  function syncSound(){ $('kkSound').textContent = soundOn()?'🔊':'🔇'; }
-
-  // ---- 입력 ----
-  box.addEventListener('click', function(e){
-    var k=e.target.closest?e.target.closest('[data-kk]'):null;
-    var g=e.target.closest?e.target.closest('[data-kk-go]'):null;
-    if(k){
-      var v=k.getAttribute('data-kk');
-      if(v==='clear') reset();
-      else if(v==='back'){ buf=buf.slice(0,-1); drawCode(); say(''); }
-      else if(buf.length<4){ buf+=v; drawCode(); say(''); }
-      return;
-    }
-    if(g) go(g.getAttribute('data-kk-go'));
-  });
-  $('kkHistBtn').onclick=history;
-  $('kkGear').onclick=settings;
-  $('kkSound').onclick=function(){ try{ localStorage.setItem(SOUND_KEY, soundOn()?'off':'on'); }catch(e){} syncSound(); beep('in'); };
-  document.addEventListener('keydown', function(e){
-    if(!box.classList.contains('on')) return;
-    if(e.key>='0'&&e.key<='9'&&buf.length<4){ buf+=e.key; drawCode(); say(''); }
-    else if(e.key==='Backspace'){ buf=buf.slice(0,-1); drawCode(); }
-    else if(e.key==='Enter'){ go('in'); }
-  });
-
-  // ---- 열고 닫기 ----
-  function open(){
-    box.classList.add('on'); box.setAttribute('aria-hidden','false');
-    document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden';
-    useLogo(); syncSound(); clock(); reset();
-    if(tickTimer) clearInterval(tickTimer);
-    tickTimer=setInterval(clock,1000);
-    if(!token()) askPair();
-  }
-  function close(){
-    box.classList.remove('on'); box.setAttribute('aria-hidden','true');
-    document.documentElement.style.overflow=''; document.body.style.overflow='';
-    hideCover();
-    if(tickTimer){ clearInterval(tickTimer); tickTimer=null; }
-  }
-  function apply(){ (location.hash||'').replace(/^#/,'')==='checkin' ? open() : close(); }
-  window.addEventListener('hashchange', apply);
-  apply();
 })();
 </script>
 <style>
