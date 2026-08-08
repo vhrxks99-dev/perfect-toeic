@@ -5379,12 +5379,15 @@
         var top=Math.max(0, s.__st/60*HOUR_H);
         var hgt=Math.max(20, (s.__en-s.__st)/60*HOUR_H-2);
         var w=100/(s.__lanes||1), left=(s.__lane||0)*w;
-        var who=esc([s.teacher_name,s.student_name].filter(Boolean).join(' · '));
+        // 선생님은 블록 색과 범례로 이미 구분되므로 칸 안에는 학생 이름만 적는다(원장 지시).
+        // 선생님 이름까지 넣으면 '김태완 · 김서영(비대면)'처럼 길어져 정작 필요한 학생 이름이 잘린다.
+        var who=esc(s.student_name||'');
         var room=s.room_id?('🏫'+esc(roomName(s.room_id))):'';
         var col=teacherColor(s.teacher_id);
         // 시각은 왼쪽 시간축과 블록 위치로 이미 드러난다. 칸 안에 또 적으면
         // 좁은 블록에서 정작 필요한 학생 이름을 밀어낸다. 마우스를 올리면 보이게만 둔다.
-        var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+who;
+        // 선생님 이름은 화면에서 뺐으므로 여기(툴팁)에는 반드시 남긴다.
+        var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ');
         return '<div class="cal-ev" title="'+esc(tip)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'"><b style="color:'+col+'">'+esc(s.subject||'')+'</b>'+(who?who:'')+(room?'<br>'+room:'')+'</div>';
       }).join('');
       cols+='<div class="cal-col">'+head+'<div class="cal-body" data-date="'+key+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
@@ -5404,7 +5407,9 @@
       var day=new Date(gs); day.setDate(day.getDate()+i); var key=ymd(day);
       var oth=(day.getMonth()!==mo)?' oth':'', td=(key===todayKey)?' today':'';
       var evs=(byDay[key]||[]);
-      var chips=evs.slice(0,3).map(function(s){ var col=teacherColor(s.teacher_id); return '<div class="cal-chip" style="border-left-color:'+col+';background:'+col+'1f">'+hm(s.starts_at)+' '+esc(s.subject||'')+(s.teacher_name?(' '+esc(s.teacher_name)):'')+'</div>'; }).join('');
+      // 월 뷰도 같은 규칙 — 선생님은 색, 글씨는 학생 이름만. (예전엔 과목+선생님이라
+      // 구글에서 온 일정은 과목이 비어 있어 선생님 이름만 덩그러니 남았다.)
+      var chips=evs.slice(0,3).map(function(s){ var col=teacherColor(s.teacher_id); return '<div class="cal-chip" title="'+esc([s.teacher_name,s.student_name].filter(Boolean).join(' · '))+'" style="border-left-color:'+col+';background:'+col+'1f">'+hm(s.starts_at)+' '+esc(s.student_name||s.subject||'')+'</div>'; }).join('');
       var more=evs.length>3?('<div class="cal-more">+'+(evs.length-3)+' 더</div>'):'';
       html+='<div class="cal-mcell'+oth+td+'" data-date="'+key+'"><div class="cal-mdate">'+day.getDate()+'</div>'+chips+more+'</div>';
     }
