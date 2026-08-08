@@ -3047,6 +3047,36 @@
     </form>
   </div>
 </div>
+<!-- 수업 횟수 손보기. 자동 차감(스케줄 기준)은 그대로 두고 예외만 여기서 보정한다. -->
+<div class="wa-overlay" id="waAdj" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waAdjClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">수업 횟수 조정</div>
+    <div class="wa-sub" id="waAdjWho"></div>
+    <form id="waAdjForm" autocomplete="off">
+      <label>늘릴까요 줄일까요?
+        <select id="waAdjSign">
+          <option value="1">＋ 늘리기</option>
+          <option value="-1">－ 줄이기</option>
+        </select>
+      </label>
+      <label>몇 회<input type="number" id="waAdjQty" min="1" max="100" value="1" required></label>
+      <label>날짜<input type="date" id="waAdjDate" required></label>
+      <label>사유 <span class="wa-hint">나중에 왜 이렇게 됐는지 알아보려면 적어두세요</span>
+        <input type="text" id="waAdjReason" placeholder="예: 선생님 사정으로 수업 취소" list="waAdjReasons">
+      </label>
+      <datalist id="waAdjReasons">
+        <option value="선생님 사정으로 수업 취소"></option>
+        <option value="학생 사정 (규정상 차감 안 함)"></option>
+        <option value="서비스 수업 제공"></option>
+        <option value="지난 기록 맞추기"></option>
+        <option value="입력 실수 정정"></option>
+      </datalist>
+      <p class="wa-err" id="waAdjErr"></p>
+      <button class="btn btn-primary" type="submit">저장</button>
+    </form>
+  </div>
+</div>
 <!-- 필수 정보 입력 — 이름·이메일·휴대폰이 하나라도 없으면 사이트를 못 쓰게 막는다.
      카카오 로그인은 이름만 주고 이메일·번호를 안 주는 경우가 있어서,
      계정이 만들어진 뒤에 여기서 받아낸다. 닫기 버튼이 없다(일부러). -->
@@ -3431,10 +3461,20 @@
 
     <div class="dash-pane" data-dpane="att">
       <div class="dash-list-head" style="margin-top:6px">🎫 학생별 남은 수업 횟수 <button class="btn btn-ghost" id="attReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
-      <div class="dash-note" style="margin-top:0"><b>수업 스케줄을 잡으면</b> 남은 횟수가 1회 차감됩니다. 스케줄을 지우면 다시 1회 돌아옵니다. 횟수권은 수납 탭에서 판매(충전)합니다.<br>구글 캘린더에서 넘어온 수업과 <b>승인 전 예약 요청</b>은 차감하지 않습니다. 아래 <b>출석 기록</b>은 출결 확인용이라 남은 횟수와 무관합니다.</div>
+      <div class="dash-note" style="margin-top:0">
+        남은 횟수 = <b>구매</b> ＋ <b>조정</b> － <b>잡힌 수업</b><br>
+        <b>수업 스케줄을 잡으면</b> 1회 차감되고, 스케줄을 지우면 다시 1회 돌아옵니다. 횟수권은 수납 탭에서 판매(충전)합니다.
+        구글 캘린더에서 넘어온 수업과 <b>승인 전 예약 요청</b>은 차감하지 않습니다.<br>
+        규칙에서 벗어나는 경우(선생님 사정 취소, 서비스 수업 등)는 표의 <b>＋ －</b> 로 날짜·사유를 적어 손으로 맞춰주세요.
+        <b>출석 기록</b>은 출결 확인용이라 남은 횟수와 무관합니다.
+      </div>
       <div id="attDue" class="dash-note" style="margin-top:8px;display:none"></div>
       <div style="margin:10px 0 2px"><input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
+      <div class="dash-list-head">✏️ 횟수 조정 내역 <span id="adjCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="dash-note" style="margin-top:0">표에서 <b>＋</b>／<b>−</b> 를 누르면 날짜와 사유를 적어 넣을 수 있습니다. 잘못 넣었으면 여기서 지우세요(고치기는 없습니다 — 지우고 다시 넣어야 이력이 정확합니다).</div>
+      <div class="wa-table-wrap"><table class="wa-table" id="adjTable"></table></div>
+
       <div class="dash-list-head">최근 출석 내역</div>
       <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
     </div>
@@ -5744,14 +5784,29 @@
     }
     // 2026-08-08 원장 지시로 차감 기준이 '출석'에서 '스케줄'로 바뀌었다.
     // 서버 sessions_left() 와 같은 식으로 세야 화면과 알림이 어긋나지 않는다.
-    var scheds=[];
-    if(sb){ var r4=await sb.from('schedules').select('student_id,status,source'); if(!r4.error&&r4.data) scheds=r4.data; }
-    var purchased={}, attended={}, used={};
+    var scheds=[], adjs=[];
+    if(sb){
+      var r4=await sb.from('schedules').select('student_id,status,source'); if(!r4.error&&r4.data) scheds=r4.data;
+      // 손으로 넣은 보정. session_adjust.sql 을 아직 안 돌렸으면 표가 없어 오류가 나는데,
+      // 그때도 나머지 화면은 그대로 돌아가야 한다(null 로 두고 안내만 띄운다).
+      var r5=await sb.from('session_adjustments').select('id,student_id,student_name,delta,happened_on,reason,created_at').order('happened_on',{ascending:false}).order('id',{ascending:false});
+      adjs=(!r5.error&&r5.data)?r5.data:null;
+    }
+    var purchased={}, attended={}, used={}, adjSum={};
     pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
     atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
     scheds.forEach(function(s){ if(countsAsUsed(s)) used[s.student_id]=(used[s.student_id]||0)+1; });
+    (adjs||[]).forEach(function(a){ adjSum[a.student_id]=(adjSum[a.student_id]||0)+(a.delta||0); });
     window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAttU=used; window.__wtAtts=atts;
+    window.__wtAdjs=adjs; window.__wtAdjSum=adjSum;
     drawAtt();
+  }
+  // 남은 횟수 — 서버 sessions_left() 와 같은 식이어야 화면과 알림이 어긋나지 않는다.
+  function remainOf(id){
+    var buy=(window.__wtAttP||{})[id]||0;
+    var adj=(window.__wtAdjSum||{})[id]||0;
+    var use=(window.__wtAttU||{})[id]||0;
+    return buy + adj - use;
   }
   // 횟수를 쓰는 수업인가.
   //  · 회원으로 등록된 학생만(구글에서 이름만 넘어온 수업은 셀 수 없다)
@@ -5769,7 +5824,7 @@
     if(!$('attDue')) return;
     var purchased=window.__wtAttP||{}, used=window.__wtAttU||{}, notif=window.__wtNotify;
     var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'; });
-    var due=students.map(function(s){ return { s:s, rem:(purchased[s.id]||0)-(used[s.id]||0) }; })
+    var due=students.map(function(s){ return { s:s, rem:remainOf(s.id) }; })
                     .filter(function(x){ return x.rem<=1; })
                     .sort(function(a,b){ return a.rem-b.rem; });
     if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
@@ -5815,12 +5870,20 @@
     if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">등록된 학생이 없습니다.</td></tr>'; }
     else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; }
     else {
-      // '잡힌 수업'이 차감의 근거고, '출석'은 실제로 왔는지만 보는 칸이다(차감과 무관).
-      var h='<tr><th>학생</th><th>구매</th><th>잡힌 수업</th><th>남은 횟수</th><th>출석 기록</th><th>출석 남기기</th></tr>';
-      fst.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0, at=attended[s.id]||0, rem=pu-us;
-        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+us+'회</td><td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td><td>'+at+'회</td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'">출석</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소</button></td></tr>'; });
+      // '잡힌 수업'이 차감의 근거고, '조정'은 손으로 보정한 합, '출석'은 실제로 왔는지만 본다.
+      var adjSum=window.__wtAdjSum||{};
+      var h='<tr><th>학생</th><th>구매</th><th>조정</th><th>잡힌 수업</th><th>남은 횟수</th><th>횟수 조정</th><th>출석 기록</th><th>출석 남기기</th></tr>';
+      fst.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0, at=attended[s.id]||0,
+                                  aj=adjSum[s.id]||0, rem=remainOf(s.id);
+        var ajTxt = aj===0 ? '<span style="color:var(--muted)">-</span>'
+                  : '<b style="color:'+(aj>0?'#0f7a52':'#c0342b')+'">'+(aj>0?'+':'')+aj+'회</b>';
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+ajTxt+'</td><td>'+us+'회</td>'
+         + '<td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td>'
+         + '<td style="white-space:nowrap"><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjplus="'+esc(s.id)+'">＋</button> <button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjminus="'+esc(s.id)+'">－</button></td>'
+         + '<td>'+at+'회</td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'">출석</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소</button></td></tr>'; });
       $('attTable').innerHTML=h;
     }
+    drawAdjTable();
     if($('attHistTable')){
       var mm=isOps();
       var fatts=q?atts.filter(function(a){return (a.student_name||'').toLowerCase().indexOf(q)>=0;}):atts;
@@ -5828,6 +5891,82 @@
       else { var hh='<tr><th>출석일</th><th>학생</th><th>등원</th><th>하원</th><th>경로</th>'+(mm?'<th>관리</th>':'')+'</tr>'; fatts.slice(0,60).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td><td>'+(a.checked_in_at?hm(a.checked_in_at):'-')+'</td><td>'+(a.checked_out_at?hm(a.checked_out_at):'-')+'</td><td style="color:var(--muted);font-size:12px">'+(a.source==='kiosk'?'아이패드(옛 등원기)':(a.source==='noshow'?'노쇼':'수기'))+'</td>'+(mm?'<td><a class="wa-link del" data-attdel="'+esc(a.id)+'">삭제</a></td>':'')+'</tr>'; }); $('attHistTable').innerHTML=hh; }
     }
   }
+  // 횟수 조정 내역
+  function drawAdjTable(){
+    if(!$('adjTable')) return;
+    var adjs=window.__wtAdjs;
+    if(adjs===null || adjs===undefined){
+      $('adjTable').innerHTML='<tr><td class="wa-empty" style="color:#c0342b">횟수 조정 장부가 아직 없습니다 — session_adjust.sql 을 먼저 실행하세요.</td></tr>';
+      if($('adjCount')) $('adjCount').textContent='';
+      return;
+    }
+    var q=(($('attSearch')&&$('attSearch').value)||'').trim().toLowerCase();
+    var rows=q?adjs.filter(function(a){ return String(a.student_name||'').toLowerCase().indexOf(q)>=0; }):adjs;
+    if($('adjCount')) $('adjCount').textContent='('+rows.length+'건)';
+    if(!rows.length){ $('adjTable').innerHTML='<tr><td class="wa-empty">조정한 내역이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>날짜</th><th>학생</th><th>증감</th><th>사유</th><th>관리</th></tr>';
+    rows.slice(0,80).forEach(function(a){
+      var d=a.delta||0;
+      h+='<tr><td style="white-space:nowrap">'+esc(a.happened_on||'')+'</td><td>'+esc(a.student_name||'-')+'</td>'
+       + '<td><b style="color:'+(d>0?'#0f7a52':'#c0342b')+'">'+(d>0?'+':'')+d+'회</b></td>'
+       + '<td>'+esc(a.reason||'')+'</td>'
+       + '<td><a class="wa-link del" data-adjdel="'+esc(String(a.id))+'">삭제</a></td></tr>';
+    });
+    $('adjTable').innerHTML=h;
+  }
+  // ＋ / － 버튼 → 조정 창
+  var _adjStu=null;
+  function openAdj(sid, sign){
+    var st=_members.filter(function(m){ return m.id===sid; })[0]; if(!st) return;
+    _adjStu=st;
+    $('waAdjWho').textContent=st.name+' · 현재 남은 횟수 '+remainOf(sid)+'회';
+    $('waAdjSign').value=String(sign);
+    $('waAdjQty').value='1';
+    $('waAdjDate').value=ymd(new Date());
+    $('waAdjReason').value='';
+    $('waAdjErr').textContent='';
+    $('waAdj').classList.add('on');
+    setTimeout(function(){ if($('waAdjQty')) $('waAdjQty').focus(); }, 60);
+  }
+  function closeAdj(){ if($('waAdj')) $('waAdj').classList.remove('on'); _adjStu=null; }
+  if($('waAdjClose')) $('waAdjClose').onclick=closeAdj;
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && $('waAdj') && $('waAdj').classList.contains('on')){ e.stopImmediatePropagation(); closeAdj(); }
+  });
+  if($('waAdjForm')) $('waAdjForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var err=$('waAdjErr'); err.textContent='';
+    if(!_adjStu||!sb) return;
+    var qty=parseInt($('waAdjQty').value,10);
+    if(!(qty>0)){ err.textContent='몇 회인지 1 이상으로 적어주세요.'; return; }
+    if(qty>100){ err.textContent='한 번에 100회까지만 조정할 수 있어요.'; return; }
+    var day=$('waAdjDate').value;
+    if(!day){ err.textContent='날짜를 골라주세요.'; return; }
+    var delta=qty*parseInt($('waAdjSign').value,10);
+    var r=await sb.from('session_adjustments').insert({
+      student_id:_adjStu.id, student_name:_adjStu.name, delta:delta,
+      happened_on:day, reason:($('waAdjReason').value.trim()||null),
+      created_by:(profile?profile.id:null)
+    });
+    if(r.error){ err.textContent='저장 실패: '+r.error.message; return; }
+    closeAdj();
+    await loadAttendance();
+  });
+  if($('attTable')) $('attTable').addEventListener('click', function(e){
+    var p=(e.target&&e.target.closest)?e.target.closest('button[data-adjplus]'):null;
+    var m=(e.target&&e.target.closest)?e.target.closest('button[data-adjminus]'):null;
+    if(p) openAdj(p.getAttribute('data-adjplus'), 1);
+    else if(m) openAdj(m.getAttribute('data-adjminus'), -1);
+  });
+  if($('adjTable')) $('adjTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('a[data-adjdel]'):null; if(!a) return;
+    e.preventDefault();
+    if(!sb || !confirm('이 조정 기록을 지울까요?\n\n남은 횟수가 그만큼 되돌아갑니다.')) return;
+    var r=await sb.from('session_adjustments').delete().eq('id',a.getAttribute('data-adjdel'));
+    if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await loadAttendance();
+  });
+
   if($('attReload')) $('attReload').onclick=loadAttendance;
   if($('attSearch')) $('attSearch').addEventListener('input', drawAtt);
   if($('attHistTable')) $('attHistTable').addEventListener('click', async function(e){
@@ -6496,7 +6635,8 @@
     }
     if($('myPass')){
       // 차감 기준은 '수업이 잡혔는지'다(2026-08-08). 출석은 참고로만 보여준다.
-      var pu=0, atts=[], scs=[];
+      // 선생님이 손으로 보정한 분(session_adjustments)도 더해야 관리 화면과 숫자가 같아진다.
+      var pu=0, atts=[], scs=[], adj=0;
       if(sb){
         var rp=await sb.from('payments').select('sessions').eq('student_id',profile.id);
         if(!rp.error&&rp.data) rp.data.forEach(function(x){ pu+=(x.sessions||0); });
@@ -6504,9 +6644,11 @@
         if(!ra.error&&ra.data) atts=ra.data;
         var rs=await sb.from('schedules').select('status,source,student_id').eq('student_id',profile.id);
         if(!rs.error&&rs.data) scs=rs.data.filter(countsAsUsed);
+        var rj=await sb.from('session_adjustments').select('delta').eq('student_id',profile.id);
+        if(!rj.error&&rj.data) rj.data.forEach(function(x){ adj+=(x.delta||0); });
       }
-      var rem=pu-scs.length;
-      $('myPass').innerHTML='구매 <b>'+pu+'회</b> · 잡힌 수업 <b>'+scs.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>'
+      var rem=pu+adj-scs.length;
+      $('myPass').innerHTML='구매 <b>'+pu+'회</b>'+(adj?' · 조정 <b>'+(adj>0?'+':'')+adj+'회</b>':'')+' · 잡힌 수업 <b>'+scs.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>'
         + '<div style="margin-top:4px;font-size:12px;color:var(--muted)">수업 일정이 잡히면 1회 차감됩니다. (출석 기록 '+atts.length+'회)</div>';
       if($('myAttTable')){ if(!atts.length){ $('myAttTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; } else { var ah='<tr><th>출석일</th></tr>'; atts.slice(0,30).forEach(function(a){ ah+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td></tr>'; }); $('myAttTable').innerHTML=ah; } }
     }
