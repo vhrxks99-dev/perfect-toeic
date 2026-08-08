@@ -3242,7 +3242,10 @@
 /* 가로로 밀어도 시간축은 왼쪽에 붙여 둔다. 안 그러면 몇 시 줄인지 알 수 없다. */
 .cal-axis{flex:0 0 42px;background:var(--surface-2);position:sticky;left:0;z-index:5;border-right:1px solid var(--line-strong)}
 .cal-head-sp{height:60px;border-bottom:1px solid var(--line)}
-.cal-hr{height:44px;font-size:10px;color:var(--muted);text-align:right;padding-right:5px;box-sizing:border-box}
+.cal-hrs{position:relative}
+/* 글씨 가운데가 그 시각 줄에 오도록 절반 올린다. 맨 위 시각만 반이 잘리므로 그대로 둔다. */
+.cal-hr{position:absolute;right:5px;transform:translateY(-50%);font-size:10.5px;font-weight:700;line-height:1;color:var(--muted);white-space:nowrap}
+.cal-hr.first{transform:translateY(0)}
 /* 선의 굵기로 층을 나눈다 — 하루 경계는 굵고 진하게, 강의장 경계는 얇게.
    둘이 같은 선이면 어디서 하루가 끝나는지 안 보인다(원장 지적 2026-08-08). */
 .cal-col{flex:1 1 0;min-width:0;border-left:3px solid var(--line-strong)}
@@ -5228,9 +5231,14 @@
     window.__wtCalRows=rows;   // 달력 블록을 눌러 수정할 때 여기서 찾는다
     var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
     var bodyH=(DAY_END-DAY_START)*HOUR_H;
-    var axis='<div class="cal-axis"><div class="cal-head-sp"></div>';
-    for(var hh=DAY_START; hh<DAY_END; hh++){ axis+='<div class="cal-hr">'+hh+':00</div>'; }
-    axis+='</div>';
+    // 시각 글씨를 그 시각 격자선 높이에 정확히 맞춘다.
+    // 예전에는 44px 칸을 쌓아 글씨가 줄보다 6px 아래에 놓였고, 그래서 몇 시 줄인지 헷갈렸다
+    // (원장 지적 2026-08-08). 이제 줄과 같은 좌표에 놓고 세로 가운데를 맞춘다.
+    var axis='<div class="cal-axis"><div class="cal-head-sp"></div><div class="cal-hrs" style="height:'+bodyH+'px">';
+    for(var hh=DAY_START; hh<DAY_END; hh++){
+      axis+='<div class="cal-hr'+(hh===DAY_START?' first':'')+'" style="top:'+((hh-DAY_START)*HOUR_H)+'px">'+hh+':00</div>';
+    }
+    axis+='</div></div>';
     var todayKey=ymd(new Date()), cols='';
     // 날짜 밑에 강의장 칸을 만들고 그 칸에 수업을 넣는다(원장 지시 2026-08-08).
     // 마지막 '미배정' 칸이 없으면 비대면 수업과 아직 방을 안 정한 수업이 달력에서 사라진다.
