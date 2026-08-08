@@ -3123,6 +3123,19 @@
    가로 스크롤이 생겨 수정·탈퇴 버튼이 화면 밖으로 밀린다. */
 #waAdmin .wa-card{max-width:1680px;width:100%;max-height:none;min-height:100vh;border-radius:0;box-shadow:none;padding:24px clamp(16px,3vw,40px) 64px}
 #waAdmin .wa-table th,#waAdmin .wa-table td{padding-left:10px;padding-right:10px}
+/* 회차 탭 — 학생 한 명이 카드 하나. 펼치면 회차별 수업이 나온다. */
+.tm-card{border:1.5px solid var(--line-strong);border-radius:12px;padding:10px 14px;margin:8px 0;background:var(--surface)}
+.tm-card>summary{cursor:pointer;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tm-card>summary::-webkit-details-marker{display:none}
+.tm-card>summary::before{content:'▸';color:var(--muted);font-weight:800}
+.tm-card[open]>summary::before{content:'▾'}
+.tm-now{font-weight:800;color:var(--accent);font-size:15px}
+.tm-tag{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;border:1px solid}
+.tm-ok{color:#0f7a52;border-color:#9fd3bd;background:#eefaf5}
+.tm-warn{color:#8a5a00;border-color:#e5c9a8;background:#fdf6ec}
+.tm-bad{color:#c0342b;border-color:#e5b4b0;background:#fdf0ef}
+.tm-pass{margin:10px 0 4px;font-size:13px;color:var(--ink-soft);border-top:1px dashed var(--line);padding-top:8px}
+.tm-line{font-size:12.5px;line-height:1.9;color:var(--ink);padding-left:6px}
 #waAdmin .wa-table-wrap{max-height:none}
 #waAdmin .wa-x{top:18px;right:22px;font-size:30px;z-index:5}
 #waAdmin .wa-head{font-size:23px}
@@ -3272,7 +3285,8 @@
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
       <button class="dash-tab" data-dtab="pay">수납</button>
       <button class="dash-tab" data-dtab="payroll">정산</button>
-      <button class="dash-tab" data-dtab="att">출석</button>
+      <button class="dash-tab" data-dtab="att">수업 횟수</button>
+      <button class="dash-tab" data-dtab="term">회차</button>
       <button class="dash-tab" data-dtab="work">출퇴근</button>
       <button class="dash-tab" data-dtab="oplog">운영일지</button>
       <button class="dash-tab" data-dtab="diag">진단결과</button>
@@ -3437,6 +3451,17 @@
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
       <div class="dash-list-head">최근 출석 내역</div>
       <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
+    </div>
+
+    <div class="dash-pane" data-dpane="term">
+      <div class="dash-list-head" style="margin-top:6px">🔢 수강권 회차 <button class="btn btn-ghost" id="tmReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="dash-note" style="margin-top:0">
+        <b>횟수권을 결제할 때마다 1회차부터 다시 셉니다.</b> 8회권을 사면 1~8회차, 또 사면 다시 1회차예요.
+        회차는 <b>잡힌 수업</b>을 시간순으로 수강권에 채워 매깁니다(구글 캘린더발·승인 전 예약 제외).<br>
+        과외규칙 기준 &mdash; 절반을 넘기면 <b>환불 불가</b>, 마지막 직전 회차에 <b>연장·종료 여부</b>를 확인합니다.
+      </div>
+      <div style="margin:10px 0 2px"><input id="tmSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
+      <div id="tmBox"></div>
     </div>
 
     <div class="dash-pane" data-dpane="work">
@@ -4509,6 +4534,7 @@
     }
     await loadRoomAssign();
     await loadAttendance();
+    await loadTerms();
     await loadWork();
     if(isOps()) await loadOplog();
     await loadDiag();
@@ -5855,6 +5881,84 @@
       await loadAttendance();
     }
   });
+
+  // ---- 회차 (수강권 단위) ----
+  // 원장 결정 2026-08-08: 횟수권을 결제할 때마다 1회차부터 다시 센다.
+  // 회차는 따로 저장하지 않고 그때그때 계산한다 — 수업을 지우거나 옮겨도 저절로 맞고,
+  // 회차 번호를 DB에 박아두면 중간 수업 하나가 사라질 때 전부 어긋나기 때문이다.
+  var _tmPays=[], _tmScheds=[], _tmAtts=[];
+  async function loadTerms(){
+    if(!$('tmBox')) return;
+    if(sb){
+      var r1=await sb.from('payments').select('id,student_id,sessions,paid_at,created_at,amount');
+      _tmPays=(!r1.error&&r1.data)?r1.data:[];
+      var r2=await sb.from('schedules').select('id,student_id,starts_at,teacher_name,status,source');
+      _tmScheds=(!r2.error&&r2.data)?r2.data:[];
+      var r3=await sb.from('attendance').select('student_id,attended_on,source');
+      _tmAtts=(!r3.error&&r3.data)?r3.data:[];
+    }
+    drawTerms();
+  }
+  // 한 학생의 수강권들에 수업을 시간순으로 채워 넣는다.
+  function termsOf(stuId){
+    var pays=_tmPays.filter(function(p){ return p.student_id===stuId && (p.sessions>0); })
+      .sort(function(a,b){ return String(a.paid_at||a.created_at||'').localeCompare(String(b.paid_at||b.created_at||'')); });
+    var lessons=_tmScheds.filter(function(s){ return s.student_id===stuId && countsAsUsed(s); })
+      .sort(function(a,b){ return String(a.starts_at).localeCompare(String(b.starts_at)); });
+    var att={}; _tmAtts.forEach(function(a){ if(a.student_id===stuId) att[a.attended_on]=a.source||'manual'; });
+    var i=0, passes=pays.map(function(p){
+      var take=lessons.slice(i, i+p.sessions); i+=take.length;
+      return { pay:p, total:p.sessions, lessons:take };
+    });
+    return { passes:passes, over:lessons.slice(i), att:att, hasPay:pays.length>0 };
+  }
+  function drawTerms(){
+    if(!$('tmBox')) return;
+    var q=(($('tmSearch')&&$('tmSearch').value)||'').trim().toLowerCase();
+    var students=_members.filter(function(m){ return m.role==='student'; });
+    var fst=q?students.filter(function(s){ return (s.name||'').toLowerCase().indexOf(q)>=0; }):students;
+    if(!fst.length){ $('tmBox').innerHTML='<div class="wa-empty" style="padding:18px 0">'+(students.length?'검색 결과가 없습니다.':'등록된 학생이 없습니다.')+'</div>'; return; }
+    var html='';
+    fst.forEach(function(stu){
+      var t=termsOf(stu.id);
+      if(!t.hasPay && !t.over.length) return;                 // 횟수권도 수업도 없으면 볼 게 없다
+      var cur=null;
+      for(var k=0;k<t.passes.length;k++){ if(t.passes[k].lessons.length < t.passes[k].total){ cur=t.passes[k]; break; } }
+      if(!cur && t.passes.length) cur=t.passes[t.passes.length-1];
+      var done=cur?cur.lessons.length:0, total=cur?cur.total:0;
+      var left=total-done;
+      var half=total?Math.ceil(total/2):0;
+      var badges='';
+      if(total){
+        badges += done>=half
+          ? '<span class="tm-tag tm-warn">환불 불가 구간 ('+half+'회차 지남)</span>'
+          : '<span class="tm-tag tm-ok">환불 가능 (' + (half-done) + '회 남음)</span>';
+        if(left<=1) badges += '<span class="tm-tag tm-warn">연장·종료 확인</span>';
+      }
+      if(t.over.length) badges += '<span class="tm-tag tm-bad">횟수권 초과 '+t.over.length+'회</span>';
+      var rows='';
+      t.passes.forEach(function(p, pi){
+        var when=String(p.pay.paid_at||p.pay.created_at||'').slice(0,10);
+        rows += '<div class="tm-pass"><b>'+(pi+1)+'번째 수강권</b> · '+p.total+'회권'+(when?' · 결제 '+esc(when):'')
+              + ' <span style="color:var(--muted)">('+p.lessons.length+'/'+p.total+'회차 진행)</span></div>';
+        if(!p.lessons.length){ rows += '<div class="tm-line" style="color:var(--muted)">아직 잡힌 수업이 없습니다.</div>'; }
+        p.lessons.forEach(function(s, li){
+          var day=ymd(new Date(s.starts_at));
+          var mark=t.att[day] ? (t.att[day]==='noshow'?'<span style="color:#c0342b">노쇼</span>':'<span style="color:#0f7a52">출석</span>') : '<span style="color:var(--muted)">-</span>';
+          rows += '<div class="tm-line"><b>'+(li+1)+'회차</b> '+fmtDT(s.starts_at)+' · '+esc(s.teacher_name||'선생님 미지정')+' · '+mark+'</div>';
+        });
+      });
+      t.over.forEach(function(s, oi){
+        rows += '<div class="tm-line" style="color:#c0342b"><b>초과 '+(oi+1)+'</b> '+fmtDT(s.starts_at)+' · '+esc(s.teacher_name||'-')+' · 결제된 횟수권을 넘긴 수업</div>';
+      });
+      html += '<details class="tm-card"><summary><b>'+esc(stu.name||'-')+'</b> '
+            + (total ? '<span class="tm-now">'+done+' / '+total+'회차</span> <span style="color:var(--muted)">남은 '+left+'회</span>' : '<span style="color:var(--muted)">횟수권 없음</span>')
+            + ' '+badges+'</summary>'+rows+'</details>';
+    });
+    $('tmBox').innerHTML = html || '<div class="wa-empty" style="padding:18px 0">횟수권을 등록한 학생이 없습니다. 수납 탭에서 횟수권을 먼저 등록해주세요.</div>';
+  }
+  if($('tmReload')) $('tmReload').onclick=loadTerms;
+  if($('tmSearch')) $('tmSearch').addEventListener('input', drawTerms);
 
   // ---- 출퇴근 (직원 본인 기록, 원장·매니저 전체 조회) ----
   function hmT(iso){ if(!iso) return '-'; var d=new Date(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
