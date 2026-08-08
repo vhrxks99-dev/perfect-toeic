@@ -3115,7 +3115,10 @@
 .wa-al-undo ul{margin-top:4px}
 .wa-dash{max-width:920px}
 /* 관리 페이지: 팝업이 아닌 전체 화면 페이지로 */
-#waAdmin.wa-overlay{padding:0;background:var(--paper);align-items:flex-start;justify-content:center;overflow:auto}
+/* 관리 페이지는 다른 모달보다 '아래'에 깔려야 한다.
+   .wa-overlay 가 전부 z-index:200 이라, 관리 페이지가 문서에서 더 뒤에 있다는 이유만으로
+   수업 수정 창 같은 자식 모달을 덮어버렸다(창은 열리는데 화면에는 안 보임 — 2026-08-08 원장 지적). */
+#waAdmin.wa-overlay{padding:0;background:var(--paper);align-items:flex-start;justify-content:center;overflow:auto;z-index:150}
 /* 관리 페이지는 표가 많아 화면을 넓게 쓴다. 1180px로 묶어두면 회원 표에
    가로 스크롤이 생겨 수정·탈퇴 버튼이 화면 밖으로 밀린다. */
 #waAdmin .wa-card{max-width:1680px;width:100%;max-height:none;min-height:100vh;border-radius:0;box-shadow:none;padding:24px clamp(16px,3vw,40px) 64px}
