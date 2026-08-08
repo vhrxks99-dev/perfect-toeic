@@ -3376,49 +3376,6 @@
         <p class="wa-err" id="scErr"></p>
         <button class="btn btn-primary" id="scAdd" type="button">＋ 스케줄 추가</button>
       </div>
-      <div class="cal-head">
-        <div class="cal-modes">
-          <button class="cal-mode" id="calDay" type="button">일</button>
-          <button class="cal-mode on" id="calWeekBtn" type="button">주</button>
-          <button class="cal-mode" id="calMonth" type="button">월</button>
-        </div>
-        <button class="btn btn-ghost" id="calPrev" type="button">←</button>
-        <div class="cal-title" id="calTitle"></div>
-        <button class="btn btn-ghost" id="calNext" type="button">→</button>
-        <button class="btn btn-ghost" id="calToday" type="button">오늘</button>
-      </div>
-      <div class="cal-search">
-        <input type="text" id="scSearch" placeholder="🔍 학생 이름 검색" autocomplete="off">
-        <button class="btn btn-ghost" type="button" id="scSearchClear">지우기</button>
-        <span class="hit" id="scSearchInfo"></span>
-      </div>
-      <div class="cal-legend" id="calLegend"></div>
-      <div class="cal-scroll" id="calScroll"><div class="cal-grid" id="calGrid"></div></div>
-      <div class="cal-month" id="calMonthGrid" style="display:none"></div>
-      <div class="dash-list-head">🏫 강의장 배정 <span style="font-weight:700;font-size:12px;color:var(--muted)">구글 캘린더에서 온 수업은 강의장이 비어 있습니다</span></div>
-      <div class="dash-form" style="margin-top:6px">
-        <div class="dash-row">
-          <label>시작일<input type="date" id="asFrom"></label>
-          <label>종료일<input type="date" id="asTo"></label>
-          <label style="flex:2">&nbsp;
-            <div class="wa-admin-actions" style="margin:0">
-              <button class="btn btn-ghost" type="button" id="asReload">🔄 불러오기</button>
-              <button class="btn btn-primary" type="button" id="asAuto">✨ 규칙대로 자동 배정</button>
-            </div>
-          </label>
-        </div>
-        <div class="dash-note" style="margin-top:0">
-          <b>배정 규칙</b> &mdash; ① 비대면 학생은 강의장을 잡지 않습니다 &nbsp;·&nbsp;
-          ② <b>주차가 필요한 학생은 미플(옆건물)</b> &nbsp;·&nbsp;
-          ③ 학원 강의장이 모자라면 <b>‘겹치면 미플’로 표시된 선생님</b>이 먼저 미플로 &nbsp;·&nbsp;
-          ④ 같은 선생님이 연달아 수업하면 <b>같은 건물</b>로 몰아 이동을 줄입니다.<br>
-          자동 배정은 <b>비어 있는 수업만</b> 채웁니다. 이미 정해 둔 강의장은 건드리지 않아요.
-        </div>
-        <p class="wa-err" id="asErr"></p>
-      </div>
-      <div id="asWarn" class="dash-note" style="display:none"></div>
-      <div class="wa-table-wrap"><table class="wa-table" id="asTable"></table></div>
-
       <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
       <div class="dash-note" style="margin-top:0">여기 넣어둔 날짜·시간에는 <b>학생이 수업 예약을 걸 수 없습니다.</b> 선생님을 <b>학원 전체 휴무</b>로 두면 모든 선생님이 한 번에 쉽니다.<br>휴무는 수업이 아니라서 스케줄표·강의장 배정·정산에 섞이지 않습니다.</div>
       <div class="dash-form" style="margin-top:8px">
@@ -3444,9 +3401,25 @@
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
 
-      <div class="dash-list-head">다가오는 수업 <span id="scCount" style="color:var(--muted);font-weight:700"></span></div>
-      <div id="scRoomNote" class="dash-note" style="margin-top:0;display:none"></div>
-      <div class="wa-table-wrap"><table class="wa-table" id="scTable"></table></div>
+      <div class="cal-head">
+        <div class="cal-modes">
+          <button class="cal-mode" id="calDay" type="button">일</button>
+          <button class="cal-mode on" id="calWeekBtn" type="button">주</button>
+          <button class="cal-mode" id="calMonth" type="button">월</button>
+        </div>
+        <button class="btn btn-ghost" id="calPrev" type="button">←</button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="btn btn-ghost" id="calNext" type="button">→</button>
+        <button class="btn btn-ghost" id="calToday" type="button">오늘</button>
+      </div>
+      <div class="cal-search">
+        <input type="text" id="scSearch" placeholder="🔍 학생 이름 검색" autocomplete="off">
+        <button class="btn btn-ghost" type="button" id="scSearchClear">지우기</button>
+        <span class="hit" id="scSearchInfo"></span>
+      </div>
+      <div class="cal-legend" id="calLegend"></div>
+      <div class="cal-scroll" id="calScroll"><div class="cal-grid" id="calGrid"></div></div>
+      <div class="cal-month" id="calMonthGrid" style="display:none"></div>
     </div>
 
 
