@@ -3267,7 +3267,6 @@
     <div class="dash-tabs">
       <button class="dash-tab on" data-dtab="members">회원</button>
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
-      <button class="dash-tab" data-dtab="rooms">강의장</button>
       <button class="dash-tab" data-dtab="pay">수납</button>
       <button class="dash-tab" data-dtab="payroll">정산</button>
       <button class="dash-tab" data-dtab="att">출석</button>
@@ -3367,26 +3366,6 @@
       <div class="wa-table-wrap"><table class="wa-table" id="scTable"></table></div>
     </div>
 
-    <div class="dash-pane" data-dpane="rooms">
-      <div class="dash-form">
-        <div class="dash-list-head" style="margin-top:0">🔍 빈 강의장 확인</div>
-        <div class="dash-row">
-          <label>날짜<input type="date" id="rmDate"></label>
-          <label>시작<select id="rmStart" class="timesel"></select></label>
-          <label>종료<select id="rmEnd" class="timesel"></select></label>
-          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span><button class="btn btn-ghost" id="rmCheck" type="button">확인</button></label>
-        </div>
-        <div id="rmResult" class="dash-note">시간을 입력하고 확인을 누르면 비어 있는 강의장을 보여드려요.</div>
-      </div>
-      <div class="dash-form">
-        <div class="dash-row">
-          <label style="flex:2">강의장 이름<input type="text" id="rmName" placeholder="예: C강의장"></label>
-          <label>정원<input type="number" id="rmCap" value="4" min="1"></label>
-          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span><button class="btn btn-primary" id="rmAdd" type="button">＋ 추가</button></label>
-        </div>
-      </div>
-      <div class="wa-table-wrap"><table class="wa-table" id="rmTable"></table></div>
-    </div>
 
     <div class="dash-pane" data-dpane="pay">
       <div class="dash-form" id="pyAddForm">
@@ -4510,7 +4489,6 @@
     syncAddPrice(false);   // 처음 고른 학생에 맞춰 단가 안내를 띄운다(금액은 건드리지 않음)
     var now=new Date();
     if($('scDate')&&!$('scDate').value) $('scDate').value=ymd(now);
-    if($('rmDate')&&!$('rmDate').value) $('rmDate').value=ymd(now);
     if($('pyMonth')&&!$('pyMonth').value) $('pyMonth').value=ym(now);
     if($('pyPaid')&&!$('pyPaid').value) $('pyPaid').value=ymd(now);
     if($('pyFilter')&&!$('pyFilter').value) $('pyFilter').value=ym(now);
@@ -4589,10 +4567,11 @@
   if($('hwStudentSearch')) $('hwStudentSearch').oninput=function(){ if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
 
   // ---- 강의장 ----
+  // 강의장 탭은 없앴지만(2026-08-08 원장 지시) _rooms 자체는 달력 칸·스케줄 폼·배정에서
+  // 계속 쓰이므로 불러오기는 남긴다. 이름·정원 변경은 이제 DB에서 한다.
   async function loadRooms(){
     _rooms=[];
     if(sb){ var r=await sb.from('rooms').select('*').order('id'); if(!r.error&&r.data) _rooms=r.data; }
-    renderRooms();
   }
   // ================= 강의장 배정 =================
   // 규칙: 비대면=방 없음 / 주차 필요=미플 / 학원 부족하면 '양보' 강사가 미플 /
@@ -4806,65 +4785,6 @@
 
   function pickRoomStyle(line,bg,fg){ return 'font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;border:1px solid '+line+';background:'+bg+';color:'+fg; }
   function roomBuilding(id){ var r=(_rooms||[]).filter(function(x){return String(x.id)===String(id);})[0]; return (r&&r.building==='미플')?'미플':(r?'학원':''); }
-  function renderRooms(){
-    if(!$('rmTable')) return;
-    if(!_rooms.length){ $('rmTable').innerHTML='<tr><td class="wa-empty">등록된 강의장이 없습니다.</td></tr>'; return; }
-    var h='<tr><th>강의장</th><th>건물</th><th>정원</th><th>상태</th><th>관리</th></tr>';
-    _rooms.forEach(function(r){
-      var b=(r.building==='미플')?'미플':'학원';
-      var bs=(b==='미플')?pickRoomStyle('#e5c9a8','#fdf6ec','#8a5a12'):pickRoomStyle('#b9cbe8','#eef4fd','#1d4ed8');
-      var bcell='<td style="white-space:nowrap"><select data-rmbuild="'+r.id+'" style="'+bs+'">'
-        + '<option value="학원"'+(b==='학원'?' selected':'')+'>학원 본원</option>'
-        + '<option value="미플"'+(b==='미플'?' selected':'')+'>미플 (옆건물)</option></select></td>';
-      h+='<tr><td>'+esc(r.name)+'</td>'+bcell+'<td>'+(r.capacity||1)+'명</td><td>'+(r.active===false?'<span style="color:var(--muted)">비활성</span>':'사용중')+'</td><td style="white-space:nowrap"><a class="wa-link" data-rmedit="'+r.id+'">이름수정</a> &nbsp;<a class="wa-link" data-rmcap="'+r.id+'">정원수정</a> &nbsp;<a class="wa-link del" data-rmdel="'+r.id+'">삭제</a></td></tr>'; });
-    $('rmTable').innerHTML=h;
-  }
-  if($('rmAdd')) $('rmAdd').onclick=async function(){
-    var name=($('rmName').value||'').trim(); var cap=parseInt($('rmCap').value,10)||1;
-    if(!name){ alert('강의장 이름을 입력하세요.'); return; }
-    var r=await sb.from('rooms').insert({name:name,capacity:cap}); if(r.error){ alert('추가 실패: '+r.error.message); return; }
-    $('rmName').value=''; await loadRooms(); fillSelects();
-  };
-  if($('rmTable')) $('rmTable').addEventListener('change', async function(e){
-    var sel=e.target; if(!sel||!sel.getAttribute||!sel.getAttribute('data-rmbuild')) return;
-    if(!sb) return;
-    var id=sel.getAttribute('data-rmbuild'), v=sel.value;
-    var u=await sb.from('rooms').update({building:v}).eq('id',id);
-    if(u.error){ alert('건물 변경 실패: '+u.error.message); await loadRooms(); return; }
-    await loadRooms();
-    if(typeof loadRoomAssign==='function') await loadRoomAssign();
-  });
-  if($('rmTable')) $('rmTable').addEventListener('click', async function(e){
-    var t=(e.target&&e.target.closest)?e.target:null; if(!t||!t.closest) return;
-    var ed=t.closest('a[data-rmedit]'), dl=t.closest('a[data-rmdel]'), cp=t.closest('a[data-rmcap]');
-    if(cp){
-      var cid=cp.getAttribute('data-rmcap');
-      var curc=(_rooms.filter(function(x){return String(x.id)===String(cid);})[0]||{}).capacity||1;
-      var v=prompt('정원(몇 명까지 들어가는 방인지)을 숫자로 입력하세요', curc);
-      if(v===null) return;
-      var n=parseInt(v,10);
-      if(!(n>0)){ alert('1 이상의 숫자를 입력하세요.'); return; }
-      var uc=await sb.from('rooms').update({capacity:n}).eq('id',cid);
-      if(uc.error){ alert('정원 수정 실패: '+uc.error.message); return; }
-      await loadRooms(); fillSelects();
-      if(typeof loadRoomAssign==='function') await loadRoomAssign();
-      return;
-    }
-    if(ed){ var id=ed.getAttribute('data-rmedit'); var cur=(_rooms.filter(function(x){return String(x.id)===String(id);})[0]||{}).name||''; var nm=prompt('새 강의장 이름을 입력하세요', cur); if(nm===null) return; nm=nm.trim(); if(!nm) return; var u=await sb.from('rooms').update({name:nm}).eq('id',id); if(u.error){ alert('수정 실패: '+u.error.message); return; } await loadRooms(); fillSelects(); return; }
-    if(dl){ if(!confirm('이 강의장을 삭제할까요? (기존 스케줄은 강의장 미지정으로 남습니다)')) return; var r=await sb.from('rooms').delete().eq('id',dl.getAttribute('data-rmdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } await loadRooms(); fillSelects(); return; }
-  });
-  if($('rmCheck')) $('rmCheck').onclick=async function(){
-    var d=$('rmDate').value, s=$('rmStart').value, en=$('rmEnd').value;
-    if(!d||!s||!en){ $('rmResult').textContent='날짜·시작·종료 시간을 입력하세요.'; return; }
-    var startISO=slotISO(d,s), endISO=slotISO(d,en);
-    if(endISO<=startISO){ $('rmResult').textContent='종료가 시작보다 빨라요.'; return; }
-    var r=await sb.from('schedules').select('room_id').lt('starts_at',endISO).gt('ends_at',startISO);
-    var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null) busy[x.room_id]=true; });
-    var free=_rooms.filter(function(rm){ return rm.active!==false && !busy[rm.id]; });
-    var busyRooms=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
-    $('rmResult').innerHTML='<b>✅ 빈 강의장:</b> '+(free.length?free.map(function(x){return esc(roomLabel(x));}).join(', '):'없음')
-      +(busyRooms.length?'<br><span style="color:var(--muted)">사용중: '+busyRooms.map(function(x){return esc(roomLabel(x));}).join(', ')+'</span>':'');
-  };
 
   // ---- 스케줄 ----
   function roomName(id){ var x=_rooms.filter(function(r){return r.id===id;})[0]; return x?x.name:'-'; }
