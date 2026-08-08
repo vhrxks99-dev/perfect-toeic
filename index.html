@@ -5198,7 +5198,9 @@
   // ---- 주간 캘린더 (시간 격자) ----
   var DOW=['월','화','수','목','금','토','일'];
   var DAY_START=6, DAY_END=24, HOUR_H=44;
-  var calMode='week';
+  // 폰·작은 태블릿에서는 주 뷰가 7일 × 강의장 4칸이라 계속 옆으로 밀어야 한다.
+  // 그래서 처음에는 일 뷰로 연다(원장 지시 2026-08-08). '주'를 누르면 그대로 유지된다.
+  var calMode=(window.innerWidth<=820)?'day':'week';
   var calCur=new Date(); calCur.setHours(0,0,0,0);
   function startOfWeek(d){ var x=new Date(d); var day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
   async function fetchRange(start,end){ var rows=[]; if(sb){ var r=await sb.from('schedules').select('*').gte('starts_at',start.toISOString()).lt('starts_at',end.toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; } return rows; }
