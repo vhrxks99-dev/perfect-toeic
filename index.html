@@ -3234,7 +3234,9 @@
 .cal-head .btn{padding:7px 12px;font-size:13px}
 .cal-title{font-weight:800;font-size:15px;flex:1;min-width:120px;text-align:center;letter-spacing:-.01em}
 .cal-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin-bottom:12px}
-.cal-grid{display:flex;min-width:700px}
+/* width:max-content 가 없으면 이 상자의 폭이 화면 폭에 맞춰지고, 그러면 왼쪽 시간축의
+   sticky 가 그 폭까지만 따라오다 멈춘다(가로로 더 밀면 시간축이 사라졌다). */
+.cal-grid{display:flex;min-width:700px;width:max-content}
 /* 가로로 밀어도 시간축은 왼쪽에 붙여 둔다. 안 그러면 몇 시 줄인지 알 수 없다. */
 .cal-axis{flex:0 0 42px;background:var(--surface-2);position:sticky;left:0;z-index:5;border-right:1px solid var(--line-strong)}
 .cal-head-sp{height:60px;border-bottom:1px solid var(--line)}
