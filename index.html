@@ -3034,6 +3034,14 @@
     <button class="wa-x" id="waSeClose" aria-label="닫기">&times;</button>
     <div class="wa-head">수업 수정</div>
     <div class="wa-sub" id="waSeWho"></div>
+    <!-- 수업 결과 — 확정이 곧 출석이라 평소에는 누를 일이 없다.
+         지금 상태에 따라 필요한 버튼만 그린다(fillSchedResult). -->
+    <div id="waSeResult" style="display:none;margin:0 0 12px">
+      <div style="font-weight:800;font-size:13.5px;margin-bottom:4px">수업 결과</div>
+      <div id="waSeResultNow" style="font-size:13px;line-height:1.6;margin-bottom:7px"></div>
+      <div id="waSeResultBtns" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <div id="waSeResultHint" class="wa-hint" style="margin-top:6px"></div>
+    </div>
     <form id="waSchedEditForm" autocomplete="off">
       <label>날짜<input type="date" id="waSeDate" required></label>
       <label>시작<select id="waSeStart" class="timesel" required></select></label>
@@ -3488,8 +3496,9 @@
         남은 횟수 = <b>구매</b> ＋ <b>조정</b> － <b>잡힌 수업</b><br>
         <b>수업 스케줄을 잡으면</b> 1회 차감되고, 스케줄을 지우면 다시 1회 돌아옵니다. 횟수권은 수납 탭에서 판매(충전)합니다.
         구글 캘린더에서 넘어온 수업과 <b>승인 전 예약 요청</b>은 차감하지 않습니다.<br>
-        규칙에서 벗어나는 경우(선생님 사정 취소, 서비스 수업 등)는 표의 <b>＋ －</b> 로 날짜·사유를 적어 손으로 맞춰주세요.
-        <b>출석 기록</b>은 출결 확인용이라 남은 횟수와 무관합니다.
+        규칙에서 벗어나는 경우(선생님 사정 취소, 서비스 수업 등)는 표의 <b>＋ －</b> 로 날짜·사유를 적어 손으로 맞춰주세요.<br>
+        <b>출석은 따로 찍지 않습니다.</b> 잡힌 수업이 곧 출석이고, 학생이 안 왔을 때만 <b>달력에서 그 수업을 눌러</b> 결석·휴강으로 표시하세요.
+        <b>결석</b>은 횟수가 그대로 빠지고, <b>휴강</b>은 1회가 돌아옵니다.
       </div>
       <div id="attDue" class="dash-note" style="margin-top:8px;display:none"></div>
       <div style="margin:10px 0 2px"><input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
@@ -3498,7 +3507,7 @@
       <div class="dash-note" style="margin-top:0">표에서 <b>＋</b>／<b>−</b> 를 누르면 날짜와 사유를 적어 넣을 수 있습니다. 잘못 넣었으면 여기서 지우세요(고치기는 없습니다 — 지우고 다시 넣어야 이력이 정확합니다).</div>
       <div class="wa-table-wrap"><table class="wa-table" id="adjTable"></table></div>
 
-      <div class="dash-list-head">최근 출석 내역</div>
+      <div class="dash-list-head">지난 등원 기록 <span style="color:var(--muted);font-weight:700;font-size:12.5px">(아이패드 등원기를 쓰던 시절 기록입니다. 지금은 새로 쌓이지 않습니다.)</span></div>
       <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
     </div>
 
@@ -4714,7 +4723,8 @@
     if(!from||!to||!sb) return;
     var a=new Date(from+'T00:00'), b=new Date(to+'T00:00'); b.setDate(b.getDate()+1);
     var r=await sb.from('schedules').select('*').gte('starts_at',a.toISOString()).lt('starts_at',b.toISOString()).order('starts_at');
-    _asRows=(!r.error&&r.data)?r.data:[];
+    // 휴강한 수업은 그 방을 놓은 것이다. 배정표에서 빼야 그 시간 강의장이 비어 보인다.
+    _asRows=(!r.error&&r.data)?r.data.filter(function(x){ return (x.status||'confirmed')!=='canceled'; }):[];
     drawRoomAssign();
   }
   function drawRoomAssign(){
@@ -4968,6 +4978,7 @@
     fillTimeSelects();
     $('waSeWho').textContent=(s.student_name||'학생 미지정')+' · '+(s.teacher_name||'선생님 미지정')
       + (s.status==='pending'?' · 승인대기':'');
+    fillSchedResult(s);
     $('waSeDate').value=ymd(st);
     $('waSeStart').value=pad(st.getHours())+':'+pad(st.getMinutes());
     $('waSeEnd').value=pad(en.getHours())+':'+pad(en.getMinutes());
@@ -4978,6 +4989,69 @@
     $('waSchedEdit').classList.add('on');
   }
   function closeSchedEdit(){ if($('waSchedEdit')) $('waSchedEdit').classList.remove('on'); _seId=null; }
+  // 수업 결과 — status 를 사람 말로 바꾼다. 확정(confirmed)이 곧 출석이다.
+  function lessonResultLabel(st){ return st==='noshow' ? '결석' : (st==='canceled' ? '휴강' : '출석'); }
+  // 결과를 남길 수 있는 수업인가. 서버 set_lesson_result 와 같은 기준이어야 헛클릭이 안 난다.
+  //  · 결석은 끝난 수업에만(안 온 게 확정돼야 하므로) — 그건 아래에서 버튼을 안 그리는 것으로 막는다.
+  //  · 휴강은 앞으로의 수업도 미리 찍을 수 있어야 한다. 그래야 그 시간 강의장이 미리 열린다.
+  function canSetResult(s){
+    if(!s || !s.student_id) return false;                       // 회원으로 등록된 학생만
+    if((s.status||'confirmed')==='pending') return false;        // 승인이 먼저
+    if((s.source||'web')==='gcal') return false;                 // 구글발은 횟수를 안 센다
+    return true;
+  }
+  // 지금 상태에 맞는 버튼만 그린다. '출석'은 되돌릴 때만 나오므로, 정상 수업에서는
+  // 아무것도 안 눌러도 된다는 게 화면에서 바로 보인다.
+  function fillSchedResult(s){
+    var box=$('waSeResult'); if(!box) return;
+    if(!canSetResult(s)){ box.style.display='none'; return; }
+    var cur=s.status||'confirmed';
+    var past=new Date(s.ends_at)<=new Date();
+    var now, btns, hint;
+    if(cur==='noshow'){
+      now='<b style="color:#c0342b">결석</b> — 수업 횟수 1회가 차감된 상태입니다.';
+      btns=[['confirmed','출석으로 되돌리기'],['canceled','휴강으로 바꾸기 · 1회 돌려줌']];
+      hint='잘못 눌렀으면 여기서 되돌리면 됩니다.';
+    } else if(cur==='canceled'){
+      now='<b style="color:#8a5a00">휴강</b> — 차감 없음. 그 시간 강의장도 비워져 있습니다.';
+      btns=[['confirmed', past?'출석으로 되돌리기':'수업 되살리기']];
+      if(past) btns.push(['noshow','결석으로 바꾸기 · 1회 차감']);
+      hint='되살리면 강의장은 비어 있는 채로 돌아옵니다. 강의장을 다시 골라주세요.';
+    } else if(past){
+      now='<b style="color:#0f7a52">출석으로 처리됩니다.</b> 그냥 두시면 됩니다.';
+      btns=[['noshow','결석 · 1회 차감'],['canceled','휴강 · 차감 없음']];
+      hint='학생이 안 왔으면 결석, 학생 잘못이 아니면(선생님 사정·공휴일·사전 양해) 휴강입니다.';
+    } else {
+      now='<b>예정된 수업</b>입니다. 끝나면 저절로 출석으로 잡힙니다.';
+      btns=[['canceled','휴강 · 차감 없고 강의장이 열립니다']];
+      hint='결석은 수업이 끝난 뒤에 표시할 수 있어요.';
+    }
+    if($('waSeResultNow')) $('waSeResultNow').innerHTML=now;
+    if($('waSeResultHint')) $('waSeResultHint').textContent=hint;
+    if($('waSeResultBtns')) $('waSeResultBtns').innerHTML=btns.map(function(b){
+      return '<button class="btn btn-ghost" type="button" data-lres="'+b[0]+'" style="padding:6px 12px;font-size:13px">'+esc(b[1])+'</button>';
+    }).join('');
+    box.style.display='';
+  }
+  if($('waSeResult')) $('waSeResult').addEventListener('click', async function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-lres]'):null;
+    if(!b||!_seId||!sb) return;
+    var want=b.getAttribute('data-lres'), err=$('waSeErr'); err.textContent='';
+    if(want==='noshow' && !confirm('결석으로 표시할까요?\n\n수업 횟수 1회는 그대로 차감됩니다.')) return;
+    if(want==='canceled' && !confirm('휴강으로 표시할까요?\n\n· 수업 횟수 1회가 학생에게 돌아갑니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
+    var r=await sb.rpc('set_lesson_result',{p_id:_seId, p_result:want});
+    if(r.error){
+      err.textContent = String(r.error.message||'').indexOf('set_lesson_result')>=0
+        ? '수업 결과 기능이 아직 없습니다. lesson_result.sql 을 먼저 실행해주세요.'
+        : ('처리 실패: '+r.error.message);
+      return;
+    }
+    if(r.data && r.data.ok===false){ err.textContent=r.data.msg||'처리하지 못했습니다.'; return; }
+    closeSchedEdit();
+    if(r.data && r.data.room_freed) alert('휴강으로 바꿨습니다.\n\n그 시간 강의장이 비워졌습니다. 이제 다른 선생님이 그 방을 잡을 수 있습니다.');
+    await loadSchedules(); await renderCalendar(); await loadRoomAssign();
+    await loadAttendance(); await loadTeacherAlerts();
+  });
   if($('waSeClose')) $('waSeClose').onclick=closeSchedEdit;
   document.addEventListener('keydown', function(e){
     if(e.key==='Escape' && $('waSchedEdit') && $('waSchedEdit').classList.contains('on')){ e.stopImmediatePropagation(); closeSchedEdit(); }
@@ -5098,28 +5172,11 @@
     try{ await loadAlertChecks(); }catch(e){}
     try{ alerts=await computeTeacherAlerts(); }catch(e){ alerts=[]; }
     try{ var pr=await sb.from('schedules').select('*').eq('teacher_id',profile.id).eq('status','pending').order('starts_at'); if(!pr.error&&pr.data) pend=pr.data; }catch(e){}
-    // 노쇼 후보 — 끝난 수업인데 그날 등원 기록이 없는 학생 (최근 7일)
-    var nosh=[];
-    try{
-      var sinceISO=new Date(Date.now()-7*864e5).toISOString();
-      var pastR=await sb.from('schedules').select('id,student_id,student_name,starts_at,ends_at')
-        .eq('teacher_id',profile.id).eq('status','confirmed')
-        .gte('starts_at',sinceISO).lt('ends_at',new Date().toISOString())
-        .order('starts_at',{ascending:false});
-      var past=(!pastR.error&&pastR.data)?pastR.data.filter(function(x){ return x.student_id; }):[];
-      if(past.length){
-        var sids=past.map(function(x){ return x.student_id; });
-        var atR=await sb.from('attendance').select('student_id,attended_on')
-          .in('student_id',sids).gte('attended_on', ymd(new Date(Date.now()-8*864e5)));
-        var got={}; if(!atR.error&&atR.data) atR.data.forEach(function(a){ got[a.student_id+'|'+a.attended_on]=1; });
-        nosh=past.filter(function(x){
-          var d=ymd(new Date(x.starts_at));
-          return !got[x.student_id+'|'+d] && !_alertChecks[ackKey('noshow',stuKey(x.student_id,x.student_name),d)];
-        }).slice(0,20);
-      }
-    }catch(e){ nosh=[]; }
+    // 2026-08-09 — '등원 기록이 없어요' 노쇼 알림은 없앴다.
+    // 등원 키오스크를 걷어낸 뒤로는 아무도 체크인을 찍지 않아서, 끝난 수업이 전부 노쇼 후보로 떴다.
+    // 이제 확정된 수업이 곧 출석이고, 안 온 경우만 달력에서 수업을 눌러 '결석'으로 표시한다.
     var undoH=ackUndoHtml();
-    if(!alerts.length && !pend.length && !nosh.length){
+    if(!alerts.length && !pend.length){
       // 알림이 없어도 '확인함'으로 지운 게 있으면 되돌릴 수 있어야 한다
       if(!undoH){ box.style.display='none'; box.innerHTML=''; return; }
       box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">0</span></div>'+undoH;
@@ -5134,13 +5191,7 @@
       if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched">스케줄로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
       return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(a.student)+'</b> 학생 — '+mdLabel(a.day)+' 수업 숙제가 안 나갔어요 <span class="wa-al-go" data-goto="hw">숙제로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
     }).join('');
-    var noshItems=nosh.map(function(s){
-      var d=ymd(new Date(s.starts_at));
-      var ack2='<button class="wa-al-ack" data-ack="'+esc('noshow|'+stuKey(s.student_id,s.student_name)+'|'+d)+'" data-ackname="'+esc(s.student_name||'')+'" title="차감하지 않고 이 알림만 지웁니다">그냥 넘기기</button>';
-      return '<li><span class="wa-al-tag t-req">노쇼?</span><b>'+esc(s.student_name||'학생')+'</b> 학생 — '+fmtDT(s.starts_at)+' 수업인데 등원 기록이 없어요'
-        + '<span class="wa-al-sp"></span><button class="wa-al-reject" data-noshow="'+esc(String(s.id))+'" data-nsname="'+esc(s.student_name||'학생')+'">노쇼 처리 (1회 차감)</button>'+ack2+'</li>';
-    }).join('');
-    box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">'+(alerts.length+pend.length+nosh.length)+'</span></div><ul>'+pendItems+noshItems+items+'</ul>'+undoH;
+    box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">'+(alerts.length+pend.length)+'</span></div><ul>'+pendItems+items+'</ul>'+undoH;
     box.style.display='';
   }
   // 최근 '확인함' 처리한 항목 — 잘못 눌렀을 때 되돌리기
@@ -5160,7 +5211,6 @@
     var g=(t&&t.closest)?t.closest('[data-goto]'):null;
     var ak=(t&&t.closest)?t.closest('[data-ack]'):null;
     var un=(t&&t.closest)?t.closest('[data-unack]'):null;
-    var ns=(t&&t.closest)?t.closest('[data-noshow]'):null;
     if(ak){
       if(!sb||!profile) return;
       var parts=ak.getAttribute('data-ack').split('|');   // kind|student_key|day
@@ -5190,13 +5240,6 @@
       var r2=await sb.rpc('reject_booking',{p_id:rj.getAttribute('data-reject')});
       if(r2.error){ alert('거절 실패: '+r2.error.message); return; }
       await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
-    // 노쇼 — 예약했는데 안 온 학생. 횟수는 스케줄이 잡힐 때 이미 빠졌으므로 기록만 남긴다.
-    if(ns){ if(!sb) return;
-      if(!confirm(ns.getAttribute('data-nsname')+' 학생을 노쇼로 기록할까요?\n\n수업 횟수는 스케줄이 잡힐 때 이미 차감됐습니다.')) return;
-      var r3=await sb.rpc('mark_noshow',{p_id:ns.getAttribute('data-noshow')});
-      if(r3.error){ alert('처리 실패: '+r3.error.message); return; }
-      if(r3.data && r3.data.ok===false){ alert(r3.data.msg||'처리하지 못했습니다.'); }
-      await loadAttendance(); await loadTeacherAlerts(); return; }
     if(g){ dashTab(g.getAttribute('data-goto')); }
   });
 
@@ -5285,8 +5328,14 @@
           var subj=(s.subject && s.subject!=='토익') ? '<b style="color:'+col+'">'+esc(s.subject)+'</b>' : '';
           // 시각은 왼쪽 시간축과 블록 위치로 이미 드러난다. 마우스를 올리면 보이게만 둔다.
           // 선생님 이름은 화면에서 뺐으므로 여기(툴팁)에는 반드시 남긴다.
-          var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ')+' — 클릭하면 수정';
-          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+subj+(who?who:'')+'</div>';
+          // 결석·휴강은 달력에서 바로 구분돼야 한다. 휴강은 흐리게, 결석은 빨간 표를 붙인다.
+          var st=s.status||'confirmed';
+          var mark = st==='noshow'   ? '<b style="color:#c0342b">결석</b> '
+                   : st==='canceled' ? '<b style="color:var(--muted)">휴강</b> ' : '';
+          var dim  = (st==='canceled') ? 'opacity:.55;' : '';
+          var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ')
+                + (mark?' · '+lessonResultLabel(st):'')+' — 클릭하면 수정';
+          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+'</div>';
         }).join('');
         rcols+='<div class="cal-rcol"><div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>'
              + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
@@ -5471,8 +5520,9 @@
     var startISO=slotISO(d,s), endISO=slotISO(d,en);
     $('scFree').style.display='';
     if(endISO<=startISO){ $('scFree').innerHTML='<span style="color:#c0342b">종료가 시작보다 빨라요.</span>'; return; }
-    var r=await sb.from('schedules').select('room_id').lt('starts_at',endISO).gt('ends_at',startISO);
-    var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null) busy[x.room_id]=true; });
+    var r=await sb.from('schedules').select('room_id,status').lt('starts_at',endISO).gt('ends_at',startISO);
+    // 휴강한 수업은 방을 놓은 것이므로 '사용중'으로 세지 않는다.
+    var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null && (x.status||'confirmed')!=='canceled') busy[x.room_id]=true; });
     var free=_rooms.filter(function(rm){ return rm.active!==false && !busy[rm.id]; });
     var busyR=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
     $('scFree').innerHTML='🟢 빈 강의장: <b>'+(free.length?free.map(function(x){return esc(roomLabel(x));}).join(', '):'없음')+'</b>'+(busyR.length?' &nbsp;&nbsp;🔴 사용중: '+busyR.map(function(x){return esc(roomLabel(x));}).join(', '):'');
@@ -5945,6 +5995,15 @@
     atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
     scheds.forEach(function(s){ if(countsAsUsed(s)) used[s.student_id]=(used[s.student_id]||0)+1; });
     (adjs||[]).forEach(function(a){ adjSum[a.student_id]=(adjSum[a.student_id]||0)+(a.delta||0); });
+    // 결석·휴강 건수 — 선생님이 달력에서 표시한 결과다. 구글발은 횟수를 안 세므로 뺀다.
+    var noshowN={}, cancelN={};
+    scheds.forEach(function(s){
+      if(!s.student_id || (s.source||'web')==='gcal') return;
+      var st=s.status||'confirmed';
+      if(st==='noshow') noshowN[s.student_id]=(noshowN[s.student_id]||0)+1;
+      else if(st==='canceled') cancelN[s.student_id]=(cancelN[s.student_id]||0)+1;
+    });
+    window.__wtNoshow=noshowN; window.__wtCancel=cancelN;
     window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAttU=used; window.__wtAtts=atts;
     window.__wtAdjs=adjs; window.__wtAdjSum=adjSum;
     drawAtt();
@@ -5956,13 +6015,15 @@
     var use=(window.__wtAttU||{})[id]||0;
     return buy + adj - use;
   }
-  // 횟수를 쓰는 수업인가.
+  // 횟수를 쓰는 수업인가. — 서버 sessions_left() 와 같은 기준이어야 한다.
   //  · 회원으로 등록된 학생만(구글에서 이름만 넘어온 수업은 셀 수 없다)
-  //  · 승인 전 예약 요청(pending)은 아직 아니다
+  //  · 확정(=출석)과 결석은 센다. 안 왔어도 그 자리는 쓴 것이므로 차감한다.
+  //  · 승인 전 예약 요청(pending)과 휴강(canceled)은 세지 않는다
   //  · 구글 캘린더에서 넘어온 수업은 세지 않는다(436건이 한꺼번에 차감되는 것을 막는다)
   function countsAsUsed(s){
     if(!s || !s.student_id) return false;
-    if((s.status||'confirmed')!=='confirmed') return false;
+    var st=s.status||'confirmed';
+    if(st!=='confirmed' && st!=='noshow') return false;
     if((s.source||'web')==='gcal') return false;
     return true;
   }
@@ -6018,17 +6079,21 @@
     if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">등록된 학생이 없습니다.</td></tr>'; }
     else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; }
     else {
-      // '잡힌 수업'이 차감의 근거고, '조정'은 손으로 보정한 합, '출석'은 실제로 왔는지만 본다.
       var adjSum=window.__wtAdjSum||{};
-      var h='<tr><th>학생</th><th>구매</th><th>조정</th><th>잡힌 수업</th><th>남은 횟수</th><th>횟수 조정</th><th>출석 기록</th><th>출석 남기기</th></tr>';
-      fst.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0, at=attended[s.id]||0,
+      // '잡힌 수업'이 차감의 근거다. 결석도 그 안에 들어 있고(안 왔어도 자리는 썼다),
+      // 휴강은 빠져 있다. 두 숫자는 선생님이 달력에서 표시한 결과를 그대로 보여준다.
+      var noshowN=window.__wtNoshow||{}, cancelN=window.__wtCancel||{};
+      var h='<tr><th>학생</th><th>구매</th><th>조정</th><th>잡힌 수업</th><th>남은 횟수</th><th>횟수 조정</th><th>결석</th><th>휴강</th></tr>';
+      fst.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0,
+                                  ns=noshowN[s.id]||0, cn=cancelN[s.id]||0,
                                   aj=adjSum[s.id]||0, rem=remainOf(s.id);
         var ajTxt = aj===0 ? '<span style="color:var(--muted)">-</span>'
                   : '<b style="color:'+(aj>0?'#0f7a52':'#c0342b')+'">'+(aj>0?'+':'')+aj+'회</b>';
         h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+ajTxt+'</td><td>'+us+'회</td>'
          + '<td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td>'
          + '<td style="white-space:nowrap"><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjplus="'+esc(s.id)+'">＋</button> <button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjminus="'+esc(s.id)+'">－</button></td>'
-         + '<td>'+at+'회</td><td style="white-space:nowrap"><button class="btn btn-primary" type="button" style="padding:5px 9px;font-size:12px" data-attid="'+esc(s.id)+'">출석</button> <button class="btn btn-ghost" type="button" style="padding:5px 9px;font-size:12px" data-attundo="'+esc(s.id)+'"'+(at<=0?' disabled':'')+'>취소</button></td></tr>'; });
+         + '<td>'+(ns?('<b style="color:#c0342b">'+ns+'회</b>'):'<span style="color:var(--muted)">-</span>')+'</td>'
+         + '<td>'+(cn?(cn+'회'):'<span style="color:var(--muted)">-</span>')+'</td></tr>'; });
       $('attTable').innerHTML=h;
     }
     drawAdjTable();
@@ -6123,25 +6188,8 @@
     var r=await sb.from('attendance').delete().eq('id',a.getAttribute('data-attdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
     await loadAttendance();
   });
-  if($('attTable')) $('attTable').addEventListener('click', async function(e){
-    var minus=(e.target&&e.target.closest)?e.target.closest('button[data-attid]'):null;
-    var plus=(e.target&&e.target.closest)?e.target.closest('button[data-attundo]'):null;
-    if(minus){
-      var sid=minus.getAttribute('data-attid'); var st=_members.filter(function(m){return m.id===sid;})[0]; if(!st) return;
-      if(!confirm(st.name+' 학생 오늘 출석으로 기록할까요?\n\n남은 횟수는 줄지 않습니다(스케줄 잡을 때 이미 차감).')) return;
-      var r=await sb.from('attendance').insert({student_id:sid, student_name:st.name, attended_on:ymd(new Date()), admin_id:(profile?profile.id:null), checked_in_at:new Date().toISOString(), source:'manual'});
-      if(r.error){ alert('출석 처리 실패: '+r.error.message); return; }
-      await loadAttendance();
-    } else if(plus){
-      var sid2=plus.getAttribute('data-attundo'); var st2=_members.filter(function(m){return m.id===sid2;})[0]; if(!st2) return;
-      if(!confirm(st2.name+' 학생의 최근 출석 기록 1건을 지울까요?\n\n남은 횟수는 그대로입니다.')) return;
-      var q=await sb.from('attendance').select('id').eq('student_id',sid2).order('created_at',{ascending:false}).limit(1);
-      if(q.error||!q.data||!q.data.length){ alert('취소할 출석 내역이 없습니다.'); return; }
-      var d=await sb.from('attendance').delete().eq('id',q.data[0].id);
-      if(d.error){ alert('취소 실패: '+d.error.message); return; }
-      await loadAttendance();
-    }
-  });
+  // 손으로 '출석'을 찍던 버튼은 없앴다(2026-08-09). 이제 출석은 수업의 결과로 정해진다 —
+  // 확정된 수업이 곧 출석이고, 결석·휴강은 달력에서 그 수업을 눌러 표시한다.
 
   // ---- 출퇴근 (직원 본인 기록, 원장·매니저 전체 조회) ----
   function hmT(iso){ if(!iso) return '-'; var d=new Date(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
@@ -6647,17 +6695,18 @@
     if(!teachers.length){ $('evTable').innerHTML='<tr><td class="wa-empty">선생님으로 등록된 회원이 없습니다.</td></tr>'; return; }
 
     // 1) 지난 수업 (출석률 분모) — 학생 회원이 연결된 것만
-    var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at').not('student_id','is',null);
+    //    2026-08-09부터 출석은 등원 기록이 아니라 수업의 status 로 본다(키오스크를 없앴다).
+    //      confirmed = 출석 · noshow = 결석 · canceled = 휴강(분모에서 빠진다) · pending = 승인 전
+    //    구글 캘린더에서 온 수업은 횟수도 안 세므로 여기서도 뺀다.
+    var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source').not('student_id','is',null);
     if(from){ sq=sq.gte('starts_at',from.toISOString()).lt('starts_at',to.toISOString()); }
     var sr=await sq;
-    var scheds=(!sr.error&&sr.data)?sr.data.filter(function(s){ return new Date(s.ends_at)<now; }):[];
-
-    // 2) 출석 기록
-    var aq=sb.from('attendance').select('student_id,attended_on');
-    if(from){ aq=aq.gte('attended_on',ymd(from)).lt('attended_on',ymd(to)); }
-    var ar=await aq;
-    var attSet={};
-    if(!ar.error&&ar.data) ar.data.forEach(function(a){ attSet[a.student_id+'|'+a.attended_on]=1; });
+    var scheds=(!sr.error&&sr.data)?sr.data.filter(function(s){
+      if(new Date(s.ends_at)>=now) return false;
+      if((s.source||'web')==='gcal') return false;
+      var st=s.status||'confirmed';
+      return st==='confirmed' || st==='noshow';
+    }):[];
 
     // 3) 결제 (재등록률) — 기간과 무관하게 누적으로 본다. 두 번 이상 결제 = 재등록.
     //    담당강사가 안 찍힌 예전 결제는 그 학생의 현재 담당강사로 본다.
@@ -6675,8 +6724,7 @@
     var rows=teachers.map(function(t){
       // 출석률
       var mySch=scheds.filter(function(s){ return s.teacher_id===t.id; });
-      var att=0;
-      mySch.forEach(function(s){ if(attSet[s.student_id+'|'+ymd(new Date(s.starts_at))]) att++; });
+      var att=mySch.filter(function(s){ return (s.status||'confirmed')==='confirmed'; }).length;
 
       // 재등록률: 이 선생님 담당으로 결제된 학생별 결제 건수
       var cnt={};
@@ -6784,20 +6832,26 @@
     if($('myPass')){
       // 차감 기준은 '수업이 잡혔는지'다(2026-08-08). 출석은 참고로만 보여준다.
       // 선생님이 손으로 보정한 분(session_adjustments)도 더해야 관리 화면과 숫자가 같아진다.
-      var pu=0, atts=[], scs=[], adj=0;
+      var pu=0, atts=[], scs=[], scAll=[], adj=0;
       if(sb){
         var rp=await sb.from('payments').select('sessions').eq('student_id',profile.id);
         if(!rp.error&&rp.data) rp.data.forEach(function(x){ pu+=(x.sessions||0); });
         var ra=await sb.from('attendance').select('attended_on,created_at').eq('student_id',profile.id).order('created_at',{ascending:false});
         if(!ra.error&&ra.data) atts=ra.data;
         var rs=await sb.from('schedules').select('status,source,student_id').eq('student_id',profile.id);
-        if(!rs.error&&rs.data) scs=rs.data.filter(countsAsUsed);
+        if(!rs.error&&rs.data){ scAll=rs.data; scs=rs.data.filter(countsAsUsed); }
         var rj=await sb.from('session_adjustments').select('delta').eq('student_id',profile.id);
         if(!rj.error&&rj.data) rj.data.forEach(function(x){ adj+=(x.delta||0); });
       }
       var rem=pu+adj-scs.length;
       $('myPass').innerHTML='구매 <b>'+pu+'회</b>'+(adj?' · 조정 <b>'+(adj>0?'+':'')+adj+'회</b>':'')+' · 잡힌 수업 <b>'+scs.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>'
-        + '<div style="margin-top:4px;font-size:12px;color:var(--muted)">수업 일정이 잡히면 1회 차감됩니다. (출석 기록 '+atts.length+'회)</div>';
+        + '<div style="margin-top:4px;font-size:12px;color:var(--muted)">수업 일정이 잡히면 1회 차감됩니다.'
+        + (function(){
+            var ns=scAll.filter(function(x){ return (x.status||'confirmed')==='noshow'   && (x.source||'web')!=='gcal'; }).length;
+            var cn=scAll.filter(function(x){ return (x.status||'confirmed')==='canceled' && (x.source||'web')!=='gcal'; }).length;
+            return (ns?' · 결석 '+ns+'회':'') + (cn?' · 휴강 '+cn+'회(차감 없음)':'');
+          })()
+        + '</div>';
       if($('myAttTable')){ if(!atts.length){ $('myAttTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; } else { var ah='<tr><th>출석일</th></tr>'; atts.slice(0,30).forEach(function(a){ ah+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td></tr>'; }); $('myAttTable').innerHTML=ah; } }
     }
     if($('myHwTable')){
