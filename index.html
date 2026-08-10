@@ -3511,7 +3511,10 @@
       <div class="dash-form" style="margin-top:8px">
         <div class="dash-row">
           <label>선생님<select id="offTeacher"></select></label>
-          <label>날짜<input type="date" id="offDate"></label>
+          <!-- 여름휴가처럼 며칠씩 쉬는 걸 하루하루 넣기 번거롭다는 요청(이창희쌤 2026-08-10).
+               종료일을 비우면 예전처럼 하루만 등록된다. -->
+          <label>시작일<input type="date" id="offDate"></label>
+          <label>종료일 <span class="wa-hint">(하루면 비워두세요)</span><input type="date" id="offDateTo"></label>
           <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span>
             <label style="flex-direction:row;align-items:center;gap:6px;font-weight:700;white-space:nowrap;margin:0">
               <input type="checkbox" id="offAllDay" checked style="width:auto;margin:0">종일
@@ -3527,6 +3530,7 @@
           <label style="flex:2">사유<input type="text" id="offReasonAll" placeholder="예: 휴가 / 개인사정 / 설 연휴"></label>
         </div>
         <p class="wa-err" id="offErr"></p>
+        <div class="wa-ok" id="offOk"></div>
         <button class="btn btn-primary" id="offAdd" type="button">＋ 휴무 추가</button>
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
@@ -5773,16 +5777,33 @@
       if($('offCount')) $('offCount').textContent='';
       return;
     }
-    if($('offCount')) $('offCount').textContent='('+_offs.length+'건)';
-    if(!_offs.length){ $('offTable').innerHTML='<tr><td class="wa-empty">등록된 휴무가 없습니다.</td></tr>'; return; }
+    if(!_offs.length){ if($('offCount')) $('offCount').textContent='(0건)'; $('offTable').innerHTML='<tr><td class="wa-empty">등록된 휴무가 없습니다.</td></tr>'; return; }
+    // 며칠짜리 휴가는 하루에 한 행씩 들어간다. 그대로 늘어놓으면 목록이 길어지고
+    // 4일 휴가를 지우려고 4번 눌러야 한다 → 대상·시간·사유가 같은 연속 날짜는 한 줄로 묶는다.
+    function keyOf(o){ return [o.teacher_id||'ALL', o.all_day?'D':(o.start_hour+'-'+o.end_hour), o.reason||''].join('|'); }
+    function nextDay(d){ var t=new Date(d+'T00:00:00'); t.setDate(t.getDate()+1); return ymd(t); }
+    var sorted=_offs.slice().sort(function(a,b){
+      return keyOf(a)<keyOf(b)?-1:keyOf(a)>keyOf(b)?1:String(a.off_date).localeCompare(String(b.off_date));
+    });
+    var groups=[];
+    sorted.forEach(function(o){
+      var g=groups[groups.length-1];
+      if(g && keyOf(g.first)===keyOf(o) && nextDay(g.to)===o.off_date){ g.to=o.off_date; g.ids.push(o.id); g.n++; }
+      else groups.push({ first:o, from:o.off_date, to:o.off_date, ids:[o.id], n:1 });
+    });
+    groups.sort(function(a,b){ return String(a.from).localeCompare(String(b.from)); });
+    if($('offCount')) $('offCount').textContent='('+_offs.length+'일'+(groups.length!==_offs.length?(' · '+groups.length+'건'):'')+')';
     var h='<tr><th>날짜</th><th>대상</th><th>시간</th><th>사유</th><th>관리</th></tr>';
-    _offs.forEach(function(o){
+    groups.forEach(function(g){
+      var o=g.first;
       var who = o.teacher_id==null ? '<b style="color:#c0342b">학원 전체</b>'
               : esc((_members.filter(function(m){return m.id===o.teacher_id;})[0]||{}).name || '(퇴사·삭제된 계정)');
       var when = o.all_day ? '종일' : (pad(o.start_hour)+':00 ~ '+pad(o.end_hour)+':00');
-      h+='<tr><td style="white-space:nowrap">'+esc(o.off_date)+'</td><td>'+who+'</td>'
+      var day = g.n>1 ? (esc(g.from)+' ~ '+esc(g.to)+' <span style="color:var(--muted);font-weight:700">'+g.n+'일</span>')
+                      : esc(g.from);
+      h+='<tr><td style="white-space:nowrap">'+day+'</td><td>'+who+'</td>'
        + '<td style="white-space:nowrap">'+when+'</td><td>'+esc(o.reason||'')+'</td>'
-       + '<td><a class="wa-link del" data-offdel="'+esc(String(o.id))+'">삭제</a></td></tr>';
+       + '<td><a class="wa-link del" data-offdel="'+esc(g.ids.join(','))+'" data-offn="'+g.n+'">삭제</a></td></tr>';
     });
     $('offTable').innerHTML=h;
   }
@@ -5791,40 +5812,75 @@
     if($('offHourRow')) $('offHourRow').style.display=all?'none':'';
     if($('offReasonRow')) $('offReasonRow').style.display=all?'':'none';
   };
+  function offSay(ok, msg){
+    var e=$('offErr'), o=$('offOk');
+    if(e) e.textContent = ok ? '' : msg;
+    if(o){ o.innerHTML = ok ? msg : ''; o.classList.toggle('on', !!ok); }
+    if(ok){ clearTimeout(window.__offOkT); window.__offOkT=setTimeout(function(){ if(o) o.classList.remove('on'); }, 8000); }
+  }
   if($('offAdd')) $('offAdd').onclick=async function(){
-    var err=$('offErr'); err.textContent='';
+    var btn=this;
+    $('offErr').textContent=''; if($('offOk')) $('offOk').classList.remove('on');
     if(!sb) return;
-    var who=$('offTeacher').value, day=$('offDate').value, all=$('offAllDay').checked;
-    if(!who){ err.textContent='선생님을 골라주세요.'; return; }
-    if(!day){ err.textContent='날짜를 골라주세요.'; return; }
-    var row={ teacher_id:(who==='__all__'?null:who), off_date:day, all_day:all,
-              reason:((all?$('offReasonAll').value:$('offReason').value)||'').trim()||null,
-              created_by:(profile?profile.id:null) };
+    var who=$('offTeacher').value, day=$('offDate').value, to=($('offDateTo')&&$('offDateTo').value)||'', all=$('offAllDay').checked;
+    if(!who){ offSay(false,'선생님을 골라주세요.'); return; }
+    if(!day){ offSay(false,'시작일을 골라주세요.'); return; }
+    if(to && to<day){ offSay(false,'종료일이 시작일보다 빨라요.'); return; }
+    // 시작일~종료일 사이 날짜를 하나씩 만든다. teacher_off 는 원래 '하루 한 행' 구조라
+    // 표를 바꾸지 않고 행을 여러 개 넣는 쪽이 안전하다(is_off·free_slots·request_booking 손 안 댐).
+    var days=[], cur=new Date(day+'T00:00:00'), last=new Date((to||day)+'T00:00:00');
+    while(cur<=last){ days.push(ymd(cur)); cur.setDate(cur.getDate()+1); if(days.length>200) break; }
+    if(days.length>90){ offSay(false,'한 번에 90일까지만 넣을 수 있어요. ('+days.length+'일을 고르셨습니다)'); return; }
+    if(days.length>7 && !confirm(days.length+'일을 통째로 휴무로 넣습니다.\n\n'+days[0]+' ~ '+days[days.length-1]+'\n\n계속할까요?')) return;
+    var base={ teacher_id:(who==='__all__'?null:who), all_day:all,
+               reason:((all?$('offReasonAll').value:$('offReason').value)||'').trim()||null,
+               created_by:(profile?profile.id:null) };
     if(!all){
       var sv=$('offStart').value||'', ev=$('offEnd').value||'';
       var s=parseInt(sv.split(':')[0],10), e=parseInt(ev.split(':')[0],10);
-      if(isNaN(s)||isNaN(e)){ err.textContent='시작·종료 시간을 골라주세요.'; return; }
+      if(isNaN(s)||isNaN(e)){ offSay(false,'시작·종료 시간을 골라주세요.'); return; }
       // 휴무는 정시 단위로만 받는다. 30분을 고르면 분이 조용히 버려져 예상과 달라진다.
-      if(sv.split(':')[1]!=='00' || ev.split(':')[1]!=='00'){ err.textContent='휴무는 정시(00분)로만 정할 수 있어요. 예: 14:00 ~ 18:00'; return; }
-      if(e<=s){ err.textContent='종료가 시작보다 빨라요.'; return; }
-      row.start_hour=s; row.end_hour=e;
+      if(sv.split(':')[1]!=='00' || ev.split(':')[1]!=='00'){ offSay(false,'휴무는 정시(00분)로만 정할 수 있어요. 예: 14:00 ~ 18:00'); return; }
+      if(e<=s){ offSay(false,'종료 시간이 시작보다 빨라요.'); return; }
+      base.start_hour=s; base.end_hour=e;
     }
-    var r=await sb.from('teacher_off').insert(row);
-    if(r.error){
-      err.textContent = (r.error.message.indexOf('teacher_off')>=0 && r.error.code==='42P01')
-        ? '휴무 표가 아직 없습니다. teacher_off.sql 을 먼저 실행해주세요.'
-        : '등록 실패: '+r.error.message;
-      return;
-    }
-    if($('offReason')) $('offReason').value='';
-    if($('offReasonAll')) $('offReasonAll').value='';
-    await loadOffs();
+    // 이미 같은 대상·같은 날로 들어가 있는 날은 건너뛴다(두 번 눌러도 안 겹치게).
+    var already={};
+    (_offs||[]).forEach(function(o){ if(String(o.teacher_id||'')===String(base.teacher_id||'')) already[o.off_date]=1; });
+    var fresh=days.filter(function(d){ return !already[d]; });
+    var skipped=days.length-fresh.length;
+    if(!fresh.length){ offSay(false,'고르신 날짜는 이미 전부 휴무로 들어가 있어요.'); return; }
+    var old=btn.textContent; btn.disabled=true; btn.textContent='등록하는 중...';
+    try{
+      var rows=fresh.map(function(d){ var x={}; for(var k in base) x[k]=base[k]; x.off_date=d; return x; });
+      var r=await sb.from('teacher_off').insert(rows);
+      if(r.error){
+        offSay(false, (r.error.message.indexOf('teacher_off')>=0 && r.error.code==='42P01')
+          ? '휴무 표가 아직 없습니다. teacher_off.sql 을 먼저 실행해주세요.'
+          : '등록 실패: '+r.error.message);
+        return;
+      }
+      var whoTxt = who==='__all__' ? '학원 전체'
+                 : ((_members.filter(function(m){return m.id===who;})[0]||{}).name || '선생님');
+      offSay(true, '✅ <b>휴무를 넣었습니다.</b><br>'+esc(whoTxt)+' · '
+        + esc(fresh[0]) + (fresh.length>1 ? (' ~ ' + esc(fresh[fresh.length-1]) + ' (' + fresh.length + '일)') : '')
+        + ' · ' + (all ? '종일' : (pad(base.start_hour)+':00~'+pad(base.end_hour)+':00'))
+        + (skipped ? ('<br><span style="font-weight:600">이미 들어가 있던 '+skipped+'일은 건너뛰었습니다.</span>') : ''));
+      if($('offReason')) $('offReason').value='';
+      if($('offReasonAll')) $('offReasonAll').value='';
+      if($('offDateTo')) $('offDateTo').value='';
+      await loadOffs();
+    } finally { btn.disabled=false; btn.textContent=old; }
   };
   if($('offTable')) $('offTable').addEventListener('click', async function(e){
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-offdel]'):null; if(!a) return;
     e.preventDefault();
-    if(!sb || !confirm('이 휴무를 지울까요?\n\n지우면 그 시간에 학생이 다시 예약할 수 있습니다.')) return;
-    var r=await sb.from('teacher_off').delete().eq('id',a.getAttribute('data-offdel'));
+    var ids=String(a.getAttribute('data-offdel')||'').split(',').filter(Boolean);
+    var n=parseInt(a.getAttribute('data-offn'),10)||ids.length;
+    if(!sb || !ids.length) return;
+    if(!confirm((n>1 ? ('이 휴무 '+n+'일을 통째로 지울까요?') : '이 휴무를 지울까요?')
+                + '\n\n지우면 그 시간에 학생이 다시 예약할 수 있습니다.')) return;
+    var r=await sb.from('teacher_off').delete().in('id',ids);
     if(r.error){ alert('삭제 실패: '+r.error.message); return; }
     await loadOffs();
   });
