@@ -3236,6 +3236,10 @@
 .mem-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
 .mem-filters input[type=search]{flex:1;min-width:200px;max-width:340px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)}
 .mem-n{font-family:var(--font-num);font-weight:800;opacity:.7;margin-left:3px}
+/* 수강 종료한 학생 줄 — 지운 게 아니라 다닌 적 있는 사람이므로 지우지 않고 톤만 낮춘다.
+   드롭다운·버튼은 그대로 눌러야 하므로(다시 수강중으로 되돌릴 수 있어야 함) 흐리게 하지 않는다. */
+.mem-off>td{background:var(--surface-2,#f4f6f8)}
+.mem-off>td:first-child>div:first-child{color:var(--muted)!important;text-decoration:line-through;text-decoration-color:var(--line-strong)}
 .cal-mode.on .mem-n{opacity:.85}
 /* 회원 표를 학생 / 선생님으로 나누는 구분줄. 표 위쪽에 붙어 스크롤해도 어느 묶음인지 보인다. */
 .mem-group td{position:sticky;top:0;z-index:2;background:var(--surface-2,#f4f6f8);border-top:2px solid var(--line-strong);
@@ -3465,8 +3469,11 @@
       </div>
       <div class="mem-filters">
         <div class="cal-modes" id="waRoleFilter">
+          <!-- 원장 지시(2026-08-10): 수강 종료한 학생과 수강 중인 학생을 따로 보고 싶다.
+               그래서 '학생' 한 칸을 '수강중'·'수강종료' 두 칸으로 쪼갰다. -->
           <button class="cal-mode on" type="button" data-mrole="all">전체 <span class="mem-n" data-cnt="all"></span></button>
-          <button class="cal-mode" type="button" data-mrole="student">학생 <span class="mem-n" data-cnt="student"></span></button>
+          <button class="cal-mode" type="button" data-mrole="active">수강중 <span class="mem-n" data-cnt="active"></span></button>
+          <button class="cal-mode" type="button" data-mrole="ended">수강종료 <span class="mem-n" data-cnt="ended"></span></button>
           <button class="cal-mode" type="button" data-mrole="staff">선생님 <span class="mem-n" data-cnt="staff"></span></button>
         </div>
         <select id="waTeacherFilter" title="담당강사로 걸러 보기"><option value="">담당강사 전체</option></select>
@@ -4268,6 +4275,9 @@
       + label + '<span style="font-size:10px">' + arrow + '</span></th>';
   }
   function isStaffRole(r){ return r==='admin'||r==='master'||r==='manager'; }
+  // 수강 종료 여부. status 는 'active'/'ended' 인데 값이 비어 있는 옛 회원이 있으므로
+  // 'ended' 인 것만 종료로 보고 나머지는 전부 수강중으로 친다(비어 있다고 종료 처리하면 안 된다).
+  function isEnded(u){ return String(u && u.status || '')==='ended'; }
   // ── 중복 가입 · 정보 미입력 경고 ────────────────────────────────
   // 원장 지적(2026-08-09): "채채가 강민채인데 왜 중복으로 또 가입이 되나, 김효민도 중복이다."
   // 원인은 카카오 로그인이다. OAuth 는 계정을 먼저 만들어 놓고 우리에게 넘기므로
@@ -4330,13 +4340,17 @@
   function drawMembers(){
     var all=window.__wtMembers||[];
     var q=(($('waSearch')&&$('waSearch').value)||'').trim().toLowerCase();
-    var nStudent=0, nStaff=0;
-    all.forEach(function(u){ if(isStaffRole(u.role)) nStaff++; else nStudent++; });
+    var nActive=0, nEnded=0, nStaff=0;
+    all.forEach(function(u){
+      if(isStaffRole(u.role)) nStaff++;
+      else if(isEnded(u)) nEnded++;
+      else nActive++;
+    });
     var fl=$('waRoleFilter');
     if(fl){
       fl.querySelectorAll('.cal-mode').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-mrole')===memberFilter); });
       var setN=function(k,v){ var el=fl.querySelector('[data-cnt="'+k+'"]'); if(el) el.textContent=v; };
-      setN('all',all.length); setN('student',nStudent); setN('staff',nStaff);
+      setN('all',all.length); setN('active',nActive); setN('ended',nEnded); setN('staff',nStaff);
     }
     // 담당강사 필터 목록은 실제 강사 명단으로 매번 다시 채운다(새 강사가 생겨도 자동 반영).
     var tf=$('waTeacherFilter');
@@ -4350,12 +4364,16 @@
       if(tf.value!==keep) tf.value='';   // 그 강사가 사라졌으면 전체로
     }
     var tsel = tf?tf.value:'';
-    var scoped = memberFilter==='all' ? all
-               : all.filter(function(u){ return memberFilter==='staff' ? isStaffRole(u.role) : !isStaffRole(u.role); });
+    var scoped = memberFilter==='all'    ? all
+               : memberFilter==='staff'  ? all.filter(function(u){ return isStaffRole(u.role); })
+               : memberFilter==='ended'  ? all.filter(function(u){ return !isStaffRole(u.role) && isEnded(u); })
+               /* active */              : all.filter(function(u){ return !isStaffRole(u.role) && !isEnded(u); });
     if(tsel==='none') scoped=scoped.filter(function(u){ return !isStaffRole(u.role) && !u.teacher_id; });
     else if(tsel) scoped=scoped.filter(function(u){ return u.teacher_id===tsel; });
     var m=q?scoped.filter(function(u){ return ((u.name||'').toLowerCase().indexOf(q)>=0)||((u.phone||'').toLowerCase().indexOf(q)>=0)||((u.email||'').toLowerCase().indexOf(q)>=0); }):scoped;
-    var label = memberFilter==='staff' ? '선생님' : (memberFilter==='student' ? '학생' : '전체 회원');
+    var label = memberFilter==='staff' ? '선생님'
+              : memberFilter==='ended' ? '수강 종료'
+              : memberFilter==='active' ? '수강중 학생' : '전체 회원';
     if(tsel==='none') label='담당강사 미배정 학생';
     else if(tsel){ var tn0=all.filter(function(x){return x.id===tsel;})[0]; label=(tn0?tn0.name:'')+' 담당 학생'; }
     $('waCount').textContent='('+label+' '+scoped.length+'명'+(q?(' · 검색 '+m.length+'명'):'')+')';
@@ -4465,7 +4483,9 @@
       var idCell='<td><div style="font-weight:700;color:var(--ink)">'+esc(u.name)+'</div>'
         +'<div style="font-size:11.5px;color:var(--muted);line-height:1.5">'+esc(u.email)
         +(u.phone?(' · '+esc(u.phone)):'')+'</div></td>';
-      return '<tr>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+parkCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>';
+      // 수강 종료한 학생은 한 톤 죽여서, 섞여 있어도 눈으로 바로 구분되게 한다.
+      var cls = (!isStaffRole(u.role) && isEnded(u)) ? ' class="mem-off"' : '';
+      return '<tr'+cls+'>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+parkCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>';
     }
     // 전체 보기에서 학생과 선생님이 섞여 보이던 것을 묶어서 나눈다(원장 지시 2026-08-09).
     // '학생만'·'선생님만'으로 걸러 본 상태에서는 한 종류뿐이라 구분줄을 넣지 않는다.
@@ -4474,9 +4494,13 @@
       return '<tr class="mem-group"><td colspan="'+cols+'">'+txt+' <span class="mem-group-n">'+n+'명</span></td></tr>';
     }
     if(memberFilter==='all'){
-      var gStu=m.filter(function(u){ return !isStaffRole(u.role); });
+      // 수강중 → 수강종료 → 선생님 순. 종료한 학생이 수강생 사이에 섞여 있으면
+      // 지금 다니는 사람이 몇인지 한눈에 안 잡힌다(원장 지적 2026-08-10).
+      var gStu=m.filter(function(u){ return !isStaffRole(u.role) && !isEnded(u); });
+      var gEnd=m.filter(function(u){ return !isStaffRole(u.role) && isEnded(u); });
       var gStaff=m.filter(function(u){ return isStaffRole(u.role); });
-      if(gStu.length){ h+=groupHead('🎓 학생', gStu.length); gStu.forEach(function(u){ h+=rowOf(u); }); }
+      if(gStu.length){ h+=groupHead('🎓 수강중', gStu.length); gStu.forEach(function(u){ h+=rowOf(u); }); }
+      if(gEnd.length){ h+=groupHead('🏁 수강 종료', gEnd.length); gEnd.forEach(function(u){ h+=rowOf(u); }); }
       if(gStaff.length){ h+=groupHead('👩‍🏫 선생님 · 원장님 · 매니저', gStaff.length); gStaff.forEach(function(u){ h+=rowOf(u); }); }
     } else {
       m.forEach(function(u){ h+=rowOf(u); });
