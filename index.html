@@ -3397,16 +3397,16 @@
 .cal-ev{position:absolute;background:var(--accent-wash);border:1px solid var(--accent);border-left:3px solid var(--accent);border-radius:5px;padding:2px 4px;font-size:10.5px;line-height:1.28;color:var(--ink);overflow:hidden;box-sizing:border-box;cursor:pointer}
 .cal-ev:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(0,0,0,.12)}
 .cal-ev b{font-weight:800;display:block;font-size:10.5px;color:var(--accent)}
-/* 폰에서 강의장 칸을 합쳤을 때 블록 안에 붙는 방 이름 */
-.cal-ev-room{display:block;font-size:9.5px;color:var(--muted);font-weight:700;margin-top:1px}
 /* 폰: 강의장 칸을 하나로 합쳤으므로 96px 최소폭을 풀어 화면을 꽉 채운다 */
+/* 폰 — 원장 지시(2026-08-10): 달력에 강의장 A·B·C·미배정이 다 보여야 한다.
+   그래서 칸을 합치지 않고, 대신 칸을 76px로 좁히고 머리글을 'A'·'C·옆'으로 줄여
+   네 칸이 한 화면에 들어가게 한다(76×4 + 시간축 42 = 346px). */
 @media (max-width:640px){
-  .cal-rcol{min-width:0}
-  /* 칸을 하나로 합치면 안쪽 내용이 전부 absolute 라 max-content 폭이 거의 0이 된다.
-     그대로 두면 일 뷰가 화면 왼쪽에 쪼그라들어 붙는다 → 최소 화면 폭만큼은 벌려 둔다.
-     (width:max-content 는 그대로 둬야 주 뷰에서 sticky 시간축이 끝까지 따라온다) */
+  .cal-rcol{min-width:76px}
+  .cal-rhead{font-size:10px;padding:0 2px}
+  .cal-ev{font-size:10.5px;padding:2px 3px;line-height:1.25}
+  .cal-ev b{font-size:10px}
   .cal-grid{min-width:100%}
-  .cal-ev{font-size:11px;padding:3px 5px}
 }
 .cal-empty-note{font-size:12px;color:var(--muted);text-align:center;padding:8px}
 .cal-modes{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
@@ -4923,6 +4923,14 @@
     var tag=(r.building==='미플') ? '옆건물' : (c>0 ? c+'인' : '');
     return r.name + (tag ? ' ('+tag+')' : '');
   }
+  // 폰용 짧은 머리글. 칸이 76px 밖에 안 되므로 '강의장 A (4인)' 은 안 들어간다.
+  // 방 이름에서 마지막 낱말(A·B·C)만 남기고, 옆 건물만 점 하나로 표시한다.
+  function calRoomHeadShort(r){
+    if(!r) return '미배정';
+    var nm=String(r.name||'').trim();
+    var last=nm.split(/\s+/).pop() || nm;
+    return last + (r.building==='미플' ? '·옆' : '');
+  }
   // 그 시간에 이미 쓰고 있는 방을 뺀 목록
   function freeRooms(target, all, list){
     var busy={};
@@ -5579,16 +5587,14 @@
     var todayKey=ymd(new Date()), cols='';
     // 날짜 밑에 강의장 칸을 만들고 그 칸에 수업을 넣는다(원장 지시 2026-08-08).
     // 마지막 '미배정' 칸이 없으면 비대면 수업과 아직 방을 안 정한 수업이 달력에서 사라진다.
-    // 폰에서는 강의장 4칸이 화면보다 넓어 왼쪽 칸이 잘린다(원장 지적 2026-08-09).
-    // 그래서 칸을 하나로 합치고, 어느 방인지는 블록 안에 작게 적는다.
-    var roomCols;
-    if(narrow){
-      roomCols=[{id:'__all__', label:null}];
-    } else {
-      roomCols=_rooms.filter(function(r){ return r.active!==false; })
-                     .map(function(r){ return {id:r.id, label:calRoomHead(r)}; });
-      roomCols.push({id:null, label:'미배정'});
-    }
+    // 폰에서 한때 강의장 칸을 하나로 합쳤으나(2026-08-09), 원장이 2026-08-10에
+    // "달력에 강의장 A·B·C·미배정까지 써 있는 게 더 좋다"고 해서 되돌렸다.
+    // 대신 폰에서는 머리글을 'A'·'C·옆'처럼 줄이고 칸 폭을 76px로 좁혀 네 칸이 한 화면에 들어가게 한다.
+    // DB 가 주는 순서는 C·A·B 처럼 뒤섞여 있다 → 이름순으로 세워 A·B·C·미배정으로 보이게 한다.
+    var roomCols=_rooms.filter(function(r){ return r.active!==false; })
+                       .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''), 'ko'); })
+                       .map(function(r){ return {id:r.id, label: narrow ? calRoomHeadShort(r) : calRoomHead(r)}; });
+    roomCols.push({id:null, label:'미배정'});
     for(var i=0;i<nDays;i++){
       var day=new Date(start); day.setDate(day.getDate()+i); var key=ymd(day);
       var dowIdx=(day.getDay()+6)%7; var cls=(dowIdx===5?'cal-sat':(dowIdx===6?'cal-sun':''));
@@ -5613,7 +5619,6 @@
       var rcols='';
       roomCols.forEach(function(rc){
         var evs=dayEvs.filter(function(s){
-          if(rc.id==='__all__') return true;                      // 폰: 한 칸에 전부
           return (rc.id==null) ? (s.room_id==null) : (String(s.room_id)===String(rc.id));
         });
         evs.forEach(function(s){ s.__st=minsFromStart(s.starts_at); var enM=minsFromStart(s.ends_at); if(enM<=s.__st){ enM=(DAY_END-DAY_START)*60; } s.__en=Math.max(s.__st+20, enM); });
@@ -5635,24 +5640,18 @@
           var mark = st==='noshow'   ? '<b style="color:#c0342b">결석</b> '
                    : st==='canceled' ? '<b style="color:var(--muted)">휴강</b> ' : '';
           var dim  = (st==='canceled') ? 'opacity:.55;' : '';
-          // 칸을 합친 폰 화면에서는 어느 방인지가 칸으로 안 드러나므로 블록 안에 적어 준다.
-          var roomTag = (rc.id==='__all__')
-            ? '<span class="cal-ev-room">'+esc(s.room_id==null?'미배정':roomName(s.room_id))+'</span>' : '';
           var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ')
                 + (mark?' · '+lessonResultLabel(st):'')+' — 클릭하면 수정';
-          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+roomTag+'</div>';
+          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+'</div>';
         }).join('');
-        // 폰에서 칸을 합쳤을 때는 강의장 머리글 줄 자체가 필요 없다.
-        var rhead = (rc.label==null) ? ''
-          : '<div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>';
-        rcols+='<div class="cal-rcol">'+rhead
-             + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null||rc.id==='__all__'?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
+        rcols+='<div class="cal-rcol">'
+             + '<div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>'
+             + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
       });
-      // 강의장 칸이 96px 밑으로 찌그러지지 않게 날짜 칸의 최소 너비를 강의장 수에 맞춘다.
+      // 강의장 칸이 찌그러지지 않게 날짜 칸의 최소 너비를 강의장 수에 맞춘다.
       // (안 걸면 주 뷰에서 칸이 겹쳐 보인다 — 가로 스크롤은 .cal-scroll 이 처리한다)
-      // 폰에서 칸을 하나로 합쳤을 때는 최소 너비를 걸지 않아야 남는 폭을 다 쓴다.
-      // 단 주·월 뷰는 날짜가 여러 개라 그대로 두면 하루가 50px로 찌그러진다 → 88px는 확보하고 옆으로 민다.
-      var colMin = narrow ? (nDays>1 ? 'min-width:88px' : '') : ('min-width:'+(roomCols.length*96)+'px');
+      // 폰에서는 76px — 4칸이면 304px + 시간축 42px = 346px 라 360px 폰에도 일 뷰가 통째로 들어간다.
+      var colMin = 'min-width:'+(roomCols.length*(narrow?76:96))+'px';
       cols+='<div class="cal-col'+(isToday?' is-today':'')+'" style="'+colMin+'">'+head+'<div class="cal-rooms">'+rcols+'</div></div>';
     }
     $('calGrid').innerHTML=axis+cols;
