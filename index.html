@@ -3321,6 +3321,38 @@
   .wa-table-wrap:has(#csTable){border:none;border-radius:0}
   #csDate,#csName,#csPhone,#csTeacher,#csChannel,#csMemo{font-size:16px !important;padding:11px 12px !important}
 }
+/* 주말 스터디 카드 (2026-08-10) */
+.std-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin:8px 0 4px}
+.std-card{border:1px solid var(--line-strong);border-radius:12px;padding:12px 14px;background:var(--surface)}
+.std-card.off{background:var(--surface-2);border-style:dashed}
+.std-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.std-h b{font-family:var(--font-num);font-weight:800}
+.std-t{font-size:12px;color:var(--muted);font-weight:700}
+.std-n{margin-left:auto;font-size:12px;font-weight:800;color:#fff;background:var(--accent);border-radius:999px;padding:2px 9px}
+.std-off{margin-left:auto;font-size:12px;font-weight:800;color:#c0342b}
+.std-names{margin:8px 0 6px;font-size:13px;line-height:1.7;color:var(--ink)}
+.std-sub{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 6px}
+.std-tally{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;font-weight:800}
+.std-tally span{border-radius:999px;padding:2px 9px}
+.std-tally .t-go{background:#eef4fd;color:#1d4ed8}
+.std-tally .t-no{background:#fdf0ef;color:#c0342b}
+.std-tally .t-todo{background:#fff5e9;color:#b26a00}
+.std-vote{display:flex;gap:8px;margin-top:8px}
+.std-vote .std-join{margin-top:0}
+.std-join.no{border-color:#c0342b;color:#c0342b}
+.std-join.no.on{background:#c0342b;color:#fff}
+.std-rooms{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.std-lb{font-size:11.5px;font-weight:800;color:var(--muted);margin-right:2px}
+.std-room{border:1px solid var(--line-strong);background:var(--surface);color:var(--muted);
+          border-radius:8px;padding:4px 11px;font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit}
+.std-room.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.std-room.std-ab{border-style:dashed;color:var(--accent)}
+.std-room:disabled{opacity:.5;cursor:default}
+/* 학생 화면 신청 버튼 */
+.std-join{width:100%;margin-top:8px;padding:10px 12px;border-radius:10px;font-size:13.5px;font-weight:800;
+          font-family:inherit;cursor:pointer;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent)}
+.std-join.on{background:var(--accent);color:#fff}
+.std-join:disabled{opacity:.6;cursor:default}
 .pr-sum{border:1.5px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:14px;background:var(--accent-wash)}
 .pr-sum-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:13.5px;font-weight:700;color:var(--ink-soft)}
 .pr-sum-row b{font-family:var(--font-num);font-size:15px;color:var(--ink)}
@@ -3408,6 +3440,12 @@
   .cal-ev b{font-size:10px}
   .cal-grid{min-width:100%}
 }
+/* 주말 스터디 블록 — 수업이 아니라 학생들끼리 모이는 것이라 색·무늬를 확실히 다르게 한다.
+   클릭해도 수업 수정 창이 뜨면 안 되므로 data-scid 를 안 붙인다(포인터도 기본 커서). */
+.cal-ev.cal-study{background:repeating-linear-gradient(45deg,#f3efe6,#f3efe6 6px,#eae4d6 6px,#eae4d6 12px);
+  border:1px dashed #b9a878;border-left:3px solid #b9a878;color:#6b5a2e;font-weight:800;cursor:default}
+.cal-ev.cal-study:hover{filter:none;box-shadow:none}
+.cal-study-n{display:block;font-size:9.5px;font-weight:700;color:#8a7743;margin-top:1px}
 .cal-empty-note{font-size:12px;color:var(--muted);text-align:center;padding:8px}
 .cal-modes{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
 .cal-mode{background:var(--surface);border:none;padding:7px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
@@ -3537,6 +3575,23 @@
         <button class="btn btn-primary" id="offAdd" type="button">＋ 휴무 추가</button>
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
+
+      <!-- 주말 스터디 (원장 확정 2026-08-10): 토·일 12~14시, 자격 있는 학생이 그 주에 갈 날만 손든다.
+           토익 시험일은 쉰다. 강의장은 인원 보고 사람이 1~2개 고른다. -->
+      <div class="dash-list-head">🧑‍🤝‍🧑 주말 스터디 <span id="studyCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="dash-note" style="margin-top:0">토·일 <b>12:00~14:00</b>. 회원 관리에서 <b>스터디 = 참여</b>로 켜 둔 학생이 그 주에 갈 날에만 신청합니다.<br>토익 시험일은 자동으로 쉽니다(아래에서 날짜를 더하거나 뺄 수 있어요).</div>
+      <div id="studyBox"></div>
+      <details class="wa-al-undo" id="studyOffWrap" style="margin-top:10px">
+        <summary>스터디 쉬는 날 관리 <span id="studyOffCount" style="color:var(--muted)"></span></summary>
+        <div class="dash-row" style="margin-top:8px">
+          <label>날짜<input type="date" id="studyOffDate"></label>
+          <label style="flex:2">사유<input type="text" id="studyOffReason" placeholder="예: 토익 제586회"></label>
+          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span>
+            <button class="btn btn-ghost" id="studyOffAdd" type="button" style="white-space:nowrap">＋ 추가</button></label>
+        </div>
+        <p class="wa-err" id="studyOffErr"></p>
+        <div class="wa-table-wrap"><table class="wa-table" id="studyOffTable"></table></div>
+      </details>
 
       <div class="cal-head">
         <div class="cal-modes">
@@ -3783,6 +3838,12 @@
     <div id="myTeacher"></div>
     <div class="dash-list-head">🎫 내 수강권 (남은 수업 횟수)</div>
     <div class="dash-note" id="myPass"></div>
+    <!-- 주말 스터디 — 참여로 켜진 학생에게만 보인다(자격은 선생님이 정한다). -->
+    <div id="myStudyWrap" style="display:none">
+      <div class="dash-list-head">🧑‍🤝‍🧑 주말 스터디 <span style="color:var(--muted);font-weight:700;font-size:12px">토·일 12:00~14:00</span></div>
+      <div class="dash-note" style="margin-top:0">갈 수 있는 날만 눌러서 신청하세요. 마음이 바뀌면 다시 눌러 취소할 수 있어요.</div>
+      <div id="myStudy"></div>
+    </div>
     <div class="dash-list-head">📝 내 숙제 <span style="color:var(--muted);font-weight:700;font-size:12px">담당 선생님이 내준 숙제</span></div>
     <div class="wa-table-wrap"><table class="wa-table" id="myHwTable"></table></div>
     <div class="dash-list-head">📅 내 수업 일정</div>
@@ -4260,6 +4321,8 @@
     lesson_mode:function(u){ return u.role==='student' ? (u.lesson_mode||null) : null; },
     score:      function(u){ return u.role==='student' ? (numOf(u.current_score)!=null?numOf(u.current_score):numOf(u.goal_score)) : null; },
     status:     function(u){ return u.role==='student' ? (u.status==='ended'?1:0) : null; },
+    // 스터디 참여자가 위로 오게(0=참여). 선생님 행은 항상 아래로.
+    study:      function(u){ return u.role==='student' ? (u.study?0:1) : null; },
     created_at: function(u){ return u.created_at||null; }
   };
   function sortMembers(list, tmap){
@@ -4411,6 +4474,15 @@
            + '<option value="active"'+(ended?'':' selected')+'>수강 중</option>'
            + '<option value="ended"'+(ended?' selected':'')+'>수강 종료</option></select>'+why+'</td>';
     }
+    // 주말 스터디 참여 자격(원장 확정 2026-08-10). 학생이 스스로 못 켜고 여기서만 켠다.
+    function studyCell(u){
+      if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
+      var on=!!u.study;
+      var st=on?pickStyle('#b7c9e8','#eef3fd','#1d4ed8'):pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
+      return '<td style="white-space:nowrap"><select data-study-for="'+esc(u.id)+'" style="'+st+'">'
+           + '<option value="0"'+(on?'':' selected')+'>불참</option>'
+           + '<option value="1"'+(on?' selected':'')+'>참여</option></select></td>';
+    }
     // 수업 형태: 대면 / 비대면. 비워두면 '미지정'.
     function modeCell(u){
       if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
@@ -4482,7 +4554,7 @@
     var h='<tr>'+sortableTh('name','이름 <span style="font-weight:600;color:var(--muted);font-size:11px">· 이메일 · 연락처</span>')+'<th>관심과목</th>'
       + sortableTh('teacher','담당강사') + sortableTh('role','구분') + sortableTh('lesson_mode','수업형태')
       + '<th>주차 · 강의장</th>'
-      + sortableTh('score','점수·목표') + sortableTh('status','수강상태') + sortableTh('created_at','가입일')
+      + sortableTh('score','점수·목표') + sortableTh('status','수강상태') + sortableTh('study','스터디') + sortableTh('created_at','가입일')
       + (mm?'<th>관리</th>':'')+'</tr>';
     function rowOf(u){
       var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">탈퇴</a></td>' : '';
@@ -4492,11 +4564,11 @@
         +(u.phone?(' · '+esc(u.phone)):'')+'</div></td>';
       // 수강 종료한 학생은 한 톤 죽여서, 섞여 있어도 눈으로 바로 구분되게 한다.
       var cls = (!isStaffRole(u.role) && isEnded(u)) ? ' class="mem-off"' : '';
-      return '<tr'+cls+'>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+parkCell(u)+goalCell(u)+statusCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>';
+      return '<tr'+cls+'>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+parkCell(u)+goalCell(u)+statusCell(u)+studyCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>';
     }
     // 전체 보기에서 학생과 선생님이 섞여 보이던 것을 묶어서 나눈다(원장 지시 2026-08-09).
     // '학생만'·'선생님만'으로 걸러 본 상태에서는 한 종류뿐이라 구분줄을 넣지 않는다.
-    var cols = mm ? 10 : 9;
+    var cols = mm ? 11 : 10;   // 2026-08-10 '스터디' 칸이 늘어 하나씩 올림
     function groupHead(txt, n){
       return '<tr class="mem-group"><td colspan="'+cols+'">'+txt+' <span class="mem-group-n">'+n+'명</span></td></tr>';
     }
@@ -4595,12 +4667,14 @@
     var sel=e.target; if(!sel||!sel.getAttribute) return;
     var sid=sel.getAttribute('data-status-for'), mid=sel.getAttribute('data-mode-for');
     var pid=sel.getAttribute('data-park-for'), yid=sel.getAttribute('data-yield-for');
-    var id=sid||mid||pid||yid; if(!id) return;
+    var tid=sel.getAttribute('data-study-for');
+    var id=sid||mid||pid||yid||tid; if(!id) return;
     var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(id);})[0];
     var v=sel.value;
     var prev = sid ? ((u&&u.status==='ended')?'ended':'active')
              : mid ? ((u&&(u.lesson_mode==='online'||u.lesson_mode==='offline'))?u.lesson_mode:'')
              : pid ? ((u&&u.parking)?'1':'')
+             : tid ? ((u&&u.study)?'1':'0')
              :       ((u&&u.room_yield)?'1':'');
     if(v===prev) return;
     if(!sb){ sel.value=prev; return; }
@@ -4609,9 +4683,16 @@
     var r = sid ? await sb.rpc('set_student_status',{target:id,new_status:v,reason:null})
             : mid ? await sb.rpc('set_lesson_mode',{target:id,new_mode:v})
             : pid ? await sb.rpc('set_student_parking',{target:id,on_off:(v==='1')})
+            : tid ? await sb.rpc('set_study',{target:id,on_off:(v==='1')})
             :       await sb.rpc('set_room_yield',{target:id,on_off:(v==='1')});
-    if(r.error){ alert((sid?'수강 상태':mid?'수업 형태':pid?'주차 표시':'강의장 양보')+' 변경 실패: '+r.error.message); sel.value=prev; return; }
-    if(u){ if(sid) u.status=v; else if(mid) u.lesson_mode=(v||null); else if(pid) u.parking=(v==='1'); else u.room_yield=(v==='1'); }
+    if(r.error){
+      // SQL 을 아직 안 돌렸으면 함수가 없다 — 무슨 일인지 알려 준다.
+      var msg = (tid && /set_study/.test(String(r.error.message||'')))
+        ? '스터디 기능이 아직 없습니다. study.sql 을 먼저 실행해주세요.'
+        : (sid?'수강 상태':mid?'수업 형태':pid?'주차 표시':tid?'스터디':'강의장 양보')+' 변경 실패: '+r.error.message;
+      alert(msg); sel.value=prev; return;
+    }
+    if(u){ if(sid) u.status=v; else if(mid) u.lesson_mode=(v||null); else if(pid) u.parking=(v==='1'); else if(tid) u.study=(v==='1'); else u.room_yield=(v==='1'); }
     drawMembers();
     if(sid) await loadTeacherAlerts();
   });
@@ -4816,6 +4897,7 @@
     }
     await loadRoomAssign();
     await loadOffs();
+    try{ await loadStudy(); }catch(e){}   // study.sql 미실행이어도 나머지가 멈추면 안 된다
     await loadAttendance();
     await loadWork();
     if(isOps()) await loadOplog();
@@ -5209,6 +5291,15 @@
       if(roomId){
         var c=await sb.from('schedules').select('id').eq('room_id',roomId).lt('starts_at',endISO).gt('ends_at',startISO);
         if(!c.error && c.data && c.data.length){ scSay(false,'해당 시간에 그 강의장이 이미 예약돼 있어요.'); return; }
+        // 주말 스터디가 그 방을 쓰는 시간인지도 본다(원장 지시 2026-08-10).
+        // 서버 트리거가 최후 방어선이지만, 여기서 걸러야 왜 안 되는지 바로 보인다.
+        try{
+          var sbz=await sb.rpc('study_busy',{p_room:roomId, p_start:startISO, p_end:endISO});
+          if(!sbz.error && sbz.data===true){
+            scSay(false,'그 시간에는 '+esc(roomName(roomId))+'에서 주말 스터디가 있어요. (12:00~14:00) 다른 강의장이나 시간을 골라주세요.');
+            return;
+          }
+        }catch(e){}   // study.sql 미실행이면 그냥 통과 — 서버 트리거도 아직 없다
       }
       var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null) };
       var r=await sb.from('schedules').insert(payload);
@@ -5582,6 +5673,32 @@
     evs.forEach(function(s){ if(cluster.length && s.__st>=curEnd) flush(); cluster.push(s); curEnd=Math.max(curEnd,s.__en); });
     if(cluster.length) flush();
   }
+  // 달력에 얹을 스터디를 그 기간만큼 읽는다.
+  // 돌려주는 값: { '2026-08-15': { '3': 5, 'none': 5 } }  ← 날짜 → (강의장id 또는 'none') → 신청 인원
+  // 강의장을 아직 안 정한 날은 'none' 으로 넣어 미배정 칸에 띄운다(방 정하라는 신호가 된다).
+  async function fetchStudyRange(start, end){
+    if(!sb) return {};
+    var from=ymd(start), e2=new Date(end); e2.setDate(e2.getDate()-1); var to=ymd(e2);
+    try{
+      var off=await sb.from('study_off').select('off_date').gte('off_date',from).lte('off_date',to);
+      if(off.error) return {};                       // 표가 없으면 스터디 기능 자체가 아직 없는 것
+      var skip={}; (off.data||[]).forEach(function(o){ skip[o.off_date]=1; });
+      var su=await sb.from('study_signups').select('study_date').gte('study_date',from).lte('study_date',to);
+      if(su.error) return {};
+      var cnt={}; (su.data||[]).forEach(function(s){ cnt[s.study_date]=(cnt[s.study_date]||0)+1; });
+      var rm=await sb.from('study_rooms').select('study_date,room_id').gte('study_date',from).lte('study_date',to);
+      var roomsBy={}; if(!rm.error) (rm.data||[]).forEach(function(r){ (roomsBy[r.study_date]=roomsBy[r.study_date]||[]).push(r.room_id); });
+      var out={};
+      Object.keys(cnt).forEach(function(day){
+        if(skip[day]) return;                        // 시험일은 안 그린다
+        var rs=roomsBy[day]||[];
+        out[day]={};
+        if(!rs.length) out[day]['none']=cnt[day];
+        else rs.forEach(function(rid){ out[day][String(rid)]=cnt[day]; });
+      });
+      return out;
+    }catch(e){ return {}; }
+  }
   async function renderGrid(nDays){
     var start = nDays===1 ? new Date(calCur) : startOfWeek(calCur);
     start.setHours(0,0,0,0);
@@ -5593,6 +5710,9 @@
     var rows=await fetchRange(start,end);
     window.__wtCalRows=rows;   // 달력 블록을 눌러 수정할 때 여기서 찾는다
     var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
+    // 주말 스터디는 schedules 가 아니라 별도 표에 있다(수업 횟수가 깎이면 안 되므로).
+    // 그래서 달력에서도 따로 읽어 얹는다. 표가 없으면(study.sql 미실행) 조용히 건너뛴다.
+    var studyByRoom=await fetchStudyRange(start,end);
     // 폰에서는 6시~24시를 다 그리면 위아래로 한참 밀어야 해서 한눈에 안 들어온다.
     // 그날 실제 수업이 있는 시간대에 맞춰 위아래를 잘라내고 한 칸 높이도 줄인다.
     // (수업이 없는 날은 학원 운영시간 10~22시만 보여준다)
@@ -5606,6 +5726,12 @@
         mn=(mn==null)?sh:Math.min(mn,sh);
         mx=(mx==null)?eh:Math.max(mx,eh);
       });
+      // 스터디(12~14시)도 시간 범위에 넣는다. 안 넣으면 저녁 수업만 있는 주말에
+      // DAY_START 가 17시쯤으로 잘려 스터디 블록이 화면 밖으로 사라진다.
+      if(Object.keys(studyByRoom).length){
+        mn=(mn==null)?12:Math.min(mn,12);
+        mx=(mx==null)?14:Math.max(mx,14);
+      }
       if(mn==null){ DAY_START=10; DAY_END=22; }
       else {
         DAY_START=Math.max(0, mn-1);
@@ -5683,9 +5809,25 @@
                 + (mark?' · '+lessonResultLabel(st):'')+' — 클릭하면 수정';
           return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+'</div>';
         }).join('');
+        // 주말 스터디(12~14시)를 이 칸에 얹는다. 수업이 아니라 학생들끼리 모이는 거라
+        // 클릭해도 수업 수정 창이 뜨지 않게 data-scid 를 붙이지 않는다.
+        var stH='';
+        var stDay=studyByRoom[key];
+        if(stDay){
+          var stKey = (rc.id==null) ? 'none' : String(rc.id);
+          var stN = stDay[stKey];
+          if(stN!=null){
+            var sTop=Math.max(0, (12-DAY_START)*HOUR_H), sHgt=Math.max(20, 2*HOUR_H-2);
+            if(12>=DAY_START && 12<DAY_END){
+              stH='<div class="cal-ev cal-study" title="주말 스터디 12:00~14:00 · 신청 '+stN+'명" '
+                + 'style="top:'+sTop+'px;height:'+sHgt+'px;left:1px;width:calc(100% - 3px)">'
+                + '스터디<span class="cal-study-n">'+stN+'명</span></div>';
+            }
+          }
+        }
         rcols+='<div class="cal-rcol">'
              + '<div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>'
-             + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
+             + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+stH+evHtml+'</div></div>';
       });
       // 강의장 칸이 찌그러지지 않게 날짜 칸의 최소 너비를 강의장 수에 맞춘다.
       // (안 걸면 주 뷰에서 칸이 겹쳐 보인다 — 가로 스크롤은 .cal-scroll 이 처리한다)
@@ -5850,6 +5992,156 @@
     if($('offHourRow')) $('offHourRow').style.display=all?'none':'';
     if($('offReasonRow')) $('offReasonRow').style.display=all?'':'none';
   };
+  // ---- 주말 스터디 (관리자) ----------------------------------------------
+  // 원장 확정 2026-08-10: 토·일 12~14시 / 자격은 회원 관리에서 / 그 주에 갈 사람만 손듦 /
+  // 토익 시험일은 쉼 / 강의장은 인원 보고 사람이 1~2개.
+  // ⚠️ 스터디는 schedules 에 넣지 않는다 — 남은 수업 횟수가 '확정 스케줄 수'로 깎이기 때문.
+  var STUDY_WEEKS=4;                     // 다가오는 4주치만 보여준다
+  var _studyOff=null, _studySignups=[], _studyRooms=[];   // _studyOff===null = study.sql 미실행
+  function weekendDays(n){
+    var out=[], d=new Date(); d.setHours(0,0,0,0);
+    for(var i=0;i<n*7+7 && out.length<n*2;i++){
+      var x=new Date(d); x.setDate(x.getDate()+i);
+      var w=x.getDay();                  // 0=일 6=토
+      if(w===6||w===0) out.push(ymd(x));
+    }
+    return out.sort();
+  }
+  async function loadStudy(){
+    if(!$('studyBox')||!sb) return;
+    var days=weekendDays(STUDY_WEEKS);
+    var from=days[0], to=days[days.length-1];
+    try{
+      var o=await sb.from('study_off').select('*').order('off_date');
+      if(o.error){ _studyOff=null; drawStudy(); return; }
+      _studyOff=o.data||[];
+      var s=await sb.from('study_signups').select('*').gte('study_date',from).lte('study_date',to);
+      _studySignups=(!s.error&&s.data)?s.data:[];
+      var r=await sb.from('study_rooms').select('*').gte('study_date',from).lte('study_date',to);
+      _studyRooms=(!r.error&&r.data)?r.data:[];
+    }catch(e){ _studyOff=null; }
+    drawStudy();
+  }
+  function drawStudy(){
+    var box=$('studyBox'); if(!box) return;
+    if(_studyOff===null){
+      box.innerHTML='<div class="dash-note" style="color:#c0342b;font-weight:700">스터디 표가 아직 없습니다 — study.sql 을 먼저 실행하세요.</div>';
+      if($('studyCount')) $('studyCount').textContent='';
+      if($('studyOffWrap')) $('studyOffWrap').style.display='none';
+      return;
+    }
+    if($('studyOffWrap')) $('studyOffWrap').style.display='';
+    var offMap={}; _studyOff.forEach(function(o){ offMap[o.off_date]=o.reason||'쉼'; });
+    // 미응답을 세려면 '스터디 참여로 켜 둔 수강중 학생' 수가 필요하다.
+    var eligible=(window.__wtMembers||[]).filter(function(u){
+      return u.role==='student' && u.study && String(u.status||'')!=='ended';
+    }).length;
+    var days=weekendDays(STUDY_WEEKS);
+    var rooms=(_rooms||[]).filter(function(r){ return r.active!==false; })
+                          .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+    var total=0;
+    var cards=days.map(function(day){
+      var isOff=offMap[day]!=null;
+      var all=_studySignups.filter(function(s){ return s.study_date===day; });
+      var go=all.filter(function(s){ return s.going!==false; });
+      var no=all.filter(function(s){ return s.going===false; });
+      var todo=Math.max(0, eligible - all.length);   // 아직 안 찍은 자격자
+      total+=go.length;
+      var dow=['일','월','화','수','목','금','토'][new Date(day+'T00:00:00').getDay()];
+      var head='<div class="std-h"><b>'+esc(day)+' ('+dow+')</b> <span class="std-t">12:00~14:00</span>';
+      if(isOff) return '<div class="std-card off">'+head+'<span class="std-off">쉼 · '+esc(offMap[day])+'</span></div></div>';
+      head+='<span class="std-n">'+go.length+'명</span></div>';
+      var picked={}; _studyRooms.forEach(function(r){ if(r.study_date===day) picked[String(r.room_id)]=1; });
+      var roomBtns=rooms.map(function(r){
+        var on=picked[String(r.id)]?' on':'';
+        return '<button type="button" class="std-room'+on+'" data-std-room="'+esc(String(r.id))+'" data-std-day="'+esc(day)+'">'
+             + esc(String(r.name||'').trim().split(/\s+/).pop()) + '</button>';
+      }).join('');
+      // 원장 지시(2026-08-10): 스터디는 학원 A·B 강의장을 우선 쓴다 → 한 번에 켜는 버튼.
+      var ab=rooms.filter(function(r){ return r.building!=='미플'; });
+      var abOn=ab.length && ab.every(function(r){ return picked[String(r.id)]; });
+      if(ab.length && !abOn){
+        roomBtns+='<button type="button" class="std-room std-ab" data-std-ab="'+esc(day)+'">A·B 한번에</button>';
+      }
+      var names = go.length
+        ? esc(go.map(function(s){ return s.student_name||'학생'; }).join(', '))
+        : '<span style="color:var(--muted)">아직 간다고 한 학생이 없어요.</span>';
+      var tally='<div class="std-tally">'
+        + '<span class="t-go">참석 '+go.length+'</span>'
+        + '<span class="t-no">불참 '+no.length+'</span>'
+        + '<span class="t-todo">미응답 '+todo+'</span></div>';
+      var noLine = no.length ? '<div class="std-sub">안 온다고 한 학생 — '+esc(no.map(function(s){ return s.student_name||'학생'; }).join(', '))+'</div>' : '';
+      return '<div class="std-card">'+head
+        + tally
+        + '<div class="std-names">'+names+'</div>'+noLine
+        + '<div class="std-rooms"><span class="std-lb">강의장</span>'+roomBtns+'</div></div>';
+    }).join('');
+    box.innerHTML='<div class="std-wrap">'+cards+'</div>';
+    if($('studyCount')) $('studyCount').textContent='(앞으로 '+STUDY_WEEKS+'주 · 신청 '+total+'명)';
+    // 쉬는 날 목록
+    if($('studyOffTable')){
+      var today=ymd(new Date());
+      var future=_studyOff.filter(function(o){ return o.off_date>=today; });
+      if($('studyOffCount')) $('studyOffCount').textContent='(앞으로 '+future.length+'일)';
+      $('studyOffTable').innerHTML = future.length
+        ? '<tr class="hw-head"><th>날짜</th><th>사유</th><th>관리</th></tr>'
+          + future.map(function(o){
+              return '<tr><td data-l="날짜" style="white-space:nowrap">'+esc(o.off_date)+'</td>'
+                   + '<td data-l="사유">'+esc(o.reason||'')+'</td>'
+                   + '<td data-l="관리"><a class="wa-link" data-stdoff-del="'+esc(o.off_date)+'" style="color:#c0342b">삭제</a></td></tr>';
+            }).join('')
+        : '<tr><td class="wa-empty">앞으로 쉬는 날이 없습니다.</td></tr>';
+    }
+  }
+  if($('studyBox')) $('studyBox').addEventListener('click', async function(e){
+    if(!sb) return;
+    // A·B 한 번에 켜기 (원장 지시: 스터디는 학원 A·B 우선)
+    var ab=(e.target&&e.target.closest)?e.target.closest('[data-std-ab]'):null;
+    if(ab){
+      var d2=ab.getAttribute('data-std-ab');
+      var list=(_rooms||[]).filter(function(r){ return r.active!==false && r.building!=='미플'; });
+      var have={}; _studyRooms.forEach(function(r){ if(r.study_date===d2) have[String(r.room_id)]=1; });
+      var add=list.filter(function(r){ return !have[String(r.id)]; }).map(function(r){ return {study_date:d2, room_id:r.id}; });
+      if(!add.length) return;
+      ab.disabled=true;
+      var ra=await sb.from('study_rooms').insert(add);
+      ab.disabled=false;
+      // 그 시간에 이미 수업이 있으면 서버가 막는다 — 이유를 그대로 보여준다.
+      if(ra.error){ alert(ra.error.message); }
+      await loadStudy(); return;
+    }
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-std-room]'):null; if(!b) return;
+    var day=b.getAttribute('data-std-day'), rid=parseInt(b.getAttribute('data-std-room'),10);
+    var on=b.classList.contains('on');
+    b.disabled=true;
+    var r = on ? await sb.from('study_rooms').delete().eq('study_date',day).eq('room_id',rid)
+               : await sb.from('study_rooms').insert({study_date:day, room_id:rid});
+    b.disabled=false;
+    if(r.error){ alert(r.error.message); return; }
+    await loadStudy();
+  });
+  if($('studyOffAdd')) $('studyOffAdd').onclick=async function(){
+    var err=$('studyOffErr'); err.textContent='';
+    var d=$('studyOffDate').value, why=($('studyOffReason').value||'').trim();
+    if(!d){ err.textContent='날짜를 골라주세요.'; return; }
+    var r=await sb.from('study_off').insert({off_date:d, reason:why||null, created_by:(profile?profile.id:null)});
+    if(r.error){
+      err.textContent = /duplicate|unique/i.test(r.error.message||'') ? '이미 들어가 있는 날짜예요.' : ('추가 실패: '+r.error.message);
+      return;
+    }
+    $('studyOffReason').value='';
+    await loadStudy();
+  };
+  if($('studyOffTable')) $('studyOffTable').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('[data-stdoff-del]'):null; if(!a||!sb) return;
+    e.preventDefault();
+    var d=a.getAttribute('data-stdoff-del');
+    if(!confirm(d+' 을 쉬는 날에서 뺄까요?\n\n그날 스터디가 다시 열립니다.')) return;
+    var r=await sb.from('study_off').delete().eq('off_date',d);
+    if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    await loadStudy();
+  });
+
   function offSay(ok, msg){
     var e=$('offErr'), o=$('offOk');
     if(e) e.textContent = ok ? '' : msg;
@@ -7265,6 +7557,7 @@
         + '</div>';
       if($('myAttTable')){ if(!atts.length){ $('myAttTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; } else { var ah='<tr><th>출석일</th></tr>'; atts.slice(0,30).forEach(function(a){ ah+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td></tr>'; }); $('myAttTable').innerHTML=ah; } }
     }
+    await renderMyStudy();
     if($('myHwTable')){
       var hw=[];
       if(sb){ var rh=await sb.from('homeworks').select('*').eq('student_id',profile.id).order('created_at',{ascending:false}); if(!rh.error&&rh.data) hw=rh.data; }
@@ -7276,6 +7569,63 @@
         hwh+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="마감" style="white-space:nowrap">'+esc(fmtDue(x.due_date))+'</td><td data-l="선생님" style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td></tr>'; }); $('myHwTable').innerHTML=hwh; }
     }
   }
+  // ---- 학생 화면: 주말 스터디 신청 ----------------------------------------
+  // 자격(profiles.study)이 켜진 학생에게만 보인다. 앞으로 2주치 토·일을 보여주고
+  // 갈 날만 손들게 한다(원장 확정: '그 주에 올 사람만 따로 손든다').
+  async function renderMyStudy(){
+    var wrap=$('myStudyWrap'), box=$('myStudy');
+    if(!wrap||!box) return;
+    if(!sb || !profile || !profile.study){ wrap.style.display='none'; return; }
+    box.innerHTML='<div class="wa-book-empty">불러오는 중…</div>';
+    wrap.style.display='';
+    var weeks=[], base=new Date(); base.setHours(0,0,0,0);
+    for(var w=0; w<2; w++){ var d=new Date(base); d.setDate(d.getDate()+w*7); weeks.push(ymd(d)); }
+    var days=[];
+    for(var i=0;i<weeks.length;i++){
+      var r=await sb.rpc('study_weekend',{p_date:weeks[i]});
+      if(r.error){
+        box.innerHTML='<div class="wa-book-empty">스터디 정보를 불러오지 못했어요.</div>';
+        return;
+      }
+      (r.data||[]).forEach(function(x){ if(!days.some(function(y){return y.day===x.day;})) days.push(x); });
+    }
+    var today=ymd(new Date());
+    days=days.filter(function(x){ return x.day>=today; }).sort(function(a,b){ return String(a.day).localeCompare(String(b.day)); });
+    if(!days.length){ box.innerHTML='<div class="wa-book-empty">다가오는 스터디가 없어요.</div>'; return; }
+    box.innerHTML='<div class="std-wrap">'+days.map(function(x){
+      var dow=['일','월','화','수','목','금','토'][new Date(x.day+'T00:00:00').getDay()];
+      var head='<div class="std-h"><b>'+esc(x.day)+' ('+dow+')</b> <span class="std-t">12:00~14:00</span></div>';
+      if(x.off){
+        return '<div class="std-card off">'+head
+          + '<div class="std-names" style="color:#c0342b;font-weight:700">이 날은 쉽니다'
+          + (x.reason?(' <span style="font-weight:600;color:var(--muted)">· '+esc(x.reason)+'</span>'):'')+'</div></div>';
+      }
+      // 참/불 둘 다 찍게 한다(원장 지시 2026-08-10). 안 찍으면 '미정'으로 남는다.
+      var v=x.mine;   // 'yes' | 'no' | null
+      var note = v==='yes' ? '<b style="color:var(--accent)">간다고 하셨어요.</b>'
+               : v==='no'  ? '<b style="color:#c0342b">안 간다고 하셨어요.</b>'
+               : '<b style="color:#e8892b">아직 안 정하셨어요.</b> 갈지 안 갈지 눌러주세요.';
+      return '<div class="std-card">'+head
+        + '<div class="std-names">'+note+'<br><span style="color:var(--muted);font-size:12px">지금 '+(x.n||0)+'명 간다고 했어요.</span></div>'
+        + '<div class="std-vote">'
+        +   '<button type="button" class="std-join'+(v==='yes'?' on':'')+'" data-std-vote="yes" data-std-day="'+esc(x.day)+'">갈게요</button>'
+        +   '<button type="button" class="std-join no'+(v==='no'?' on':'')+'" data-std-vote="no" data-std-day="'+esc(x.day)+'">안 가요</button>'
+        + '</div></div>';
+    }).join('')+'</div>';
+  }
+  if($('myStudy')) $('myStudy').addEventListener('click', async function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-std-vote]'):null;
+    if(!b||!sb||!profile) return;
+    var day=b.getAttribute('data-std-day'), want=(b.getAttribute('data-std-vote')==='yes');
+    if(b.classList.contains('on')) return;      // 이미 그렇게 찍어 뒀다
+    [].forEach.call(b.parentNode.querySelectorAll('button'), function(x){ x.disabled=true; });
+    // 지웠다 넣으면 '미정'과 헷갈리므로 행을 남기고 값만 바꾼다(upsert).
+    var r=await sb.from('study_signups')
+      .upsert({student_id:profile.id, student_name:(profile.name||null), study_date:day, going:want},
+              {onConflict:'student_id,study_date'});
+    if(r.error) alert('처리 실패: '+r.error.message);
+    await renderMyStudy();
+  });
   if($('myHwTable')) $('myHwTable').addEventListener('change', async function(e){
     var cb=e.target; if(!cb||cb.getAttribute('data-hw')==null) return;
     if(!sb) return;
