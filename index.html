@@ -3506,6 +3506,9 @@
         <div class="wa-ok" id="scOk"></div>
         <button class="btn btn-primary" id="scAdd" type="button">＋ 스케줄 추가</button>
       </div>
+      <!-- 학생이 넣은 예약 요청. 대시보드 위쪽 알림 배너에도 뜨지만, 원장 지시(2026-08-10)로
+           스케줄 탭 안에서도 따로 보이게 한다("수업 스케줄 알림에 따로 뜨게"). -->
+      <div id="scPendBox"></div>
       <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
       <div class="dash-note" style="margin-top:0">여기 넣어둔 날짜·시간에는 <b>학생이 수업 예약을 걸 수 없습니다.</b> 선생님을 <b>학원 전체 휴무</b>로 두면 모든 선생님이 한 번에 쉽니다.<br>휴무는 수업이 아니라서 스케줄표·강의장 배정·정산에 섞이지 않습니다.</div>
       <div class="dash-form" style="margin-top:8px">
@@ -4923,13 +4926,16 @@
     var tag=(r.building==='미플') ? '옆건물' : (c>0 ? c+'인' : '');
     return r.name + (tag ? ' ('+tag+')' : '');
   }
-  // 폰용 짧은 머리글. 칸이 76px 밖에 안 되므로 '강의장 A (4인)' 은 안 들어간다.
-  // 방 이름에서 마지막 낱말(A·B·C)만 남기고, 옆 건물만 점 하나로 표시한다.
+  // 폰용 짧은 머리글. 칸이 76px 라 '강의장 A (4인)' 은 안 들어간다.
+  // 원장 지시(2026-08-10): 'A(4인) B(6인) C(옆건물)' 형태로.
+  // → 방 이름에서 마지막 낱말(A·B·C)만 남기고 괄호 안에 정원(옆 건물이면 '옆건물')을 붙인다.
   function calRoomHeadShort(r){
     if(!r) return '미배정';
     var nm=String(r.name||'').trim();
     var last=nm.split(/\s+/).pop() || nm;
-    return last + (r.building==='미플' ? '·옆' : '');
+    var c=parseInt(r.capacity,10);
+    var tag=(r.building==='미플') ? '옆건물' : (c>0 ? c+'인' : '');
+    return last + (tag ? '('+tag+')' : '');
   }
   // 그 시간에 이미 쓰고 있는 방을 뺀 목록
   function freeRooms(target, all, list){
@@ -5449,7 +5455,19 @@
     var alerts=[], pend=[];
     try{ await loadAlertChecks(); }catch(e){}
     try{ alerts=await computeTeacherAlerts(); }catch(e){ alerts=[]; }
-    try{ var pr=await sb.from('schedules').select('*').eq('teacher_id',profile.id).eq('status','pending').order('starts_at'); if(!pr.error&&pr.data) pend=pr.data; }catch(e){}
+    // 🚨 예약 요청 알림이 안 뜬다는 지적(원장 2026-08-10).
+    // 원인: 여기서 teacher_id = 나 인 것만 가져오고 있었다. 그래서 **원장·매니저는
+    // 다른 선생님 담당 학생의 예약 요청을 볼 수 없었다** — 그 선생님이 안 보면 아무도 모른다.
+    // 승인·거절 RPC 는 원래 master·manager 에게 전체 권한을 준다(담당 검사는 admin 일 때만).
+    // 즉 권한은 있는데 화면에만 안 보이던 것. → 운영진은 전체, 선생님은 본인 담당만.
+    try{
+      var pq=sb.from('schedules').select('*').eq('status','pending').order('starts_at');
+      if(!isOps()) pq=pq.eq('teacher_id', profile.id);
+      var pr=await pq; if(!pr.error&&pr.data) pend=pr.data;
+    }catch(e){}
+    // 스케줄 탭 목록은 알림 배너보다 먼저 그린다 — 아래에 'alerts 도 pend 도 없으면 return' 이 있어서
+    // 여기서 안 그리면 예약이 0건일 때 스케줄 탭의 옛 목록이 지워지지 않는다.
+    drawSchedPending(pend);
     // 2026-08-09 — '등원 기록이 없어요' 노쇼 알림은 없앴다.
     // 등원 키오스크를 걷어낸 뒤로는 아무도 체크인을 찍지 않아서, 끝난 수업이 전부 노쇼 후보로 떴다.
     // 이제 확정된 수업이 곧 출석이고, 안 온 경우만 달력에서 수업을 눌러 '결석'으로 표시한다.
@@ -5461,7 +5479,9 @@
       box.style.display=''; return;
     }
     var pendItems=pend.map(function(s){
-      return '<li><span class="wa-al-tag t-req">예약요청</span><b>'+esc(s.student_name||'학생')+'</b> 학생 — '+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+' '+esc(s.subject||'')+'<span class="wa-al-sp"></span><button class="wa-al-approve" data-approve="'+esc(s.id)+'">승인</button><button class="wa-al-reject" data-reject="'+esc(s.id)+'">거절</button></li>';
+      // 운영진은 남의 담당 예약까지 보므로 누구 담당인지 적어 준다(선생님 본인 화면에는 불필요).
+      var tn = (isOps() && s.teacher_name) ? ' <span style="color:var(--muted);font-weight:700">('+esc(s.teacher_name)+' 담당)</span>' : '';
+      return '<li><span class="wa-al-tag t-req">예약요청</span><b>'+esc(s.student_name||'학생')+'</b> 학생'+tn+' — '+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+' '+esc(s.subject||'')+'<span class="wa-al-sp"></span><button class="wa-al-approve" data-approve="'+esc(s.id)+'">승인</button><button class="wa-al-reject" data-reject="'+esc(s.id)+'">거절</button></li>';
     }).join('');
     var items=alerts.slice(0,30).map(function(a){
       // 이름이 달라 잘못 뜬 알림은 선생님이 직접 지울 수 있다
@@ -5471,6 +5491,22 @@
     }).join('');
     box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">'+(alerts.length+pend.length)+'</span></div><ul>'+pendItems+items+'</ul>'+undoH;
     box.style.display='';
+  }
+  // 스케줄 탭 안에도 예약 요청을 따로 띄운다(원장 지시 2026-08-10).
+  // 위쪽 알림 배너는 숙제·다음수업까지 섞여 있어 예약 요청이 묻힌다.
+  function drawSchedPending(pend){
+    var box=$('scPendBox'); if(!box) return;
+    if(!pend || !pend.length){ box.innerHTML=''; return; }
+    var lis=pend.map(function(s){
+      var tn = (isOps() && s.teacher_name) ? ' <span style="color:var(--muted);font-weight:700">('+esc(s.teacher_name)+' 담당)</span>' : '';
+      return '<li><span class="wa-al-tag t-req">예약요청</span><b>'+esc(s.student_name||'학생')+'</b> 학생'+tn
+        + ' — '+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+' '+esc(s.subject||'')
+        + '<span class="wa-al-sp"></span><button class="wa-al-approve" data-approve="'+esc(s.id)+'">승인</button>'
+        + '<button class="wa-al-reject" data-reject="'+esc(s.id)+'">거절</button></li>';
+    }).join('');
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
+      + '<div class="wa-al-head">🙋 학생이 넣은 수업 예약 요청 <span class="wa-al-badge">'+pend.length+'</span></div>'
+      + '<ul>'+lis+'</ul></div>';
   }
   // 최근 '확인함' 처리한 항목 — 잘못 눌렀을 때 되돌리기
   function ackUndoHtml(){
@@ -5482,7 +5518,10 @@
     }).join('');
     return '<details class="wa-al-undo"><summary>확인함으로 지운 알림 '+_alertCheckRows.length+'개</summary><ul>'+rows+'</ul></details>';
   }
-  if($('waAlerts')) $('waAlerts').addEventListener('click', async function(e){
+  // 알림 배너와 스케줄 탭의 예약 목록이 같은 버튼을 쓴다 → 핸들러 하나를 두 곳에 건다.
+  if($('scPendBox')) $('scPendBox').addEventListener('click', function(e){ onAlertClick(e); });
+  if($('waAlerts')) $('waAlerts').addEventListener('click', onAlertClick);
+  async function onAlertClick(e){
     var t=e.target;
     var ap=(t&&t.closest)?t.closest('[data-approve]'):null;
     var rj=(t&&t.closest)?t.closest('[data-reject]'):null;
@@ -5519,7 +5558,7 @@
       if(r2.error){ alert('거절 실패: '+r2.error.message); return; }
       await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
     if(g){ dashTab(g.getAttribute('data-goto')); }
-  });
+  }
 
   // ---- 주간 캘린더 (시간 격자) ----
   var DOW=['월','화','수','목','금','토','일'];
@@ -7390,15 +7429,24 @@
     var d=r.data||{};
     if(d.error==='no_teacher'){ box.innerHTML='<div class="wa-book-empty">담당 선생님 배정 후 예약할 수 있어요.<br>카카오톡 채널로 문의해주세요.</div>'; if($('waBookSub')) $('waBookSub').textContent='담당 선생님 배정 후 이용할 수 있어요.'; return; }
     if(d.error){ box.innerHTML='<div class="wa-book-empty">로그인 후 이용해주세요.</div>'; return; }
+    // 몇 건이나 더 잡을 수 있는지 먼저 구한다. 0이면 눌러도 서버가 거절하므로 아예 못 누르게 막는다.
+    // (원장 지적 2026-08-10: 윤성빈 학생이 눌렀는데 아무 반응이 없었다 — 남은 횟수 0이라 거절됐는데
+    //  그 문구가 시간 목록 한참 아래에 찍혀 화면 밖이었다.)
+    var left=null;
+    try{ var lr=await sb.rpc('booking_left',{p_student:profile.id}); if(!lr.error) left=lr.data; }catch(e){}
     if($('waBookSub') && d.teacher_name){
-      // 몇 건이나 더 잡을 수 있는지 미리 알려준다(남은 수업 횟수와 4건 제한 중 빡빡한 쪽).
-      var leftTxt='';
-      try{
-        var lr=await sb.rpc('booking_left',{p_student:profile.id});
-        if(!lr.error && lr.data!=null) leftTxt=' · 지금 <b>'+lr.data+'건</b> 더 예약할 수 있어요 (최대 4건)';
-      }catch(e){}
+      var leftTxt = (left==null) ? ''
+        : (left>0 ? ' · 지금 <b>'+left+'건</b> 더 예약할 수 있어요 (최대 4건)'
+                  : ' · <b style="color:#c0342b">지금은 예약할 수 없어요</b>');
       $('waBookSub').innerHTML='담당 '+esc(d.teacher_name)+' 선생님의 빈 시간을 골라 예약을 요청하세요. (2시간 단위)'+leftTxt
         + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>변경·취소는 선생님께 문의</b>해주세요.</span>';
+    }
+    if(left===0){
+      box.innerHTML='<div class="wa-book-empty" style="color:#c0342b;font-weight:700;line-height:1.8">'
+        + '지금은 예약할 수 없어요.<br>'
+        + '<span style="font-weight:600;color:var(--ink-soft)">남은 수업 횟수가 없거나, 이미 4건을 잡아두셨습니다.<br>'
+        + '카카오톡 채널로 문의해주세요.</span></div>';
+      return;
     }
     var slots=d.slots||[];
     if(!slots.length){ box.innerHTML='<div class="wa-book-empty">예약 가능한 시간이 없어요.</div>'; return; }
@@ -7413,9 +7461,18 @@
     var start=el.getAttribute('data-slot'), date=$('waBookDate').value, subject=$('waBookSubject')?$('waBookSubject').value:'토익';
     if(!confirm(date+' '+start+' 수업으로 예약을 요청할까요?\n선생님 승인 후 확정됩니다.')) return;
     var r=await sb.rpc('request_booking',{p_date:date,p_start:start,p_subject:subject});
-    if(r.error){ if($('waBookErr')) $('waBookErr').textContent='요청 실패: '+r.error.message; return; }
+    // 실패도 성공처럼 팝업으로 알린다. 예전엔 빨간 글씨만 찍었는데 그 자리가
+    // 시간 목록 아래라 화면 밖이었고, 학생은 아무 일도 안 일어난 걸로 느꼈다(2026-08-10).
+    if(r.error){
+      if($('waBookErr')) $('waBookErr').textContent='요청 실패: '+r.error.message;
+      alert('예약 요청에 실패했어요.\n\n'+r.error.message); return;
+    }
     var res=r.data||{};
-    if(!res.ok){ if($('waBookErr')) $('waBookErr').textContent=res.msg||'예약할 수 없어요.'; await loadBookSlots(); return; }
+    if(!res.ok){
+      if($('waBookErr')) $('waBookErr').textContent=res.msg||'예약할 수 없어요.';
+      alert(res.msg||'예약할 수 없어요.');
+      await loadBookSlots(); return;
+    }
     alert(res.msg||'예약이 요청되었어요.');
     await loadBookSlots(); await loadMyBookings();
   });
