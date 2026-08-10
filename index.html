@@ -3486,6 +3486,7 @@
     <div class="dash-tabs">
       <button class="dash-tab on" data-dtab="members">회원</button>
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
+      <button class="dash-tab" data-dtab="study">스터디</button>
       <button class="dash-tab" data-dtab="pay">수납</button>
       <button class="dash-tab" data-dtab="payroll">정산</button>
       <button class="dash-tab" data-dtab="att">수업 횟수</button>
@@ -3576,23 +3577,6 @@
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
 
-      <!-- 주말 스터디 (원장 확정 2026-08-10): 토·일 12~14시, 자격 있는 학생이 그 주에 갈 날만 손든다.
-           토익 시험일은 쉰다. 강의장은 인원 보고 사람이 1~2개 고른다. -->
-      <div class="dash-list-head">🧑‍🤝‍🧑 주말 스터디 <span id="studyCount" style="color:var(--muted);font-weight:700"></span></div>
-      <div class="dash-note" style="margin-top:0">토·일 <b>12:00~14:00</b>. 회원 관리에서 <b>스터디 = 참여</b>로 켜 둔 학생이 그 주에 갈 날에만 신청합니다.<br>토익 시험일은 자동으로 쉽니다(아래에서 날짜를 더하거나 뺄 수 있어요).</div>
-      <div id="studyBox"></div>
-      <details class="wa-al-undo" id="studyOffWrap" style="margin-top:10px">
-        <summary>스터디 쉬는 날 관리 <span id="studyOffCount" style="color:var(--muted)"></span></summary>
-        <div class="dash-row" style="margin-top:8px">
-          <label>날짜<input type="date" id="studyOffDate"></label>
-          <label style="flex:2">사유<input type="text" id="studyOffReason" placeholder="예: 토익 제586회"></label>
-          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span>
-            <button class="btn btn-ghost" id="studyOffAdd" type="button" style="white-space:nowrap">＋ 추가</button></label>
-        </div>
-        <p class="wa-err" id="studyOffErr"></p>
-        <div class="wa-table-wrap"><table class="wa-table" id="studyOffTable"></table></div>
-      </details>
-
       <div class="cal-head">
         <div class="cal-modes">
           <button class="cal-mode" id="calDay" type="button">일</button>
@@ -3614,6 +3598,27 @@
       <div class="cal-month" id="calMonthGrid" style="display:none"></div>
     </div>
 
+    <!-- 주말 스터디 (원장 확정 2026-08-10). 처음엔 수업 스케줄 탭 안에 넣었다가
+         "따로 스터디라고 기능을 넣어달라"고 하셔서 탭을 뺐다.
+         토·일 12~14시, 자격 있는 학생이 그 주에 갈 날만 참/불로 찍는다. 시험일은 쉰다. -->
+    <div class="dash-pane" data-dpane="study">
+      <div class="wa-sub">주말 스터디 <span id="studyCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="dash-note" style="margin-top:6px">토·일 <b>12:00~14:00</b>, 학생들끼리 모입니다.<br>
+        <b>회원 관리 → 스터디 = 참여</b>로 켜 둔 학생만 이 화면에 잡히고, 그 학생이 갈 날에만 <b>갈게요 / 안 가요</b>를 찍습니다.<br>
+        토익 시험일은 자동으로 쉽니다. 스터디가 쓰는 강의장에는 그 시간에 수업을 못 넣습니다.</div>
+      <div id="studyBox"></div>
+      <details class="wa-al-undo" id="studyOffWrap" style="margin-top:10px">
+        <summary>스터디 쉬는 날 관리 <span id="studyOffCount" style="color:var(--muted)"></span></summary>
+        <div class="dash-row" style="margin-top:8px">
+          <label>날짜<input type="date" id="studyOffDate"></label>
+          <label style="flex:2">사유<input type="text" id="studyOffReason" placeholder="예: 토익 제586회"></label>
+          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span>
+            <button class="btn btn-ghost" id="studyOffAdd" type="button" style="white-space:nowrap">＋ 추가</button></label>
+        </div>
+        <p class="wa-err" id="studyOffErr"></p>
+        <div class="wa-table-wrap"><table class="wa-table" id="studyOffTable"></table></div>
+      </details>
+    </div>
 
     <div class="dash-pane" data-dpane="pay">
       <div class="dash-form" id="pyAddForm">
@@ -4836,6 +4841,8 @@
     }
     // 달력은 탭이 숨어 있는 동안 폭이 0이라 스크롤 계산이 안 먹는다. 열릴 때 다시 맞춘다.
     if(name==='sched' && typeof centerToday==='function') setTimeout(centerToday, 0);
+    // 스터디는 학생들이 수시로 참/불을 바꾸므로 탭을 열 때마다 새로 읽는다.
+    if(name==='study' && typeof loadStudy==='function'){ try{ loadStudy(); }catch(e){} }
   }
   (function(){ var c=$('waAdmin'); if(c) c.querySelectorAll('.dash-tab').forEach(function(b){ b.onclick=function(){ dashTab(b.getAttribute('data-dtab')); }; }); })();
 
