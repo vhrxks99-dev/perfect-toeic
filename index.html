@@ -3922,6 +3922,11 @@
       <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="graduated" checked style="width:auto;margin:0">목표 달성 · 수료</label>
       <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="quit" style="width:auto;margin:0">중도 퇴원</label>
       <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="etc" style="width:auto;margin:0">기타 / 미기재</label>
+      <!-- 원장 요청(2026-08-10): "기타 입력하면 내용 입력할 수 있게 해줘."
+           '기타'를 고를 때만 펼친다. 세 항목에 안 들어가는 사유를 적어 두면
+           나중에 왜 그만뒀는지 찾아볼 수 있다. -->
+      <label id="waEndMemoWrap" style="display:none">기타 사유
+        <input type="text" id="waEndMemo" maxlength="100" placeholder="예: 군 입대, 지방 이사, 취업으로 중단"></label>
       <span style="font-size:12px;color:var(--muted);font-weight:600">‘중도 퇴원’만 선생님 평가의 퇴원율에 들어갑니다. 종료하면 다음수업·숙제 알림에서 빠져요.</span>
       <p class="wa-err" id="waEndErr"></p>
       <button class="btn btn-primary" id="waEndSave" type="button">저장</button>
@@ -4474,14 +4479,21 @@
       if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
       var ended=(u.status==='ended');
       var st=ended?pickStyle('#e5b4b0','#fdf0ef','#c0342b'):pickStyle('var(--line,#e3e6ea)','#fff','var(--ink,#222)');
-      var why = ended ? ('<br><span style="color:var(--muted);font-size:11.5px">'+(u.end_reason==='quit'?'중도 퇴원':(u.end_reason==='graduated'?'수료':'기타'))+'</span>') : '';
+      // 기타로 종료한 학생은 적어 둔 사유까지 같이 보여 준다(원장 요청 2026-08-10).
+      var whyTxt = u.end_reason==='quit' ? '중도 퇴원' : (u.end_reason==='graduated' ? '수료' : '기타');
+      if(u.end_reason==='etc' && u.end_memo) whyTxt += ' · ' + u.end_memo;
+      var why = ended ? ('<br><span style="color:var(--muted);font-size:11.5px">'+esc(whyTxt)+'</span>') : '';
       return '<td style="white-space:nowrap"><select data-status-for="'+esc(u.id)+'" style="'+st+'">'
            + '<option value="active"'+(ended?'':' selected')+'>수강 중</option>'
            + '<option value="ended"'+(ended?' selected':'')+'>수강 종료</option></select>'+why+'</td>';
     }
     // 주말 스터디 참여 자격(원장 확정 2026-08-10). 학생이 스스로 못 켜고 여기서만 켠다.
+    // 수료·퇴원한 학생은 아예 칸을 없앤다 — 원장 지적(2026-08-10):
+    // "점수 나와서 수료하면 스터디는 더 이상 할 필요가 없잖아."
+    // 다시 하려면 수강 상태를 '수강 중'으로 되돌린 뒤 켜면 된다.
     function studyCell(u){
       if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
+      if(isEnded(u)) return '<td style="color:var(--muted);white-space:nowrap">수강 종료</td>';
       var on=!!u.study;
       var st=on?pickStyle('#b7c9e8','#eef3fd','#1d4ed8'):pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
       return '<td style="white-space:nowrap"><select data-study-for="'+esc(u.id)+'" style="'+st+'">'
@@ -4708,9 +4720,19 @@
     if($('waEndWho')) $('waEndWho').textContent=(u.name||'')+' 학생을 수강 종료로 바꿉니다.';
     var pick=(u.end_reason==='quit'||u.end_reason==='etc')?u.end_reason:'graduated';
     document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ r.checked=(r.value===pick); });
+    if($('waEndMemo')) $('waEndMemo').value=u.end_memo||'';
+    endMemoToggle();
     if($('waEndErr')) $('waEndErr').textContent='';
     $('waEnd').classList.add('on');
   }
+  // '기타'일 때만 사유 칸을 보여 준다(원장 요청 2026-08-10).
+  function endMemoToggle(){
+    var wrap=$('waEndMemoWrap'); if(!wrap) return;
+    var etc=false;
+    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ if(r.checked && r.value==='etc') etc=true; });
+    wrap.style.display = etc ? '' : 'none';
+  }
+  document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ r.addEventListener('change', endMemoToggle); });
   function closeEnd(){ if($('waEnd')) $('waEnd').classList.remove('on'); endId=null; }
   if($('waEndClose')) $('waEndClose').onclick=closeEnd;
   if($('waEnd')) $('waEnd').addEventListener('click',function(e){ if(e.target===$('waEnd')) closeEnd(); });
@@ -4718,10 +4740,13 @@
     if(!endId||!sb) return;
     var picked='etc';
     document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ if(r.checked) picked=r.value; });
-    var r=await sb.rpc('set_student_status',{target:endId,new_status:'ended',reason:picked});
+    // 기타일 때만 적어 둔 내용을 같이 보낸다. 다른 사유면 남아 있던 메모를 지운다.
+    var memo=(picked==='etc' && $('waEndMemo')) ? String($('waEndMemo').value||'').trim() : '';
+    var r=await sb.rpc('set_student_status',{target:endId,new_status:'ended',reason:picked,memo:memo});
     if(r.error){ $('waEndErr').textContent='저장 실패: '+r.error.message; return; }
     var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(endId);})[0];
-    if(u){ u.status='ended'; u.end_reason=picked; if(!u.ended_at) u.ended_at=new Date().toISOString(); }
+    // 서버(set_student_status)가 스터디 자격도 같이 끄므로 화면 쪽도 맞춰 준다.
+    if(u){ u.status='ended'; u.end_reason=picked; u.end_memo=memo||null; u.study=false; if(!u.ended_at) u.ended_at=new Date().toISOString(); }
     closeEnd();
     drawMembers();
     await loadTeacherAlerts();
@@ -6023,7 +6048,11 @@
       if(o.error){ _studyOff=null; drawStudy(); return; }
       _studyOff=o.data||[];
       var s=await sb.from('study_signups').select('*').gte('study_date',from).lte('study_date',to);
-      _studySignups=(!s.error&&s.data)?s.data:[];
+      // 수료·퇴원한 학생이 예전에 찍어 둔 기록은 명단·인원수에서 뺀다.
+      // (DB 쪽에서도 지우지만, 남아 있어도 숫자가 틀리지 않게 여기서 한 번 더 거른다)
+      var endedIds={};
+      (window.__wtMembers||[]).forEach(function(u){ if(isEnded(u)) endedIds[String(u.id)]=1; });
+      _studySignups=(!s.error&&s.data)?s.data.filter(function(x){ return !endedIds[String(x.student_id)]; }):[];
       var r=await sb.from('study_rooms').select('*').gte('study_date',from).lte('study_date',to);
       _studyRooms=(!r.error&&r.data)?r.data:[];
     }catch(e){ _studyOff=null; }
@@ -7582,7 +7611,8 @@
   async function renderMyStudy(){
     var wrap=$('myStudyWrap'), box=$('myStudy');
     if(!wrap||!box) return;
-    if(!sb || !profile || !profile.study){ wrap.style.display='none'; return; }
+    // 수료·퇴원한 학생에게는 보이지 않는다(원장 지적 2026-08-10).
+    if(!sb || !profile || !profile.study || String(profile.status||'')==='ended'){ wrap.style.display='none'; return; }
     box.innerHTML='<div class="wa-book-empty">불러오는 중…</div>';
     wrap.style.display='';
     var weeks=[], base=new Date(); base.setHours(0,0,0,0);
