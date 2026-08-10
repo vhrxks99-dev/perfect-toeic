@@ -654,7 +654,7 @@
     <button class="drawer-close" data-close aria-label="닫기">×</button>
     <div id="waAuthM"></div>
     <div class="dgroup"><span>완벽한토익 소개</span><div class="dsub">
-      <a href="#diagnose" data-close>브랜드소개</a><a href="#strengths" data-close>완토의 강점</a><a href="#notice" data-close>공지사항</a></div></div>
+      <a href="#diagnose" data-close>브랜드소개</a><a href="#strengths" data-close>완토의 강점</a><a href="#teachers" data-close>강사진 소개</a><a href="#notice" data-close>공지사항</a></div></div>
     <div class="dgroup"><span>수강신청</span><div class="dsub">
       <a href="#apply-form" data-close>수강신청문의</a><a href="#books" data-close>교재</a><a href="#payment" data-close>결제</a></div></div>
     <div class="dgroup"><span>수강안내</span><div class="dsub">
@@ -977,7 +977,7 @@
     <div class="sec-head reveal">
       <span class="eyebrow">완토 진단 테스트 <b>· WANTO TEST</b></span>
       <h2>지금 내 토익, 몇 점일까?</h2>
-      <p><b>읽기(RC) 전용 진단</b>입니다 — 문법·어휘·전접부(전치사·접속사·접속부사)·Part 6·Part 7 총 30문제, 5개 능력별로 <b>각 6문제씩</b> 고르게 출제됩니다. 듣기(LC)는 문제 대신 <b>성적표 점수를 입력</b>받아 함께 분석합니다. <b>예상 점수</b>를 즉시 확인하고, <b>상세 능력별 약점 분석</b>은 무료 상담 시 담당 선생님이 1:1로 알려드립니다. (매번 무작위 출제)</p>
+      <p><b>읽기(RC) 전용 진단</b>입니다 — 문법·어휘·전접부(전치사·접속사·접속부사)·Part 6·Part 7 총 30문제, 5개 능력별로 <b>각 6문제씩</b> 고르게 출제됩니다. 듣기(LC)는 문제 대신 <b>성적표 점수를 입력</b>받아 함께 분석합니다. 결과는 <b>읽기(RC) 예상 점수</b>로 나오며(듣기를 안 봤으니 총점을 지어내지 않습니다), 성적표 점수를 넣으면 총점까지 함께 보여드립니다. <b>상세 능력별 약점 분석</b>은 무료 상담 시 담당 선생님이 1:1로 알려드립니다. (매번 무작위 출제)</p>
     </div>
 
     <div class="lvt reveal">
@@ -1188,7 +1188,22 @@
     "P7":"지문 독해와 정보 찾기 속도(Part 7)를 집중적으로 끌어올리세요."
   };
   var CATS=["문법","어휘","전접부","P6","P7"];
-  var W={easy:30,medium:48,hard:62}, BASE=130;
+  var W={easy:30,medium:48,hard:62};
+  // ── 예상 점수 환산 ────────────────────────────────────────────────
+  // 이 진단은 읽기(RC)만 30문항 본다. 예전에는 130 + 정답률×840 으로 **총점(990)**을
+  // 바로 내놓았는데, 그건 재지도 않은 듣기 절반을 지어내는 것이라 크게 빗나갔다.
+  // (2026-08-09 원장 지적: 실제 720점(LC330/RC390) 학생이 905점으로 나옴.
+  //  그 학생의 RC만 보면 아래 식으로 400점이 나와 거의 맞는다 — 총점으로 부풀린 게 원인.)
+  // 그래서 이제 **RC 점수를 내고, 총점은 LC를 입력했을 때만** 계산한다.
+  //  ① 4지선다라 찍어도 25%는 맞는다 → 그만큼 빼고 시작(추측 보정)
+  //  ② 30문항은 표본이 작아 1문항이 16점씩 흔든다 → 평균(300)쪽으로 20% 당김
+  //  ③ 자체 문항은 실전보다 쉬워 만점이 495를 뜻하지 않는다 → 상한 470
+  function rcScore(p){
+    var m   = Math.max(0, (p - 0.25) / 0.75);
+    var raw = 5 + m * 465;
+    var sh  = 300 + 0.80 * (raw - 300);
+    return Math.min(495, Math.max(5, Math.round(sh/5)*5));
+  }
   var Q=[], idx=0, ans=[], lastReportText='', lastDiag=null;
   var $=function(id){return document.getElementById(id);};
   // ── 문항별 시간 측정 ──────────────────────────────────────────────
@@ -1363,16 +1378,14 @@
       var it=Q[i], w=W[it.lv]||48; totw+=w; stat[it.cat].t++;
       if(ans[i]===it.a){ earned+=w; correct++; stat[it.cat].c++; }
     }
-    var score=Math.min(970,Math.max(130,Math.round((BASE+earned/totw*840)/5)*5));
-    var lo=Math.max(10,score-40), hi=Math.min(990,score+40);
+    var rc=rcScore(totw?earned/totw:0);
     var lvl,desc;
-    if(score>=900){lvl='고급 <b>Advanced</b>';desc='이미 상위권 실력입니다. 950+ 만점대 돌파를 위해 고난도 파트별 약점 클리닉과 실전 모의고사 중심의 관리가 필요합니다.';}
-    else if(score>=800){lvl='중상급 <b>Upper-Intermediate</b>';desc='고득점이 눈앞입니다. 아래 성적표의 약점 파트를 집중 보완하면 900 돌파가 충분히 가능합니다.';}
-    else if(score>=650){lvl='중급 <b>Intermediate</b>';desc='기본기는 탄탄합니다. 아래 취약 파트를 집중 공략하면 800점대 진입이 현실적입니다.';}
-    else if(score>=450){lvl='기초 <b>Elementary</b>';desc='핵심 문법·어휘를 체계적으로 다지면 점수가 빠르게 오릅니다. 진단 기반 맞춤 커리큘럼이 특히 효과적입니다.';}
+    if(rc>=450){lvl='고급 <b>Advanced</b>';desc='읽기는 이미 상위권입니다. 950+ 만점대는 △(확신 없이 맞힌 문항) 관리와 듣기에서 갈립니다.';}
+    else if(rc>=400){lvl='중상급 <b>Upper-Intermediate</b>';desc='읽기 고득점이 눈앞입니다. 약점 파트를 집중 보완하면 RC 450 돌파가 충분히 가능합니다.';}
+    else if(rc>=320){lvl='중급 <b>Intermediate</b>';desc='기본기는 탄탄합니다. 아래 취약 파트를 집중 공략하면 RC 400 진입이 현실적입니다.';}
+    else if(rc>=220){lvl='기초 <b>Elementary</b>';desc='핵심 문법·어휘를 체계적으로 다지면 점수가 빠르게 오릅니다. 진단 기반 맞춤 커리큘럼이 특히 효과적입니다.';}
     else {lvl='입문 <b>Beginner</b>';desc='지금이 시작하기 가장 좋은 때입니다. 기초부터 1:1로 잡아드리면 단기간에 큰 점수 상승이 가능합니다.';}
-    $('lvtScore').textContent=score;
-    $('lvtRange').textContent='예상 범위 '+lo+' ~ '+hi+'점  ·  '+Q.length+'문제 중 '+correct+'개 정답';
+    lastRC=rc; lastCorrect=correct;
     $('lvtLevel').innerHTML='예상 레벨 — '+lvl;
     $('lvtDesc').textContent=desc;
     var abStat={}; ABIL.forEach(function(a){ abStat[a.k]={c:0,t:0}; });
@@ -1388,9 +1401,10 @@
       ? '<div style="background:#fff5f5;border:1px solid #f0b4b4;border-radius:12px;padding:13px 16px;font-size:14px;line-height:1.6;color:#7a1f1f;margin-bottom:10px">✕ <b>틀린 문항 ('+wrongNums.length+'개):</b> '+wrongNums.join(' · ')+'<br><span style="font-size:12.5px;color:#a44">아래 <b>내가 틀린 문제 확인하기</b>에서 정답·해설을 볼 수 있어요.</span></div>'
       : '<div style="background:#f0fbf3;border:1px solid #a7e0bb;border-radius:12px;padding:13px 16px;font-size:14px;color:#14683a;margin-bottom:10px">🎉 <b>전 문항 정답입니다!</b></div>';
     paintTimeBox();
-    lastScore=score; lastWrong=wrongHtml; lastFocusArr=lvcFocus(abStat, ABIL);
+    lastWrong=wrongHtml; lastFocusArr=lvcFocus(abStat, ABIL);
     userLC=null; userRC=null;
-    autoSave(score, abils, weakA);
+    paintHead();
+    autoSave(effScore(), abils, weakA);
     paintReport();
     buildReview();
     if($('lvtReviewBtn')){ $('lvtReviewBtn').style.display=''; $('lvtReviewBtn').textContent='내가 틀린 문제 확인하기'; }
@@ -1478,7 +1492,27 @@
   // ── 실제 토익 성적표의 LC/RC 점수(선택 입력) ──
   var userLC=null, userRC=null;
   function hasReal(){ return userLC!=null && userRC!=null; }
-  function effScore(){ return hasReal() ? (userLC+userRC) : lastScore; }
+  // 커리큘럼 단계(LVC)는 총점 기준이라 총점이 필요하다.
+  // 성적표를 넣었으면 진짜 총점, 아니면 "듣기도 읽기와 같다"고 보고 RC×2 — 어디까지나 단계 판정용이며 화면에 총점으로 내보이지 않는다.
+  function effScore(){ return hasReal() ? (userLC+userRC) : Math.min(990, lastRC*2); }
+
+  // 결과 화면 맨 위 큰 숫자. 성적표를 넣기 전에는 총점이 아니라 **읽기(RC) 예상**을 보여준다.
+  function paintHead(){
+    var real=hasReal();
+    var sc=$('lvtScore'), rg=$('lvtRange'); if(!sc) return;
+    var sm=sc.parentNode.querySelector('small');
+    sc.textContent = real ? (userLC+userRC) : lastRC;
+    if(sm) sm.textContent = real ? '점 · 성적표 총점' : '점 · 읽기(RC) 예상';
+    if(!rg) return;
+    if(real){
+      rg.innerHTML='듣기 '+userLC+' · 읽기 '+userRC+'  ·  이번 진단 읽기 예상 <b>'+lastRC+'점</b>'
+        +'  ·  '+Q.length+'문제 중 '+lastCorrect+'개 정답';
+    }else{
+      var lo=Math.max(5,lastRC-45), hi=Math.min(495,lastRC+45);
+      rg.innerHTML='예상 범위 '+lo+' ~ '+hi+'점  ·  '+Q.length+'문제 중 '+lastCorrect+'개 정답'
+        +'<br><span style="color:var(--muted)">듣기(LC)는 이 진단에서 측정하지 않습니다 &mdash; 아래에 성적표 점수를 넣으면 총점까지 나옵니다.</span>';
+    }
+  }
 
   // LC와 RC의 차이로 이번 기간에 어디에 무게를 둘지 정한다.
   function gapBox(L){
@@ -1522,7 +1556,7 @@
   function lvcPrintSheet(){
     if(!lastCur) return;
     lvcOpenSheet({ name:($('lvtName')&&$('lvtName').value||'').trim(),
-      score:(hasReal()? (userLC+userRC) : ($('lvtScore').textContent||'').trim()),
+      score:(hasReal()? (userLC+userRC) : lastRC),
       level:($('lvtLevel').textContent||'').replace('예상 레벨 — ','').trim(),
       lc:userLC, rc:userRC,
       L:lastCur, focus:lastFocus, abils:null });
@@ -1613,7 +1647,7 @@
       +'<div class="printbar"><span>완벽한토익 · 진단 결과 맞춤 커리큘럼</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>'
       +'<div class="hd"><div class="l"><div class="k">D I A G N O S I S</div><div class="t">'
         +(nm?esc2(nm)+' 학생 ':'')+(o.abils?'진단 리포트':'맞춤 커리큘럼')+'</div></div>'
-      +'<div class="r"><div class="g">'+(o.lc!=null&&o.rc!=null?'성적표 총점':'진단 예상 점수')+'</div><div class="n">'+esc2(score)+'점</div>'
+      +'<div class="r"><div class="g">'+(o.lc!=null&&o.rc!=null?'성적표 총점':'진단 예상 (읽기 RC)')+'</div><div class="n">'+esc2(score)+'점</div>'
         +'<div class="s">'+(o.lc!=null&&o.rc!=null?('LC '+o.lc+' · RC '+o.rc):esc2(lvl))+'</div></div></div>'
       +((o.lc!=null&&o.rc!=null&&Math.abs(o.lc-o.rc)>=50)
         ? '<div class="fc" style="margin-top:4mm"><div class="bt">'+(o.lc>o.rc?'듣기(LC)':'읽기(RC)')+'가 '
@@ -1643,7 +1677,7 @@
     w.document.open(); w.document.write(doc); w.document.close();
   }
 
-  var lastScore=0, lastWrong='', lastFocusArr=[];
+  var lastRC=0, lastCorrect=0, lastWrong='', lastFocusArr=[];
   var LOCK='<div style="background:var(--accent-wash);border:1px solid var(--accent);border-radius:12px;padding:16px 18px;font-size:14px;line-height:1.75;color:var(--ink)">'
     +'🔒 <b>여기까지가 진단으로 알 수 있는 것입니다.</b>'
     +'<div style="margin-top:9px;font-size:13.4px">무료 상담을 신청하시면 담당 선생님이 결과를 직접 분석해 <b>1:1로</b> 알려드립니다.</div>'
@@ -1668,6 +1702,7 @@
       if(isNaN(lc)||isNaN(rc)) return bad('LC와 RC 점수를 모두 넣어주세요.');
       if(lc<5||lc>495||rc<5||rc>495) return bad('LC·RC는 각각 5~495점 사이입니다.');
       userLC=lc; userRC=rc;
+      paintHead();
       paintReport();
       var box=document.querySelector('#lvtReport .lvc-tot');
       if(box) box.scrollIntoView({behavior:'smooth',block:'center'});
@@ -1726,7 +1761,7 @@
       if(!name){ alert('이름을 입력해주세요.'); return; }
       if(!phone){ alert('연락처를 입력해주세요.'); return; }
       if(!$('lvtAgree').checked){ alert('개인정보 수집·이용에 동의해주세요.'); return; }
-      var score=parseInt(($('lvtScore').textContent||'').replace(/[^0-9]/g,''),10)||null;
+      var score=effScore()||null;   // 장부(diagnostics.score)는 예전부터 총점 기준이라 총점으로 남긴다
       var level=($('lvtLevel').textContent||'').replace('예상 레벨 — ','');
       var ab=(lastDiag&&lastDiag.abils)||{};
       var btn=lead.querySelector('button[type=submit]');
@@ -3182,6 +3217,16 @@
 .dash-note{font-size:13px;color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
 .wa-table select.sc-room{padding:5px 7px;border:1.5px solid var(--line-strong);border-radius:7px;font-family:var(--font-sans);font-size:12.5px;font-weight:700;background:var(--surface);color:var(--ink);max-width:150px}
 .wa-table select.sc-room.none{border-color:#f0c36d;background:#fff9ec;color:#8a5a00}
+/* 중복 가입·정보 미입력 경고 상자 (회원 관리 표 위) */
+.wa-dup{border:1.5px solid #e8892b;background:#fff8f0;border-radius:12px;padding:14px 16px;margin:12px 0 4px}
+.wa-dup-h{font-weight:800;font-size:15px;color:#8a4b06;margin-bottom:8px}
+.wa-dup-s{font-size:13px;font-weight:800;color:#8a4b06;margin:10px 0 4px}
+.wa-dup-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:5px 0;font-size:13.5px;line-height:1.7}
+.wa-dup-why{font-size:11.5px;font-weight:800;color:#fff;background:#e8892b;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.wa-dup-chip{font-weight:800;cursor:pointer}
+.wa-dup-meta{font-size:12px;color:var(--muted);margin-left:-3px}
+.wa-dup-sep{color:#c98a4b;font-weight:800}
+.wa-dup-f{margin-top:10px;font-size:12.5px;line-height:1.7;color:var(--ink-soft)}
 .mem-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
 .mem-filters input[type=search]{flex:1;min-width:200px;max-width:340px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)}
 .mem-n{font-family:var(--font-num);font-weight:800;opacity:.7;margin-left:3px}
@@ -3220,6 +3265,51 @@
   #hwTable td[data-l="숙제"]{margin:8px 0;font-size:15.5px;line-height:1.75}
   #hwTable td[data-l="숙제"] .hw-item{padding:4px 0}
   .wa-table-wrap:has(#hwTable){border:none;border-radius:0}
+}
+/* ---- 학생 '내 학습' 표들 ----
+   원장 지적(2026-08-09): 학생 화면에서 숙제가 너무 안 읽힌다, 줄바꿈이 심하다.
+   원인은 5칸짜리 표라 정작 본문인 '숙제' 칸이 좁아서다. 등록일·마감·선생님은
+   짧은 값인데 표가 칸을 균등하게 나눠 갖는다. → PC에서는 숙제 칸에 폭을 몰아주고,
+   폰에서는 숙제 탭과 같은 방식으로 표를 카드로 바꾼다. */
+#myHwTable td[data-l="숙제"]{line-height:1.8;font-size:14.5px}
+#myHwTable .hw-item{padding:4px 0;display:block;cursor:pointer}
+#myHwTable .hw-item input{margin-right:7px;transform:scale(1.15)}
+@media(min-width:641px){
+  #myHwTable th:nth-child(2), #myHwTable td:nth-child(2){width:auto;min-width:320px}
+  #myHwTable th:nth-child(1), #myHwTable td:nth-child(1),
+  #myHwTable th:nth-child(3), #myHwTable td:nth-child(3),
+  #myHwTable th:nth-child(4), #myHwTable td:nth-child(4),
+  #myHwTable th:nth-child(5), #myHwTable td:nth-child(5){width:1%}
+}
+@media(max-width:640px){
+  #myHwTable, #myHwTable tbody, #myHwTable tr, #myHwTable td,
+  #myschedTable, #myschedTable tbody, #myschedTable tr, #myschedTable td,
+  #mypayTable, #mypayTable tbody, #mypayTable tr, #mypayTable td{display:block;width:100%}
+  #myHwTable tr.hw-head, #myschedTable tr.hw-head, #mypayTable tr.hw-head{display:none}
+  #myHwTable tr, #myschedTable tr, #mypayTable tr{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+  #myHwTable td, #myschedTable td, #mypayTable td{border:none;padding:3px 0;white-space:normal !important;font-size:15px;color:var(--ink)}
+  #myHwTable td:before, #myschedTable td:before, #mypayTable td:before{content:attr(data-l);display:block;font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:2px}
+  #myHwTable td[data-l="숙제"]{margin:8px 0;font-size:15.5px;line-height:1.8}
+  #myHwTable td:empty, #myschedTable td:empty, #mypayTable td:empty{display:none}
+  .wa-table-wrap:has(#myHwTable),.wa-table-wrap:has(#myschedTable),
+  .wa-table-wrap:has(#mypayTable),.wa-table-wrap:has(#myAttTable){border:none;border-radius:0}
+}
+/* ---- 상담 탭 ----
+   원장 지적(2026-08-09): 상담 화면 가독성이 떨어진다.
+   8칸짜리 표라 폰에서는 가로로 밀리고, PC에서도 메모가 12.5px 회색이라 안 읽혔다. */
+#csTable td[data-l="메모"]{font-size:13.5px !important;color:var(--ink-soft) !important;line-height:1.7;min-width:200px}
+#csTable td[data-l="이름"]{font-weight:800}
+#csTable select[data-cs-result]{font-size:13px !important;padding:5px 8px !important}
+@media(max-width:640px){
+  #csTable, #csTable tbody, #csTable tr, #csTable td{display:block;width:100%}
+  #csTable tr.hw-head{display:none}
+  #csTable tr{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+  #csTable td{border:none;padding:3px 0;white-space:normal !important;font-size:15px;color:var(--ink)}
+  #csTable td:before{content:attr(data-l);display:block;font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:2px}
+  #csTable td[data-l="이름"]{font-size:17px}
+  #csTable td[data-l="관리"]{margin-top:6px}
+  .wa-table-wrap:has(#csTable){border:none;border-radius:0}
+  #csDate,#csName,#csPhone,#csTeacher,#csChannel,#csMemo{font-size:16px !important;padding:11px 12px !important}
 }
 .pr-sum{border:1.5px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:14px;background:var(--accent-wash)}
 .pr-sum-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;font-size:13.5px;font-weight:700;color:var(--ink-soft)}
@@ -3297,6 +3387,17 @@
 .cal-ev{position:absolute;background:var(--accent-wash);border:1px solid var(--accent);border-left:3px solid var(--accent);border-radius:5px;padding:2px 4px;font-size:10.5px;line-height:1.28;color:var(--ink);overflow:hidden;box-sizing:border-box;cursor:pointer}
 .cal-ev:hover{filter:brightness(.96);box-shadow:0 0 0 2px rgba(0,0,0,.12)}
 .cal-ev b{font-weight:800;display:block;font-size:10.5px;color:var(--accent)}
+/* 폰에서 강의장 칸을 합쳤을 때 블록 안에 붙는 방 이름 */
+.cal-ev-room{display:block;font-size:9.5px;color:var(--muted);font-weight:700;margin-top:1px}
+/* 폰: 강의장 칸을 하나로 합쳤으므로 96px 최소폭을 풀어 화면을 꽉 채운다 */
+@media (max-width:640px){
+  .cal-rcol{min-width:0}
+  /* 칸을 하나로 합치면 안쪽 내용이 전부 absolute 라 max-content 폭이 거의 0이 된다.
+     그대로 두면 일 뷰가 화면 왼쪽에 쪼그라들어 붙는다 → 최소 화면 폭만큼은 벌려 둔다.
+     (width:max-content 는 그대로 둬야 주 뷰에서 sticky 시간축이 끝까지 따라온다) */
+  .cal-grid{min-width:100%}
+  .cal-ev{font-size:11px;padding:3px 5px}
+}
 .cal-empty-note{font-size:12px;color:var(--muted);text-align:center;padding:8px}
 .cal-modes{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
 .cal-mode{background:var(--surface);border:none;padding:7px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
@@ -3365,6 +3466,9 @@
         <select id="waTeacherFilter" title="담당강사로 걸러 보기"><option value="">담당강사 전체</option></select>
         <input id="waSearch" type="search" placeholder="🔍 이름 · 연락처 · 이메일 검색" autocomplete="off">
       </div>
+      <!-- 카카오 로그인은 계정이 먼저 만들어져서 가입을 막을 수가 없다. 그래서 들어온 뒤에
+           같은 사람이 두 번 가입했거나 정보가 빈 계정을 여기에 모아 보여주고 원장님이 지운다. -->
+      <div id="waDupWarn"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="waTable"></table></div>
     </div>
 
@@ -4031,6 +4135,17 @@
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ err.textContent='올바른 이메일 형식이 아닙니다.'; return; }
     if(ph.replace(/[^0-9]/g,'').length<10){ err.textContent='휴대폰 번호를 정확히 입력해주세요.'; return; }
     if(!sb||!profile){ err.textContent='서버 연결 중입니다. 잠시 후 다시 시도해주세요.'; return; }
+    // 카카오로 들어오면 계정이 이미 만들어진 뒤라 가입을 막을 수 없다.
+    // 대신 여기서 번호가 겹치는지 보고, 겹치면 두 번째 계정을 못 쓰게 한다.
+    // (이름·이메일은 카카오 닉네임이 들어오거나 비어 있어 열쇠로 못 쓴다 — 번호만 믿는다)
+    try{
+      var dupq=await sb.rpc('phone_taken',{p_phone:ph});
+      if(!dupq.error && dupq.data===true){
+        err.innerHTML='이 번호로 <b>이미 가입된 계정</b>이 있습니다. 지금 로그인한 계정 말고 <b>원래 쓰던 계정</b>으로 들어와 주세요.'
+          +'<br>어느 계정인지 모르시면 완벽한토익 카카오 채널로 문의해 주세요.';
+        return;
+      }
+    }catch(e){}   // 함수가 아직 없으면(SQL 미실행) 막지 않고 그냥 진행한다
     var u=await sb.from('profiles').update({name:nm,email:em,phone:ph}).eq('id',profile.id);
     if(u.error){
       err.textContent = /duplicate|unique/i.test(u.error.message||'')
@@ -4146,6 +4261,65 @@
       + label + '<span style="font-size:10px">' + arrow + '</span></th>';
   }
   function isStaffRole(r){ return r==='admin'||r==='master'||r==='manager'; }
+  // ── 중복 가입 · 정보 미입력 경고 ────────────────────────────────
+  // 원장 지적(2026-08-09): "채채가 강민채인데 왜 중복으로 또 가입이 되나, 김효민도 중복이다."
+  // 원인은 카카오 로그인이다. OAuth 는 계정을 먼저 만들어 놓고 우리에게 넘기므로
+  // 이미 가입한 사람인지 확인할 시점 자체가 없다. 게다가 카카오 닉네임이 그대로 이름이 되고
+  // (강민채 → '채채') 이메일 동의를 안 하면 이메일도 비어 있어서, 이름으로도 못 잡는다.
+  // → 막는 대신 **눈에 띄게 모아** 놓고 원장님이 지우게 한다. 판단(누굴 남길지)은 사람 몫.
+  function normName(s){ return String(s||'').replace(/\s|\(.*?\)/g,'').trim(); }
+  function digits(s){ return String(s||'').replace(/[^0-9]/g,''); }
+  function drawDupWarn(all){
+    var box=$('waDupWarn'); if(!box) return;
+    var students=all.filter(function(u){ return !isStaffRole(u.role); });
+    var byName={}, byPhone={};
+    students.forEach(function(u){
+      var n=normName(u.name); if(n){ (byName[n]=byName[n]||[]).push(u); }
+      var d=digits(u.phone); if(d.length>=10){ (byPhone[d]=byPhone[d]||[]).push(u); }
+    });
+    var dupKeys={}, dups=[];
+    function addGroup(list, why){
+      var ids=list.map(function(u){return u.id;}).sort().join('|');
+      if(dupKeys[ids]) return; dupKeys[ids]=1;
+      dups.push({why:why, list:list});
+    }
+    Object.keys(byName).forEach(function(k){ if(byName[k].length>1) addGroup(byName[k],'이름이 같음'); });
+    Object.keys(byPhone).forEach(function(k){ if(byPhone[k].length>1) addGroup(byPhone[k],'번호가 같음'); });
+    // 카카오로 들어와 아직 아무 정보도 안 남긴 계정. '채채'처럼 이름이 달라
+    // 중복으로 안 잡히는 건들이 여기 걸린다.
+    var blank=students.filter(function(u){ return !String(u.email||'').trim() && digits(u.phone).length<10; });
+    if(!dups.length && !blank.length){ box.innerHTML=''; return; }
+    function chip(u){
+      var when=String(u.created_at||'').slice(0,10);
+      var mark=[]; if(!String(u.email||'').trim()) mark.push('메일 없음');
+      if(digits(u.phone).length<10) mark.push('번호 없음');
+      return '<a class="wa-link wa-dup-chip" data-dupname="'+esc(u.name||'')+'">'+esc(u.name||'(이름없음)')+'</a>'
+           + '<span class="wa-dup-meta">'+when+(mark.length?' · '+mark.join(' · '):'')+'</span>';
+    }
+    var h='<div class="wa-dup"><div class="wa-dup-h">⚠️ 확인이 필요한 계정</div>';
+    if(dups.length){
+      h+='<div class="wa-dup-s">같은 사람이 두 번 가입한 것으로 보입니다 &mdash; '+dups.length+'건</div>';
+      dups.forEach(function(g){
+        h+='<div class="wa-dup-row"><span class="wa-dup-why">'+g.why+'</span>'
+          + g.list.map(chip).join('<span class="wa-dup-sep">↔</span>')+'</div>';
+      });
+    }
+    if(blank.length){
+      h+='<div class="wa-dup-s">이메일·휴대폰이 모두 비어 있는 학생 &mdash; '+blank.length+'명 '
+        +'<span style="font-weight:600;color:var(--muted)">(카카오로 가입만 하고 정보를 안 채운 계정. 이름이 닉네임일 수 있습니다)</span></div>'
+        +'<div class="wa-dup-row">'+blank.map(chip).join('<span class="wa-dup-sep">·</span>')+'</div>';
+    }
+    h+='<div class="wa-dup-f">이름을 누르면 아래 목록에서 찾아 줍니다. 지울 계정은 그 줄의 <b>탈퇴</b>를 누르세요 '
+      +'&mdash; <b>결제·수업·숙제 기록이 있는 쪽은 남기고</b>, 빈 계정을 지워야 기록이 끊기지 않습니다.</div></div>';
+    box.innerHTML=h;
+  }
+  document.addEventListener('click', function(e){
+    var a=e.target.closest && e.target.closest('.wa-dup-chip'); if(!a) return;
+    var s=$('waSearch'); if(!s) return;
+    s.value=a.getAttribute('data-dupname')||''; drawMembers();
+    s.scrollIntoView({behavior:'smooth',block:'center'});
+  });
+
   function drawMembers(){
     var all=window.__wtMembers||[];
     var q=(($('waSearch')&&$('waSearch').value)||'').trim().toLowerCase();
@@ -4178,6 +4352,7 @@
     if(tsel==='none') label='담당강사 미배정 학생';
     else if(tsel){ var tn0=all.filter(function(x){return x.id===tsel;})[0]; label=(tn0?tn0.name:'')+' 담당 학생'; }
     $('waCount').textContent='('+label+' '+scoped.length+'명'+(q?(' · 검색 '+m.length+'명'):'')+')';
+    drawDupWarn(all);
     if(!all.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'해당하는 회원이 없습니다.')+'</td></tr>'; return; }
     function rt(r,u){
@@ -5274,6 +5449,9 @@
   // ---- 주간 캘린더 (시간 격자) ----
   var DOW=['월','화','수','목','금','토','일'];
   var DAY_START=6, DAY_END=24, HOUR_H=44;
+  var DAY_START_PC=6, DAY_END_PC=24, HOUR_H_PC=44;
+  // 폰 화면. 여기서는 강의장 칸을 합치고 시간 범위를 좁혀 한 화면에 담는다(원장 지시 2026-08-09).
+  function isNarrow(){ return window.innerWidth<=640; }
   // 폰·작은 태블릿에서는 주 뷰가 7일 × 강의장 4칸이라 계속 옆으로 밀어야 한다.
   // 그래서 처음에는 일 뷰로 연다(원장 지시 2026-08-08). '주'를 누르면 그대로 유지된다.
   var calMode=(window.innerWidth<=820)?'day':'week';
@@ -5301,6 +5479,27 @@
     var rows=await fetchRange(start,end);
     window.__wtCalRows=rows;   // 달력 블록을 눌러 수정할 때 여기서 찾는다
     var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
+    // 폰에서는 6시~24시를 다 그리면 위아래로 한참 밀어야 해서 한눈에 안 들어온다.
+    // 그날 실제 수업이 있는 시간대에 맞춰 위아래를 잘라내고 한 칸 높이도 줄인다.
+    // (수업이 없는 날은 학원 운영시간 10~22시만 보여준다)
+    var narrow=isNarrow();
+    if(narrow){
+      HOUR_H=38;
+      var mn=null, mx=null;
+      rows.forEach(function(s){
+        var a=new Date(s.starts_at), b=new Date(s.ends_at);
+        var sh=a.getHours(), eh=b.getHours()+(b.getMinutes()?1:0);
+        mn=(mn==null)?sh:Math.min(mn,sh);
+        mx=(mx==null)?eh:Math.max(mx,eh);
+      });
+      if(mn==null){ DAY_START=10; DAY_END=22; }
+      else {
+        DAY_START=Math.max(0, mn-1);
+        DAY_END=Math.min(24, Math.max(mx+1, DAY_START+5));
+      }
+    } else {
+      DAY_START=DAY_START_PC; DAY_END=DAY_END_PC; HOUR_H=HOUR_H_PC;
+    }
     var bodyH=(DAY_END-DAY_START)*HOUR_H;
     // 시각 글씨를 그 시각 격자선 높이에 정확히 맞춘다.
     // 예전에는 44px 칸을 쌓아 글씨가 줄보다 6px 아래에 놓였고, 그래서 몇 시 줄인지 헷갈렸다
@@ -5313,9 +5512,16 @@
     var todayKey=ymd(new Date()), cols='';
     // 날짜 밑에 강의장 칸을 만들고 그 칸에 수업을 넣는다(원장 지시 2026-08-08).
     // 마지막 '미배정' 칸이 없으면 비대면 수업과 아직 방을 안 정한 수업이 달력에서 사라진다.
-    var roomCols=_rooms.filter(function(r){ return r.active!==false; })
-                       .map(function(r){ return {id:r.id, label:calRoomHead(r)}; });
-    roomCols.push({id:null, label:'미배정'});
+    // 폰에서는 강의장 4칸이 화면보다 넓어 왼쪽 칸이 잘린다(원장 지적 2026-08-09).
+    // 그래서 칸을 하나로 합치고, 어느 방인지는 블록 안에 작게 적는다.
+    var roomCols;
+    if(narrow){
+      roomCols=[{id:'__all__', label:null}];
+    } else {
+      roomCols=_rooms.filter(function(r){ return r.active!==false; })
+                     .map(function(r){ return {id:r.id, label:calRoomHead(r)}; });
+      roomCols.push({id:null, label:'미배정'});
+    }
     for(var i=0;i<nDays;i++){
       var day=new Date(start); day.setDate(day.getDate()+i); var key=ymd(day);
       var dowIdx=(day.getDay()+6)%7; var cls=(dowIdx===5?'cal-sat':(dowIdx===6?'cal-sun':''));
@@ -5340,6 +5546,7 @@
       var rcols='';
       roomCols.forEach(function(rc){
         var evs=dayEvs.filter(function(s){
+          if(rc.id==='__all__') return true;                      // 폰: 한 칸에 전부
           return (rc.id==null) ? (s.room_id==null) : (String(s.room_id)===String(rc.id));
         });
         evs.forEach(function(s){ s.__st=minsFromStart(s.starts_at); var enM=minsFromStart(s.ends_at); if(enM<=s.__st){ enM=(DAY_END-DAY_START)*60; } s.__en=Math.max(s.__st+20, enM); });
@@ -5361,20 +5568,39 @@
           var mark = st==='noshow'   ? '<b style="color:#c0342b">결석</b> '
                    : st==='canceled' ? '<b style="color:var(--muted)">휴강</b> ' : '';
           var dim  = (st==='canceled') ? 'opacity:.55;' : '';
+          // 칸을 합친 폰 화면에서는 어느 방인지가 칸으로 안 드러나므로 블록 안에 적어 준다.
+          var roomTag = (rc.id==='__all__')
+            ? '<span class="cal-ev-room">'+esc(s.room_id==null?'미배정':roomName(s.room_id))+'</span>' : '';
           var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ')
                 + (mark?' · '+lessonResultLabel(st):'')+' — 클릭하면 수정';
-          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+'</div>';
+          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+roomTag+'</div>';
         }).join('');
-        rcols+='<div class="cal-rcol"><div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>'
-             + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
+        // 폰에서 칸을 합쳤을 때는 강의장 머리글 줄 자체가 필요 없다.
+        var rhead = (rc.label==null) ? ''
+          : '<div class="cal-rhead'+(rc.id==null?' none':'')+'" title="'+esc(rc.label)+'">'+esc(rc.label)+'</div>';
+        rcols+='<div class="cal-rcol">'+rhead
+             + '<div class="cal-body" data-date="'+key+'" data-room="'+(rc.id==null||rc.id==='__all__'?'':esc(String(rc.id)))+'" style="height:'+bodyH+'px">'+lines+evHtml+'</div></div>';
       });
       // 강의장 칸이 96px 밑으로 찌그러지지 않게 날짜 칸의 최소 너비를 강의장 수에 맞춘다.
       // (안 걸면 주 뷰에서 칸이 겹쳐 보인다 — 가로 스크롤은 .cal-scroll 이 처리한다)
-      cols+='<div class="cal-col'+(isToday?' is-today':'')+'" style="min-width:'+(roomCols.length*96)+'px">'+head+'<div class="cal-rooms">'+rcols+'</div></div>';
+      // 폰에서 칸을 하나로 합쳤을 때는 최소 너비를 걸지 않아야 남는 폭을 다 쓴다.
+      // 단 주·월 뷰는 날짜가 여러 개라 그대로 두면 하루가 50px로 찌그러진다 → 88px는 확보하고 옆으로 민다.
+      var colMin = narrow ? (nDays>1 ? 'min-width:88px' : '') : ('min-width:'+(roomCols.length*96)+'px');
+      cols+='<div class="cal-col'+(isToday?' is-today':'')+'" style="'+colMin+'">'+head+'<div class="cal-rooms">'+rcols+'</div></div>';
     }
     $('calGrid').innerHTML=axis+cols;
     centerToday();
   }
+  // 폰을 가로로 돌리면 강의장 칸을 합칠지 말지가 달라진다. 그때만 다시 그린다.
+  // (창 크기가 조금 바뀔 때마다 다시 그리면 그때마다 서버에서 일정을 또 불러온다)
+  var _wasNarrow=isNarrow(), _reTimer=null;
+  window.addEventListener('resize', function(){
+    var now=isNarrow();
+    if(now===_wasNarrow) return;
+    _wasNarrow=now;
+    clearTimeout(_reTimer);
+    _reTimer=setTimeout(function(){ try{ renderCalendar(); }catch(e){} }, 200);
+  });
   // 주 뷰는 가로로 길다. 오늘 열이 화면 가운데 오도록 밀어준다.
   // 탭이 숨어 있으면 폭이 0이라 계산이 안 되므로, 그때는 아무것도 하지 않고 넘어간다
   // (수업 스케줄 탭을 열 때 dashTab 이 다시 부른다).
@@ -6644,16 +6870,16 @@
     var decided=reg+lost;
     if($('csSummary')) $('csSummary').innerHTML='전체 상담 <b>'+rows.length+'건</b> · 등록 <b>'+reg+'건</b> · 등록 안 함 <b>'+lost+'건</b> · 대기 <b>'+(rows.length-decided)+'건</b> &nbsp;→&nbsp; 전환율 <b style="color:var(--accent);font-size:15px">'+(decided?Math.round(reg/decided*100)+'%':'-')+'</b>';
     if(!rows.length){ $('csTable').innerHTML='<tr><td class="wa-empty">아직 등록된 상담이 없습니다.</td></tr>'; return; }
-    var h='<tr><th>상담일</th><th>이름</th><th>연락처</th><th>상담 선생님</th><th>유입 경로</th><th>메모</th><th>결과</th><th>관리</th></tr>';
+    var h='<tr class="hw-head"><th>상담일</th><th>이름</th><th>연락처</th><th>상담 선생님</th><th>유입 경로</th><th>메모</th><th>결과</th><th>관리</th></tr>';
     rows.forEach(function(c){
       var v=c.result||'pending';
       var col = v==='registered' ? '#0f7a52' : (v==='lost' ? '#c0342b' : 'var(--muted,#888)');
-      h+='<tr><td style="white-space:nowrap">'+esc(c.consulted_on||'')+'</td><td>'+esc(c.name||'')+'</td><td>'+esc(c.phone||'-')+'</td><td>'+esc(c.teacher_name||'-')+'</td><td>'+esc(c.channel||'-')+'</td><td style="font-size:12.5px;color:var(--muted)">'+esc(c.memo||'')+'</td>'
-       + '<td style="white-space:nowrap"><select data-cs-result="'+esc(c.id)+'" style="font-size:12px;font-weight:700;padding:3px 6px;border-radius:6px;border:1px solid var(--line,#e3e6ea);color:'+col+'">'
+      h+='<tr><td data-l="상담일" style="white-space:nowrap">'+esc(c.consulted_on||'')+'</td><td data-l="이름">'+esc(c.name||'')+'</td><td data-l="연락처" style="white-space:nowrap">'+esc(c.phone||'-')+'</td><td data-l="상담 선생님">'+esc(c.teacher_name||'-')+'</td><td data-l="유입 경로">'+esc(c.channel||'-')+'</td><td data-l="메모">'+esc(c.memo||'')+'</td>'
+       + '<td data-l="결과" style="white-space:nowrap"><select data-cs-result="'+esc(c.id)+'" style="font-weight:700;border-radius:6px;border:1px solid var(--line,#e3e6ea);color:'+col+'">'
        + '<option value="pending"'+(v==='pending'?' selected':'')+'>대기</option>'
        + '<option value="registered"'+(v==='registered'?' selected':'')+'>등록함</option>'
        + '<option value="lost"'+(v==='lost'?' selected':'')+'>등록 안 함</option></select></td>'
-       + '<td><a class="wa-link" data-cs-del="'+esc(c.id)+'" style="color:#c0342b">삭제</a></td></tr>';
+       + '<td data-l="관리"><a class="wa-link" data-cs-del="'+esc(c.id)+'" style="color:#c0342b">삭제</a></td></tr>';
     });
     $('csTable').innerHTML=h;
   }
@@ -6849,13 +7075,13 @@
       var rows=[];
       if(sb){ var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-6*3600*1000).toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; }
       if(!rows.length){ $('myschedTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; }
-      else { var h='<tr><th>일시</th><th>과목</th><th>선생님</th><th>메모</th></tr>'; rows.forEach(function(s){ h+='<tr><td style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td>'+esc(s.subject||'-')+'</td><td>'+esc(s.teacher_name||'-')+'</td><td>'+esc(s.memo||'')+'</td></tr>'; }); $('myschedTable').innerHTML=h; }
+      else { var h='<tr class="hw-head"><th>일시</th><th>과목</th><th>선생님</th><th>메모</th></tr>'; rows.forEach(function(s){ h+='<tr><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="메모">'+esc(s.memo||'')+'</td></tr>'; }); $('myschedTable').innerHTML=h; }
     }
     if($('mypayTable')){
       var pr=[];
       if(sb){ var r2=await sb.from('payments').select('*').eq('student_id',profile.id).order('month',{ascending:false}); if(!r2.error&&r2.data) pr=r2.data; }
       if(!pr.length){ $('mypayTable').innerHTML='<tr><td class="wa-empty">결제 내역이 없습니다.</td></tr>'; }
-      else { var h2='<tr><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td>'+esc(p.month)+'</td><td style="white-space:nowrap">'+won(p.amount)+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
+      else { var h2='<tr class="hw-head"><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td data-l="월">'+esc(p.month)+'</td><td data-l="금액" style="white-space:nowrap">'+won(p.amount)+'</td><td data-l="수단">'+esc(p.method||'-')+'</td><td data-l="결제일">'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
     }
     if($('myPass')){
       // 차감 기준은 '수업이 잡혔는지'다(2026-08-08). 출석은 참고로만 보여준다.
@@ -6887,10 +7113,10 @@
       if(sb){ var rh=await sb.from('homeworks').select('*').eq('student_id',profile.id).order('created_at',{ascending:false}); if(!rh.error&&rh.data) hw=rh.data; }
       window.__myHw=hw;
       if(!hw.length){ $('myHwTable').innerHTML='<tr><td class="wa-empty">아직 등록된 숙제가 없습니다.</td></tr>'; }
-      else { var hwh='<tr><th>등록일</th><th>숙제 (완료 체크)</th><th>마감</th><th>선생님</th><th>진행</th></tr>'; hw.forEach(function(x){
+      else { var hwh='<tr class="hw-head"><th>등록일</th><th>숙제 (완료 체크)</th><th>마감</th><th>선생님</th><th>진행</th></tr>'; hw.forEach(function(x){
         var items=hwItems(x.content), d=hwDoneArr(x);
-        var itemHtml = items.length ? items.map(function(it,i){ return '<label style="display:block;cursor:pointer;padding:3px 0"><input type="checkbox" data-hw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
-        hwh+='<tr><td style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td>'+itemHtml+'</td><td style="white-space:nowrap">'+esc(fmtDue(x.due_date))+'</td><td style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td style="white-space:nowrap">'+hwProgTag(x)+'</td></tr>'; }); $('myHwTable').innerHTML=hwh; }
+        var itemHtml = items.length ? items.map(function(it,i){ return '<label class="hw-item"><input type="checkbox" data-hw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
+        hwh+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="마감" style="white-space:nowrap">'+esc(fmtDue(x.due_date))+'</td><td data-l="선생님" style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td></tr>'; }); $('myHwTable').innerHTML=hwh; }
     }
   }
   if($('myHwTable')) $('myHwTable').addEventListener('change', async function(e){
