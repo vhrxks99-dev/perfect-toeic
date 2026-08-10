@@ -2971,6 +2971,12 @@
 .wa-check input{margin-top:2px!important;flex:none;width:auto!important;display:inline-block}
 .wa-form .btn{margin-top:6px;width:100%}
 .wa-err{color:#c0342b;font-size:13px;font-weight:600;margin:0}
+/* 저장이 됐는지 안 됐는지 알 수 없다는 지적(2026-08-10). 실패는 빨간 글씨로 뜨는데
+   성공은 아무것도 안 떴다. 초록 상자로 "무엇이 잡혔는지"까지 적어 준다. */
+.wa-ok{display:none;background:#f0fbf3;border:1px solid #a7e0bb;border-radius:10px;
+       padding:10px 13px;margin:8px 0 0;font-size:13.5px;font-weight:700;color:#14683a;line-height:1.6}
+.wa-ok.on{display:block}
+.wa-ok b{color:#0f7a52}
 .wa-note{font-size:11.5px;color:var(--muted);text-align:center;margin:8px 0 0;line-height:1.5}
 #waAuth{display:inline-flex;align-items:center;gap:10px}
 .wa-btn{white-space:nowrap;padding:8px 12px;font-size:12px}
@@ -3490,6 +3496,7 @@
         </div>
         <div id="scFree" class="dash-note" style="margin-top:0;display:none"></div>
         <p class="wa-err" id="scErr"></p>
+        <div class="wa-ok" id="scOk"></div>
         <button class="btn btn-primary" id="scAdd" type="button">＋ 스케줄 추가</button>
       </div>
       <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
@@ -5123,12 +5130,25 @@
       await loadSchedules(); await renderCalendar(); updateScFree();
     } finally { sel.disabled=false; }
   });
+  // 저장 결과를 눈에 보이게 알린다.
+  // 원장 지적(2026-08-10): "수업을 잡고 나서 잡혔습니다/오류났습니다가 안 떠서 알 수가 없다."
+  // 실패는 원래 scErr 에 떴지만 폼 아래라 화면 밖일 때가 있었고, 성공은 아무 표시도 없었다.
+  function scSay(ok, html){
+    var e=$('scErr'), o=$('scOk');
+    if(e) e.textContent = ok ? '' : html;
+    if(o){ o.innerHTML = ok ? html : ''; o.classList.toggle('on', !!ok); }
+    var target = ok ? o : e;
+    if(target && target.scrollIntoView) target.scrollIntoView({behavior:'smooth', block:'center'});
+    if(ok){ clearTimeout(window.__scOkT); window.__scOkT=setTimeout(function(){ if(o) o.classList.remove('on'); }, 8000); }
+  }
   if($('scAdd')) $('scAdd').onclick=async function(){
+    var btn=this;
     var err=$('scErr'); err.textContent='';
+    if($('scOk')) $('scOk').classList.remove('on');
     var d=$('scDate').value, s=$('scStart').value, en=$('scEnd').value;
-    if(!d||!s||!en){ err.textContent='날짜·시작·종료 시간을 입력하세요.'; return; }
+    if(!d||!s||!en){ scSay(false,'날짜·시작·종료 시간을 입력하세요.'); return; }
     var startISO=slotISO(d,s), endISO=slotISO(d,en);
-    if(endISO<=startISO){ err.textContent='종료 시간이 시작보다 빨라요.'; return; }
+    if(endISO<=startISO){ scSay(false,'종료 시간이 시작보다 빨라요.'); return; }
     var roomId=$('scRoom').value?parseInt($('scRoom').value,10):null;
     var teacher=_members.filter(function(m){return m.id===$('scTeacher').value;})[0];
     var student=_members.filter(function(m){return m.id===$('scStudent').value;})[0];
@@ -5136,18 +5156,37 @@
     // 학생을 안 고른 경우도 대면으로 본다(수업형태를 알 수 없으므로 안전한 쪽).
     var isOnline = !!(student && student.lesson_mode==='online');
     if(roomId==null && !isOnline){
-      err.textContent = student
+      scSay(false, student
         ? '대면 수업은 강의장을 골라주세요. (미배정은 비대면 학생만 가능합니다)'
-        : '학생을 고르거나, 강의장을 골라주세요. (미배정은 비대면 학생만 가능합니다)';
+        : '학생을 고르거나, 강의장을 골라주세요. (미배정은 비대면 학생만 가능합니다)');
       return;
     }
-    if(roomId){
-      var c=await sb.from('schedules').select('id').eq('room_id',roomId).lt('starts_at',endISO).gt('ends_at',startISO);
-      if(!c.error && c.data && c.data.length){ err.textContent='해당 시간에 그 강의장이 이미 예약돼 있어요.'; return; }
+    var old=btn.textContent;
+    btn.disabled=true; btn.textContent='추가하는 중...';
+    try{
+      if(roomId){
+        var c=await sb.from('schedules').select('id').eq('room_id',roomId).lt('starts_at',endISO).gt('ends_at',startISO);
+        if(!c.error && c.data && c.data.length){ scSay(false,'해당 시간에 그 강의장이 이미 예약돼 있어요.'); return; }
+      }
+      var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null) };
+      var r=await sb.from('schedules').insert(payload);
+      if(r.error){ scSay(false,'추가 실패: '+r.error.message); return; }
+      // 무엇이 잡혔는지 그대로 되읽어 준다. 날짜만 보고는 맞게 들어갔는지 알 수 없다.
+      scSay(true, '✅ <b>수업이 잡혔습니다.</b><br>'
+        + esc(d) + ' ' + esc(s) + '~' + esc(en)
+        + ' · ' + esc(roomId ? roomName(roomId) : '미배정(비대면)')
+        + '<br>' + esc(student ? student.name : '학생 미지정')
+        + ' · ' + esc(teacher ? teacher.name : '선생님 미지정')
+        + ' · ' + esc($('scSubject').value || '토익'));
+      $('scMemo').value='';
+      // 목록 표('다가오는 수업')는 2026-08-08에 없앴다 → loadSchedules 는 첫 줄에서 그냥 빠져나간다.
+      // 그래서 예전에는 추가해도 화면이 아무것도 안 변했다. 달력을 반드시 다시 그린다.
+      await loadSchedules(); await renderCalendar();
+      try{ await loadAttendance(); }catch(e){}      // 남은 수업 횟수는 스케줄 수로 세므로 같이 갱신
+      try{ await loadTeacherAlerts(); }catch(e){}
+    } finally {
+      btn.disabled=false; btn.textContent=old;
     }
-    var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null) };
-    var r=await sb.from('schedules').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
-    $('scMemo').value=''; await loadSchedules();
   };
   if($('scTable')) $('scTable').addEventListener('click', async function(e){
     var ed=(e.target&&e.target.closest)?e.target.closest('a[data-scedit]'):null;
