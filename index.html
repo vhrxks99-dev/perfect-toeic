@@ -3765,7 +3765,7 @@
         <select id="hwTeacherFilter" title="선생님으로 걸러 보기" style="display:none"><option value="">선생님 전체</option></select>
         <span class="hw-duefilter">
           <button class="btn btn-ghost hw-due-arrow" id="hwDuePrev" type="button" title="하루 앞">◀</button>
-          <input type="date" id="hwDueFilter" title="이 날짜가 마감인 숙제만 봅니다">
+          <input type="date" id="hwDueFilter" title="이 날짜에 수업이 있는 학생의 숙제만 봅니다">
           <button class="btn btn-ghost hw-due-arrow" id="hwDueNext" type="button" title="하루 뒤">▶</button>
           <button class="btn btn-ghost" id="hwDueToday" type="button">오늘</button>
           <button class="btn btn-ghost" id="hwDueAll" type="button">전체</button>
@@ -7280,25 +7280,47 @@
     if(tf.value!==keep) tf.value='';   // 그 선생님이 사라졌으면 전체로 되돌린다
     return tf.value;
   }
-  // ---- 숙제 목록 마감일 고르기 ----
-  // 원장 요청(2026-08-11): 모든 학생 숙제가 한 번에 나와 읽기 어렵다 → 기본은 '오늘 마감'만.
-  // 모드 3가지 — 'date'(고른 날짜 마감) / 'all'(전부) / 'none'(마감일을 안 넣은 숙제).
-  var hwDueMode='date';
+  // ---- 숙제 목록 날짜 고르기 ----
+  // 원장 요청(2026-08-11): 모든 학생 숙제가 한 번에 나와 읽기 어렵다
+  //   → 기본은 '그날 수업이 있는 학생'의 숙제만. 오늘이 11일이면 오늘 오는 학생들 것만 보인다.
+  // 숙제의 마감일이 아니라 schedules(수업 일정)를 기준으로 거른다 — 마감일은 선택 항목이라 자주 비어 있고,
+  // 선생님이 보고 싶은 건 "오늘 올 애가 숙제를 해왔나"이기 때문이다.
+  var hwDayMode='date';                 // 'date'(그날 수업 있는 학생) | 'all'(전부)
+  var _hwDayCache={};                   // 'YYYY-MM-DD' -> 'loading' | {ids,names,stu} | null(실패, 다음에 재시도)
   function hwPad(n){ return (n<10?'0':'')+n; }
   function hwYmd(d){ return d.getFullYear()+'-'+hwPad(d.getMonth()+1)+'-'+hwPad(d.getDate()); }
   function hwDueVal(){ var e=$('hwDueFilter'); return (e&&e.value)||''; }
-  function hwSetDue(v){ var e=$('hwDueFilter'); if(e) e.value=v; hwDueMode='date'; drawHw(); }
+  function hwSetDue(v){ var e=$('hwDueFilter'); if(e) e.value=v; hwDayMode='date'; drawHw(); }
   function hwShiftDue(days){
     var v=hwDueVal(); var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
     var d = m ? new Date(+m[1],+m[2]-1,+m[3]) : new Date();
     if(m) d.setDate(d.getDate()+days);          // 날짜가 비어 있으면 오늘로 되돌린다
     hwSetDue(hwYmd(d));
   }
+  // 구글 캘린더에서 온 수업은 이름만 있고(id 없음) "김서영(비대면)"처럼 괄호가 붙는다 → 괄호·공백을 떼고 맞춘다.
+  function hwNorm(s){ return String(s||'').replace(/\([^)]*\)/g,'').replace(/\s+/g,'').toLowerCase(); }
+  async function hwLoadDay(day){
+    if(!day || _hwDayCache[day]) return;        // 'loading'도 truthy라 중복 조회가 막힌다
+    _hwDayCache[day]='loading';
+    var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+    if(!m || !sb){ _hwDayCache[day]={ids:{},names:{},stu:0}; return; }
+    var a=new Date(+m[1],+m[2]-1,+m[3],0,0,0), b=new Date(+m[1],+m[2]-1,+m[3]+1,0,0,0);
+    var r=await sb.from('schedules').select('student_id,student_name,starts_at')
+                  .gte('starts_at', a.toISOString()).lt('starts_at', b.toISOString());
+    if(r.error||!r.data){ _hwDayCache[day]=null; return; }   // 캐시에 남기지 않아 다음에 다시 시도한다
+    var ids={}, names={}, seen={};
+    r.data.forEach(function(s){
+      var k=hwNorm(s.student_name);
+      if(s.student_id){ ids[s.student_id]=1; seen[s.student_id]=1; }
+      if(k){ names[k]=1; if(!s.student_id) seen['n:'+k]=1; }
+    });
+    _hwDayCache[day]={ids:ids, names:names, stu:Object.keys(seen).length};
+  }
   function hwDueBtnState(){
     var on=function(id,v){ var b=$(id); if(b) b.classList.toggle('on', !!v); };
-    on('hwDueAll', hwDueMode==='all');
-    on('hwDueToday', hwDueMode==='date' && hwDueVal()===hwYmd(new Date()));
-    var f=$('hwDueFilter'); if(f) f.style.opacity = (hwDueMode==='date') ? '' : '.45';
+    on('hwDueAll', hwDayMode==='all');
+    on('hwDueToday', hwDayMode==='date' && hwDueVal()===hwYmd(new Date()));
+    var f=$('hwDueFilter'); if(f) f.style.opacity = (hwDayMode==='date') ? '' : '.45';
   }
   function drawHw(){
     if(!$('hwTable')) return;
@@ -7312,34 +7334,44 @@
         ? rows.filter(function(x){ return !owner[x.student_id]; })   // 탈퇴해 명단에 없는 학생도 여기에 들어온다
         : rows.filter(function(x){ return owner[x.student_id]===tsel; });
     }
-    // 여기까지가 '이 사람이 볼 수 있는 전부'. 마감일 필터는 그 위에 덧씌운다.
+    // 여기까지가 '이 사람이 볼 수 있는 전부'. 날짜 필터는 그 위에 덧씌운다.
     var nAll=rows.length;
-    var nNoDue=rows.filter(function(x){ return !x.due_date; }).length;
     if($('hwDueFilter') && !hwDueVal()) $('hwDueFilter').value=hwYmd(new Date());
     var dsel=hwDueVal();
-    if(hwDueMode==='none')      rows=rows.filter(function(x){ return !x.due_date; });
-    else if(hwDueMode==='date') rows=rows.filter(function(x){ return String(x.due_date||'').slice(0,10)===dsel; });
+    var day=null, dayLoading=false;
+    if(hwDayMode==='date'){
+      var c=_hwDayCache[dsel];
+      if(c==='loading'){ dayLoading=true; }
+      else if(!c){ dayLoading=true; hwLoadDay(dsel).then(drawHw); }   // 처음 보는 날짜 → 수업 일정을 가져온 뒤 다시 그린다
+      else day=c;
+      rows = day
+        ? rows.filter(function(x){ return (x.student_id && day.ids[x.student_id]) || day.names[hwNorm(x.student_name)]; })
+        : [];                                                        // 아직 모르는 동안은 비워 둔다(옛 목록이 잠깐 보이면 오해한다)
+    }
     hwDueBtnState();
     var nScope=rows.length;
     var q=(($('hwListSearch')&&$('hwListSearch').value)||'').trim().toLowerCase();
     if(q) rows=rows.filter(function(x){ return (x.student_name||'').toLowerCase().indexOf(q)>=0; });
     if($('hwCount')){
-      var lab = hwDueMode==='all'  ? '전체'
-              : hwDueMode==='none' ? '마감일 미정'
-              : (fmtDue(dsel)+' 마감');
-      var t='<b>'+esc(lab)+' '+nScope+'건</b>'+(q?(' · 검색 '+rows.length+'건'):'');
-      if(hwDueMode!=='all') t+=' <span style="opacity:.7">· 전체 '+nAll+'건</span>';
-      // 마감일을 안 넣고 등록한 숙제는 날짜로 걸러도 절대 안 잡힌다 → 있을 때만 따로 알린다.
-      if(hwDueMode!=='none' && nNoDue) t+=' · <a class="wa-link" id="hwDueNoneLink">마감일 미정 '+nNoDue+'건</a>';
+      var t;
+      if(hwDayMode==='all') t='<b>전체 '+nScope+'건</b>'+(q?(' · 검색 '+rows.length+'건'):'');
+      else if(dayLoading)   t='수업 일정 불러오는 중…';
+      else {
+        t='<b>'+esc(fmtDue(dsel))+' 수업 '+(day?day.stu:0)+'명 · 숙제 '+nScope+'건</b>'
+          +(q?(' · 검색 '+rows.length+'건'):'')
+          +' <span style="opacity:.7">· 전체 '+nAll+'건</span>';
+      }
       $('hwCount').innerHTML=t;
     }
     if(!rows.length){
       var scopeMsg = (tsel==='none') ? '담당강사가 없는 학생의 숙제가 없습니다.'
                    : (tsel ? '이 선생님 담당 학생의 숙제가 없습니다.' : '등록된 숙제가 없습니다.');
-      var msg = q ? '검색 결과가 없습니다.'
-              : (hwDueMode==='none' ? '마감일을 안 넣고 등록한 숙제가 없습니다.'
-              : (hwDueMode==='date' ? (esc(fmtDue(dsel))+'이 마감인 숙제가 없습니다. <b>전체</b>를 누르면 다 보여요.')
-              : scopeMsg));
+      var msg = dayLoading ? '수업 일정을 불러오는 중입니다…'
+              : (q ? '검색 결과가 없습니다.'
+              : (hwDayMode==='date'
+                 ? ((day&&day.stu) ? (esc(fmtDue(dsel))+'에 오는 학생들은 등록된 숙제가 없습니다.')
+                                   : (esc(fmtDue(dsel))+'에는 잡힌 수업이 없습니다. <b>전체</b>를 누르면 다 보여요.'))
+                 : scopeMsg));
       $('hwTable').innerHTML='<tr><td class="wa-empty">'+msg+'</td></tr>'; return;
     }
     var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>마감</th><th>진행</th><th>관리</th></tr>';
@@ -7353,20 +7385,15 @@
   }
   var hwEditId=null;
   function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwDue')) $('hwDue').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
-  if($('hwReload')) $('hwReload').onclick=loadHomework;
+  // 새로고침은 수업 일정 캐시도 같이 버린다(그 사이 스케줄이 바뀌었을 수 있다).
+  if($('hwReload')) $('hwReload').onclick=function(){ _hwDayCache={}; return loadHomework(); };
   if($('hwListSearch')) $('hwListSearch').addEventListener('input', drawHw);
   if($('hwTeacherFilter')) $('hwTeacherFilter').addEventListener('change', drawHw);
-  if($('hwDueFilter')) $('hwDueFilter').addEventListener('change', function(){ hwDueMode='date'; drawHw(); });
+  if($('hwDueFilter')) $('hwDueFilter').addEventListener('change', function(){ hwDayMode='date'; drawHw(); });
   if($('hwDuePrev'))  $('hwDuePrev').onclick  = function(){ hwShiftDue(-1); };
   if($('hwDueNext'))  $('hwDueNext').onclick  = function(){ hwShiftDue(1); };
   if($('hwDueToday')) $('hwDueToday').onclick = function(){ hwSetDue(hwYmd(new Date())); };
-  if($('hwDueAll'))   $('hwDueAll').onclick   = function(){ hwDueMode = (hwDueMode==='all' ? 'date' : 'all'); drawHw(); };
-  // 건수 줄은 매번 다시 그려지므로 위임으로 잡는다.
-  if($('hwCount')) $('hwCount').addEventListener('click', function(e){
-    var a=e.target && e.target.closest && e.target.closest('#hwDueNoneLink');
-    if(!a) return;
-    e.preventDefault(); hwDueMode='none'; drawHw();
-  });
+  if($('hwDueAll'))   $('hwDueAll').onclick   = function(){ hwDayMode = (hwDayMode==='all' ? 'date' : 'all'); drawHw(); };
   if($('hwAdd')) $('hwAdd').onclick=async function(){
     if(!sb||!profile) return;
     var err=$('hwErr'); if(err) err.textContent='';
