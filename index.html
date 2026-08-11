@@ -3789,7 +3789,7 @@
       </div>
       <details id="hwRate" class="hw-rate-box">
         <summary>📊 학생별 숙제율 <span id="hwRateSum" class="wa-hint"></span></summary>
-        <div class="dash-note" style="margin-top:8px">학생이 체크한 <b>숙제 항목</b> 기준입니다 — 🔴미흡(60% 미만) · 🟡보통(60~74%) · 🟢우수(75% 이상).<br><b>최근 8건</b>은 요즘 어떤지(주2회 월8회 = 한 달치), <b>전체</b>는 다닌 내내입니다. 옛날 기록이 발목을 잡지 않게 둘 다 보여줍니다.<br>각 학생의 <b>가장 최근 숙제 1건은 아직 하는 중</b>일 수 있어 빼고 셉니다. 날짜 고르기와는 상관없고, 같은 값이 아래 숙제 목록의 <b>숙제율</b> 칸에도 나옵니다.</div>
+        <div class="dash-note" style="margin-top:8px">🚨 <b>선생님이 '확인'을 누른 숙제만 셉니다.</b> 학생 체크만으로는 안 하고도 누를 수 있기 때문이에요. 확인을 안 누른 숙제는 숫자에 안 들어갑니다.<br>비율은 <b>숙제 항목</b> 기준 — 🔴미흡(60% 미만) · 🟡보통(60~74%) · 🟢우수(75% 이상).<br><b>최근 8건</b>은 요즘 어떤지(주2회 월8회 = 한 달치), <b>전체</b>는 다닌 내내입니다. 옛날 기록이 발목을 잡지 않게 둘 다 보여줍니다.<br>날짜 고르기와는 상관없고, 같은 값이 아래 숙제 목록의 <b>숙제율</b> 칸에도 나옵니다.</div>
         <div class="wa-table-wrap"><table class="wa-table" id="hwRateTable"></table></div>
       </details>
       <div class="dash-list-head">숙제 목록 <button class="btn btn-ghost" id="hwReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
@@ -7366,7 +7366,7 @@
   function hwRateWord(p){ return p<60 ? '미흡' : (p<75 ? '보통' : '우수'); }
   // 표 한 칸에 들어갈 짧은 표시. big=true 면 막대까지 그린다.
   function hwRateCell(pct, big){
-    if(pct===null||pct===undefined) return '<span class="wa-hint">집계 전</span>';
+    if(pct===null||pct===undefined) return '<span class="wa-hint">확인 전</span>';
     var c=hwRateColor(pct);
     var head=hwRateDot(pct)+' <span class="hw-pct" style="color:'+c+'">'+pct+'%</span> <span style="color:'+c+';font-weight:700;font-size:12px">'+hwRateWord(pct)+'</span>';
     return big ? (head+'<span class="hw-bar" style="margin-top:4px"><i style="width:'+pct+'%;background:'+c+'"></i></span>') : head;
@@ -7397,9 +7397,12 @@
     return Object.keys(by).map(function(k){
       var o=by[k];
       o.list.sort(function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); });
-      var counted=o.list.slice(1);                 // 맨 앞(최신) 1건 제외
+      // 선생님이 확인한 숙제만 센다(원장 지시 2026-08-11) — 학생 체크만으로는 안 하고도 누를 수 있다.
+      // 방금 내준 숙제는 아직 확인 전이라 저절로 빠지므로, 예전의 '최신 1건 제외' 규칙은 없앴다.
+      var counted=o.list.filter(function(x){ return x.teacher_checked; });
       // 최근 8건 = 지금 상태 / 전체 = 다닌 내내. 옛날 기록이 발목을 잡지 않게 둘 다 보여준다.
-      return { key:o.key, name:o.name, recent:hwCalc(counted.slice(0,HW_RECENT_N)), all:hwCalc(counted) };
+      return { key:o.key, name:o.name, waiting:o.list.length-counted.length,
+               recent:hwCalc(counted.slice(0,HW_RECENT_N)), all:hwCalc(counted) };
     }).sort(function(a,b){
       var x=a.recent.pct, y=b.recent.pct;
       if(x===null && y===null) return (a.name||'').localeCompare(b.name||'');
@@ -7410,7 +7413,7 @@
   }
   // 표 한 칸에 '최근 8건' 크게, '전체'를 작게 같이 보여준다.
   function hwRateTwo(r, big){
-    if(!r || r.recent.pct===null) return '<span class="wa-hint">집계 전</span>';
+    if(!r || r.recent.pct===null) return '<span class="wa-hint">확인 전</span>';
     return hwRateCell(r.recent.pct, big)
       + '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">전체 '
       + (r.all.pct===null ? '-' : (r.all.pct+'% ('+r.all.n+'건)')) + '</div>';
@@ -7421,14 +7424,16 @@
     _hwRateMap={}; list.forEach(function(r){ _hwRateMap[r.key]=r; });
     if(!$('hwRateTable')) return;
     if($('hwRateSum')){
-      if(!rated.length) $('hwRateSum').textContent='(아직 집계할 숙제가 없습니다)';
+      var waiting=list.reduce(function(s,r){ return s+(r.waiting||0); },0);
+      if(!rated.length) $('hwRateSum').textContent='(선생님이 확인한 숙제가 아직 없습니다'+(waiting?(' · 확인 대기 '+waiting+'건'):'')+')';
       else {
         var rd=0,rt=0,ad=0,at=0;
         rated.forEach(function(r){ rd+=r.recent.done; rt+=r.recent.total; ad+=r.all.done; at+=r.all.total; });
         var low=rated.filter(function(r){ return r.recent.pct<60; }).length;
         $('hwRateSum').textContent='(학생 '+rated.length+'명 · 최근 평균 '+Math.round(rd*100/rt)+'%'
           +(at?(' · 전체 평균 '+Math.round(ad*100/at)+'%'):'')
-          +(low?(' · 미흡 '+low+'명'):'')+')';
+          +(low?(' · 미흡 '+low+'명'):'')
+          +(waiting?(' · 확인 대기 '+waiting+'건'):'')+')';
       }
     }
     if(!list.length){ $('hwRateTable').innerHTML='<tr><td class="wa-empty">등록된 숙제가 없습니다.</td></tr>'; return; }
@@ -7863,7 +7868,7 @@
           $('myHwRate').innerHTML='<b>내 숙제율 (최근 '+mr.recent.n+'건)</b> '+hwRateCell(mr.recent.pct,true)
             +'<div style="margin-top:5px;font-size:12.5px">전체 기간 '+(mr.all.pct===null?'-':hwRateCell(mr.all.pct))+' <span style="color:var(--muted)">· 숙제 '+mr.all.n+'건</span></div>'
             +'<div style="margin-top:6px;color:var(--muted);font-size:12px">최근 '+mr.recent.n+'건 기준 항목 '+mr.recent.done+'/'+mr.recent.total+'개 완료 · 다 끝낸 숙제 '+mr.recent.full+'건'
-            +'<br>가장 최근에 받은 숙제는 아직 하는 중일 수 있어 빼고 계산했어요.</div>';
+            +'<br>선생님이 확인한 숙제만 계산에 들어가요'+(mr.waiting?(' (확인 전 '+mr.waiting+'건)'):'')+'.</div>';
           $('myHwRate').style.display='';
         } else $('myHwRate').style.display='none';
       }
