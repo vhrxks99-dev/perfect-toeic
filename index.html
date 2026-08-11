@@ -3251,6 +3251,9 @@
 .hw-bar{display:block;width:100%;max-width:220px;min-width:80px;height:8px;border-radius:6px;background:var(--line);overflow:hidden}
 .hw-bar>i{display:block;height:100%;border-radius:6px}
 .hw-pct{font-family:var(--font-num);font-weight:800}
+/* 학생 '내 학습'의 내 숙제율 카드 */
+.my-hw-rate{margin:8px 0 10px;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);font-size:13.5px}
+.my-hw-rate .hw-bar{max-width:100%;margin-top:6px}
 /* 수강 종료한 학생 줄 — 지운 게 아니라 다닌 적 있는 사람이므로 지우지 않고 톤만 낮춘다.
    드롭다운·버튼은 그대로 눌러야 하므로(다시 수강중으로 되돌릴 수 있어야 함) 흐리게 하지 않는다. */
 .mem-off>td{background:var(--surface-2,#f4f6f8)}
@@ -3775,7 +3778,7 @@
       </div>
       <details id="hwRate" class="hw-rate-box">
         <summary>📊 학생별 숙제율 <span id="hwRateSum" class="wa-hint"></span></summary>
-        <div class="dash-note" style="margin-top:8px">학생이 체크한 <b>숙제 항목</b> 기준입니다(🔴60% 미만 · 🟡60~74% · 🟢75% 이상). 날짜 고르기와 상관없이 <b>전체 기간</b>을 봅니다.<br>각 학생의 <b>가장 최근 숙제 1건은 아직 하는 중</b>일 수 있어 빼고 셉니다.</div>
+        <div class="dash-note" style="margin-top:8px">학생이 체크한 <b>숙제 항목</b> 기준입니다 — 🔴미흡(60% 미만) · 🟡보통(60~74%) · 🟢우수(75% 이상). 날짜 고르기와 상관없이 <b>전체 기간</b>을 봅니다.<br>각 학생의 <b>가장 최근 숙제 1건은 아직 하는 중</b>일 수 있어 빼고 셉니다. 같은 값이 아래 숙제 목록의 <b>숙제율</b> 칸에도 나옵니다.</div>
         <div class="wa-table-wrap"><table class="wa-table" id="hwRateTable"></table></div>
       </details>
       <div class="dash-list-head">숙제 목록 <button class="btn btn-ghost" id="hwReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
@@ -3885,6 +3888,7 @@
       <div id="myStudy"></div>
     </div>
     <div class="dash-list-head">📝 내 숙제 <span style="color:var(--muted);font-weight:700;font-size:12px">담당 선생님이 내준 숙제</span></div>
+    <div id="myHwRate" class="my-hw-rate" style="display:none"></div>
     <div class="wa-table-wrap"><table class="wa-table" id="myHwTable"></table></div>
     <div class="dash-list-head">📅 내 수업 일정</div>
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
@@ -7348,11 +7352,20 @@
   //    그걸 넣으면 성실한 학생도 낼 때마다 비율이 떨어진다.
   function hwRateColor(p){ return p<60 ? '#dc2626' : (p<75 ? '#d97706' : '#16a34a'); }
   function hwRateDot(p){ return p<60 ? '🔴' : (p<75 ? '🟡' : '🟢'); }
+  function hwRateWord(p){ return p<60 ? '미흡' : (p<75 ? '보통' : '우수'); }
+  // 표 한 칸에 들어갈 짧은 표시. big=true 면 막대까지 그린다.
+  function hwRateCell(pct, big){
+    if(pct===null||pct===undefined) return '<span class="wa-hint">집계 전</span>';
+    var c=hwRateColor(pct);
+    var head=hwRateDot(pct)+' <span class="hw-pct" style="color:'+c+'">'+pct+'%</span> <span style="color:'+c+';font-weight:700;font-size:12px">'+hwRateWord(pct)+'</span>';
+    return big ? (head+'<span class="hw-bar" style="margin-top:4px"><i style="width:'+pct+'%;background:'+c+'"></i></span>') : head;
+  }
+  function hwStuKey(x){ return x.student_id||('n:'+hwNorm(x.student_name)); }
   function hwRates(rows){
     var by={};
     (rows||[]).forEach(function(x){
-      var k=x.student_id||('n:'+hwNorm(x.student_name));
-      if(!by[k]) by[k]={name:x.student_name||'-', list:[]};
+      var k=hwStuKey(x);
+      if(!by[k]) by[k]={key:k, name:x.student_name||'-', list:[]};
       by[k].list.push(x);
     });
     return Object.keys(by).map(function(k){
@@ -7361,7 +7374,7 @@
       var counted=o.list.slice(1);                 // 맨 앞(최신) 1건 제외
       var done=0,total=0,full=0;
       counted.forEach(function(x){ var p=hwProgress(x); done+=p.done; total+=p.total; if(p.total>0&&p.done>=p.total) full++; });
-      return { name:o.name, n:counted.length, done:done, total:total, full:full,
+      return { key:o.key, name:o.name, n:counted.length, done:done, total:total, full:full,
                pct: total>0 ? Math.round(done*100/total) : null };
     }).sort(function(a,b){
       if(a.pct===null && b.pct===null) return (a.name||'').localeCompare(b.name||'');
@@ -7370,9 +7383,11 @@
       return a.pct-b.pct;                          // 낮은 학생이 위로 — 챙겨야 할 학생부터 보인다
     });
   }
+  var _hwRateMap={};                     // 학생키 -> 숙제율(숙제 목록 각 줄 옆 칸에 쓴다)
   function drawHwRate(scoped){
-    if(!$('hwRateTable')) return;
     var list=hwRates(scoped), rated=list.filter(function(r){ return r.pct!==null; });
+    _hwRateMap={}; list.forEach(function(r){ _hwRateMap[r.key]=r; });
+    if(!$('hwRateTable')) return;
     if($('hwRateSum')){
       if(!rated.length) $('hwRateSum').textContent='(아직 집계할 숙제가 없습니다)';
       else {
@@ -7384,12 +7399,8 @@
     if(!list.length){ $('hwRateTable').innerHTML='<tr><td class="wa-empty">등록된 숙제가 없습니다.</td></tr>'; return; }
     var h='<tr class="hw-head"><th>학생</th><th>숙제율</th><th>완료 항목</th><th>다 끝낸 숙제</th></tr>';
     list.forEach(function(r){
-      var cell = (r.pct===null)
-        ? '<span class="wa-hint">집계 전</span>'
-        : (hwRateDot(r.pct)+' <span class="hw-pct" style="color:'+hwRateColor(r.pct)+'">'+r.pct+'%</span>'
-           +'<span class="hw-bar" style="margin-top:4px"><i style="width:'+r.pct+'%;background:'+hwRateColor(r.pct)+'"></i></span>');
       h+='<tr><td data-l="학생" style="white-space:nowrap">'+esc(r.name)+'</td>'
-        +'<td data-l="숙제율" style="min-width:120px">'+cell+'</td>'
+        +'<td data-l="숙제율" style="min-width:130px">'+hwRateCell(r.pct,true)+'</td>'
         +'<td data-l="완료 항목" style="white-space:nowrap">'+(r.total?(r.done+' / '+r.total):'-')+'</td>'
         +'<td data-l="다 끝낸 숙제" style="white-space:nowrap">'+(r.n?(r.full+' / '+r.n+'건'):'-')+'</td></tr>';
     });
@@ -7449,12 +7460,12 @@
                  : scopeMsg));
       $('hwTable').innerHTML='<tr><td class="wa-empty">'+msg+'</td></tr>'; return;
     }
-    var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>관리</th></tr>';
+    var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>숙제율</th><th>관리</th></tr>';
     rows.forEach(function(x){
       var items=hwItems(x.content), d=hwDoneArr(x);
       var itemHtml = items.length ? items.map(function(it,i){ return '<div class="hw-item">'+(d[i]?'✅':'⬜')+' '+esc(it)+'</div>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
-      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateCell((_hwRateMap[hwStuKey(x)]||{}).pct)+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
@@ -7768,6 +7779,16 @@
       var hw=[];
       if(sb){ var rh=await sb.from('homeworks').select('*').eq('student_id',profile.id).order('created_at',{ascending:false}); if(!rh.error&&rh.data) hw=rh.data; }
       window.__myHw=hw;
+      // 내 숙제율 — 선생님 화면과 같은 방식으로 센다(가장 최근 숙제 1건은 아직 하는 중이라 제외).
+      if($('myHwRate')){
+        var mr=hwRates(hw)[0];
+        if(mr && mr.pct!==null){
+          $('myHwRate').innerHTML='<b>내 숙제율</b> '+hwRateCell(mr.pct,true)
+            +'<div style="margin-top:6px;color:var(--muted);font-size:12px">숙제 '+mr.n+'건 중 항목 '+mr.done+'/'+mr.total+'개 완료 · 다 끝낸 숙제 '+mr.full+'건'
+            +'<br>가장 최근 숙제는 아직 하는 중일 수 있어 빼고 계산했어요.</div>';
+          $('myHwRate').style.display='';
+        } else $('myHwRate').style.display='none';
+      }
       if(!hw.length){ $('myHwTable').innerHTML='<tr><td class="wa-empty">아직 등록된 숙제가 없습니다.</td></tr>'; }
       else { var hwh='<tr class="hw-head"><th>등록일</th><th>숙제 (완료 체크)</th><th>선생님</th><th>진행</th></tr>'; hw.forEach(function(x){
         var items=hwItems(x.content), d=hwDoneArr(x);
