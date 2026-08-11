@@ -3251,6 +3251,17 @@
 .hw-bar{display:block;width:100%;max-width:220px;min-width:80px;height:8px;border-radius:6px;background:var(--line);overflow:hidden}
 .hw-bar>i{display:block;height:100%;border-radius:6px}
 .hw-pct{font-family:var(--font-num);font-weight:800}
+/* 선생님 확인 도장 */
+.hw-chk{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
+.hw-chk input{margin:0;transform:scale(1.15);cursor:pointer}
+.hw-chk.on{border-color:#16a34a;color:#16a34a;background:rgba(22,163,74,.08)}
+#hwTable .hw-item{display:block;padding:4px 0;cursor:pointer}
+#hwTable .hw-item input{margin-right:7px;transform:scale(1.15);cursor:pointer}
+/* 칸이 늘어나 숙제 내용이 눌리지 않게 PC에서는 숙제 칸에 폭을 몰아준다 */
+@media(min-width:641px){ #hwTable td[data-l="숙제"], #hwTable th:nth-child(3){min-width:300px} }
+.my-hw-chk{display:inline-block;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:700}
+.my-hw-chk.on{color:#16a34a;background:rgba(22,163,74,.1)}
+.my-hw-chk.off{color:var(--muted);background:var(--line)}
 /* 학생 '내 학습'의 내 숙제율 카드 */
 .my-hw-rate{margin:8px 0 10px;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);font-size:13.5px}
 .my-hw-rate .hw-bar{max-width:100%;margin-top:6px}
@@ -7361,6 +7372,14 @@
     return big ? (head+'<span class="hw-bar" style="margin-top:4px"><i style="width:'+pct+'%;background:'+c+'"></i></span>') : head;
   }
   function hwStuKey(x){ return x.student_id||('n:'+hwNorm(x.student_name)); }
+  // 선생님 확인 도장 — 학생 체크는 안 하고도 누를 수 있으니 선생님이 실제로 검사했는지를 따로 남긴다.
+  // teacher_checked 칸은 homework_teacher_check.sql 을 돌려야 생긴다(안 돌렸으면 저장할 때 알려준다).
+  function hwChkCell(x){
+    var on=!!x.teacher_checked;
+    var when=x.teacher_checked_at ? String(x.teacher_checked_at).slice(0,10) : '';
+    return '<label class="hw-chk'+(on?' on':'')+'"><input type="checkbox" data-tchk="'+x.id+'"'+(on?' checked':'')+'> 확인</label>'
+      + (on&&when ? ('<div style="font-size:11px;color:var(--muted);margin-top:2px">'+esc(when)+'</div>') : '');
+  }
   // 한 수강권 = 주 2회 · 월 8회 → 최근 8건이 '요즘 어떤지'를 보여준다(원장 확인 2026-08-11).
   var HW_RECENT_N=8;
   function hwCalc(list){
@@ -7478,12 +7497,15 @@
                  : scopeMsg));
       $('hwTable').innerHTML='<tr><td class="wa-empty">'+msg+'</td></tr>'; return;
     }
-    var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>숙제율</th><th>관리</th></tr>';
+    var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>선생님 확인</th><th>숙제율</th><th>관리</th></tr>';
     rows.forEach(function(x){
       var items=hwItems(x.content), d=hwDoneArr(x);
-      var itemHtml = items.length ? items.map(function(it,i){ return '<div class="hw-item">'+(d[i]?'✅':'⬜')+' '+esc(it)+'</div>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
+      // 선생님도 직접 체크를 고칠 수 있다 — 학생이 안 하고 눌러놨을 수 있기 때문(원장 지시 2026-08-11).
+      var itemHtml = items.length
+        ? items.map(function(it,i){ return '<label class="hw-item"><input type="checkbox" data-thw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('')
+        : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
-      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
@@ -7517,6 +7539,43 @@
     if(r.error){ if(err) err.textContent='저장 실패: '+r.error.message; return; }
     hwReset(); await loadHomework();
   };
+  // 선생님이 숙제 목록에서 직접 체크 — 항목 체크(data-thw)와 선생님 확인(data-tchk)
+  if($('hwTable')) $('hwTable').addEventListener('change', async function(e){
+    var cb=e.target; if(!cb||cb.type!=='checkbox'||!sb) return;
+    var hwId=cb.getAttribute('data-thw'), chkId=cb.getAttribute('data-tchk');
+    var id=hwId||chkId; if(!id) return;
+    var x=(window.__wtHw||[]).filter(function(y){ return y.id===id; })[0]; if(!x) return;
+    cb.disabled=true;
+    var patch, undo;
+    if(hwId){
+      var idx=parseInt(cb.getAttribute('data-i'),10);
+      var arr=hwDoneArr(x); while(arr.length<=idx) arr.push(false);
+      undo=x.items_done; arr[idx]=cb.checked; x.items_done=JSON.stringify(arr);
+      patch={items_done:x.items_done};
+    } else {
+      undo=x.teacher_checked; x.teacher_checked=cb.checked;
+      // 확인한 사람·시각은 서버 트리거가 채운다. 학생이 스스로 켜는 것도 거기서 막는다.
+      patch={teacher_checked:cb.checked};
+    }
+    var r=await sb.from('homeworks').update(patch).eq('id',id);
+    cb.disabled=false;
+    if(r&&r.error){
+      cb.checked=!cb.checked;
+      if(hwId) x.items_done=undo; else x.teacher_checked=undo;
+      alert(/teacher_checked/.test(r.error.message||'')
+        ? "'선생님 확인' 칸이 아직 데이터베이스에 없습니다. homework_teacher_check.sql 을 먼저 실행해 주세요."
+        : ('저장 실패: '+r.error.message));
+      return;
+    }
+    if(hwId){                                   // 진행·숙제율이 같이 바뀌므로 다시 그린다
+      if(!r||!r.error) { drawHw(); }
+    } else {
+      // 확인 시각은 서버가 채우므로 값을 받아와 화면을 맞춘다
+      var g=await sb.from('homeworks').select('teacher_checked,teacher_checked_at').eq('id',id).single();
+      if(g&&!g.error&&g.data){ x.teacher_checked=g.data.teacher_checked; x.teacher_checked_at=g.data.teacher_checked_at; }
+      drawHw();
+    }
+  });
   if($('hwTable')) $('hwTable').addEventListener('click', async function(e){
     var t=e.target; if(!t||!t.closest) return;
     var del=t.closest('a[data-hwdel]'), ed=t.closest('a[data-hwedit]');
@@ -7809,10 +7868,10 @@
         } else $('myHwRate').style.display='none';
       }
       if(!hw.length){ $('myHwTable').innerHTML='<tr><td class="wa-empty">아직 등록된 숙제가 없습니다.</td></tr>'; }
-      else { var hwh='<tr class="hw-head"><th>등록일</th><th>숙제 (완료 체크)</th><th>선생님</th><th>진행</th></tr>'; hw.forEach(function(x){
+      else { var hwh='<tr class="hw-head"><th>등록일</th><th>숙제 (완료 체크)</th><th>선생님</th><th>진행</th><th>선생님 확인</th></tr>'; hw.forEach(function(x){
         var items=hwItems(x.content), d=hwDoneArr(x);
         var itemHtml = items.length ? items.map(function(it,i){ return '<label class="hw-item"><input type="checkbox" data-hw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
-        hwh+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="선생님" style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td></tr>'; }); $('myHwTable').innerHTML=hwh; }
+        hwh+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="선생님" style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+(x.teacher_checked?'<span class="my-hw-chk on">확인됨</span>':'<span class="my-hw-chk off">확인 전</span>')+'</td></tr>'; }); $('myHwTable').innerHTML=hwh; }
     }
   }
   // ---- 학생 화면: 주말 스터디 신청 ----------------------------------------
@@ -7881,7 +7940,9 @@
     var arr=hwDoneArr(x); while(arr.length<=idx) arr.push(false); arr[idx]=cb.checked; x.items_done=JSON.stringify(arr);
     var r=await sb.from('homeworks').update({items_done:x.items_done}).eq('id',id);
     if(r&&r.error){ alert('저장 실패: '+r.error.message); cb.checked=!cb.checked; arr[idx]=!cb.checked; x.items_done=JSON.stringify(arr); return; }
-    var row=cb.closest('tr'); if(row&&row.lastElementChild){ row.lastElementChild.innerHTML=hwProgTag(x); }
+    // '진행' 칸을 이름표로 찾는다 — 맨 뒤 칸을 쓰면 칸이 늘어날 때마다 엉뚱한 데를 고친다
+    var row=cb.closest('tr'), prog=row&&row.querySelector('td[data-l="진행"]');
+    if(prog) prog.innerHTML=hwProgTag(x);
   });
   if($('waMyClose')) $('waMyClose').onclick=function(){ $('waMy').classList.remove('on'); };
   // 내 정보도 입력 폼이라 배경 클릭으로 닫지 않는다. X 버튼과 Esc 로만.
