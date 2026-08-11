@@ -7394,6 +7394,22 @@
     return big ? (head+'<span class="hw-bar" style="margin-top:4px"><i style="width:'+pct+'%;background:'+c+'"></i></span>') : head;
   }
   function hwStuKey(x){ return x.student_id||('n:'+hwNorm(x.student_name)); }
+  // ---- 동명이인 구분 ----
+  // 이름이 겹치는 학생만 뒤에 번호 뒷 4자리를 붙여 보여준다(원장 지시 2026-08-11, 김수연이 두 명).
+  // 이름 데이터는 건드리지 않고 화면에만 붙이므로, 나중에 다른 동명이인이 생겨도 자동으로 적용된다.
+  var _dupName={};
+  function calcDupNames(){
+    var c={};
+    (_members||[]).forEach(function(m){ if(m.role!=='student') return; var k=(m.name||'').trim(); if(k) c[k]=(c[k]||0)+1; });
+    _dupName={}; Object.keys(c).forEach(function(k){ if(c[k]>1) _dupName[k]=1; });
+  }
+  function stuTag(id, name){
+    var nm=String(name||'-').trim();
+    if(!_dupName[nm]) return nm;
+    var m=(_members||[]).filter(function(p){ return p.id===id; })[0];
+    var ph=(m&&m.phone)?String(m.phone).replace(/\D/g,''):'';
+    return ph ? (nm+' ('+ph.slice(-4)+')') : nm;
+  }
   // 선생님 확인 도장 — 학생 체크는 안 하고도 누를 수 있으니 선생님이 실제로 검사했는지를 따로 남긴다.
   // teacher_checked 칸은 homework_teacher_check.sql 을 돌려야 생긴다(안 돌렸으면 저장할 때 알려준다).
   function hwChkCell(x){
@@ -7461,7 +7477,7 @@
     if(!list.length){ $('hwRateTable').innerHTML='<tr><td class="wa-empty">등록된 숙제가 없습니다.</td></tr>'; return; }
     var h='<tr class="hw-head"><th>학생</th><th>최근 '+HW_RECENT_N+'건</th><th>전체</th><th>완료 항목 (전체)</th><th>다 끝낸 숙제 (전체)</th></tr>';
     list.forEach(function(r){
-      h+='<tr><td data-l="학생" style="white-space:nowrap">'+esc(r.name)+'</td>'
+      h+='<tr><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(String(r.key).indexOf('n:')===0?null:r.key, r.name))+'</td>'
         +'<td data-l="최근 '+HW_RECENT_N+'건" style="min-width:130px">'+hwRateCell(r.recent.pct,true)
           +(r.recent.n?('<div style="font-size:11.5px;color:var(--muted);margin-top:3px">'+r.recent.done+'/'+r.recent.total+'개 · '+r.recent.n+'건</div>'):'')+'</td>'
         +'<td data-l="전체" style="min-width:130px">'+hwRateCell(r.all.pct,true)+'</td>'
@@ -7472,6 +7488,7 @@
   }
   function drawHw(){
     if(!$('hwTable')) return;
+    calcDupNames();
     var rows=window.__wtHw||[];
     // 숙제를 '쓴 사람'이 아니라 그 학생의 담당강사로 거른다(담당이 바뀌면 같이 따라간다).
     var tsel=hwFillTeacherFilter();
@@ -7532,7 +7549,7 @@
         ? items.map(function(it,i){ return '<label class="hw-item"><input type="checkbox" data-thw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('')
         : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
-      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
