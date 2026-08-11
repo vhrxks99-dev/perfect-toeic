@@ -2060,8 +2060,30 @@
       + 'ol.key .kn{color:#9aa1ab;font-weight:700;margin-right:5px}'
       + 'ol.key b{color:#1F62E0;margin-right:5px}'
       + '.wm-foot{position:fixed;bottom:5mm;left:14mm;right:14mm;display:flex;justify-content:space-between;font-size:9.5px;color:#aab0ba;border-top:1px solid #e8ebf0;padding-top:5px}'
-      + '@media print{.printbar{display:none}body{padding:0}}';
-    var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>완벽한토익 VOCA 단어시험</title><style>'+css+'</style></head><body>'
+      + '@media print{.printbar{display:none}body{padding:0}}'
+      // 폰에서도 2단을 유지한다(원장 요청 2026-08-11). viewport 를 안 주면 브라우저가 980px 로 그린 뒤
+      // 화면에 맞춰 축소해버려서, 2단이긴 한데 글씨가 깨알만 해지고 확대하면 한 단만 보인다.
+      // viewport 를 실제 폭으로 주는 대신 화면에서만 글씨·여백을 줄인다. 인쇄(A4)는 건드리지 않는다.
+      + '@media screen and (max-width:640px){'
+      +   'body{padding:10px 11px 40px}'
+      +   '.printbar{font-size:11.5px;padding:8px 10px;margin-bottom:12px}'
+      +   '.printbar button{padding:6px 10px;font-size:11.5px}'
+      +   '.wm-head{gap:9px;padding-bottom:8px}.wm-logo{height:31px}.wm-div{height:26px}'
+      +   '.wm-title{font-size:15px}.wm-meta{font-size:10.5px}.wm-brand{font-size:10.5px}.wm-brand span{font-size:7px}'
+      +   '.wm-info{gap:5px;margin:10px 0 2px}'
+      +   '.wm-info span{min-width:0;flex:1 1 0;font-size:10.5px;padding:7px 8px}'
+      +   '.wm-info .u{min-width:34px}.wm-info .u.short{min-width:20px}'
+      +   '.wm-tip{font-size:11px;margin:9px 1px 12px}'
+      +   'ol.sheet{column-gap:14px}'
+      +   'ol.sheet li{font-size:12px;margin-bottom:13px;gap:5px}'
+      +   'ol.sheet li::before{width:16px;height:16px;font-size:9px;border-radius:5px}'
+      +   '.qw{font-size:12px}'
+      +   '.sheet .bl{height:15px;margin-left:2px}'
+      +   'ol.key{column-gap:14px}ol.key li{font-size:11px;margin-bottom:9px}'
+      +   '.wm-ans-badge{font-size:10.5px;padding:5px 12px}'
+      +   '.wm-foot{font-size:8px;left:9px;right:9px}'
+      + '}';
+    var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>완벽한토익 VOCA 단어시험</title><style>'+css+'</style></head><body>'
       + '<div class="printbar"><span>완벽한토익 VOCA 단어시험지</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>'
       + head()
       + '<div class="wm-info"><span>이름<span class="u"></span></span><span>점수<span class="u short"></span> / '+n+'</span><span>날짜<span class="u"></span></span></div>'
