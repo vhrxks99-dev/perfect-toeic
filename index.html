@@ -3778,7 +3778,7 @@
       </div>
       <details id="hwRate" class="hw-rate-box">
         <summary>📊 학생별 숙제율 <span id="hwRateSum" class="wa-hint"></span></summary>
-        <div class="dash-note" style="margin-top:8px">학생이 체크한 <b>숙제 항목</b> 기준입니다 — 🔴미흡(60% 미만) · 🟡보통(60~74%) · 🟢우수(75% 이상). 날짜 고르기와 상관없이 <b>전체 기간</b>을 봅니다.<br>각 학생의 <b>가장 최근 숙제 1건은 아직 하는 중</b>일 수 있어 빼고 셉니다. 같은 값이 아래 숙제 목록의 <b>숙제율</b> 칸에도 나옵니다.</div>
+        <div class="dash-note" style="margin-top:8px">학생이 체크한 <b>숙제 항목</b> 기준입니다 — 🔴미흡(60% 미만) · 🟡보통(60~74%) · 🟢우수(75% 이상).<br><b>최근 8건</b>은 요즘 어떤지(주2회 월8회 = 한 달치), <b>전체</b>는 다닌 내내입니다. 옛날 기록이 발목을 잡지 않게 둘 다 보여줍니다.<br>각 학생의 <b>가장 최근 숙제 1건은 아직 하는 중</b>일 수 있어 빼고 셉니다. 날짜 고르기와는 상관없고, 같은 값이 아래 숙제 목록의 <b>숙제율</b> 칸에도 나옵니다.</div>
         <div class="wa-table-wrap"><table class="wa-table" id="hwRateTable"></table></div>
       </details>
       <div class="dash-list-head">숙제 목록 <button class="btn btn-ghost" id="hwReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
@@ -7361,6 +7361,13 @@
     return big ? (head+'<span class="hw-bar" style="margin-top:4px"><i style="width:'+pct+'%;background:'+c+'"></i></span>') : head;
   }
   function hwStuKey(x){ return x.student_id||('n:'+hwNorm(x.student_name)); }
+  // 한 수강권 = 주 2회 · 월 8회 → 최근 8건이 '요즘 어떤지'를 보여준다(원장 확인 2026-08-11).
+  var HW_RECENT_N=8;
+  function hwCalc(list){
+    var done=0,total=0,full=0;
+    list.forEach(function(x){ var p=hwProgress(x); done+=p.done; total+=p.total; if(p.total>0&&p.done>=p.total) full++; });
+    return { n:list.length, done:done, total:total, full:full, pct: total>0 ? Math.round(done*100/total) : null };
+  }
   function hwRates(rows){
     var by={};
     (rows||[]).forEach(function(x){
@@ -7372,37 +7379,48 @@
       var o=by[k];
       o.list.sort(function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); });
       var counted=o.list.slice(1);                 // 맨 앞(최신) 1건 제외
-      var done=0,total=0,full=0;
-      counted.forEach(function(x){ var p=hwProgress(x); done+=p.done; total+=p.total; if(p.total>0&&p.done>=p.total) full++; });
-      return { key:o.key, name:o.name, n:counted.length, done:done, total:total, full:full,
-               pct: total>0 ? Math.round(done*100/total) : null };
+      // 최근 8건 = 지금 상태 / 전체 = 다닌 내내. 옛날 기록이 발목을 잡지 않게 둘 다 보여준다.
+      return { key:o.key, name:o.name, recent:hwCalc(counted.slice(0,HW_RECENT_N)), all:hwCalc(counted) };
     }).sort(function(a,b){
-      if(a.pct===null && b.pct===null) return (a.name||'').localeCompare(b.name||'');
-      if(a.pct===null) return 1;                   // 아직 셀 게 없는 학생은 맨 아래
-      if(b.pct===null) return -1;
-      return a.pct-b.pct;                          // 낮은 학생이 위로 — 챙겨야 할 학생부터 보인다
+      var x=a.recent.pct, y=b.recent.pct;
+      if(x===null && y===null) return (a.name||'').localeCompare(b.name||'');
+      if(x===null) return 1;                       // 아직 셀 게 없는 학생은 맨 아래
+      if(y===null) return -1;
+      return x-y;                                  // 낮은 학생이 위로 — 챙겨야 할 학생부터 보인다
     });
+  }
+  // 표 한 칸에 '최근 8건' 크게, '전체'를 작게 같이 보여준다.
+  function hwRateTwo(r, big){
+    if(!r || r.recent.pct===null) return '<span class="wa-hint">집계 전</span>';
+    return hwRateCell(r.recent.pct, big)
+      + '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">전체 '
+      + (r.all.pct===null ? '-' : (r.all.pct+'% ('+r.all.n+'건)')) + '</div>';
   }
   var _hwRateMap={};                     // 학생키 -> 숙제율(숙제 목록 각 줄 옆 칸에 쓴다)
   function drawHwRate(scoped){
-    var list=hwRates(scoped), rated=list.filter(function(r){ return r.pct!==null; });
+    var list=hwRates(scoped), rated=list.filter(function(r){ return r.recent.pct!==null; });
     _hwRateMap={}; list.forEach(function(r){ _hwRateMap[r.key]=r; });
     if(!$('hwRateTable')) return;
     if($('hwRateSum')){
       if(!rated.length) $('hwRateSum').textContent='(아직 집계할 숙제가 없습니다)';
       else {
-        var d=0,t=0; rated.forEach(function(r){ d+=r.done; t+=r.total; });
-        var low=rated.filter(function(r){ return r.pct<60; }).length;
-        $('hwRateSum').textContent='(학생 '+rated.length+'명 · 평균 '+Math.round(d*100/t)+'%'+(low?(' · 60% 미만 '+low+'명'):'')+')';
+        var rd=0,rt=0,ad=0,at=0;
+        rated.forEach(function(r){ rd+=r.recent.done; rt+=r.recent.total; ad+=r.all.done; at+=r.all.total; });
+        var low=rated.filter(function(r){ return r.recent.pct<60; }).length;
+        $('hwRateSum').textContent='(학생 '+rated.length+'명 · 최근 평균 '+Math.round(rd*100/rt)+'%'
+          +(at?(' · 전체 평균 '+Math.round(ad*100/at)+'%'):'')
+          +(low?(' · 미흡 '+low+'명'):'')+')';
       }
     }
     if(!list.length){ $('hwRateTable').innerHTML='<tr><td class="wa-empty">등록된 숙제가 없습니다.</td></tr>'; return; }
-    var h='<tr class="hw-head"><th>학생</th><th>숙제율</th><th>완료 항목</th><th>다 끝낸 숙제</th></tr>';
+    var h='<tr class="hw-head"><th>학생</th><th>최근 '+HW_RECENT_N+'건</th><th>전체</th><th>완료 항목 (전체)</th><th>다 끝낸 숙제 (전체)</th></tr>';
     list.forEach(function(r){
       h+='<tr><td data-l="학생" style="white-space:nowrap">'+esc(r.name)+'</td>'
-        +'<td data-l="숙제율" style="min-width:130px">'+hwRateCell(r.pct,true)+'</td>'
-        +'<td data-l="완료 항목" style="white-space:nowrap">'+(r.total?(r.done+' / '+r.total):'-')+'</td>'
-        +'<td data-l="다 끝낸 숙제" style="white-space:nowrap">'+(r.n?(r.full+' / '+r.n+'건'):'-')+'</td></tr>';
+        +'<td data-l="최근 '+HW_RECENT_N+'건" style="min-width:130px">'+hwRateCell(r.recent.pct,true)
+          +(r.recent.n?('<div style="font-size:11.5px;color:var(--muted);margin-top:3px">'+r.recent.done+'/'+r.recent.total+'개 · '+r.recent.n+'건</div>'):'')+'</td>'
+        +'<td data-l="전체" style="min-width:130px">'+hwRateCell(r.all.pct,true)+'</td>'
+        +'<td data-l="완료 항목 (전체)" style="white-space:nowrap">'+(r.all.total?(r.all.done+' / '+r.all.total):'-')+'</td>'
+        +'<td data-l="다 끝낸 숙제 (전체)" style="white-space:nowrap">'+(r.all.n?(r.all.full+' / '+r.all.n+'건'):'-')+'</td></tr>';
     });
     $('hwRateTable').innerHTML=h;
   }
@@ -7465,7 +7483,7 @@
       var items=hwItems(x.content), d=hwDoneArr(x);
       var itemHtml = items.length ? items.map(function(it,i){ return '<div class="hw-item">'+(d[i]?'✅':'⬜')+' '+esc(it)+'</div>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
-      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateCell((_hwRateMap[hwStuKey(x)]||{}).pct)+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(x.student_name||'-')+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
@@ -7782,10 +7800,11 @@
       // 내 숙제율 — 선생님 화면과 같은 방식으로 센다(가장 최근 숙제 1건은 아직 하는 중이라 제외).
       if($('myHwRate')){
         var mr=hwRates(hw)[0];
-        if(mr && mr.pct!==null){
-          $('myHwRate').innerHTML='<b>내 숙제율</b> '+hwRateCell(mr.pct,true)
-            +'<div style="margin-top:6px;color:var(--muted);font-size:12px">숙제 '+mr.n+'건 중 항목 '+mr.done+'/'+mr.total+'개 완료 · 다 끝낸 숙제 '+mr.full+'건'
-            +'<br>가장 최근 숙제는 아직 하는 중일 수 있어 빼고 계산했어요.</div>';
+        if(mr && mr.recent.pct!==null){
+          $('myHwRate').innerHTML='<b>내 숙제율 (최근 '+mr.recent.n+'건)</b> '+hwRateCell(mr.recent.pct,true)
+            +'<div style="margin-top:5px;font-size:12.5px">전체 기간 '+(mr.all.pct===null?'-':hwRateCell(mr.all.pct))+' <span style="color:var(--muted)">· 숙제 '+mr.all.n+'건</span></div>'
+            +'<div style="margin-top:6px;color:var(--muted);font-size:12px">최근 '+mr.recent.n+'건 기준 항목 '+mr.recent.done+'/'+mr.recent.total+'개 완료 · 다 끝낸 숙제 '+mr.recent.full+'건'
+            +'<br>가장 최근에 받은 숙제는 아직 하는 중일 수 있어 빼고 계산했어요.</div>';
           $('myHwRate').style.display='';
         } else $('myHwRate').style.display='none';
       }
