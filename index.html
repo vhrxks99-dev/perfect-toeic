@@ -5638,6 +5638,17 @@
     var n=normName(name);
     return n ? ('nm:'+n) : '';
   }
+  // 🚨 같은 학생인데 수업마다 키가 달라질 수 있다(2026-08-12).
+  //    구글발 수업은 8/12 14:00 을 기준으로 그 뒤 것만 회원과 연결했다 →
+  //    옛 수업은 이름키('nm:강민채'), 새 수업은 아이디키('id:...') 가 된다.
+  //    한쪽만 보고 맞추면 "다음 수업 미등록" 알림이 잘못 뜬다(실제로 겪음).
+  //    그래서 짝을 맞출 때는 두 키를 다 등록하고 둘 다 본다.
+  function stuKeys(id, name){
+    var out=[];
+    if(id) out.push('id:'+id);
+    var n=normName(name); if(n) out.push('nm:'+n);
+    return out;
+  }
   // 구글 캘린더에는 수업이 아닌 일정도 들어 있다. 이런 제목은 학생으로 보지 않는다.
   var NOT_STUDENT=['약속'];
   function isStudentEntry(s){
@@ -5684,7 +5695,7 @@
     // 내 학생들의 예정 수업 (미래)
     var hasFuture={};
     var fr=await sb.from('schedules').select('student_id,student_name,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString());
-    if(!fr.error && fr.data) fr.data.forEach(function(s){ if(!isStudentEntry(s)) return; var k=stuKey(s.student_id,s.student_name); if(k) hasFuture[k]=true; });
+    if(!fr.error && fr.data) fr.data.forEach(function(s){ if(!isStudentEntry(s)) return; stuKeys(s.student_id,s.student_name).forEach(function(k){ hasFuture[k]=true; }); });
     var hw=window.__wtHw||[];
     // 끝난 사전 OT 중 상담 기록이 아직 없는 것 (2026-08-12 원장 지시 — 선생님이 누락할까 걱정).
     // 이 알림에는 '확인함' 버튼을 달지 않는다. 상담을 넣어야만 사라진다.
@@ -5706,7 +5717,8 @@
         alerts.push({type:'ot',student:sname,sid:sid,day:day,skey:key,scid:s.id});
         return;   // OT 는 다음수업·숙제 알림 대상이 아니다(아직 등록 전이다)
       }
-      if(!hasFuture[key] && !_alertChecks[ackKey('next',key,day)]){ var k='n:'+key; if(!seen[k]){ seen[k]=1; alerts.push({type:'next',student:sname,sid:sid,day:day,skey:key}); } }
+      var 다음수업있음=stuKeys(sid,s.student_name).some(function(k){ return hasFuture[k]; });
+      if(!다음수업있음 && !_alertChecks[ackKey('next',key,day)]){ var k='n:'+key; if(!seen[k]){ seen[k]=1; alerts.push({type:'next',student:sname,sid:sid,day:day,skey:key}); } }
       // 숙제 알림은 회원으로 등록된 학생만. 구글에서 온 수업은 이름만 있어 숙제와 짝짓기가
       // 불확실하고, 잘못 켜면 다음수업 알림이 숙제 알림에 파묻힌다.
       if(!sid) return;
