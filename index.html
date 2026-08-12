@@ -3243,6 +3243,14 @@
 .dash-row:last-child{margin-bottom:0}
 .dash-row>label{flex:1;min-width:120px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
 .dash-row input,.dash-row select{padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
+/* 휴무 폼의 '종일' 체크칸. 데스크톱에서는 옆 날짜칸 바닥에 맞춰 서고,
+   폰에서는 한 줄을 통째로 쓴다(2026-08-12 원장 지적 "모바일에서 종일 체크칸 레이아웃 이상해"). */
+.dash-row>label.off-allday{flex:0 0 auto;min-width:0;flex-direction:row;align-items:center;gap:8px;
+  font-size:13.5px;font-weight:800;color:var(--ink);white-space:nowrap;align-self:flex-end;padding-bottom:10px}
+.dash-row>label.off-allday input[type=checkbox]{width:18px;height:18px;margin:0;flex:0 0 auto;accent-color:var(--accent)}
+@media(max-width:640px){
+  .dash-row>label.off-allday{flex:1 0 100%;align-self:stretch;padding:2px 0 0}
+}
 /* dash-row 밖에 낱개로 있는 label(상담 메모 등). 규칙이 없어서 브라우저 기본 크기로
    조그맣게 떴다 — 2026-08-12 원장 지적 "상담페이지 메모칸 레이아웃이 이상해". */
 .dash-form>label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:10px}
@@ -3664,10 +3672,11 @@
                종료일을 비우면 예전처럼 하루만 등록된다. -->
           <label>시작일<input type="date" id="offDate"></label>
           <label>종료일 <span class="wa-hint">(하루면 비워두세요)</span><input type="date" id="offDateTo"></label>
-          <label style="flex:0 0 auto;justify-content:flex-end"><span>&nbsp;</span>
-            <label style="flex-direction:row;align-items:center;gap:6px;font-weight:700;white-space:nowrap;margin:0">
-              <input type="checkbox" id="offAllDay" checked style="width:auto;margin:0">종일
-            </label>
+          <!-- label 안에 label 을 또 넣고 &nbsp; 로 높이를 맞추던 자리였다. HTML 규칙에도
+               어긋나고 폰에서는 체크칸이 날짜칸에 눌려 붙었다(2026-08-12 원장 지적).
+               한 겹으로 펴고 폰에서는 한 줄을 통째로 쓰게 했다. -->
+          <label class="off-allday">
+            <input type="checkbox" id="offAllDay" checked><span>종일</span>
           </label>
         </div>
         <div class="dash-row" id="offHourRow" style="display:none">
@@ -6247,6 +6256,14 @@
     if($('offHourRow')) $('offHourRow').style.display=all?'none':'';
     if($('offReasonRow')) $('offReasonRow').style.display=all?'':'none';
   };
+  // 시작일을 종료일보다 뒤로 옮기면 폼이 '종료일이 더 빠른' 상태로 남아 등록이 막힌다
+  // (2026-08-12 원장 화면에 시작 8/18 · 종료 8/12 로 떠 있었다).
+  // 달력 자체가 그 앞 날짜를 못 고르게 막고, 이미 어긋나 있으면 종료일을 비운다.
+  if($('offDate')) $('offDate').addEventListener('change', function(){
+    var to=$('offDateTo'); if(!to) return;
+    to.min=$('offDate').value||'';
+    if(to.value && $('offDate').value && to.value < $('offDate').value) to.value='';
+  });
   // ---- 주말 스터디 (관리자) ----------------------------------------------
   // 원장 확정 2026-08-10: 토·일 12~14시 / 자격은 회원 관리에서 / 그 주에 갈 사람만 손듦 /
   // 토익 시험일은 쉼 / 강의장은 인원 보고 사람이 1~2개.
