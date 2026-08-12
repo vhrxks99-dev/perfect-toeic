@@ -7201,13 +7201,15 @@
       // '잡힌 수업'이 차감의 근거다. 결석도 그 안에 들어 있고(안 왔어도 자리는 썼다),
       // 휴강은 빠져 있다. 두 숫자는 선생님이 달력에서 표시한 결과를 그대로 보여준다.
       var noshowN=window.__wtNoshow||{}, cancelN=window.__wtCancel||{};
-      var h='<tr><th>학생</th><th>구매</th><th>조정</th><th>잡힌 수업</th><th>남은 횟수</th><th>횟수 조정</th><th>결석</th><th>휴강</th></tr>';
+      // '조정' 칸을 따로 두니 원장이 그 숫자를 남은 횟수로 오해했다(2026-08-12:
+      // "박주영 7회로 왔는데 왜 9회로 이관됐지?" — 9는 조정값이고 남은 횟수는 5였다).
+      // 구매와 조정을 '총 횟수' 한 칸으로 합쳤다. 총 횟수 - 잡힌 수업 = 남은 횟수 로 딱 맞는다.
+      // 조정 내역 자체는 아래 조정 장부(drawAdjTable)와 ＋／－ 버튼에 그대로 남아 있다.
+      var h='<tr><th>학생</th><th>총 횟수</th><th>잡힌 수업</th><th>남은 횟수</th><th>횟수 조정</th><th>결석</th><th>휴강</th></tr>';
       fst.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0,
                                   ns=noshowN[s.id]||0, cn=cancelN[s.id]||0,
                                   aj=adjSum[s.id]||0, rem=remainOf(s.id);
-        var ajTxt = aj===0 ? '<span style="color:var(--muted)">-</span>'
-                  : '<b style="color:'+(aj>0?'#0f7a52':'#c0342b')+'">'+(aj>0?'+':'')+aj+'회</b>';
-        h+='<tr><td>'+esc(s.name)+'</td><td>'+pu+'회</td><td>'+ajTxt+'</td><td>'+us+'회</td>'
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+(pu+aj)+'회</td><td>'+us+'회</td>'
          + '<td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td>'
          + '<td style="white-space:nowrap"><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjplus="'+esc(s.id)+'">＋</button> <button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjminus="'+esc(s.id)+'">－</button></td>'
          + '<td>'+(ns?('<b style="color:#c0342b">'+ns+'회</b>'):'<span style="color:var(--muted)">-</span>')+'</td>'
@@ -8291,7 +8293,9 @@
         if(!rj.error&&rj.data) rj.data.forEach(function(x){ adj+=(x.delta||0); });
       }
       var rem=pu+adj-scs.length;
-      $('myPass').innerHTML='구매 <b>'+pu+'회</b>'+(adj?' · 조정 <b>'+(adj>0?'+':'')+adj+'회</b>':'')+' · 잡힌 수업 <b>'+scs.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>'
+      // 구매·조정을 '총 횟수'로 합쳐 보여준다(2026-08-12 원장 지시 "조정숫자 숨겨줘 헷갈려").
+      // 총 횟수 - 잡힌 수업 = 남은 횟수 라 숫자가 눈으로 맞아떨어진다.
+      $('myPass').innerHTML='총 횟수 <b>'+(pu+adj)+'회</b> · 잡힌 수업 <b>'+scs.length+'회</b> · 남은 횟수 <b style="color:'+(rem>0?'var(--accent)':'#c0342b')+';font-size:16px">'+rem+'회</b>'
         + '<div style="margin-top:4px;font-size:12px;color:var(--muted)">수업 일정이 잡히면 1회 차감됩니다.'
         + (function(){
             var ns=scAll.filter(function(x){ return (x.status||'confirmed')==='noshow'   && (x.source||'web')!=='gcal'; }).length;
