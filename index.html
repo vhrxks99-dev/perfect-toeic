@@ -3388,6 +3388,10 @@
 .std-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
 .std-h b{font-family:var(--font-num);font-weight:800}
 .std-t{font-size:12px;color:var(--muted);font-weight:700}
+/* 회차 배지 (2026-08-12) — 8회가 한 묶음이라 마지막 회차는 색을 다르게 해 눈에 띄게 한다 */
+.std-r{font-size:11.5px;font-weight:800;color:var(--accent);background:var(--accent-wash);border-radius:999px;padding:2px 8px}
+.std-r.last{color:#b26a00;background:#fff5e9}
+.std-pay{margin:6px 0 0;font-size:12px;font-weight:800;color:#b26a00;background:#fff8ec;border:1px solid #f0d9ae;border-radius:9px;padding:7px 10px;line-height:1.6}
 .std-n{margin-left:auto;font-size:12px;font-weight:800;color:#fff;background:var(--accent);border-radius:999px;padding:2px 9px}
 .std-off{margin-left:auto;font-size:12px;font-weight:800;color:#c0342b}
 .std-names{margin:8px 0 6px;font-size:13px;line-height:1.7;color:var(--ink)}
@@ -5784,9 +5788,11 @@
     if(!sb) return {};
     var from=ymd(start), e2=new Date(end); e2.setDate(e2.getDate()-1); var to=ymd(e2);
     try{
-      var off=await sb.from('study_off').select('off_date').gte('off_date',from).lte('off_date',to);
+      // 회차를 세려면 기준일부터의 쉬는 날이 다 필요해서 기간을 안 자르고 통째로 읽는다(20여 줄뿐).
+      var off=await sb.from('study_off').select('off_date');
       if(off.error) return {};                       // 표가 없으면 스터디 기능 자체가 아직 없는 것
       var skip={}; (off.data||[]).forEach(function(o){ skip[o.off_date]=1; });
+      window.__wtStudyOff=off.data||[];              // 달력 블록의 회차 표시가 이걸 쓴다
       var su=await sb.from('study_signups').select('study_date').gte('study_date',from).lte('study_date',to);
       if(su.error) return {};
       var cnt={}; (su.data||[]).forEach(function(s){ cnt[s.study_date]=(cnt[s.study_date]||0)+1; });
@@ -5922,8 +5928,9 @@
           var stN = stDay[stKey];
           if(stN!=null){
             var sTop=Math.max(0, (12-DAY_START)*HOUR_H), sHgt=Math.max(20, 2*HOUR_H-2);
+            var stR=studyRound(key, window.__wtStudyOff||[]);
             if(12>=DAY_START && 12<DAY_END){
-              stH='<div class="cal-ev cal-study" title="주말 스터디 12:00~14:00 · 신청 '+stN+'명" '
+              stH='<div class="cal-ev cal-study" title="주말 스터디 12:00~14:00'+(stR?(' · '+stR.n+'회차'):'')+' · 신청 '+stN+'명" '
                 + 'style="top:'+sTop+'px;height:'+sHgt+'px;left:1px;width:calc(100% - 3px)">'
                 + '스터디<span class="cal-study-n">'+stN+'명</span></div>';
             }
@@ -6102,6 +6109,28 @@
   // ⚠️ 스터디는 schedules 에 넣지 않는다 — 남은 수업 횟수가 '확정 스케줄 수'로 깎이기 때문.
   var STUDY_WEEKS=4;                     // 다가오는 4주치만 보여준다
   var _studyOff=null, _studySignups=[], _studyRooms=[];   // _studyOff===null = study.sql 미실행
+  // 회차 (원장 확정 2026-08-12): 2026-08-01 이 1회차, 쉬는 날은 세지 않는다.
+  // 8회차가 끝나면 3만원을 받고 그다음 스터디부터 다시 1회차로 돌아간다.
+  // 기준일을 상수로 둔 이유 = 표를 새로 만들지 않아도 되고, 8/22 가 7회차라는 원장 말과 맞는다.
+  var STUDY_ANCHOR='2026-08-01', STUDY_CYCLE=8, STUDY_FEE='3만원';
+  function studyRound(day, offList){
+    if(!day || day < STUDY_ANCHOR) return null;
+    var off={}; (offList||[]).forEach(function(o){ off[o.off_date||o]=1; });
+    if(off[day]) return null;                      // 쉬는 날은 회차에 안 넣는다
+    var n=0, d=new Date(STUDY_ANCHOR+'T00:00:00'), end=new Date(day+'T00:00:00');
+    while(d<=end){
+      var w=d.getDay();                            // 0=일 6=토
+      if((w===6||w===0) && !off[ymd(d)]) n++;
+      d.setDate(d.getDate()+1);
+    }
+    if(!n) return null;
+    return { n:((n-1)%STUDY_CYCLE)+1, cycle:Math.floor((n-1)/STUDY_CYCLE)+1, total:n };
+  }
+  // 카드 머리에 붙일 '7회차' 배지. 마지막(8회차)은 색을 바꾼다.
+  function studyRoundTag(r){
+    if(!r) return '';
+    return '<span class="std-r'+(r.n===STUDY_CYCLE?' last':'')+'">'+r.n+'회차</span>';
+  }
   function weekendDays(n){
     var out=[], d=new Date(); d.setHours(0,0,0,0);
     for(var i=0;i<n*7+7 && out.length<n*2;i++){
@@ -6156,9 +6185,10 @@
       var todo=Math.max(0, eligible - all.length);   // 아직 안 찍은 자격자
       total+=go.length;
       var dow=['일','월','화','수','목','금','토'][new Date(day+'T00:00:00').getDay()];
+      var rnd=studyRound(day, _studyOff);
       var head='<div class="std-h"><b>'+esc(day)+' ('+dow+')</b> <span class="std-t">12:00~14:00</span>';
       if(isOff) return '<div class="std-card off">'+head+'<span class="std-off">쉼 · '+esc(offMap[day])+'</span></div></div>';
-      head+='<span class="std-n">'+go.length+'명</span></div>';
+      head+=studyRoundTag(rnd)+'<span class="std-n">'+go.length+'명</span></div>';
       var picked={}; _studyRooms.forEach(function(r){ if(r.study_date===day) picked[String(r.room_id)]=1; });
       var roomBtns=rooms.map(function(r){
         var on=picked[String(r.id)]?' on':'';
@@ -6179,9 +6209,12 @@
         + '<span class="t-no">불참 '+no.length+'</span>'
         + '<span class="t-todo">미응답 '+todo+'</span></div>';
       var noLine = no.length ? '<div class="std-sub">안 온다고 한 학생 — '+esc(no.map(function(s){ return s.student_name||'학생'; }).join(', '))+'</div>' : '';
+      // 8회차 = 이번 묶음의 마지막 → 돈 받고 다시 1회차로 시작한다는 걸 여기서 알린다.
+      var payLine = (rnd && rnd.n===STUDY_CYCLE)
+        ? '<div class="std-pay">이번 '+STUDY_CYCLE+'회 마지막입니다. '+STUDY_FEE+' 받고 다음 스터디부터 새 1회차예요.</div>' : '';
       return '<div class="std-card">'+head
         + tally
-        + '<div class="std-names">'+names+'</div>'+noLine
+        + '<div class="std-names">'+names+'</div>'+noLine+payLine
         + '<div class="std-rooms"><span class="std-lb">강의장</span>'+roomBtns+'</div></div>';
     }).join('');
     box.innerHTML='<div class="std-wrap">'+cards+'</div>';
@@ -7942,9 +7975,13 @@
     var today=ymd(new Date());
     days=days.filter(function(x){ return x.day>=today; }).sort(function(a,b){ return String(a.day).localeCompare(String(b.day)); });
     if(!days.length){ box.innerHTML='<div class="wa-book-empty">다가오는 스터디가 없어요.</div>'; return; }
+    // 회차를 세려면 기준일부터의 쉬는 날이 다 필요하다(study_weekend 는 그 날짜 것만 알려준다).
+    var offRes=await sb.from('study_off').select('off_date');
+    var offAll=(!offRes.error&&offRes.data)?offRes.data:[];
     box.innerHTML='<div class="std-wrap">'+days.map(function(x){
       var dow=['일','월','화','수','목','금','토'][new Date(x.day+'T00:00:00').getDay()];
-      var head='<div class="std-h"><b>'+esc(x.day)+' ('+dow+')</b> <span class="std-t">12:00~14:00</span></div>';
+      var rnd=studyRound(x.day, offAll);
+      var head='<div class="std-h"><b>'+esc(x.day)+' ('+dow+')</b> <span class="std-t">12:00~14:00</span>'+studyRoundTag(rnd)+'</div>';
       if(x.off){
         return '<div class="std-card off">'+head
           + '<div class="std-names" style="color:#c0342b;font-weight:700">이 날은 쉽니다'
@@ -7955,8 +7992,10 @@
       var note = v==='yes' ? '<b style="color:var(--accent)">간다고 하셨어요.</b>'
                : v==='no'  ? '<b style="color:#c0342b">안 간다고 하셨어요.</b>'
                : '<b style="color:#e8892b">아직 안 정하셨어요.</b> 갈지 안 갈지 눌러주세요.';
+      var payLine = (rnd && rnd.n===STUDY_CYCLE)
+        ? '<div class="std-pay">이번 '+STUDY_CYCLE+'회 마지막 날이에요. 다음 스터디부터 새 1회차라 '+STUDY_FEE+'을 내셔야 해요.</div>' : '';
       return '<div class="std-card">'+head
-        + '<div class="std-names">'+note+'<br><span style="color:var(--muted);font-size:12px">지금 '+(x.n||0)+'명 간다고 했어요.</span></div>'
+        + '<div class="std-names">'+note+'<br><span style="color:var(--muted);font-size:12px">지금 '+(x.n||0)+'명 간다고 했어요.</span></div>'+payLine
         + '<div class="std-vote">'
         +   '<button type="button" class="std-join'+(v==='yes'?' on':'')+'" data-std-vote="yes" data-std-day="'+esc(x.day)+'">갈게요</button>'
         +   '<button type="button" class="std-join no'+(v==='no'?' on':'')+'" data-std-vote="no" data-std-day="'+esc(x.day)+'">안 가요</button>'
