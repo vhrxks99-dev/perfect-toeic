@@ -3458,15 +3458,15 @@
 .std-r{font-size:11.5px;font-weight:800;color:var(--accent);background:var(--accent-wash);border-radius:999px;padding:2px 8px}
 .std-r.last{color:#b26a00;background:#fff5e9}
 .std-pay{margin:6px 0 0;font-size:12px;font-weight:800;color:#b26a00;background:#fff8ec;border:1px solid #f0d9ae;border-radius:9px;padding:7px 10px;line-height:1.6}
-/* 참여·불참·미정 세 숫자. 첫 칸만 왼쪽 여백을 밀어 오른쪽으로 붙인다(2026-08-12). */
-.std-n{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 9px;white-space:nowrap}
-.std-n.go{margin-left:auto;background:#eef4fd;color:#1d4ed8}
-.std-n.no{background:#fdf0ef;color:#c0342b}
-.std-n.todo{background:#fff5e9;color:#b26a00}
+.std-n{margin-left:auto;font-size:12px;font-weight:800;color:#fff;background:var(--accent);border-radius:999px;padding:2px 9px}
 .std-off{margin-left:auto;font-size:12px;font-weight:800;color:#c0342b}
 .std-names{margin:8px 0 6px;font-size:13px;line-height:1.7;color:var(--ink)}
 .std-sub{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 6px}
-/* (2026-08-12) 카드 아래 참석/불참/미응답 줄은 없앴다 — 같은 숫자를 머리(.std-n)에 붙였다. */
+.std-tally{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:11.5px;font-weight:800}
+.std-tally span{border-radius:999px;padding:2px 9px}
+.std-tally .t-go{background:#eef4fd;color:#1d4ed8}
+.std-tally .t-no{background:#fdf0ef;color:#c0342b}
+.std-tally .t-todo{background:#fff5e9;color:#b26a00}
 .std-vote{display:flex;gap:8px;margin-top:8px}
 .std-vote .std-join{margin-top:0}
 .std-join.no{border-color:#c0342b;color:#c0342b}
@@ -3588,7 +3588,11 @@
 .cal-ev.cal-study{background:repeating-linear-gradient(45deg,#f3efe6,#f3efe6 6px,#eae4d6 6px,#eae4d6 12px);
   border:1px dashed #b9a878;border-left:3px solid #b9a878;color:#6b5a2e;font-weight:800;cursor:default}
 .cal-ev.cal-study:hover{filter:none;box-shadow:none}
-.cal-study-n{display:block;font-size:9.5px;font-weight:700;color:#8a7743;margin-top:1px}
+/* 참여·불참·미정을 한 줄씩 쌓는다. 칸이 좁아(폰 76px) 한 줄에 다 못 넣는다(2026-08-12). */
+.cal-study-n{display:block;font-size:9.5px;font-weight:800;line-height:1.35;margin-top:1px}
+.cal-study-n.go{color:#1d4ed8}
+.cal-study-n.no{color:#c0342b}
+.cal-study-n.todo{color:#b26a00}
 .cal-empty-note{font-size:12px;color:var(--muted);text-align:center;padding:8px}
 .cal-modes{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden}
 .cal-mode{background:var(--surface);border:none;padding:7px 13px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer}
@@ -5980,9 +5984,15 @@
       if(off.error) return {};                       // 표가 없으면 스터디 기능 자체가 아직 없는 것
       var skip={}; (off.data||[]).forEach(function(o){ skip[o.off_date]=1; });
       window.__wtStudyOff=off.data||[];              // 달력 블록의 회차 표시가 이걸 쓴다
-      var su=await sb.from('study_signups').select('study_date').gte('study_date',from).lte('study_date',to);
+      // 달력 블록에 '참여 / 불참 / 미정'을 나눠 적으려면 going 까지 읽어야 한다
+      // (2026-08-12 원장 지적 — 전에는 찍은 사람 수만 세서 '8명'이 전체 인원처럼 보였다).
+      var su=await sb.from('study_signups').select('study_date,going').gte('study_date',from).lte('study_date',to);
       if(su.error) return {};
-      var cnt={}; (su.data||[]).forEach(function(s){ cnt[s.study_date]=(cnt[s.study_date]||0)+1; });
+      var cnt={};
+      (su.data||[]).forEach(function(s){
+        var c=cnt[s.study_date]=cnt[s.study_date]||{go:0,no:0};
+        if(s.going===false) c.no++; else c.go++;
+      });
       var rm=await sb.from('study_rooms').select('study_date,room_id').gte('study_date',from).lte('study_date',to);
       var roomsBy={}; if(!rm.error) (rm.data||[]).forEach(function(r){ (roomsBy[r.study_date]=roomsBy[r.study_date]||[]).push(r.room_id); });
       var out={};
@@ -6115,14 +6125,23 @@
         var stDay=studyByRoom[key];
         if(stDay){
           var stKey = (rc.id==null) ? 'none' : String(rc.id);
-          var stN = stDay[stKey];
-          if(stN!=null){
+          var stC = stDay[stKey];
+          if(stC!=null){
             var sTop=Math.max(0, (12-DAY_START)*HOUR_H), sHgt=Math.max(20, 2*HOUR_H-2);
             var stR=studyRound(key, window.__wtStudyOff||[]);
+            // 미정 = 스터디 자격이 켜진 학생 중 아직 참·불을 안 찍은 사람
+            var stElig=(_members||[]).filter(function(m){
+              return m.role==='student' && m.status!=='ended' && m.study; }).length;
+            var stTodo=Math.max(0, stElig-(stC.go+stC.no));
+            var stTip='주말 스터디 12:00~14:00'+(stR?(' · '+stR.n+'회차'):'')
+                    + ' · 참여 '+stC.go+'명 · 불참 '+stC.no+'명 · 미정 '+stTodo+'명';
             if(12>=DAY_START && 12<DAY_END){
-              stH='<div class="cal-ev cal-study" title="주말 스터디 12:00~14:00'+(stR?(' · '+stR.n+'회차'):'')+' · 신청 '+stN+'명" '
+              stH='<div class="cal-ev cal-study" title="'+esc(stTip)+'" '
                 + 'style="top:'+sTop+'px;height:'+sHgt+'px;left:1px;width:calc(100% - 3px)">'
-                + '스터디<span class="cal-study-n">'+stN+'명</span></div>';
+                + '스터디'
+                + '<span class="cal-study-n go">참여 '+stC.go+'</span>'
+                + '<span class="cal-study-n no">불참 '+stC.no+'</span>'
+                + '<span class="cal-study-n todo">미정 '+stTodo+'</span></div>';
             }
           }
         }
@@ -6465,12 +6484,7 @@
       var rnd=studyRound(day, _studyOff);
       var head='<div class="std-h"><b>'+esc(day)+' ('+dow+')</b> <span class="std-t">12:00~14:00</span>';
       if(isOff) return '<div class="std-card off">'+head+'<span class="std-off">쉼 · '+esc(offMap[day])+'</span></div></div>';
-      // 머리에 'N명' 하나만 있으니 전체 인원으로 읽힌다는 지적(2026-08-12 원장) →
-      // 참여·불참·미정 세 숫자를 그대로 머리에 붙인다.
-      head+=studyRoundTag(rnd)
-          + '<span class="std-n go">참여 '+go.length+'</span>'
-          + '<span class="std-n no">불참 '+no.length+'</span>'
-          + '<span class="std-n todo">미정 '+todo+'</span></div>';
+      head+=studyRoundTag(rnd)+'<span class="std-n">'+go.length+'명</span></div>';
       var picked={}; _studyRooms.forEach(function(r){ if(r.study_date===day) picked[String(r.room_id)]=1; });
       var roomBtns=rooms.map(function(r){
         var on=picked[String(r.id)]?' on':'';
@@ -6486,8 +6500,10 @@
       var names = go.length
         ? esc(go.map(function(s){ return s.student_name||'학생'; }).join(', '))
         : '<span style="color:var(--muted)">아직 간다고 한 학생이 없어요.</span>';
-      // 머리에 같은 숫자가 이미 붙으므로 아래 줄은 없앴다(2026-08-12).
-      var tally='';
+      var tally='<div class="std-tally">'
+        + '<span class="t-go">참석 '+go.length+'</span>'
+        + '<span class="t-no">불참 '+no.length+'</span>'
+        + '<span class="t-todo">미응답 '+todo+'</span></div>';
       var noLine = no.length ? '<div class="std-sub">안 온다고 한 학생 — '+esc(no.map(function(s){ return s.student_name||'학생'; }).join(', '))+'</div>' : '';
       var markBox = studyMarkBox(day, all);
       // 8회차 = 이번 묶음의 마지막 → 돈 받고 다시 1회차로 시작한다는 걸 여기서 알린다.
