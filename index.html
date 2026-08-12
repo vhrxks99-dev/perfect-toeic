@@ -3250,13 +3250,18 @@
 .dash-row>label.off-allday input[type=checkbox]{width:18px;height:18px;margin:0;flex:0 0 auto;accent-color:var(--accent)}
 @media(max-width:640px){
   .dash-row>label.off-allday{flex:1 0 100%;align-self:stretch;padding:2px 0 0}
-  /* 🚨 폰에서는 칸 하나가 한 줄을 통째로 쓴다.
-     날짜칸·시간 select 는 브라우저가 정해둔 최소 폭이 있어서 두 칸씩 놓으면
-     제 칸을 넘어 옆 칸을 밀고 들어간다 — 2026-08-12 원장 화면에서 '날짜'와 '시작'이
-     겹쳐 보였다. min-width:0 만으로는 date 입력이 안 줄어들어 한 줄씩 쓰게 했다. */
+  /* 🚨 폰에서 입력칸이 폼 밖으로 삐져나오던 문제(2026-08-12 원장 지적).
+     원인은 flex 항목의 min-width 가 기본 auto 라 날짜칸·드롭다운이 제 최소 폭 밑으로
+     안 줄어드는 것이었다. min-width:0 을 주면 두 칸씩 놔도 안 넘친다.
+     한 줄에 하나씩 놨더니 폼이 너무 길어진다고 해서("전부 너무 길어") 두 칸으로 되돌렸고,
+     글자를 길게 쓰는 칸만 한 줄을 통째로 쓴다. */
   .dash-row{gap:8px}
-  .dash-row>label{flex:1 0 100%;min-width:0}
-  .dash-row>label>input,.dash-row>label>select{min-width:0;max-width:100%}
+  .dash-row>label{flex:1 1 calc(50% - 4px);min-width:0}
+  .dash-row>label>input,.dash-row>label>select,.dash-row>label>textarea{min-width:0;width:100%;max-width:100%}
+  .dash-row>label:has(>input[type=text]),
+  .dash-row>label:has(>input[type=tel]),
+  .dash-row>label:has(>textarea),
+  .dash-row>label:has(>select#scRoom){flex:1 1 100%}
 }
 /* dash-row 밖에 낱개로 있는 label(상담 메모 등). 규칙이 없어서 브라우저 기본 크기로
    조그맣게 떴다 — 2026-08-12 원장 지적 "상담페이지 메모칸 레이아웃이 이상해". */
