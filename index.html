@@ -3364,15 +3364,16 @@
 @media(max-width:640px){
   #myHwTable, #myHwTable tbody, #myHwTable tr, #myHwTable td,
   #myschedTable, #myschedTable tbody, #myschedTable tr, #myschedTable td,
-  #mypayTable, #mypayTable tbody, #mypayTable tr, #mypayTable td{display:block;width:100%}
-  #myHwTable tr.hw-head, #myschedTable tr.hw-head, #mypayTable tr.hw-head{display:none}
-  #myHwTable tr, #myschedTable tr, #mypayTable tr{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
-  #myHwTable td, #myschedTable td, #mypayTable td{border:none;padding:3px 0;white-space:normal !important;font-size:15px;color:var(--ink)}
-  #myHwTable td:before, #myschedTable td:before, #mypayTable td:before{content:attr(data-l);display:block;font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:2px}
+  #mypayTable, #mypayTable tbody, #mypayTable tr, #mypayTable td,
+  #myPastTable, #myPastTable tbody, #myPastTable tr, #myPastTable td{display:block;width:100%}
+  #myHwTable tr.hw-head, #myschedTable tr.hw-head, #mypayTable tr.hw-head, #myPastTable tr.hw-head{display:none}
+  #myHwTable tr, #myschedTable tr, #mypayTable tr, #myPastTable tr{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+  #myHwTable td, #myschedTable td, #mypayTable td, #myPastTable td{border:none;padding:3px 0;white-space:normal !important;font-size:15px;color:var(--ink)}
+  #myHwTable td:before, #myschedTable td:before, #mypayTable td:before, #myPastTable td:before{content:attr(data-l);display:block;font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:2px}
   #myHwTable td[data-l="숙제"]{margin:8px 0;font-size:15.5px;line-height:1.8}
-  #myHwTable td:empty, #myschedTable td:empty, #mypayTable td:empty{display:none}
+  #myHwTable td:empty, #myschedTable td:empty, #mypayTable td:empty, #myPastTable td:empty{display:none}
   .wa-table-wrap:has(#myHwTable),.wa-table-wrap:has(#myschedTable),
-  .wa-table-wrap:has(#mypayTable),.wa-table-wrap:has(#myAttTable){border:none;border-radius:0}
+  .wa-table-wrap:has(#mypayTable),.wa-table-wrap:has(#myPastTable){border:none;border-radius:0}
 }
 /* ---- 상담 탭 ----
    원장 지적(2026-08-09): 상담 화면 가독성이 떨어진다.
@@ -3979,8 +3980,10 @@
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
     <div class="dash-list-head">💳 결제 내역</div>
     <div class="wa-table-wrap"><table class="wa-table" id="mypayTable"></table></div>
-    <div class="dash-list-head">✅ 출석 내역</div>
-    <div class="wa-table-wrap"><table class="wa-table" id="myAttTable"></table></div>
+    <!-- 옛 '출석 내역'(등원기 기록)을 지우고 지난 수업 내역으로 바꿨다 — 2026-08-12 원장 지시.
+         등원 키오스크를 없앤 뒤로 attendance 표에 아무것도 안 쌓여 늘 비어 있었다. -->
+    <div class="dash-list-head">✅ 지난 수업 내역</div>
+    <div class="wa-table-wrap"><table class="wa-table" id="myPastTable"></table></div>
   </div>
 </div>
 <!-- 상담 수정 (2026-08-12 원장 요청 — 전에는 결과 드롭다운과 삭제만 됐다) -->
@@ -7824,9 +7827,11 @@
         ? rows.filter(function(x){ return (x.student_id && day.ids[x.student_id]) || day.names[hwNorm(x.student_name)]; })
         : [];                                                        // 아직 모르는 동안은 비워 둔다(옛 목록이 잠깐 보이면 오해한다)
       // 🚨 학생당 한 건만 남긴다(원장 지적 2026-08-12: "송희도는 숙제가 두 개로 다 보인다").
-      // 오늘 확인할 숙제 = 지난 수업에서 내준 것 = 이 날짜보다 먼저 낸 것 중 가장 최근.
-      // 그날 아침에 새로 내준 숙제가 옛 숙제를 가리면 안 되므로 '먼저 낸 것'을 우선한다.
-      // 이전 것이 아예 없으면(첫 숙제) 가장 최근 것을 보여준다.
+      // 어느 한 건을 남길 것인가 — 그냥 '가장 최근 것'이다.
+      //   처음엔 '선택한 날짜보다 먼저 낸 것 중 최근'으로 했는데(2026-08-12 오전),
+      //   그러면 수업 끝나고 방금 내준 숙제가 옛 숙제에 가려 화면에 안 나타난다.
+      //   원장 지적 = "내 화면에는 안 뜨고 학생 화면에만 숙제가 떠". 그래서 되돌렸다.
+      //   수업 전에는 어차피 지난 수업 숙제가 가장 최근이라 확인용으로도 이게 맞다.
       if(day){
         var byStu={};
         rows.forEach(function(x){
@@ -7834,9 +7839,7 @@
           (byStu[k]=byStu[k]||[]).push(x);
         });
         rows=Object.keys(byStu).map(function(k){
-          var list=byStu[k].slice().sort(function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); });
-          var before=list.filter(function(x){ return x.created_at && hwYmd(new Date(x.created_at)) < dsel; });
-          return before.length ? before[0] : list[0];
+          return byStu[k].slice().sort(function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); })[0];
         }).sort(function(a,b){ return String(b.created_at||'').localeCompare(String(a.created_at||'')); });
       }
     }
@@ -8276,14 +8279,13 @@
     if($('myPass')){
       // 차감 기준은 '수업이 잡혔는지'다(2026-08-08). 출석은 참고로만 보여준다.
       // 선생님이 손으로 보정한 분(session_adjustments)도 더해야 관리 화면과 숫자가 같아진다.
-      var pu=0, atts=[], scs=[], scAll=[], adj=0;
+      var pu=0, scs=[], scAll=[], adj=0;
       if(sb){
         var rp=await sb.from('payments').select('sessions').eq('student_id',profile.id);
         if(!rp.error&&rp.data) rp.data.forEach(function(x){ pu+=(x.sessions||0); });
-        var ra=await sb.from('attendance').select('attended_on,created_at').eq('student_id',profile.id).order('created_at',{ascending:false});
-        if(!ra.error&&ra.data) atts=ra.data;
         // countsAsUsed 가 starts_at·is_ot·이름·과목까지 보므로 같이 받아야 한다(2026-08-12).
-        var rs=await sb.from('schedules').select('status,source,student_id,starts_at,is_ot,student_name,subject').eq('student_id',profile.id);
+        // ends_at·teacher_name 은 아래 '지난 수업 내역'이 쓴다.
+        var rs=await sb.from('schedules').select('status,source,student_id,starts_at,ends_at,is_ot,student_name,subject,teacher_name').eq('student_id',profile.id);
         if(!rs.error&&rs.data){ scAll=rs.data; scs=rs.data.filter(countsAsUsed); }
         var rj=await sb.from('session_adjustments').select('delta').eq('student_id',profile.id);
         if(!rj.error&&rj.data) rj.data.forEach(function(x){ adj+=(x.delta||0); });
@@ -8297,7 +8299,28 @@
             return (ns?' · 결석 '+ns+'회':'') + (cn?' · 휴강 '+cn+'회(차감 없음)':'');
           })()
         + '</div>';
-      if($('myAttTable')){ if(!atts.length){ $('myAttTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; } else { var ah='<tr><th>출석일</th></tr>'; atts.slice(0,30).forEach(function(a){ ah+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td></tr>'; }); $('myAttTable').innerHTML=ah; } }
+      // 지난 수업 내역 (옛 '출석 내역'을 대체 — 2026-08-12 원장 지시)
+      if($('myPastTable')){
+        var past=scAll.filter(function(x){ return x.ends_at && new Date(x.ends_at) < new Date(); })
+                      .sort(function(a,b){ return String(b.starts_at||'').localeCompare(String(a.starts_at||'')); });
+        if(!past.length){
+          $('myPastTable').innerHTML='<tr><td class="wa-empty">아직 지난 수업 기록이 없습니다.</td></tr>';
+        } else {
+          var ph='<tr class="hw-head"><th>일시</th><th>과목</th><th>선생님</th><th>결과</th></tr>';
+          past.slice(0,40).forEach(function(s){
+            var st=s.status||'confirmed';
+            var lab = st==='noshow'   ? '<b style="color:#c0342b">결석</b>'
+                    : st==='canceled' ? '<span style="color:var(--muted)">휴강 (차감 없음)</span>'
+                    : st==='pending'  ? '<span style="color:var(--muted)">승인 대기</span>'
+                    : '출석';
+            ph+='<tr><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td>'
+              + '<td data-l="과목">'+esc(s.subject||'토익')+'</td>'
+              + '<td data-l="선생님">'+esc(s.teacher_name||'-')+'</td>'
+              + '<td data-l="결과" style="white-space:nowrap">'+lab+'</td></tr>';
+          });
+          $('myPastTable').innerHTML=ph;
+        }
+      }
     }
     await renderMyStudy();
     if($('myHwTable')){
