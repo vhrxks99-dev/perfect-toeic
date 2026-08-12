@@ -3854,6 +3854,12 @@
         <span id="attScopeNote" class="wa-hint"></span>
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
+      <!-- 수강 종료 학생은 위 표에서 빼고 여기에 접어 둔다(2026-08-12 원장 지시 "따로 보여줘").
+           남은 횟수가 남아 있는 채로 종료된 학생을 확인할 일이 있어 아예 숨기지는 않는다. -->
+      <details id="attEndedBox" style="margin-top:10px;display:none">
+        <summary style="cursor:pointer;font-weight:800;font-size:13.5px;color:var(--ink-soft)" id="attEndedSum">🏁 수강 종료</summary>
+        <div class="wa-table-wrap" style="margin-top:8px"><table class="wa-table" id="attEndedTable"></table></div>
+      </details>
       <div class="dash-list-head">✏️ 횟수 조정 내역 <span id="adjCount" style="color:var(--muted);font-weight:700"></span></div>
       <div class="dash-note" style="margin-top:0">표에서 <b>＋</b>／<b>−</b> 를 누르면 날짜와 사유를 적어 넣을 수 있습니다. 잘못 넣었으면 여기서 지우세요(고치기는 없습니다 — 지우고 다시 넣어야 이력이 정확합니다).</div>
       <div class="wa-table-wrap"><table class="wa-table" id="adjTable"></table></div>
@@ -7312,35 +7318,52 @@
     } else if(tsel){
       students=students.filter(function(s){ return String(s.teacher_id||'')===String(tsel); });
     }
+    // 수강 종료 학생은 위 표에서 빼고 아래 접이식으로 따로 보여준다(2026-08-12 원장 지시).
+    var live=students.filter(function(s){ return s.status!=='ended'; });
+    var done=students.filter(function(s){ return s.status==='ended'; });
     if($('attScopeNote')){
       $('attScopeNote').textContent = isOps()
-        ? ('학생 '+students.length+'명')
-        : ('내 담당 학생 '+students.length+'명만 보입니다');
+        ? ('수강중 '+live.length+'명')
+        : ('내 담당 수강중 '+live.length+'명만 보입니다');
     }
-    var fst=q?students.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):students;
-    if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">'
+    var byName=function(list){ return q?list.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):list; };
+    var fst=byName(live), fend=byName(done);
+    var adjSum=window.__wtAdjSum||{};
+    // '잡힌 수업'이 차감의 근거다. 결석도 그 안에 들어 있고(안 왔어도 자리는 썼다),
+    // 휴강은 빠져 있다. 두 숫자는 선생님이 달력에서 표시한 결과를 그대로 보여준다.
+    var noshowN=window.__wtNoshow||{}, cancelN=window.__wtCancel||{};
+    // '조정' 칸을 따로 두니 원장이 그 숫자를 남은 횟수로 오해했다(2026-08-12:
+    // "박주영 7회로 왔는데 왜 9회로 이관됐지?" — 9는 조정값이고 남은 횟수는 5였다).
+    // 구매와 조정을 '총 횟수' 한 칸으로 합쳤다. 총 횟수 - 잡힌 수업 = 남은 횟수 로 딱 맞는다.
+    // 조정 내역 자체는 아래 조정 장부(drawAdjTable)와 ＋／－ 버튼에 그대로 남아 있다.
+    function attRows(list, withBtns){
+      var h='<tr><th>학생</th><th>총 횟수</th><th>잡힌 수업</th><th>남은 횟수</th>'
+          + (withBtns?'<th>횟수 조정</th>':'')+'<th>결석</th><th>휴강</th></tr>';
+      list.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0,
+                                    ns=noshowN[s.id]||0, cn=cancelN[s.id]||0,
+                                    aj=adjSum[s.id]||0, rem=remainOf(s.id);
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+(pu+aj)+'회</td><td>'+us+'회</td>'
+         + '<td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td>'
+         + (withBtns?('<td style="white-space:nowrap"><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjplus="'+esc(s.id)+'">＋</button> <button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjminus="'+esc(s.id)+'">－</button></td>'):'')
+         + '<td>'+(ns?('<b style="color:#c0342b">'+ns+'회</b>'):'<span style="color:var(--muted)">-</span>')+'</td>'
+         + '<td>'+(cn?(cn+'회'):'<span style="color:var(--muted)">-</span>')+'</td></tr>'; });
+      return h;
+    }
+    if(!live.length){ $('attTable').innerHTML='<tr><td class="wa-empty">'
       + (isOps() ? '해당하는 학생이 없습니다.' : '담당 학생이 없습니다. 회원 관리에서 학생을 내 담당으로 가져오세요.')
       + '</td></tr>'; }
     else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; }
-    else {
-      var adjSum=window.__wtAdjSum||{};
-      // '잡힌 수업'이 차감의 근거다. 결석도 그 안에 들어 있고(안 왔어도 자리는 썼다),
-      // 휴강은 빠져 있다. 두 숫자는 선생님이 달력에서 표시한 결과를 그대로 보여준다.
-      var noshowN=window.__wtNoshow||{}, cancelN=window.__wtCancel||{};
-      // '조정' 칸을 따로 두니 원장이 그 숫자를 남은 횟수로 오해했다(2026-08-12:
-      // "박주영 7회로 왔는데 왜 9회로 이관됐지?" — 9는 조정값이고 남은 횟수는 5였다).
-      // 구매와 조정을 '총 횟수' 한 칸으로 합쳤다. 총 횟수 - 잡힌 수업 = 남은 횟수 로 딱 맞는다.
-      // 조정 내역 자체는 아래 조정 장부(drawAdjTable)와 ＋／－ 버튼에 그대로 남아 있다.
-      var h='<tr><th>학생</th><th>총 횟수</th><th>잡힌 수업</th><th>남은 횟수</th><th>횟수 조정</th><th>결석</th><th>휴강</th></tr>';
-      fst.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0,
-                                  ns=noshowN[s.id]||0, cn=cancelN[s.id]||0,
-                                  aj=adjSum[s.id]||0, rem=remainOf(s.id);
-        h+='<tr><td>'+esc(s.name)+'</td><td>'+(pu+aj)+'회</td><td>'+us+'회</td>'
-         + '<td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td>'
-         + '<td style="white-space:nowrap"><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjplus="'+esc(s.id)+'">＋</button> <button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjminus="'+esc(s.id)+'">－</button></td>'
-         + '<td>'+(ns?('<b style="color:#c0342b">'+ns+'회</b>'):'<span style="color:var(--muted)">-</span>')+'</td>'
-         + '<td>'+(cn?(cn+'회'):'<span style="color:var(--muted)">-</span>')+'</td></tr>'; });
-      $('attTable').innerHTML=h;
+    else { $('attTable').innerHTML=attRows(fst, true); }
+    // 종료 학생은 횟수를 더 조정할 일이 없으므로 ＋／－ 버튼은 빼고 숫자만 보여준다.
+    if($('attEndedBox')){
+      if(!done.length){ $('attEndedBox').style.display='none'; }
+      else {
+        $('attEndedBox').style.display='';
+        if($('attEndedSum')) $('attEndedSum').textContent='🏁 수강 종료 '+done.length+'명'
+          + (q&&fend.length!==done.length ? (' (검색 '+fend.length+'명)') : '');
+        $('attEndedTable').innerHTML = fend.length ? attRows(fend, false)
+          : '<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>';
+      }
     }
     drawAdjTable();
     if($('attHistTable')){
