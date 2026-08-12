@@ -3535,6 +3535,19 @@
 .cal-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
 .cal-search input{flex:0 0 240px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;font-family:inherit}
 .cal-search .hit{font-size:12px;font-weight:700;color:var(--muted)}
+/* 검색한 학생의 수업 날짜 목록 (2026-08-12) */
+.sc-found{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:10px 12px;margin:0 0 10px}
+.sc-found .sf-head{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:6px}
+.sc-found .sf-list{display:flex;flex-wrap:wrap;gap:6px}
+.sc-found .sf-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line-strong);
+  border-radius:9px;background:var(--surface);font-size:13px;cursor:pointer;text-align:left}
+.sc-found .sf-item:hover{border-color:var(--accent)}
+.sc-found .sf-item.past{opacity:.55}
+.sc-found .sf-d{font-weight:800;white-space:nowrap}
+.sc-found .sf-m{color:var(--muted);font-size:12px;white-space:nowrap}
+.sc-found .sf-x{color:#c0342b;font-weight:800;font-size:12px}
+.sc-found .sf-empty{font-size:13px;color:var(--muted)}
+@media(max-width:640px){ .sc-found .sf-item{flex:1 1 100%} }
 .cal-ev.dim{opacity:.12}
 .cal-colhead{height:38px;display:flex;align-items:center;justify-content:center;gap:5px;border-bottom:1px solid var(--line-strong);font-size:12px;font-weight:800;color:var(--ink-soft);background:var(--surface-2)}
 .cal-colhead.today{background:var(--accent);color:#fff}
@@ -3721,6 +3734,9 @@
         <button class="btn btn-ghost" type="button" id="scSearchClear">지우기</button>
         <span class="hit" id="scSearchInfo"></span>
       </div>
+      <!-- 검색한 학생의 수업 날짜를 한눈에 (2026-08-12 원장 요청 —
+           "지금은 달력을 하나하나 가서 봐야해"). 달력이 보고 있는 주와 상관없이 DB에서 찾는다. -->
+      <div id="scFound" class="sc-found" style="display:none"></div>
       <div class="cal-legend" id="calLegend"></div>
       <div class="cal-scroll" id="calScroll"><div class="cal-grid" id="calGrid"></div></div>
       <div class="cal-month" id="calMonthGrid" style="display:none"></div>
@@ -6191,8 +6207,61 @@
     }
     if($('scSearchInfo')) $('scSearchInfo').textContent = q ? ('달력 '+hitCal+'건 · 목록 '+shown+'건') : '';
   }
-  if($('scSearch')) $('scSearch').addEventListener('input', applyScSearch);
-  if($('scSearchClear')) $('scSearchClear').onclick=function(){ if($('scSearch')) $('scSearch').value=''; applyScSearch(); };
+  // ---- 검색한 학생의 수업 날짜 목록 (2026-08-12 원장 요청) ----
+  // 달력의 dim 은 지금 보고 있는 주 안에서만 쓸모가 있다. 다른 주에 잡힌 수업을 찾으려면
+  // 달력을 하나하나 넘겨야 했다 → 검색어가 있으면 DB에서 직접 찾아 날짜를 죽 늘어놓는다.
+  var _scFindTimer=null, _scFindQ='';
+  async function scFindLessons(){
+    var box=$('scFound'); if(!box) return;
+    var q=String(($('scSearch')&&$('scSearch').value)||'').trim();
+    _scFindQ=q;
+    if(!q || !sb){ box.style.display='none'; box.innerHTML=''; return; }
+    box.style.display='';
+    box.innerHTML='<div class="sf-head">찾는 중…</div>';
+    var since=new Date(); since.setDate(since.getDate()-30); since.setHours(0,0,0,0);
+    // 이름이 안 적힌(회원으로만 연결된) 수업도 잡히게 회원 id 로도 찾는다.
+    var lo=q.toLowerCase();
+    var ids=(_members||[]).filter(function(m){ return m.role==='student' && String(m.name||'').toLowerCase().indexOf(lo)>=0; })
+                          .map(function(m){ return m.id; });
+    // or() 문법을 깨뜨리는 글자는 뺀다(괄호·쉼표·별표)
+    var safe=q.replace(/[(),*.]/g,'');
+    var filt=safe?('student_name.ilike.*'+safe+'*'):'';
+    if(ids.length) filt=(filt?filt+',':'')+'student_id.in.('+ids.join(',')+')';
+    if(!filt){ box.innerHTML='<div class="sf-empty">이름을 조금 더 적어주세요.</div>'; return; }
+    var r=await sb.from('schedules')
+          .select('id,starts_at,ends_at,student_name,teacher_name,room_id,status,source,is_ot')
+          .gte('starts_at', since.toISOString()).or(filt).order('starts_at').limit(60);
+    if(_scFindQ!==q) return;          // 그 사이 검색어가 바뀌었으면 옛 결과로 덮지 않는다
+    if(r.error){ box.innerHTML='<div class="sf-empty">찾지 못했어요: '+esc(r.error.message)+'</div>'; return; }
+    var rows=(r.data||[]).filter(function(s){ return (s.status||'confirmed')!=='pending'; });
+    if(!rows.length){ box.innerHTML='<div class="sf-empty"><b>'+esc(q)+'</b> — 최근 30일부터 앞으로 잡힌 수업이 없습니다.</div>'; return; }
+    var now=new Date(), DOW=['일','월','화','수','목','금','토'];
+    var future=rows.filter(function(s){ return new Date(s.starts_at)>=now; }).length;
+    var h='<div class="sf-head">'+esc(q)+' · 수업 '+rows.length+'건 <span style="font-weight:700;color:var(--muted)">(앞으로 '+future+'건 · 날짜를 누르면 그날 달력으로 갑니다)</span></div><div class="sf-list">';
+    rows.forEach(function(s){
+      var d=new Date(s.starts_at), past=d<now, st=s.status||'confirmed';
+      var tag = st==='noshow' ? '<span class="sf-x">결석</span>'
+              : st==='canceled' ? '<span class="sf-m">휴강</span>'
+              : (isOtLesson(s) ? '<span class="sf-m">OT</span>' : '');
+      h+='<button type="button" class="sf-item'+(past?' past':'')+'" data-scgo="'+esc(s.starts_at)+'">'
+       + '<span class="sf-d">'+(d.getMonth()+1)+'/'+d.getDate()+'('+DOW[d.getDay()]+') '+hm(s.starts_at)+'</span>'
+       + '<span class="sf-m">'+esc(s.teacher_name||'-')+' · '+esc(roomLabelById(s.room_id))+'</span>'+tag+'</button>';
+    });
+    box.innerHTML=h+'</div>';
+  }
+  if($('scFound')) $('scFound').addEventListener('click', function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('button[data-scgo]'):null; if(!b) return;
+    var d=new Date(b.getAttribute('data-scgo')); if(isNaN(d)) return;
+    d.setHours(0,0,0,0); calCur=d;
+    renderCalendar();
+    if($('calScroll')) $('calScroll').scrollIntoView({behavior:'smooth', block:'start'});
+  });
+  if($('scSearch')) $('scSearch').addEventListener('input', function(){
+    applyScSearch();
+    clearTimeout(_scFindTimer);
+    _scFindTimer=setTimeout(scFindLessons, 300);   // 글자마다 조회하지 않는다
+  });
+  if($('scSearchClear')) $('scSearchClear').onclick=function(){ if($('scSearch')) $('scSearch').value=''; applyScSearch(); scFindLessons(); };
   function calShift(dir){ if(calMode==='day') calCur.setDate(calCur.getDate()+dir); else if(calMode==='week') calCur.setDate(calCur.getDate()+dir*7); else calCur.setMonth(calCur.getMonth()+dir); renderCalendar(); }
   if($('calPrev')) $('calPrev').onclick=function(){ calShift(-1); };
   if($('calNext')) $('calNext').onclick=function(){ calShift(1); };
