@@ -2980,9 +2980,10 @@
 .wa-form{display:none;flex-direction:column;gap:13px}
 .wa-form.on{display:flex}
 .wa-form label{display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:2px}
-.wa-form>label>input,.wa-form>label>select,.wa-row label>input,.wa-row label>select{display:block;width:100%;margin-top:6px}
-.wa-form input{padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:10px;font-size:15px;font-family:var(--font-sans);background:var(--surface)}
-.wa-form input:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.wa-form>label>input,.wa-form>label>select,.wa-form>label>textarea,.wa-row label>input,.wa-row label>select,.wa-row label>textarea{display:block;width:100%;margin-top:6px}
+.wa-form input,.wa-form textarea{padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:10px;font-size:15px;font-family:var(--font-sans);background:var(--surface);color:var(--ink);box-sizing:border-box}
+.wa-form textarea{min-height:120px;resize:vertical;line-height:1.65}
+.wa-form input:focus,.wa-form textarea:focus{outline:2px solid var(--accent);border-color:var(--accent)}
 .wa-row{display:flex;gap:10px}
 .wa-row>label{flex:1;min-width:0}
 .wa-form select{padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:10px;font-size:15px;font-family:var(--font-sans);background:var(--surface);color:var(--ink);width:100%}
@@ -3242,6 +3243,13 @@
 .dash-row:last-child{margin-bottom:0}
 .dash-row>label{flex:1;min-width:120px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
 .dash-row input,.dash-row select{padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
+/* dash-row 밖에 낱개로 있는 label(상담 메모 등). 규칙이 없어서 브라우저 기본 크기로
+   조그맣게 떴다 — 2026-08-12 원장 지적 "상담페이지 메모칸 레이아웃이 이상해". */
+.dash-form>label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:10px}
+.dash-form input:not([type=checkbox]):not([type=radio]),.dash-form select,.dash-form textarea{
+  padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:14px;
+  font-family:var(--font-sans);background:var(--surface);color:var(--ink);width:100%;box-sizing:border-box}
+.dash-form textarea{min-height:88px;resize:vertical;line-height:1.65}
 .dash-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;margin:16px 0 8px;letter-spacing:-.01em;flex-wrap:wrap}
 .dash-total{font-family:var(--font-num);font-weight:800;color:var(--accent);font-size:16px}
 .dash-note{font-size:13px;color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
@@ -3369,7 +3377,10 @@
 /* ---- 상담 탭 ----
    원장 지적(2026-08-09): 상담 화면 가독성이 떨어진다.
    8칸짜리 표라 폰에서는 가로로 밀리고, PC에서도 메모가 12.5px 회색이라 안 읽혔다. */
-#csTable td[data-l="메모"]{font-size:13.5px !important;color:var(--ink-soft) !important;line-height:1.7;min-width:200px}
+/* 상담 수정 창은 한 줄에 칸이 3개라 기본 410px 로는 좁다(2026-08-12). */
+#waCsEdit .wa-card{max-width:620px}
+/* 메모는 여러 줄로 적으므로 줄바꿈을 살려서 보여준다(2026-08-12). */
+#csTable td[data-l="메모"]{font-size:13.5px !important;color:var(--ink-soft) !important;line-height:1.7;min-width:240px;max-width:420px;white-space:pre-wrap !important;word-break:break-word}
 #csTable td[data-l="이름"]{font-weight:800}
 #csTable select[data-cs-result]{font-size:13px !important;padding:5px 8px !important}
 @media(max-width:640px){
@@ -3882,7 +3893,7 @@
           <label>상담한 선생님<select id="csTeacher"></select></label>
           <label>유입 경로<input type="text" id="csChannel" placeholder="네이버 / 지인소개 / 방문 등"></label>
         </div>
-        <label>메모 <span class="wa-hint">(선택)</span><input type="text" id="csMemo" placeholder="상담 내용, 희망 시간대 등"></label>
+        <label>메모 <span class="wa-hint">(선택 · 줄바꿈해서 여러 줄로 적어도 됩니다)</span><textarea id="csMemo" rows="4" placeholder="상담 내용, 희망 시간대, 고민하는 점 등"></textarea></label>
         <div id="csLink" class="dash-note" style="margin-top:0;display:none"></div>
         <p class="wa-err" id="csErr"></p>
         <button class="btn btn-primary" id="csAdd" type="button">＋ 상담 등록</button>
@@ -3972,6 +3983,34 @@
     <div class="wa-table-wrap"><table class="wa-table" id="myAttTable"></table></div>
   </div>
 </div>
+<!-- 상담 수정 (2026-08-12 원장 요청 — 전에는 결과 드롭다운과 삭제만 됐다) -->
+<div class="wa-overlay" id="waCsEdit" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waCsEditClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">상담 수정</div>
+    <div class="wa-sub" id="cseWho"></div>
+    <div class="wa-form on" style="display:flex">
+      <div class="wa-row">
+        <label>상담일<input type="date" id="cseDate"></label>
+        <label>이름<input type="text" id="cseName"></label>
+        <label>연락처<input type="tel" id="csePhone" placeholder="010-1234-5678"></label>
+      </div>
+      <div class="wa-row">
+        <label>상담한 선생님<select id="cseTeacher"></select></label>
+        <label>유입 경로<input type="text" id="cseChannel" placeholder="네이버 / 지인소개 / 방문 등"></label>
+        <label>결과<select id="cseResult">
+          <option value="pending">대기</option>
+          <option value="registered">등록함</option>
+          <option value="lost">등록 안 함</option>
+        </select></label>
+      </div>
+      <label>메모<textarea id="cseMemo" rows="6" placeholder="상담 내용, 희망 시간대, 고민하는 점 등"></textarea></label>
+      <p class="wa-err" id="cseErr"></p>
+      <button class="btn btn-primary" id="cseSave" type="button">저장</button>
+    </div>
+  </div>
+</div>
+
 <div class="wa-overlay" id="waPayEdit" aria-hidden="true">
   <div class="wa-card">
     <button class="wa-x" id="waPayEditClose" aria-label="닫기">&times;</button>
@@ -4775,7 +4814,10 @@
   // 표를 보다가 실수로 클릭할 때마다 페이지가 통째로 닫힌다. 닫기는 X 버튼과 Esc로만.
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape' && $('waAdmin') && $('waAdmin').classList.contains('on')){
-      var others=['waModal','waRecovery','waBooking','waMy','waLearn','waPayEdit','waEdit','waGoal','waEnd'].filter(function(id){ return $(id) && $(id).classList.contains('on'); });
+      // 자식 창이 하나라도 열려 있으면 관리 페이지는 안 닫는다.
+      // waCsEdit·waSchedEdit·waAdj 가 빠져 있어서 그 창을 열어둔 채 Esc 를 누르면
+      // 관리 페이지가 통째로 닫혔다(2026-08-12에 상담 수정 창을 만들며 같이 채움).
+      var others=['waModal','waRecovery','waBooking','waMy','waLearn','waPayEdit','waEdit','waGoal','waEnd','waCsEdit','waSchedEdit','waAdj'].filter(function(id){ return $(id) && $(id).classList.contains('on'); });
       if(!others.length) $('waAdmin').classList.remove('on');
     }
   });
@@ -7962,7 +8004,7 @@
        + '<option value="pending"'+(v==='pending'?' selected':'')+'>대기</option>'
        + '<option value="registered"'+(v==='registered'?' selected':'')+'>등록함</option>'
        + '<option value="lost"'+(v==='lost'?' selected':'')+'>등록 안 함</option></select></td>'
-       + '<td data-l="관리"><a class="wa-link" data-cs-del="'+esc(c.id)+'" style="color:#c0342b">삭제</a></td></tr>';
+       + '<td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-cs-edit="'+esc(c.id)+'">수정</a> · <a class="wa-link" data-cs-del="'+esc(c.id)+'" style="color:#c0342b">삭제</a></td></tr>';
     });
     $('csTable').innerHTML=h;
   }
@@ -8008,13 +8050,66 @@
     drawConsults();
   });
   if($('csTable')) $('csTable').addEventListener('click', async function(e){
-    var a=(e.target&&e.target.closest)?e.target.closest('a[data-cs-del]'):null; if(!a) return;
+    var t=(e.target&&e.target.closest)?e.target:null; if(!t) return;
+    var ed=t.closest('a[data-cs-edit]');
+    if(ed){ e.preventDefault(); openCsEdit(ed.getAttribute('data-cs-edit')); return; }
+    var a=t.closest('a[data-cs-del]'); if(!a) return;
     e.preventDefault();
     if(!sb || !confirm('이 상담 기록을 삭제할까요?')) return;
     var r=await sb.from('consults').delete().eq('id',a.getAttribute('data-cs-del'));
     if(r.error){ alert('삭제 실패: '+r.error.message); return; }
     await loadConsults();
   });
+
+  // ---- 상담 수정 (2026-08-12 원장 요청) ----
+  // 전에는 결과 드롭다운과 삭제만 됐다. 이름·연락처를 잘못 적으면 지우고 다시 넣어야 했다.
+  var _csEditId=null;
+  function openCsEdit(id){
+    var c=(_consults||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    if(!c){ alert('상담 기록을 찾지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
+    _csEditId=c.id;
+    // 선생님 목록은 등록 폼과 같은 명단을 쓴다. 지금 값이 목록에 없을 수도 있어 먼저 채우고 고른다.
+    var ts=(_members||[]).filter(function(m){ return m.role==='admin'||m.role==='master'; });
+    $('cseTeacher').innerHTML='<option value="">미지정</option>'+ts.map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>'; }).join('');
+    $('cseWho').textContent=(c.name||'이름 없음')+' · 등록일 '+((c.created_at||'').slice(0,10)||c.consulted_on||'-');
+    $('cseDate').value=c.consulted_on||'';
+    $('cseName').value=c.name||'';
+    $('csePhone').value=c.phone||'';
+    $('cseTeacher').value=c.teacher_id||'';
+    $('cseChannel').value=c.channel||'';
+    $('cseResult').value=c.result||'pending';
+    $('cseMemo').value=c.memo||'';
+    $('cseErr').textContent='';
+    $('waCsEdit').classList.add('on');
+  }
+  function closeCsEdit(){ if($('waCsEdit')) $('waCsEdit').classList.remove('on'); _csEditId=null; }
+  if($('waCsEditClose')) $('waCsEditClose').onclick=closeCsEdit;
+  // 배경 클릭으로 닫지 않는다 — 메모를 길게 적다가 옆을 누르면 통째로 날아간다.
+  if($('cseSave')) $('cseSave').onclick=async function(){
+    if(!sb || !_csEditId) return;
+    var name=($('cseName').value||'').trim();
+    if(!name){ $('cseErr').textContent='이름은 필수입니다.'; return; }
+    var tid=$('cseTeacher').value||'';
+    var tname=(_members||[]).filter(function(m){ return m.id===tid; })[0];
+    var v=$('cseResult').value||'pending';
+    var old=(_consults||[]).filter(function(x){ return String(x.id)===String(_csEditId); })[0] || {};
+    var patch={
+      consulted_on:($('cseDate').value||null), name:name,
+      phone:(($('csePhone').value||'').trim()||null),
+      channel:(($('cseChannel').value||'').trim()||null),
+      teacher_id:(tid||null), teacher_name:(tname?tname.name:null),
+      memo:(($('cseMemo').value||'').trim()||null),
+      result:v,
+      // 결과를 바꿨을 때만 결정일을 새로 찍는다. 안 그러면 메모만 고쳐도 날짜가 밀린다.
+      decided_on:(v==='pending' ? null : (old.result===v ? (old.decided_on||ymd(new Date())) : ymd(new Date())))
+    };
+    $('cseSave').disabled=true;
+    var r=await sb.from('consults').update(patch).eq('id',_csEditId);
+    $('cseSave').disabled=false;
+    if(r.error){ $('cseErr').textContent='저장 실패: '+r.error.message; return; }
+    closeCsEdit();
+    await loadConsults();
+  };
 
   // ================= 선생님 평가 =================
   function pct(n,d){ return d>0 ? Math.round(n/d*100) : null; }
