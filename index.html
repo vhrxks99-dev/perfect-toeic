@@ -3401,11 +3401,17 @@
 .std-mk.no.on{background:#c0342b;border-color:#c0342b}
 .std-mk.clr.on{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink-soft)}
 .std-mk:disabled{opacity:.5;cursor:default}
-/* 사전 OT 체크 (2026-08-12) */
-.sc-otbox{flex:1;display:block;border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface-2)}
-.sc-otbox input{width:auto;margin-right:6px;vertical-align:middle}
-.sc-otbox b{font-size:13.5px}
-.sc-otbox span{display:block;margin-top:3px;font-size:12px;color:var(--muted);font-weight:600;line-height:1.6}
+/* 사전 OT 체크 (2026-08-12)
+   ⚠️ .dash-row>label 이 세로 flex(column)라 그냥 두면 체크박스가 한 줄을 통째로 차지하고
+   글자 위에 빈 공간이 생긴다. 그래서 여기서 display:block 으로 되돌린다(선택자 우선순위도 맞춤). */
+.dash-row>label.sc-otbox, .wa-form label.sc-otbox, .sc-otbox{
+  display:block;flex:1;min-width:220px;margin:0;
+  border:1px solid var(--line-strong);border-radius:10px;padding:9px 12px;background:var(--surface);cursor:pointer}
+.sc-otbox input[type=checkbox]{
+  width:16px!important;height:16px;padding:0!important;margin:0 7px 0 0;flex:none;
+  display:inline-block!important;vertical-align:-3px;accent-color:var(--accent)}
+.sc-otbox b{font-size:13px;color:var(--ink)}
+.sc-otbox span{display:block;margin:3px 0 0 23px;font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.55}
 .cal-ev .cal-ot{display:inline-block;margin-left:4px;font-size:10px;font-weight:800;background:#fff5e9;color:#b26a00;border-radius:5px;padding:0 4px}
 /* 회차 배지 (2026-08-12) — 8회가 한 묶음이라 마지막 회차는 색을 다르게 해 눈에 띄게 한다 */
 .std-r{font-size:11.5px;font-weight:800;color:var(--accent);background:var(--accent-wash);border-radius:999px;padding:2px 8px}
@@ -3779,7 +3785,12 @@
         <b>결석</b>은 횟수가 그대로 빠지고, <b>휴강</b>은 1회가 돌아옵니다.
       </div>
       <div id="attDue" class="dash-note" style="margin-top:8px;display:none"></div>
-      <div style="margin:10px 0 2px"><input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="width:100%;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></div>
+      <!-- 선생님은 본인 담당 학생만 보인다. 원장님·매니저만 이 칸으로 선생님을 골라 본다(2026-08-12 원장 지시). -->
+      <div class="mem-filters" style="margin:10px 0 2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="attTeacherFilter" style="display:none;padding:9px 12px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:13.5px;background:var(--surface);color:var(--ink);font-weight:700"></select>
+        <input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="flex:1;min-width:200px;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)">
+        <span id="attScopeNote" class="wa-hint"></span>
+      </div>
       <div class="wa-table-wrap"><table class="wa-table" id="attTable"></table></div>
       <div class="dash-list-head">✏️ 횟수 조정 내역 <span id="adjCount" style="color:var(--muted);font-weight:700"></span></div>
       <div class="dash-note" style="margin-top:0">표에서 <b>＋</b>／<b>−</b> 를 누르면 날짜와 사유를 적어 넣을 수 있습니다. 잘못 넣었으면 여기서 지우세요(고치기는 없습니다 — 지우고 다시 넣어야 이력이 정확합니다).</div>
@@ -7009,7 +7020,10 @@
   function drawPaymentDue(){
     if(!$('attDue')) return;
     var purchased=window.__wtAttP||{}, used=window.__wtAttU||{}, notif=window.__wtNotify;
-    var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'; });
+    // 결제 안내 대상도 같은 범위로 좁힌다 — 선생님은 내 담당만(2026-08-12 원장 지시)
+    var scD=attScopeSet();
+    var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'
+                                                     && attInScope(scD, m.id, m.name); });
     var due=students.map(function(s){ return { s:s, rem:remainOf(s.id) }; })
                     .filter(function(x){ return x.rem<=1; })
                     .sort(function(a,b){ return a.rem-b.rem; });
@@ -7047,13 +7061,67 @@
     $('attDue').innerHTML=h;
     $('attDue').style.display='';
   }
+  // 수업 횟수 탭의 담당강사 칸 (2026-08-12 원장 지시).
+  // 선생님에게는 아예 안 보이고, 목록도 본인 담당 학생만 나온다. 남의 학생 수강권은 볼 일이 없다.
+  function attFillTeacherFilter(){
+    var tf=$('attTeacherFilter');
+    if(!tf) return '';
+    if(!isOps()){ tf.style.display='none'; tf.value=''; return ''; }
+    tf.style.display='';
+    var keep=tf.value;
+    var staff=(_members||[]).filter(function(m){ return isStaffRole(m.role); })
+                            .sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+    tf.innerHTML='<option value="">선생님 전체</option><option value="none">담당강사 미배정</option>'
+      + staff.map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+' 담당</option>'; }).join('');
+    tf.value=keep;
+    if(tf.value!==keep) tf.value='';
+    return tf.value;
+  }
+  // 지금 화면에 보여도 되는 학생 묶음. null 이면 제한 없음(원장·매니저가 '선생님 전체'를 본 경우).
+  // 조정 내역·출석 이력처럼 이름만 있는 줄도 있어서 id 와 이름을 같이 들고 있는다.
+  function attScopeSet(){
+    var meId=profile?String(profile.id):'';
+    var tsel=$('attTeacherFilter')?$('attTeacherFilter').value:'';
+    if(isOps() && !tsel) return null;
+    var list=(_members||[]).filter(function(m){
+      if(m.role!=='student') return false;
+      if(!isOps()) return String(m.teacher_id||'')===meId;
+      if(tsel==='none') return !m.teacher_id;
+      return String(m.teacher_id||'')===String(tsel);
+    });
+    var ids={}, names={};
+    list.forEach(function(s){ ids[String(s.id)]=1; if(s.name) names[normName(s.name)]=1; });
+    return {ids:ids, names:names};
+  }
+  function attInScope(sc, id, name){
+    if(!sc) return true;
+    if(id && sc.ids[String(id)]) return true;
+    return !!(name && sc.names[normName(name)]);
+  }
   function drawAtt(){
     drawPaymentDue();
     var purchased=window.__wtAttP||{}, attended=window.__wtAttD||{}, used=window.__wtAttU||{}, atts=window.__wtAtts||[];
     var q=(($('attSearch')&&$('attSearch').value)||'').trim().toLowerCase();
     var students=_members.filter(function(m){return m.role==='student';});
+    // 범위 좁히기: 선생님 = 내 담당만 / 원장·매니저 = 고른 선생님(안 고르면 전체)
+    var meId=profile?String(profile.id):'';
+    var tsel=attFillTeacherFilter();
+    if(!isOps()){
+      students=students.filter(function(s){ return String(s.teacher_id||'')===meId; });
+    } else if(tsel==='none'){
+      students=students.filter(function(s){ return !s.teacher_id; });
+    } else if(tsel){
+      students=students.filter(function(s){ return String(s.teacher_id||'')===String(tsel); });
+    }
+    if($('attScopeNote')){
+      $('attScopeNote').textContent = isOps()
+        ? ('학생 '+students.length+'명')
+        : ('내 담당 학생 '+students.length+'명만 보입니다');
+    }
     var fst=q?students.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):students;
-    if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">등록된 학생이 없습니다.</td></tr>'; }
+    if(!students.length){ $('attTable').innerHTML='<tr><td class="wa-empty">'
+      + (isOps() ? '해당하는 학생이 없습니다.' : '담당 학생이 없습니다. 회원 관리에서 학생을 내 담당으로 가져오세요.')
+      + '</td></tr>'; }
     else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; }
     else {
       var adjSum=window.__wtAdjSum||{};
@@ -7076,7 +7144,9 @@
     drawAdjTable();
     if($('attHistTable')){
       var mm=isOps();
+      var sc=attScopeSet();
       var fatts=q?atts.filter(function(a){return (a.student_name||'').toLowerCase().indexOf(q)>=0;}):atts;
+      fatts=fatts.filter(function(a){ return attInScope(sc, a.student_id, a.student_name); });
       if(!fatts.length){ $('attHistTable').innerHTML='<tr><td class="wa-empty">출석 내역이 없습니다.</td></tr>'; }
       else { var hh='<tr><th>출석일</th><th>학생</th><th>등원</th><th>하원</th><th>경로</th>'+(mm?'<th>관리</th>':'')+'</tr>'; fatts.slice(0,60).forEach(function(a){ hh+='<tr><td>'+esc(a.attended_on||(a.created_at||'').slice(0,10))+'</td><td>'+esc(a.student_name||'-')+'</td><td>'+(a.checked_in_at?hm(a.checked_in_at):'-')+'</td><td>'+(a.checked_out_at?hm(a.checked_out_at):'-')+'</td><td style="color:var(--muted);font-size:12px">'+(a.source==='kiosk'?'아이패드(옛 등원기)':(a.source==='noshow'?'노쇼':'수기'))+'</td>'+(mm?'<td><a class="wa-link del" data-attdel="'+esc(a.id)+'">삭제</a></td>':'')+'</tr>'; }); $('attHistTable').innerHTML=hh; }
     }
@@ -7092,6 +7162,8 @@
     }
     var q=(($('attSearch')&&$('attSearch').value)||'').trim().toLowerCase();
     var rows=q?adjs.filter(function(a){ return String(a.student_name||'').toLowerCase().indexOf(q)>=0; }):adjs;
+    var scA=attScopeSet();
+    rows=rows.filter(function(a){ return attInScope(scA, a.student_id, a.student_name); });
     if($('adjCount')) $('adjCount').textContent='('+rows.length+'건)';
     if(!rows.length){ $('adjTable').innerHTML='<tr><td class="wa-empty">조정한 내역이 없습니다.</td></tr>'; return; }
     var h='<tr><th>날짜</th><th>학생</th><th>증감</th><th>사유</th><th>관리</th></tr>';
@@ -7159,6 +7231,7 @@
 
   if($('attReload')) $('attReload').onclick=loadAttendance;
   if($('attSearch')) $('attSearch').addEventListener('input', drawAtt);
+  if($('attTeacherFilter')) $('attTeacherFilter').addEventListener('change', drawAtt);
   if($('attHistTable')) $('attHistTable').addEventListener('click', async function(e){
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-attdel]'):null; if(!a) return;
     if(!confirm('이 출석 기록을 삭제할까요?\n\n남은 횟수는 그대로입니다. 횟수를 되돌리려면 수업 스케줄을 지우세요.')) return;
