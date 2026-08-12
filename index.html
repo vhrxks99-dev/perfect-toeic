@@ -3112,6 +3112,8 @@
       <label>강의장<select id="waSeRoom"></select></label>
       <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
       <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
+      <label class="sc-otbox"><input type="checkbox" id="waSeIsOt"> <b>사전 OT (첫 수업)</b>
+        <span>수강권 횟수를 차감하지 않습니다.</span></label>
       <p class="wa-err" id="waSeErr"></p>
       <div class="wa-admin-actions" style="margin:0">
         <button class="btn btn-primary" type="submit">저장</button>
@@ -3388,6 +3390,12 @@
 .std-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
 .std-h b{font-family:var(--font-num);font-weight:800}
 .std-t{font-size:12px;color:var(--muted);font-weight:700}
+/* 사전 OT 체크 (2026-08-12) */
+.sc-otbox{flex:1;display:block;border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface-2)}
+.sc-otbox input{width:auto;margin-right:6px;vertical-align:middle}
+.sc-otbox b{font-size:13.5px}
+.sc-otbox span{display:block;margin-top:3px;font-size:12px;color:var(--muted);font-weight:600;line-height:1.6}
+.cal-ev .cal-ot{display:inline-block;margin-left:4px;font-size:10px;font-weight:800;background:#fff5e9;color:#b26a00;border-radius:5px;padding:0 4px}
 /* 회차 배지 (2026-08-12) — 8회가 한 묶음이라 마지막 회차는 색을 다르게 해 눈에 띄게 한다 */
 .std-r{font-size:11.5px;font-weight:800;color:var(--accent);background:var(--accent-wash);border-radius:999px;padding:2px 8px}
 .std-r.last{color:#b26a00;background:#fff5e9}
@@ -3537,6 +3545,7 @@
 .wa-alerts li .wa-al-tag{flex:none;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px}
 .wa-alerts li .t-next{background:#eaf1fe;color:#154fbe}
 .wa-alerts li .t-hw{background:#fdeaea;color:#c0342b}
+.wa-alerts li .t-ot{background:#fff5e9;color:#b26a00}
 .wa-alerts li .t-req{background:#e8f6ec;color:#0a8f3c}
 .wa-alerts li .wa-al-sp{margin-left:auto}
 .wa-alerts li .wa-al-approve+.wa-al-reject{margin-left:6px}
@@ -3603,6 +3612,11 @@
         <div class="dash-row">
           <label>과목<select id="scSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
           <label style="flex:2">메모<input type="text" id="scMemo" placeholder="선택"></label>
+        </div>
+        <!-- 사전 OT (2026-08-12 원장 지시): 첫 수업료를 따로 받는 자리라 수강권을 깎으면 안 된다. -->
+        <div class="dash-row">
+          <label class="sc-otbox"><input type="checkbox" id="scIsOt"> <b>사전 OT (첫 수업)</b>
+            <span>수강권 횟수를 차감하지 않습니다. 수업이 끝나면 상담 기록을 남기라고 알려드려요.</span></label>
         </div>
         <div id="scFree" class="dash-note" style="margin-top:0;display:none"></div>
         <p class="wa-err" id="scErr"></p>
@@ -3847,6 +3861,7 @@
           <label>유입 경로<input type="text" id="csChannel" placeholder="네이버 / 지인소개 / 방문 등"></label>
         </div>
         <label>메모 <span class="wa-hint">(선택)</span><input type="text" id="csMemo" placeholder="상담 내용, 희망 시간대 등"></label>
+        <div id="csLink" class="dash-note" style="margin-top:0;display:none"></div>
         <p class="wa-err" id="csErr"></p>
         <button class="btn btn-primary" id="csAdd" type="button">＋ 상담 등록</button>
       </div>
@@ -5409,8 +5424,15 @@
           }
         }catch(e){}   // study.sql 미실행이면 그냥 통과 — 서버 트리거도 아직 없다
       }
-      var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null) };
+      var isOt=!!($('scIsOt') && $('scIsOt').checked);
+      var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null), is_ot:isOt };
       var r=await sb.from('schedules').insert(payload);
+      // ot_schedule.sql 을 아직 안 돌렸으면 is_ot 칸이 없어 통째로 거부된다 → 그 칸만 빼고 다시.
+      if(r.error && /is_ot/.test(r.error.message||'')){
+        delete payload.is_ot;
+        r=await sb.from('schedules').insert(payload);
+        if(!r.error && isOt) alert('사전 OT 표시는 저장되지 않았습니다. ot_schedule.sql 을 먼저 실행해주세요.\n(수업 자체는 잡혔습니다)');
+      }
       if(r.error){ scSay(false,'추가 실패: '+r.error.message); return; }
       // 무엇이 잡혔는지 그대로 되읽어 준다. 날짜만 보고는 맞게 들어갔는지 알 수 없다.
       scSay(true, '✅ <b>수업이 잡혔습니다.</b><br>'
@@ -5418,8 +5440,10 @@
         + ' · ' + esc(roomId ? roomName(roomId) : '미배정(비대면)')
         + '<br>' + esc(student ? student.name : '학생 미지정')
         + ' · ' + esc(teacher ? teacher.name : '선생님 미지정')
-        + ' · ' + esc($('scSubject').value || '토익'));
+        + ' · ' + esc($('scSubject').value || '토익')
+        + (isOt ? '<br><b style="color:#b26a00">사전 OT — 수강권 차감 안 함</b>' : ''));
       $('scMemo').value='';
+      if($('scIsOt')) $('scIsOt').checked=false;   // 다음 수업이 실수로 OT 로 들어가지 않게 되돌린다
       // 목록 표('다가오는 수업')는 2026-08-08에 없앴다 → loadSchedules 는 첫 줄에서 그냥 빠져나간다.
       // 그래서 예전에는 추가해도 화면이 아무것도 안 변했다. 달력을 반드시 다시 그린다.
       await loadSchedules(); await renderCalendar();
@@ -5459,6 +5483,7 @@
     if($('waSeRoom')) $('waSeRoom').innerHTML=roomOptions(s.room_id);
     if($('waSeSubject')) $('waSeSubject').value=s.subject||'토익';
     $('waSeMemo').value=s.memo||'';
+    if($('waSeIsOt')) $('waSeIsOt').checked=isOtLesson(s);
     $('waSeErr').textContent='';
     $('waSchedEdit').classList.add('on');
   }
@@ -5550,11 +5575,18 @@
     var roomId=$('waSeRoom').value?parseInt($('waSeRoom').value,10):null;
     var patch={ starts_at:startISO, ends_at:endISO, room_id:roomId,
                 subject:$('waSeSubject').value, memo:($('waSeMemo').value.trim()||null) };
+    if($('waSeIsOt')) patch.is_ot=!!$('waSeIsOt').checked;
     var r=await sb.from('schedules').update(patch).eq('id',_seId);
+    if(r.error && /is_ot/.test(r.error.message||'')){   // ot_schedule.sql 미실행 시
+      delete patch.is_ot;
+      r=await sb.from('schedules').update(patch).eq('id',_seId);
+      if(!r.error) alert('사전 OT 표시는 저장되지 않았습니다. ot_schedule.sql 을 먼저 실행해주세요.');
+    }
     // 겹침·강의장 규칙은 서버가 막는다. 그 메시지를 그대로 보여준다.
     if(r.error){ err.textContent=r.error.message; return; }
     closeSchedEdit();
     await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadTeacherAlerts();
+    try{ await loadAttendance(); }catch(e){}   // OT 로 바꾸면 남은 횟수가 달라진다
   });
   // 달력에서 바로 지울 수 있게 (중복으로 잡힌 수업 정리용). 지우면 수업 횟수도 1회 돌아온다.
   if($('waSeDel')) $('waSeDel').onclick=async function(){
@@ -5632,11 +5664,26 @@
     var fr=await sb.from('schedules').select('student_id,student_name,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString());
     if(!fr.error && fr.data) fr.data.forEach(function(s){ if(!isStudentEntry(s)) return; var k=stuKey(s.student_id,s.student_name); if(k) hasFuture[k]=true; });
     var hw=window.__wtHw||[];
+    // 끝난 사전 OT 중 상담 기록이 아직 없는 것 (2026-08-12 원장 지시 — 선생님이 누락할까 걱정).
+    // 이 알림에는 '확인함' 버튼을 달지 않는다. 상담을 넣어야만 사라진다.
+    var otNeed={};
+    try{
+      var otIds=mine.filter(isOtLesson).map(function(s){ return s.id; });
+      if(otIds.length){
+        var cs=await sb.from('consults').select('schedule_id').in('schedule_id',otIds);
+        var done={}; if(!cs.error && cs.data) cs.data.forEach(function(c){ done[String(c.schedule_id)]=1; });
+        otIds.forEach(function(id){ if(!done[String(id)]) otNeed[String(id)]=1; });
+      }
+    }catch(e){}   // consults.schedule_id 가 아직 없으면(ot_schedule.sql 미실행) 알림을 띄우지 않는다
     mine.sort(function(a,b){ return new Date(b.starts_at)-new Date(a.starts_at); });
     var alerts=[], seen={};
     mine.forEach(function(s){
       var key=stuKey(s.student_id,s.student_name);
       var sid=s.student_id, sname=s.student_name||'학생', day=ymd(new Date(s.starts_at));
+      if(otNeed[String(s.id)]){
+        alerts.push({type:'ot',student:sname,sid:sid,day:day,skey:key,scid:s.id});
+        return;   // OT 는 다음수업·숙제 알림 대상이 아니다(아직 등록 전이다)
+      }
       if(!hasFuture[key] && !_alertChecks[ackKey('next',key,day)]){ var k='n:'+key; if(!seen[k]){ seen[k]=1; alerts.push({type:'next',student:sname,sid:sid,day:day,skey:key}); } }
       // 숙제 알림은 회원으로 등록된 학생만. 구글에서 온 수업은 이름만 있어 숙제와 짝짓기가
       // 불확실하고, 잘못 켜면 다음수업 알림이 숙제 알림에 파묻힌다.
@@ -5644,8 +5691,9 @@
       var hwIssued=hw.some(function(x){ return x.student_id===sid && x.created_at && ymd(new Date(x.created_at))===day; });
       if(!hwIssued && !_alertChecks[ackKey('hw',key,day)]){ var k2='h:'+sid+':'+day; if(!seen[k2]){ seen[k2]=1; alerts.push({type:'hw',student:sname,sid:sid,day:day,skey:key}); } }
     });
-    // 다음수업 알림 먼저, 그 다음 최신 날짜순
-    alerts.sort(function(a,b){ if(a.type!==b.type) return a.type==='next'?-1:1; return b.day<a.day?-1:1; });
+    // OT 상담 → 다음수업 → 숙제 순. 그 안에서는 최신 날짜순.
+    var ORD={ot:0,next:1,hw:2};
+    alerts.sort(function(a,b){ if(a.type!==b.type) return ORD[a.type]-ORD[b.type]; return b.day<a.day?-1:1; });
     return alerts;
   }
   function mdLabel(day){ var p=(day||'').split('-'); return p.length===3 ? (parseInt(p[1],10)+'/'+parseInt(p[2],10)) : day; }
@@ -5685,6 +5733,8 @@
     var items=alerts.slice(0,30).map(function(a){
       // 이름이 달라 잘못 뜬 알림은 선생님이 직접 지울 수 있다
       var ack='<button class="wa-al-ack" data-ack="'+esc(a.type+'|'+a.skey+'|'+a.day)+'" data-ackname="'+esc(a.student)+'" title="이 알림을 지웁니다">✓ 확인함</button>';
+      // OT 상담은 '확인함'으로 지울 수 없다 — 기록을 남겨야 사라진다(원장 지시 2026-08-12).
+      if(a.type==='ot') return '<li><span class="wa-al-tag t-ot">OT상담</span><b>'+esc(a.student)+'</b> — '+mdLabel(a.day)+' 사전 OT 상담 기록을 아직 안 남기셨어요 <span class="wa-al-go" data-goto="cs" data-csname="'+esc(a.student)+'" data-csscid="'+esc(String(a.scid))+'" data-csday="'+esc(a.day)+'">상담 입력 →</span></li>';
       if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched">스케줄로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
       return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(a.student)+'</b> 학생 — '+mdLabel(a.day)+' 수업 숙제가 안 나갔어요 <span class="wa-al-go" data-goto="hw">숙제로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
     }).join('');
@@ -5756,7 +5806,19 @@
       var r2=await sb.rpc('reject_booking',{p_id:rj.getAttribute('data-reject')});
       if(r2.error){ alert('거절 실패: '+r2.error.message); return; }
       await loadSchedules(); await renderCalendar(); await loadTeacherAlerts(); return; }
-    if(g){ dashTab(g.getAttribute('data-goto')); }
+    if(g){
+      var to=g.getAttribute('data-goto');
+      dashTab(to==='cs' ? 'consult' : to);
+      // OT 상담 알림에서 넘어온 경우 상담 폼을 미리 채워 준다. 손으로 다시 적게 하면 안 쓴다.
+      if(to==='cs'){
+        _csScheduleId=g.getAttribute('data-csscid')||null;
+        if($('csName'))    $('csName').value=normName(g.getAttribute('data-csname')||'');
+        if($('csDate'))    $('csDate').value=g.getAttribute('data-csday')||ymd(new Date());
+        if($('csChannel')) $('csChannel').value=$('csChannel').value||'사전 OT';
+        drawCsLink();
+        if($('csName')) $('csName').focus();
+      }
+    }
   }
 
   // ---- 주간 캘린더 (시간 격자) ----
@@ -5915,9 +5977,12 @@
           var mark = st==='noshow'   ? '<b style="color:#c0342b">결석</b> '
                    : st==='canceled' ? '<b style="color:var(--muted)">휴강</b> ' : '';
           var dim  = (st==='canceled') ? 'opacity:.55;' : '';
+          // 사전 OT 는 수강권을 안 깎는 자리라 달력에서도 바로 구분돼야 한다.
+          var otTag = isOtLesson(s) ? '<span class="cal-ot">OT</span>' : '';
           var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ')
+                + (isOtLesson(s)?' · 사전 OT(차감 안 함)':'')
                 + (mark?' · '+lessonResultLabel(st):'')+' — 클릭하면 수정';
-          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+'</div>';
+          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+otTag+'</div>';
         }).join('');
         // 주말 스터디(12~14시)를 이 칸에 얹는다. 수업이 아니라 학생들끼리 모이는 거라
         // 클릭해도 수업 수정 창이 뜨지 않게 data-scid 를 붙이지 않는다.
@@ -6864,12 +6929,21 @@
   //  · 확정(=출석)과 결석은 센다. 안 왔어도 그 자리는 쓴 것이므로 차감한다.
   //  · 승인 전 예약 요청(pending)과 휴강(canceled)은 세지 않는다
   //  · 구글 캘린더에서 넘어온 수업은 세지 않는다(436건이 한꺼번에 차감되는 것을 막는다)
+  //  · 사전 OT 는 세지 않는다(2026-08-12 원장 지시 — 첫 수업료를 따로 받고 등록하면 돌려주는 자리)
   function countsAsUsed(s){
     if(!s || !s.student_id) return false;
     var st=s.status||'confirmed';
     if(st!=='confirmed' && st!=='noshow') return false;
     if((s.source||'web')==='gcal') return false;
+    if(isOtLesson(s)) return false;
     return true;
+  }
+  // 사전 OT 인가. is_ot 칸이 정답이지만, 구글 캘린더에는 원장님이 제목에 (신규)를 붙여
+  // 입력하고 계셔서 그것도 OT 로 본다(구글 유입분은 어차피 차감 대상이 아니라 표시용).
+  function isOtLesson(s){
+    if(!s) return false;
+    if(s.is_ot===true) return true;
+    return /\(\s*신규\s*\)/.test(String(s.student_name||'')+' '+String(s.subject||''));
   }
   // 남은 수업이 1회 이하인 학생 = 결제 안내 대상.
   // 안내 문자가 나갔는지도 같이 보여준다(아직 발송 연동 전이라 '대기중'으로 뜬다).
@@ -7678,6 +7752,19 @@
   // 상담은 회원가입 전 사람도 대상이라 profiles 가 아니라 consults 테이블에 남긴다.
   var _consults=[];
   var CS_RESULT={pending:'대기', registered:'등록함', lost:'등록 안 함'};
+  // 알림에서 넘어온 사전 OT 수업의 id. 이게 붙어 있어야 그 OT 의 '상담 미입력' 알림이 사라진다.
+  var _csScheduleId=null;
+  function drawCsLink(){
+    var box=$('csLink'); if(!box) return;
+    if(!_csScheduleId){ box.style.display='none'; box.innerHTML=''; return; }
+    box.style.display='';
+    box.innerHTML='이 상담은 <b>사전 OT 수업</b>에 연결됩니다. 등록하시면 그 수업의 알림이 사라져요. '
+      + '<a class="wa-link" data-cs-unlink="1" style="color:#c0342b">연결 해제</a>';
+  }
+  if($('csLink')) $('csLink').addEventListener('click', function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('[data-cs-unlink]'):null; if(!a) return;
+    e.preventDefault(); _csScheduleId=null; drawCsLink();
+  });
   async function loadConsults(){
     if(!$('csTable')) return;
     if(sb){ var r=await sb.from('consults').select('*').order('consulted_on',{ascending:false}); if(!r.error&&r.data) _consults=r.data; }
@@ -7719,10 +7806,18 @@
               phone:(($('csPhone').value||'').trim()||null), channel:(($('csChannel').value||'').trim()||null),
               teacher_id:(tid||null), teacher_name:(tname?tname.name:null),
               memo:(($('csMemo').value||'').trim()||null), result:'pending' };
+    if(_csScheduleId) row.schedule_id=parseInt(_csScheduleId,10);
     var r=await sb.from('consults').insert(row);
+    if(r.error && /schedule_id/.test(r.error.message||'')){   // ot_schedule.sql 미실행 시
+      delete row.schedule_id;
+      r=await sb.from('consults').insert(row);
+      if(!r.error) alert('상담은 등록됐지만 OT 수업과 연결되지 않았습니다. ot_schedule.sql 을 먼저 실행해주세요.');
+    }
     if(r.error){ $('csErr').textContent='등록 실패: '+r.error.message; return; }
     $('csErr').textContent=''; $('csName').value=''; $('csPhone').value=''; $('csChannel').value=''; $('csMemo').value='';
+    _csScheduleId=null; drawCsLink();
     await loadConsults();
+    try{ await loadTeacherAlerts(); }catch(e){}   // OT 상담 알림을 바로 지운다
   };
   if($('csReload')) $('csReload').onclick=function(){ loadConsults(); };
   if($('csTable')) $('csTable').addEventListener('change', async function(e){
