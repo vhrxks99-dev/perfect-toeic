@@ -6963,7 +6963,20 @@
     // 서버 sessions_left() 와 같은 식으로 세야 화면과 알림이 어긋나지 않는다.
     var scheds=[], adjs=[];
     if(sb){
-      var r4=await sb.from('schedules').select('student_id,status,source'); if(!r4.error&&r4.data) scheds=r4.data;
+      // 🚨 구글발도 세게 되면서(2026-08-12) 스케줄이 1,000행을 훌쩍 넘는다.
+      //    PostgREST 는 한 번에 1,000행까지만 주므로 나눠 받아야 한다 —
+      //    안 나누면 조용히 잘려서 '남은 횟수'가 실제보다 많게 나온다(오류도 안 난다).
+      //    회원과 연결 안 된 행(student_id 없음)은 어차피 안 세므로 서버에서 미리 뺀다.
+      for(var scFrom=0;;scFrom+=1000){
+        var r4=await sb.from('schedules')
+                       .select('student_id,status,source,starts_at,is_ot,student_name,subject')
+                       .not('student_id','is',null)
+                       .order('id',{ascending:true})
+                       .range(scFrom, scFrom+999);
+        if(r4.error||!r4.data) break;
+        scheds=scheds.concat(r4.data);
+        if(r4.data.length<1000 || scFrom>50000) break;
+      }
       // 손으로 넣은 보정. session_adjust.sql 을 아직 안 돌렸으면 표가 없어 오류가 나는데,
       // 그때도 나머지 화면은 그대로 돌아가야 한다(null 로 두고 안내만 띄운다).
       var r5=await sb.from('session_adjustments').select('id,student_id,student_name,delta,happened_on,reason,created_at').order('happened_on',{ascending:false}).order('id',{ascending:false});
@@ -6994,18 +7007,21 @@
     var use=(window.__wtAttU||{})[id]||0;
     return buy + adj - use;
   }
+  // 구글 캘린더 수업을 세기 시작한 기준 시각 (2026-08-12 원장 지시).
+  // 그 전 수업은 통통통에서 이미 차감된 몫이라 또 세면 두 번 깎인다.
+  var GCAL_CUT=Date.parse('2026-08-12T14:00:00+09:00');
   // 횟수를 쓰는 수업인가. — 서버 sessions_left() 와 같은 기준이어야 한다.
-  //  · 회원으로 등록된 학생만(구글에서 이름만 넘어온 수업은 셀 수 없다)
+  //  · 회원으로 등록된 학생만(구글에서 이름만 넘어와 회원을 못 찾은 수업은 셀 수 없다)
   //  · 확정(=출석)과 결석은 센다. 안 왔어도 그 자리는 쓴 것이므로 차감한다.
   //  · 승인 전 예약 요청(pending)과 휴강(canceled)은 세지 않는다
-  //  · 구글 캘린더에서 넘어온 수업은 세지 않는다(436건이 한꺼번에 차감되는 것을 막는다)
+  //  · 구글 캘린더 수업은 GCAL_CUT 이후에 시작하는 것만 센다(2026-08-12 원장 지시로 포함시켰다)
   //  · 사전 OT 는 세지 않는다(2026-08-12 원장 지시 — 첫 수업료를 따로 받고 등록하면 돌려주는 자리)
   function countsAsUsed(s){
     if(!s || !s.student_id) return false;
     var st=s.status||'confirmed';
     if(st!=='confirmed' && st!=='noshow') return false;
-    if((s.source||'web')==='gcal') return false;
     if(isOtLesson(s)) return false;
+    if((s.source||'web')==='gcal' && !(Date.parse(s.starts_at)>GCAL_CUT)) return false;
     return true;
   }
   // 사전 OT 인가. is_ot 칸이 정답이지만, 구글 캘린더에는 원장님이 제목에 (신규)를 붙여
@@ -8015,7 +8031,11 @@
     //    2026-08-09부터 출석은 등원 기록이 아니라 수업의 status 로 본다(키오스크를 없앴다).
     //      confirmed = 출석 · noshow = 결석 · canceled = 휴강(분모에서 빠진다) · pending = 승인 전
     //    구글 캘린더에서 온 수업은 횟수도 안 세므로 여기서도 뺀다.
-    var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source').not('student_id','is',null);
+    //    ⚠️ 구글발을 서버에서 미리 빼야 한다(2026-08-12). 이제 구글 수업도 학생과 연결되어
+    //       1,900건이 넘는데, PostgREST 는 1,000행까지만 주므로 받아온 뒤에 거르면
+    //       정작 필요한 웹 수업이 잘려 나가 출석률이 0% 로 보인다.
+    var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source')
+             .not('student_id','is',null).or('source.is.null,source.neq.gcal');
     if(from){ sq=sq.gte('starts_at',from.toISOString()).lt('starts_at',to.toISOString()); }
     var sr=await sq;
     var scheds=(!sr.error&&sr.data)?sr.data.filter(function(s){
@@ -8155,7 +8175,8 @@
         if(!rp.error&&rp.data) rp.data.forEach(function(x){ pu+=(x.sessions||0); });
         var ra=await sb.from('attendance').select('attended_on,created_at').eq('student_id',profile.id).order('created_at',{ascending:false});
         if(!ra.error&&ra.data) atts=ra.data;
-        var rs=await sb.from('schedules').select('status,source,student_id').eq('student_id',profile.id);
+        // countsAsUsed 가 starts_at·is_ot·이름·과목까지 보므로 같이 받아야 한다(2026-08-12).
+        var rs=await sb.from('schedules').select('status,source,student_id,starts_at,is_ot,student_name,subject').eq('student_id',profile.id);
         if(!rs.error&&rs.data){ scAll=rs.data; scs=rs.data.filter(countsAsUsed); }
         var rj=await sb.from('session_adjustments').select('delta').eq('student_id',profile.id);
         if(!rj.error&&rj.data) rj.data.forEach(function(x){ adj+=(x.delta||0); });

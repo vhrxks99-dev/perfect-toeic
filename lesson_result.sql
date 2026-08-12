@@ -47,6 +47,8 @@ stable
 security definer
 set search_path = public
 as $$
+--    (2026-08-12 추가: 사전 OT 도 뺀다. ot_schedule.sql 참고 —
+--     이 파일을 다시 돌릴 때 is_ot 줄이 빠지면 OT 가 다시 차감된다.)
   select coalesce((select sum(sessions) from public.payments
                     where student_id = p_student and sessions is not null), 0)
        + coalesce((select sum(delta) from public.session_adjustments
@@ -54,7 +56,8 @@ as $$
        - coalesce((select count(*) from public.schedules
                     where student_id = p_student
                       and coalesce(status,'confirmed') in ('confirmed','noshow')
-                      and coalesce(source,'web') <> 'gcal'), 0);
+                      and coalesce(source,'web') <> 'gcal'
+                      and coalesce(is_ot,false) = false), 0);
 $$;
 
 revoke all on function public.sessions_left(uuid) from public, anon;
