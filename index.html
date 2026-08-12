@@ -3390,6 +3390,17 @@
 .std-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
 .std-h b{font-family:var(--font-num);font-weight:800}
 .std-t{font-size:12px;color:var(--muted);font-weight:700}
+/* 스터디 참·불 대신 체크 (2026-08-12) */
+.std-mark{margin-top:8px;border-top:1px dashed var(--line);padding-top:7px}
+.std-mark summary{cursor:pointer;font-size:12px;font-weight:800;color:var(--muted)}
+.std-mk-row{display:flex;align-items:center;gap:4px;margin-top:5px}
+.std-mk-name{flex:1;font-size:12.5px;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.std-mk{border:1px solid var(--line-strong);background:var(--surface);color:var(--muted);border-radius:7px;
+        padding:3px 9px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
+.std-mk.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.std-mk.no.on{background:#c0342b;border-color:#c0342b}
+.std-mk.clr.on{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink-soft)}
+.std-mk:disabled{opacity:.5;cursor:default}
 /* 사전 OT 체크 (2026-08-12) */
 .sc-otbox{flex:1;display:block;border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;background:var(--surface-2)}
 .sc-otbox input{width:auto;margin-right:6px;vertical-align:middle}
@@ -6224,6 +6235,32 @@
     }catch(e){ _studyOff=null; }
     drawStudy();
   }
+  // 참·불을 대신 찍어 줄 수 있는 학생 명단 (2026-08-12 원장 지시).
+  // 원장·매니저는 자격이 켜진 학생 전부, 선생님은 본인 담당 학생만.
+  // 학생이 며칠째 안 찍으면 인원 파악이 안 되는데, 수업 때 물어보고 대신 눌러 주면 된다.
+  function studyMarkTargets(){
+    var mine=!isOps();                       // 선생님이면 내 담당만
+    return (window.__wtMembers||[]).filter(function(u){
+      if(u.role!=='student' || !u.study || String(u.status||'')==='ended') return false;
+      var meId = profile ? String(profile.id) : '';
+      if(mine && String(u.teacher_id||'')!==meId) return false;
+      return true;
+    }).sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+  }
+  function studyMarkBox(day, signups){
+    var list=studyMarkTargets();
+    if(!list.length) return '';
+    var cur={};
+    (signups||[]).forEach(function(s){ cur[String(s.student_id)]=(s.going!==false)?'yes':'no'; });
+    var rows=list.map(function(u){
+      var v=cur[String(u.id)]||'';
+      return '<div class="std-mk-row"><span class="std-mk-name">'+esc(u.name||'학생')+'</span>'
+        + '<button type="button" class="std-mk'+(v==='yes'?' on':'')+'" data-mk="yes" data-mk-stu="'+esc(String(u.id))+'" data-mk-day="'+esc(day)+'">참</button>'
+        + '<button type="button" class="std-mk no'+(v==='no'?' on':'')+'" data-mk="no" data-mk-stu="'+esc(String(u.id))+'" data-mk-day="'+esc(day)+'">불</button>'
+        + '<button type="button" class="std-mk clr'+(v===''?' on':'')+'" data-mk="clear" data-mk-stu="'+esc(String(u.id))+'" data-mk-day="'+esc(day)+'">미정</button></div>';
+    }).join('');
+    return '<details class="std-mark"><summary>참·불 대신 체크 ('+list.length+'명)</summary>'+rows+'</details>';
+  }
   function drawStudy(){
     var box=$('studyBox'); if(!box) return;
     if(_studyOff===null){
@@ -6274,13 +6311,15 @@
         + '<span class="t-no">불참 '+no.length+'</span>'
         + '<span class="t-todo">미응답 '+todo+'</span></div>';
       var noLine = no.length ? '<div class="std-sub">안 온다고 한 학생 — '+esc(no.map(function(s){ return s.student_name||'학생'; }).join(', '))+'</div>' : '';
+      var markBox = studyMarkBox(day, all);
       // 8회차 = 이번 묶음의 마지막 → 돈 받고 다시 1회차로 시작한다는 걸 여기서 알린다.
       var payLine = (rnd && rnd.n===STUDY_CYCLE)
         ? '<div class="std-pay">이번 '+STUDY_CYCLE+'회 마지막입니다. '+STUDY_FEE+' 받고 다음 스터디부터 새 1회차예요.</div>' : '';
       return '<div class="std-card">'+head
         + tally
         + '<div class="std-names">'+names+'</div>'+noLine+payLine
-        + '<div class="std-rooms"><span class="std-lb">강의장</span>'+roomBtns+'</div></div>';
+        + '<div class="std-rooms"><span class="std-lb">강의장</span>'+roomBtns+'</div>'
+        + markBox + '</div>';
     }).join('');
     box.innerHTML='<div class="std-wrap">'+cards+'</div>';
     if($('studyCount')) $('studyCount').textContent='(앞으로 '+STUDY_WEEKS+'주 · 신청 '+total+'명)';
@@ -6301,6 +6340,26 @@
   }
   if($('studyBox')) $('studyBox').addEventListener('click', async function(e){
     if(!sb) return;
+    // 참·불 대신 체크 (원장·매니저 전체 / 선생님은 담당 학생만 — 서버 함수가 한 번 더 검사한다)
+    var mk=(e.target&&e.target.closest)?e.target.closest('[data-mk]'):null;
+    if(mk){
+      var v=mk.getAttribute('data-mk');
+      var going = v==='clear' ? null : (v==='yes');
+      var row=mk.parentNode;
+      [].forEach.call(row.querySelectorAll('button'), function(x){ x.disabled=true; });
+      var rk=await sb.rpc('set_study_signup',{ p_student:mk.getAttribute('data-mk-stu'), p_date:mk.getAttribute('data-mk-day'), p_going:going });
+      [].forEach.call(row.querySelectorAll('button'), function(x){ x.disabled=false; });
+      if(rk.error){
+        alert(/set_study_signup/.test(rk.error.message||'')
+          ? '이 기능은 study_mark.sql 을 먼저 실행해야 합니다.'
+          : rk.error.message);
+        return;
+      }
+      var open={}; [].forEach.call($('studyBox').querySelectorAll('details.std-mark'), function(d,i){ open[i]=d.open; });
+      await loadStudy();
+      [].forEach.call($('studyBox').querySelectorAll('details.std-mark'), function(d,i){ d.open=!!open[i]; });
+      return;
+    }
     // A·B 한 번에 켜기 (원장 지시: 스터디는 학원 A·B 우선)
     var ab=(e.target&&e.target.closest)?e.target.closest('[data-std-ab]'):null;
     if(ab){
