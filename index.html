@@ -3457,6 +3457,18 @@
 .std-add{width:100%;margin-top:6px;border:1px dashed var(--line-strong);background:var(--surface-2);color:var(--ink-soft);
          border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
 .std-add:disabled{opacity:.6;cursor:default}
+/* 스터디 강의장 자동 배분 (2026-08-13) */
+.std-asg{margin-top:8px;border-top:1px dashed var(--line);padding-top:7px}
+.std-asg .std-lb{display:block;font-size:12px;font-weight:800;color:var(--muted);margin-bottom:4px}
+.std-asg-row{font-size:12.5px;margin-top:4px;line-height:1.65}
+.std-asg-room{font-weight:800;color:var(--ink)}
+.std-asg-lv{color:var(--muted);font-size:11px;font-family:var(--font-num)}
+.std-asg-btns{display:flex;gap:6px;margin-top:7px}
+.std-asg-btns button{flex:1;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);
+                     border-radius:8px;padding:5px 8px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
+.std-asg-btns button.go{background:var(--accent);border-color:var(--accent);color:#fff}
+.std-asg-btns button:disabled{opacity:.6;cursor:default}
+.std-my-room{margin-top:7px;font-size:13.5px;font-weight:800;color:var(--accent)}
 /* 사전 OT 체크 (2026-08-12)
    ⚠️ .dash-row>label 이 세로 flex(column)라 그냥 두면 체크박스가 한 줄을 통째로 차지하고
    글자 위에 빈 공간이 생긴다. 그래서 여기서 display:block 으로 되돌린다(선택자 우선순위도 맞춤). */
@@ -6403,6 +6415,10 @@
   // 회차별 교재 (2026-08-13). _studyFilesOk=false = study_files.sql 미실행
   var _studyFiles=[], _studyFilesOk=true, _studyUpDay=null;
   var STUDY_BUCKET='study-files', STUDY_MAX=20*1024*1024;   // 한 파일 20MB (버킷에도 같은 제한)
+  // 배분용 실력값 (2026-08-13). ⚠️ 원장 지시로 회원 페이지 점수 칸과는 별개다 —
+  // 어림값이라 profiles.current_score 에 적지 않고 study_levels 표에만 둔다.
+  // 학생은 RLS 상 이 표를 아예 못 읽는다.
+  var _studyLevels={};
   // 회차 (원장 확정 2026-08-12): 2026-08-01 이 1회차, 쉬는 날은 세지 않는다.
   // 8회차가 끝나면 3만원을 받고 그다음 스터디부터 다시 1회차로 돌아간다.
   // 기준일을 상수로 둔 이유 = 표를 새로 만들지 않아도 되고, 8/22 가 7회차라는 원장 말과 맞는다.
@@ -6457,6 +6473,12 @@
         _studyFilesOk = !f.error;
         _studyFiles = (!f.error&&f.data)?f.data:[];
       }catch(e2){ _studyFilesOk=false; _studyFiles=[]; }
+      // 배분용 실력값. 학생은 못 읽으므로 오류면 그냥 빈 값으로 둔다(배분은 무작위가 된다).
+      try{
+        var lv=await sb.from('study_levels').select('student_id,level');
+        _studyLevels={};
+        if(!lv.error) (lv.data||[]).forEach(function(x){ _studyLevels[String(x.student_id)]=Number(x.level); });
+      }catch(e3){ _studyLevels={}; }
     }catch(e){ _studyOff=null; }
     drawStudy();
   }
@@ -6516,6 +6538,92 @@
     }).join('') : '<div class="std-file-none">아직 올린 교재가 없어요.</div>';
     return '<div class="std-files"><span class="std-lb">교재 ('+list.length+')</span>'+rows
       + '<button type="button" class="std-add" data-std-fadd="'+esc(day)+'">+ 교재 첨부</button></div>';
+  }
+
+  // ---- 강의장 자동 배분 (2026-08-13 원장 요청) -----------------------------
+  // 원장 지시 = "점수대가 각각이니 잘하는 학생·부족한 학생을 한 방에 골고루 섞어달라."
+  // 실력값이 없는 학생은 가운데(중앙값)로 놓는다 — 맨 앞이나 맨 뒤에 몰면 한 방이 쏠린다.
+  function studyLevelOf(sid, mid){
+    var v=_studyLevels[String(sid)];
+    return (v==null || isNaN(v)) ? mid : v;
+  }
+  // 지그재그(뱀) 분배. 잘하는 순서로 세워 놓고 A→B→B→A→A→B… 로 돌리면
+  // 방마다 인원도 비슷해지고 실력 합도 비슷해진다.
+  // ⚠️ 정원이 찬 방은 건너뛴다(강의장 A 는 4명까지다).
+  function studySnake(list, rooms){
+    var buckets=rooms.map(function(){ return []; });
+    var caps=rooms.map(function(r){ return Number(r.capacity)>0 ? Number(r.capacity) : 99; });
+    var idx=0, dir=1;
+    function step(){
+      idx+=dir;
+      if(idx>=rooms.length){ idx=rooms.length-1; dir=-1; }
+      else if(idx<0){ idx=0; dir=1; }
+    }
+    for(var i=0;i<list.length;i++){
+      var tries=0;
+      while(buckets[idx].length>=caps[idx] && tries<rooms.length){ step(); tries++; }
+      buckets[idx].push(list[i]);
+      step();
+    }
+    return buckets;
+  }
+  // 그날 쓰기로 정한 강의장 목록 (이름순)
+  function studyRoomsOf(day){
+    var picked={}; _studyRooms.forEach(function(r){ if(r.study_date===day) picked[String(r.room_id)]=1; });
+    return (_rooms||[]).filter(function(r){ return picked[String(r.id)]; })
+                       .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+  }
+  function studyPlan(day){
+    var rooms=studyRoomsOf(day);
+    var go=_studySignups.filter(function(s){ return s.study_date===day && s.going!==false; });
+    if(!rooms.length || !go.length) return { rooms:rooms, go:go, buckets:null };
+    // 중앙값 — 실력값이 있는 사람들만으로 낸다.
+    var known=go.map(function(s){ return _studyLevels[String(s.student_id)]; })
+                .filter(function(v){ return v!=null && !isNaN(v); })
+                .sort(function(a,b){ return a-b; });
+    var mid = known.length ? (known.length%2 ? known[(known.length-1)/2]
+                                             : Math.round((known[known.length/2-1]+known[known.length/2])/2))
+                           : 0;
+    var sorted=go.slice().sort(function(a,b){
+      var d=studyLevelOf(b.student_id,mid)-studyLevelOf(a.student_id,mid);
+      if(d) return d;
+      return String(a.student_name||'').localeCompare(String(b.student_name||''),'ko');
+    });
+    return { rooms:rooms, go:go, mid:mid, buckets:studySnake(sorted, rooms) };
+  }
+  function studyAssignBox(day){
+    if(!canStudyFile()) return '';       // 원장·매니저·선생님만
+    var rooms=studyRoomsOf(day);
+    var go=_studySignups.filter(function(s){ return s.study_date===day && s.going!==false; });
+    var head='<div class="std-asg"><span class="std-lb">방 배분</span>';
+    if(!go.length) return head+'<div class="std-file-none">간다고 한 학생이 아직 없어요.</div></div>';
+    if(!rooms.length) return head+'<div class="std-file-none">위에서 강의장을 먼저 골라주세요.</div></div>';
+    // 이미 나눠 둔 결과가 있으면 그걸 보여준다(자동 배분 뒤 손으로 바꿔도 그대로 보인다)
+    var done=go.filter(function(s){ return s.room_id; });
+    var body='';
+    if(done.length){
+      body=rooms.map(function(r){
+        var mem=go.filter(function(s){ return String(s.room_id)===String(r.id); });
+        if(!mem.length) return '';
+        return '<div class="std-asg-row"><span class="std-asg-room">'+esc(r.name)+' ('+mem.length+'명)</span> — '
+             + mem.map(function(s){
+                 var lv=_studyLevels[String(s.student_id)];
+                 return esc(s.student_name||'학생')+(lv!=null?' <span class="std-asg-lv">'+lv+'</span>':'');
+               }).join(', ') + '</div>';
+      }).join('');
+      var left=go.filter(function(s){ return !s.room_id; });
+      if(left.length){
+        body+='<div class="std-asg-row" style="color:#c0342b">아직 방이 없는 학생 — '
+            + esc(left.map(function(s){ return s.student_name||'학생'; }).join(', '))+'</div>';
+      }
+    } else {
+      body='<div class="std-file-none">아직 안 나눴어요. 버튼을 누르면 실력이 골고루 섞이게 나눠 드려요.</div>';
+    }
+    var btns='<div class="std-asg-btns">'
+      + '<button type="button" class="go" data-std-asg="'+esc(day)+'">'+(done.length?'다시 배분':'자동 배분')+'</button>'
+      + (done.length?'<button type="button" data-std-asgclr="'+esc(day)+'">지우기</button>':'')
+      + '</div>';
+    return head+body+btns+'</div>';
   }
   // 참·불을 대신 찍어 줄 수 있는 학생 명단 (2026-08-12 원장 지시).
   // 원장·매니저는 자격이 켜진 학생 전부, 선생님은 본인 담당 학생만.
@@ -6601,7 +6709,7 @@
         + tally
         + '<div class="std-names">'+names+'</div>'+noLine+payLine
         + '<div class="std-rooms"><span class="std-lb">강의장</span>'+roomBtns+'</div>'
-        + studyFileBox(day) + markBox + '</div>';
+        + studyAssignBox(day) + studyFileBox(day) + markBox + '</div>';
     }).join('');
     // 파일 고르는 칸은 카드마다 두지 않고 하나만 둔다(어느 날짜에 올릴지는 _studyUpDay 로 기억).
     box.innerHTML='<div class="std-wrap">'+cards+'</div>'
@@ -6624,6 +6732,37 @@
   }
   if($('studyBox')) $('studyBox').addEventListener('click', async function(e){
     if(!sb) return;
+    // ---- 강의장 자동 배분 (2026-08-13) ----
+    var asg=(e.target&&e.target.closest)?e.target.closest('[data-std-asg]'):null;
+    if(asg){
+      var aday=asg.getAttribute('data-std-asg');
+      var plan=studyPlan(aday);
+      if(!plan.buckets){ alert('강의장을 먼저 고르고, 간다고 한 학생이 있어야 나눌 수 있어요.'); return; }
+      var over=plan.buckets.reduce(function(n,b,i){ var c=Number(plan.rooms[i].capacity)||99; return n+Math.max(0,b.length-c); },0);
+      if(over && !confirm('정원보다 '+over+'명 많습니다.\n\n강의장을 하나 더 고르는 게 좋아요. 그래도 나눌까요?')) return;
+      var map=[];
+      plan.buckets.forEach(function(b,i){ b.forEach(function(s){ map.push({student_id:s.student_id, room_id:plan.rooms[i].id}); }); });
+      asg.disabled=true; asg.textContent='나누는 중…';
+      var rr=await sb.rpc('study_assign_rooms',{p_date:aday, p_map:map});
+      asg.disabled=false;
+      if(rr.error){
+        alert(/study_assign_rooms/.test(rr.error.message||'')
+          ? '이 기능은 study_assign.sql 을 먼저 실행해야 합니다.'
+          : rr.error.message);
+        return;
+      }
+      await loadStudy(); return;
+    }
+    var asgc=(e.target&&e.target.closest)?e.target.closest('[data-std-asgclr]'):null;
+    if(asgc){
+      var cday=asgc.getAttribute('data-std-asgclr');
+      if(!confirm(cday+' 배분을 지울까요?')) return;
+      asgc.disabled=true;
+      var rc=await sb.rpc('study_assign_rooms',{p_date:cday, p_map:[]});
+      asgc.disabled=false;
+      if(rc.error){ alert(rc.error.message); return; }
+      await loadStudy(); return;
+    }
     // ---- 교재 (2026-08-13) : 첨부 / 받기 / 삭제 ----
     var fadd=(e.target&&e.target.closest)?e.target.closest('[data-std-fadd]'):null;
     if(fadd){
@@ -8658,6 +8797,13 @@
       var fr=await sb.from('study_files').select('id,study_date,name,path,size').gte('study_date',today).order('created_at');
       if(!fr.error && fr.data) myFiles=fr.data;
     }catch(e){}
+    // 내가 어느 강의장인지 (2026-08-13). 아직 안 나눴으면 비어 있다.
+    // ⚠️ 방 이름은 study_signups 에 같이 적혀 있다 — 학생은 rooms 표를 못 읽기 때문.
+    var myRooms={};
+    try{
+      var mr=await sb.from('study_signups').select('study_date,room_name').eq('student_id',profile.id).gte('study_date',today);
+      if(!mr.error) (mr.data||[]).forEach(function(x){ if(x.room_name) myRooms[x.study_date]=x.room_name; });
+    }catch(e){}
     box.innerHTML='<div class="std-wrap">'+days.map(function(x){
       var dow=['일','월','화','수','목','금','토'][new Date(x.day+'T00:00:00').getDay()];
       var rnd=studyRound(x.day, offAll);
@@ -8684,9 +8830,11 @@
             }).join('')
           + '<div class="std-file-none" style="margin-top:5px">스터디가 끝나면 파일이 없어지니 그날 받아 쓰세요.</div></div>'
         : '';
+      var roomLine = (v==='yes' && myRooms[x.day])
+        ? '<div class="std-my-room">내 강의장 · '+esc(myRooms[x.day])+'</div>' : '';
       return '<div class="std-card">'+head
         + '<div class="std-names">'+note+'<br><span style="color:var(--muted);font-size:12px">지금 '+(x.n||0)+'명 간다고 했어요.</span></div>'+payLine
-        + fbox
+        + roomLine + fbox
         + '<div class="std-vote">'
         +   '<button type="button" class="std-join'+(v==='yes'?' on':'')+'" data-std-vote="yes" data-std-day="'+esc(x.day)+'">갈게요</button>'
         +   '<button type="button" class="std-join no'+(v==='no'?' on':'')+'" data-std-vote="no" data-std-day="'+esc(x.day)+'">안 가요</button>'
