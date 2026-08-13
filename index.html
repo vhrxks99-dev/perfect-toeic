@@ -579,7 +579,10 @@
   @media (max-width:760px){ .course-grid,.info2,.board-form{grid-template-columns:1fr} }
 
   /* ============ RESPONSIVE ============ */
-  @media (max-width:1000px){
+  /* 🚨 1000px 이던 것을 1180px 로 올렸다(원장 지적 2026-08-13 — 태블릿에서 화면이 옆으로 밀린다).
+     아이패드 가로(1024px)에서 상단 메뉴+버튼이 다 펼쳐져 1169px 를 먹는 바람에
+     페이지가 통째로 가로 스크롤됐다. 실측 1169px 라 1180px 아래로는 햄버거로 접는다. */
+  @media (max-width:1180px){
     nav.main,.head-cta .btn{display:none}
     .hamburger{display:flex}
     .head-cta{margin-left:auto}
@@ -3279,6 +3282,18 @@
 .dash-row>label{flex:1;min-width:120px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
 .dash-row input,.dash-row select{padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
 .dash-row input:not([type=checkbox]):not([type=radio]),.dash-row select{height:40px;box-sizing:border-box;width:100%}
+/* 🚨 태블릿에서 칸이 겹치던 문제(원장 지적 2026-08-13 "태블릿에서 박스 겹치는 게 엄청 많다").
+   flex 항목은 min-width 가 기본 auto 라, 날짜·월 칸이 제 최소 폭 밑으로 안 줄어들어
+   옆 칸을 밀고 들어갔다. 폰(≤640px)에만 min-width:0 을 줬던 걸 모든 폭으로 올린다. */
+.dash-row>label{min-width:0}
+.dash-row>label>input,.dash-row>label>select,.dash-row>label>textarea{min-width:0;max-width:100%}
+.dash-row input[type=date],.dash-row input[type=month]{-webkit-appearance:none;appearance:none;text-align:left}
+/* 태블릿(641~1024px)은 한 줄에 두 칸씩. 데스크톱처럼 다섯 칸을 욱여넣으면 다 찌그러진다. */
+@media(min-width:641px) and (max-width:1024px){
+  .dash-row>label{flex:1 1 calc(50% - 5px)}
+  .dash-row>label:has(>textarea){flex:1 1 100%}
+  .dash-row>label.off-allday{flex:1 0 100%;align-self:stretch;margin-top:2px;height:auto}
+}
 /* 입력칸 아래에 붙는 안내 문구 — 몇 줄이 되든 위쪽 입력칸 위치는 그대로다 */
 .dash-row>label>.wa-hint{font-size:11.5px;font-weight:600;line-height:1.45;color:var(--muted);margin-top:-1px}
 /* 휴무 폼의 '종일' 체크칸. 데스크톱에서는 옆 날짜칸 바닥에 맞춰 서고,
