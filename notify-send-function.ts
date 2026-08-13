@@ -81,7 +81,16 @@ async function sendOne(to: string, name: string, due: string): Promise<SendResul
   return { ok, detail: json };
 }
 
+// 관리 화면(perfect-toeic.com)에서도 눌러 부를 수 있어야 해서 CORS 를 열어 둔다.
+// 함수 자체는 로그인 토큰이 있어야 돌아간다(Verify JWT 켜짐).
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
     const url = new URL(req.url);
     const dry = url.searchParams.get("dry") === "1";
@@ -90,7 +99,7 @@ Deno.serve(async (req) => {
     if (test) {
       const r = await sendOne(env("SOLAPI_FROM"), "시험", "8월 20일 수업 전");
       return new Response(JSON.stringify({ mode: "test", ...r }, null, 2), {
-        status: r.ok ? 200 : 500, headers: { "content-type": "application/json" },
+        status: r.ok ? 200 : 500, headers: { ...CORS, "content-type": "application/json" },
       });
     }
 
@@ -139,11 +148,11 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ ok: true, dry, count: out.length, out }, null, 2), {
-      headers: { "content-type": "application/json" },
+      headers: { ...CORS, "content-type": "application/json" },
     });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e) }), {
-      status: 500, headers: { "content-type": "application/json" },
+      status: 500, headers: { ...CORS, "content-type": "application/json" },
     });
   }
 });
