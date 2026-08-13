@@ -6,6 +6,9 @@
 //
 // 안전장치 (돈이 나가고 학생에게 진짜 카톡이 가는 일이라 일부러 빡빡하게 했다)
 //   · 남은 횟수가 딱 1회인 줄만 보낸다(원장 지시 2026-08-13 "1회 수업 남았을 경우 발송이야").
+//     여기서 '남은 횟수'는 sessions_left_done — **끝낸 수업**만 뺀 값이다.
+//     화면에 보이는 sessions_left 는 잡아 둔 수업까지 빼기 때문에 쓰면 안 된다
+//     (원장 지시 2026-08-13 "8회수업기준 7회차 수업을 완료하고 나면 전송되도록").
 //   · 한 번 돌 때 최대 MAX_PER_RUN 건. 실수로 수십 건이 한꺼번에 나가지 않게.
 //   · 세 번 실패한 줄은 건너뛴다(무한 재시도 금지).
 //   · ?dry=1 로 부르면 보내지 않고 '무엇을 보낼지'만 알려준다.
@@ -117,7 +120,7 @@ Deno.serve(async (req) => {
     const out: unknown[] = [];
     for (const r of rows ?? []) {
       // 대기열에 들어간 뒤 상황이 바뀌었을 수 있다. 보내는 순간 다시 확인한다.
-      const { data: left } = await db.rpc("sessions_left", { p_student: r.student_id });
+      const { data: left } = await db.rpc("sessions_left_done", { p_student: r.student_id });
       if (left !== 1) {
         await db.from("notify_outbox")
           .update({ error: `보낼 때 남은 횟수가 ${left}회라 건너뜀`, tries: (r.tries ?? 0) + 1 })
