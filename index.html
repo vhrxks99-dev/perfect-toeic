@@ -3919,6 +3919,9 @@
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회) <span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span><input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"></label>
+          <!-- 부가세는 매출이 아니라 나라에 내는 돈이라 금액과 따로 적는다(원장 요청 2026-08-13).
+               금액에 합치면 강사 배분까지 부가세를 나눠 갖는 계산이 된다. -->
+          <label>부가세(원) <span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a></span><input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"></label>
           <label>정산 월<input type="month" id="pyMonth"></label>
         </div>
         <div class="dash-row">
@@ -4220,6 +4223,7 @@
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
         <label>결제일<input type="date" id="pyePaid"></label>
+        <label>부가세(원) <span class="wa-hint">따로 받은 경우만</span><input type="number" id="pyeVat" min="0" step="100"></label>
       </div>
       <div class="wa-row">
         <label>담당 강사<select id="pyeTeacher"></select></label>
@@ -7428,12 +7432,17 @@
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
     if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 수납 내역이 없습니다.</td></tr>'; return; }
     var mm=isOps();
-    var h='<tr><th>학생</th><th>금액</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    // 부가세는 매출과 따로 보여준다 — 합쳐 보이면 강사 배분이 그만큼 되는 줄 오해한다.
+    var vatSum=rows.reduce(function(a,b){ return a+(Number(b.vat)||0); },0);
+    if($('pyTotal') && vatSum>0) $('pyTotal').innerHTML=(month||'')+' 합계 '+won(total)
+      +' <span style="color:var(--muted);font-weight:700;font-size:12.5px">+ 부가세 '+won(vatSum)+'</span>';
+    var h='<tr><th>학생</th><th>금액</th><th>부가세</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     rows.forEach(function(p){
       var s=payShare(p);
       var tn = p.teacher_id ? esc(p.teacher_name||'-') : '<span style="color:#b26a00;font-weight:700">미지정</span>';
       var net = p.teacher_id ? (won(s.net)+' <span style="color:var(--muted);font-size:11.5px">('+s.rate+'%)</span>') : '-';
-      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):won(p.amount))+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+      var vat = p.vat ? '<span style="color:var(--muted)">'+won(p.vat)+'</span>' : '-';
+      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):won(p.amount))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
@@ -7480,6 +7489,13 @@
   if($('pyStudent')) $('pyStudent').onchange=syncPayTeacher;
   if($('pyTeacher')) $('pyTeacher').onchange=syncPayRate;
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
+  // '10% 넣기' — 금액의 10%를 부가세 칸에 채워 준다(원 단위 반올림).
+  if($('pyVatAuto')) $('pyVatAuto').onclick=function(e){
+    e.preventDefault();
+    var amt=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
+    if(!amt){ alert('금액을 먼저 넣어주세요.'); return; }
+    if($('pyVat')) $('pyVat').value=Math.round(amt*0.1);
+  };
   // 수업 1회 단가 — 대면 6만원 / 비대면 5만원. 학생의 '수업형태'로 자동 선택한다.
   // ※ 단가가 바뀌면 이 두 숫자만 고치면 된다.
   var SESSION_PRICE={ offline:60000, online:50000 };
@@ -7545,10 +7561,18 @@
     // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
     if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
+    var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
     var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
+      vat:(vat>0?vat:null),
       teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:kind };
-    var r=await sb.from('payments').insert(payload); if(r.error){ err.textContent='추가 실패: '+r.error.message; return; }
-    $('pyAmount').value=''; $('pyMemo').value=''; $('pySessions').value='';
+    var r=await sb.from('payments').insert(payload);
+    if(r.error){
+      err.textContent = /vat/.test(String(r.error.message||''))
+        ? '부가세 칸이 아직 없습니다. payments_vat.sql 을 먼저 실행해주세요.'
+        : ('추가 실패: '+r.error.message);
+      return;
+    }
+    $('pyAmount').value=''; $('pyMemo').value=''; $('pySessions').value=''; if($('pyVat')) $('pyVat').value='';
     syncAddPrice(false);   // 안내 문구만 되돌린다
     drawPayPreview();
     await loadPayments($('pyFilter').value||month); await loadAttendance(); await loadSummary();
@@ -7578,6 +7602,7 @@
     if($('pyeCard')) $('pyeCard').value=_isCard?_m:CARD_ISSUERS[0];
     toggleCard('pyeMethod','pyeCardWrap');
     if($('pyePaid')) $('pyePaid').value=p.paid_at||'';
+    if($('pyeVat')) $('pyeVat').value=p.vat||'';
     if($('pyeSessions')) $('pyeSessions').value=p.sessions||'';
     // 안내 문구만 맞춰준다. 이미 등록된 금액은 건드리지 않는다(할인 건이 덮이면 안 됨).
     editingPayMode=studentMode(p.student_id);
@@ -7617,10 +7642,17 @@
     var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
+    var evat=parseInt($('pyeVat')?$('pyeVat').value:'',10)||0;
     var patch={ amount:amount, month:$('pyeMonth').value, method:payMethodVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
+      vat:(evat>0?evat:null),
       teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:ekind };
     var r=await sb.from('payments').update(patch).eq('id',editingPayId);
-    if(r.error){ $('pyeErr').textContent='저장 실패: '+r.error.message; return; }
+    if(r.error){
+      $('pyeErr').textContent = /vat/.test(String(r.error.message||''))
+        ? '부가세 칸이 아직 없습니다. payments_vat.sql 을 먼저 실행해주세요.'
+        : ('저장 실패: '+r.error.message);
+      return;
+    }
     $('waPayEdit').classList.remove('on');
     await loadPayments($('pyFilter').value); await loadAttendance(); await loadSummary();
   };
