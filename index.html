@@ -3922,7 +3922,9 @@
     <div class="dash-pane" data-dpane="pay">
       <div class="dash-form" id="pyAddForm">
         <div class="dash-row">
-          <label style="flex:.7">구분<select id="pyKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
+          <!-- '사전 OT' 를 따로 둔다(원장 지적 2026-08-13 "OT 받을 때 1회로 한 줄이 어딨어?").
+               수업 횟수권은 8회부터라 1회짜리 OT 선결제를 넣을 수가 없었다. -->
+          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="refund">환불</option></select></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"><span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span></label>
@@ -4222,7 +4224,7 @@
     <div class="wa-sub" id="pyeStudent"></div>
     <div class="wa-form on" style="display:flex">
       <div class="wa-row">
-        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
+        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
         <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="8+"><span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span></label>
@@ -7449,7 +7451,8 @@
       var tn = p.teacher_id ? esc(p.teacher_name||'-') : '<span style="color:#b26a00;font-weight:700">미지정</span>';
       var net = p.teacher_id ? (won(s.net)+' <span style="color:var(--muted);font-size:11.5px">('+s.rate+'%)</span>') : '-';
       var vat = p.vat ? '<span style="color:var(--muted)">'+won(p.vat)+'</span>' : '-';
-      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):won(p.amount))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+      var otTag = (p.kind==='ot') ? ' <span style="font-size:11px;font-weight:800;color:#8a5a00;background:#fff6e5;border-radius:5px;padding:2px 5px">사전 OT</span>' : '';
+      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
@@ -7496,6 +7499,14 @@
   if($('pyStudent')) $('pyStudent').onchange=syncPayTeacher;
   if($('pyTeacher')) $('pyTeacher').onchange=syncPayRate;
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
+  // 구분에서 '사전 OT' 를 고르면 6만원 1회를 미리 채워 준다. 매번 손으로 적지 않게.
+  if($('pyKind')) $('pyKind').addEventListener('change', function(){
+    if(this.value!=='ot') return;
+    if($('pyAmount') && !$('pyAmount').value) $('pyAmount').value=60000;
+    if($('pySessions') && !$('pySessions').value) $('pySessions').value=1;
+    if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value='사전 OT 선결제';
+    drawPayPreview();
+  });
   // '10% 넣기' — 금액의 10%를 부가세 칸에 채워 준다(원 단위 반올림).
   if($('pyVatAuto')) $('pyVatAuto').onclick=function(e){
     e.preventDefault();
@@ -7554,10 +7565,12 @@
     if(!student){ err.textContent='학생을 선택하세요.'; return; }
     if(!amount||amount<=0){ err.textContent='금액을 입력하세요.'; return; }
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
-    var kind=($('pyKind')&&$('pyKind').value==='refund')?'refund':'payment';
+    var kv=$('pyKind')?$('pyKind').value:'payment';
+    var kind=(kv==='refund')?'refund':((kv==='ot')?'ot':'payment');
     // 환불은 되돌려 주는 돈이라 횟수권을 함께 파는 일이 없다. 실수로 남아 있으면 무시한다.
     if(kind==='refund') sessions=0;
-    if(sessions>0 && sessions<8){ err.textContent='수업 횟수권은 최소 8회부터 구매 가능합니다.'; return; }
+    // 사전 OT 는 1회짜리 선결제라 '8회부터' 규칙에서 빼 준다(원장 지적 2026-08-13).
+    if(kind!=='ot' && sessions>0 && sessions<8){ err.textContent='수업 횟수권은 최소 8회부터 구매 가능합니다.'; return; }
     if(kind==='refund' && !confirm(student.name+' 학생에게 '+won(amount)+'을 환불한 것으로 등록할까요?\n\n총 매출액에서 이 금액이 빠집니다.')) return;
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
@@ -7567,6 +7580,7 @@
     // 횟수권을 빠뜨리면 학생의 남은 수업 횟수가 안 올라가는데, 화면에는 아무 표시가 없어
     // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
     if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
+    if(kind==='ot' && !sessions){ err.textContent='사전 OT 는 횟수를 1회로 넣어주세요.'; return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
     var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:payMethodVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
@@ -7601,7 +7615,7 @@
   function openPayEdit(p){
     editingPayId=p.id;
     if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
-    if($('pyeKind')) $('pyeKind').value=(p.kind==='refund')?'refund':'payment';
+    if($('pyeKind')) $('pyeKind').value=(p.kind==='refund')?'refund':((p.kind==='ot')?'ot':'payment');
     if($('pyeAmount')) $('pyeAmount').value=p.amount||'';
     if($('pyeMonth')) $('pyeMonth').value=p.month||'';
     var _m=p.method||PAY_CATS[0], _isCard=CARD_ISSUERS.indexOf(_m)>=0;
@@ -7641,9 +7655,10 @@
     if(!amount||amount<=0){ $('pyeErr').textContent='금액을 입력하세요.'; return; }
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
     var sessions=parseInt($('pyeSessions').value,10)||0;
-    var ekind=($('pyeKind')&&$('pyeKind').value==='refund')?'refund':'payment';
+    var ekv=$('pyeKind')?$('pyeKind').value:'payment';
+    var ekind=(ekv==='refund')?'refund':((ekv==='ot')?'ot':'payment');
     if(ekind==='refund') sessions=0;
-    if(sessions>0 && sessions<8){ $('pyeErr').textContent='수업 횟수권은 최소 8회부터입니다.'; return; }
+    if(ekind!=='ot' && sessions>0 && sessions<8){ $('pyeErr').textContent='수업 횟수권은 최소 8회부터입니다.'; return; }
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
