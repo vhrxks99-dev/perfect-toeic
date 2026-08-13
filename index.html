@@ -3270,10 +3270,17 @@
 .dash-pane{display:none}
 .dash-pane.on{display:block}
 .dash-form{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
-.dash-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+/* 🚨 칸 높이·위치 맞추기 (원장 지적 2026-08-13 "박스 위치 서로 다르고 정산월은 뒤에 회색박스가 튀어나온다")
+   원인 둘 — ① 안내 문구(.wa-hint)가 라벨과 입력칸 사이에 있어서, 문구가 있는 칸만 입력칸이 아래로 밀렸다.
+             ② 날짜·월 칸은 브라우저 기본 높이가 달라 혼자 커 보였다.
+   그래서 안내 문구는 입력칸 **아래**로 내리고(HTML 순서), 모든 입력칸 높이를 40px 로 못 박았다. */
+.dash-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:flex-start}
 .dash-row:last-child{margin-bottom:0}
 .dash-row>label{flex:1;min-width:120px;display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
 .dash-row input,.dash-row select{padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
+.dash-row input:not([type=checkbox]):not([type=radio]),.dash-row select{height:40px;box-sizing:border-box;width:100%}
+/* 입력칸 아래에 붙는 안내 문구 — 몇 줄이 되든 위쪽 입력칸 위치는 그대로다 */
+.dash-row>label>.wa-hint{font-size:11.5px;font-weight:600;line-height:1.45;color:var(--muted);margin-top:-1px}
 /* 휴무 폼의 '종일' 체크칸. 데스크톱에서는 옆 날짜칸 바닥에 맞춰 서고,
    폰에서는 한 줄을 통째로 쓴다(2026-08-12 원장 지적 "모바일에서 종일 체크칸 레이아웃 이상해"). */
 .dash-row>label.off-allday{flex:0 0 auto;min-width:0;flex-direction:row;align-items:center;gap:8px;
@@ -3918,15 +3925,15 @@
           <label style="flex:.7">구분<select id="pyKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
-          <label>수업 횟수권(회) <span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span><input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"></label>
-          <!-- 부가세는 매출이 아니라 나라에 내는 돈이라 금액과 따로 적는다(원장 요청 2026-08-13).
-               금액에 합치면 강사 배분까지 부가세를 나눠 갖는 계산이 된다. -->
-          <label>부가세(원) <span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a></span><input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"></label>
+          <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"><span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span></label>
           <label>정산 월<input type="month" id="pyMonth"></label>
         </div>
         <div class="dash-row">
+          <!-- 부가세는 매출이 아니라 나라에 내는 돈이라 금액과 따로 적는다(원장 요청 2026-08-13).
+               금액에 합치면 강사 배분까지 부가세를 나눠 갖는 계산이 된다. -->
+          <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"><span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a></span></label>
           <label>담당 강사<select id="pyTeacher"></select></label>
-          <label>배분율(%) <span class="wa-hint" id="pyRateNote" style="display:none;color:#b26a00">원장님만 변경</span><input type="number" id="pyRate" min="0" max="100" step="0.1" placeholder="50"></label>
+          <label>배분율(%)<input type="number" id="pyRate" min="0" max="100" step="0.1" placeholder="50"><span class="wa-hint" id="pyRateNote" style="display:none;color:#b26a00">원장님만 변경</span></label>
           <label>원천징수(%)<input type="number" id="pyWithhold" min="0" max="100" step="0.1" value="3.3"></label>
           <label style="flex:2">강사 실지급<input type="text" id="pyPreview" readonly tabindex="-1" style="background:var(--surface-2);font-weight:800;color:var(--accent)"></label>
         </div>
@@ -4218,7 +4225,7 @@
         <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
-        <label>횟수권(회) <span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span><input type="number" id="pyeSessions" min="0" placeholder="8+"></label>
+        <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="8+"><span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span></label>
       </div>
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
@@ -4227,7 +4234,7 @@
       </div>
       <div class="wa-row">
         <label>담당 강사<select id="pyeTeacher"></select></label>
-        <label>배분율(%) <span class="wa-hint" id="pyeRateNote" style="display:none;color:#b26a00">원장님만 변경</span><input type="number" id="pyeRate" min="0" max="100" step="0.1"></label>
+        <label>배분율(%)<input type="number" id="pyeRate" min="0" max="100" step="0.1"><span class="wa-hint" id="pyeRateNote" style="display:none;color:#b26a00">원장님만 변경</span></label>
         <label>원천징수(%)<input type="number" id="pyeWithhold" min="0" max="100" step="0.1"></label>
       </div>
       <div id="pyePreview" class="dash-note" style="margin-top:0"></div>
