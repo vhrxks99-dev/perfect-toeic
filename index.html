@@ -6547,12 +6547,42 @@
     var v=_studyLevels[String(sid)];
     return (v==null || isNaN(v)) ? mid : v;
   }
-  // 지그재그(뱀) 분배. 잘하는 순서로 세워 놓고 A→B→B→A→A→B… 로 돌리면
-  // 방마다 인원도 비슷해지고 실력 합도 비슷해진다.
-  // ⚠️ 정원이 찬 방은 건너뛴다(강의장 A 는 4명까지다).
-  function studySnake(list, rooms){
-    var buckets=rooms.map(function(){ return []; });
+  // 방마다 몇 명씩 넣을지 먼저 정한다.
+  // 🔒 원장 규칙(2026-08-13): **큰 방에 더 많이, 작은 방에 더 적게.**
+  //    강의장 B(6인)가 A(4인)보다 크므로 7명이면 A 3 · B 4 가 된다.
+  //    정원 비율대로 나누고 남는 인원은 소수점이 큰 방 → 그래도 같으면 정원이 큰 방에 준다.
+  function studyTargets(n, rooms){
     var caps=rooms.map(function(r){ return Number(r.capacity)>0 ? Number(r.capacity) : 99; });
+    var total=caps.reduce(function(a,c){ return a+c; },0) || 1;
+    var raw=caps.map(function(c){ return n*c/total; });
+    var t=raw.map(function(x){ return Math.floor(x); });
+    var left=n - t.reduce(function(a,c){ return a+c; },0);
+    var order=rooms.map(function(_,i){ return i; }).sort(function(a,b){
+      var d=(raw[b]-t[b])-(raw[a]-t[a]);
+      if(Math.abs(d)>1e-9) return d;
+      return caps[b]-caps[a];
+    });
+    var guard=0;
+    while(left>0 && guard++ < 1000){
+      var moved=false;
+      for(var k=0;k<order.length && left>0;k++){
+        var i=order[k];
+        if(t[i]<caps[i]){ t[i]++; left--; moved=true; }
+      }
+      if(!moved) break;                 // 정원이 다 찼다
+    }
+    // 정원을 다 채우고도 남으면(자리가 모자란 날) 큰 방부터 넘겨 담는다.
+    if(left>0){
+      var big=rooms.map(function(_,i){ return i; }).sort(function(a,b){ return caps[b]-caps[a]; });
+      for(var j=0; left>0; j++){ t[big[j%big.length]]++; left--; }
+    }
+    return t;
+  }
+  // 지그재그(뱀) 분배. 잘하는 순서로 세워 놓고 A→B→B→A→A→B… 로 돌리면 실력이 골고루 섞인다.
+  // 인원은 위에서 정한 targets 를 지킨다(다 찬 방은 건너뛴다).
+  function studySnake(list, rooms, targets){
+    var buckets=rooms.map(function(){ return []; });
+    var lim=targets || rooms.map(function(r){ return Number(r.capacity)>0 ? Number(r.capacity) : 99; });
     var idx=0, dir=1;
     function step(){
       idx+=dir;
@@ -6561,7 +6591,7 @@
     }
     for(var i=0;i<list.length;i++){
       var tries=0;
-      while(buckets[idx].length>=caps[idx] && tries<rooms.length){ step(); tries++; }
+      while(buckets[idx].length>=lim[idx] && tries<rooms.length){ step(); tries++; }
       buckets[idx].push(list[i]);
       step();
     }
@@ -6593,13 +6623,18 @@
                    return d ? d : (a.r-b.r);          // 실력이 같으면 무작위
                  })
                  .map(function(x){ return x.s; });
-    // 방 도는 방향도 반반으로 뒤집는다(잘하는 학생이 늘 A 로만 가지 않게).
+    // 인원수는 방 크기대로 미리 정해 둔다(원장 규칙: 큰 방에 더 많이).
+    var targets=studyTargets(go.length, rooms);
+    // 방 도는 방향만 반반으로 뒤집는다(잘하는 학생이 늘 A 로만 가지 않게).
+    // ⚠️ 인원수 규칙은 방에 붙은 값이므로 targets 도 같이 돌려야 한다.
     var order=rooms.map(function(_,i){ return i; });
     if(Math.random()<0.5) order.reverse();
-    var dealt=studySnake(sorted, order.map(function(i){ return rooms[i]; }));
+    var dealt=studySnake(sorted,
+                         order.map(function(i){ return rooms[i]; }),
+                         order.map(function(i){ return targets[i]; }));
     var buckets=rooms.map(function(){ return []; });
     order.forEach(function(ri,k){ buckets[ri]=dealt[k]; });
-    return { rooms:rooms, go:go, mid:mid, buckets:buckets };
+    return { rooms:rooms, go:go, mid:mid, targets:targets, buckets:buckets };
   }
   // 지금 저장된 배분과 같은지 비교할 때 쓰는 지문
   function studyPlanSig(rooms, buckets){
