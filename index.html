@@ -5949,11 +5949,28 @@
     // 이 알림에는 '확인함' 버튼을 달지 않는다. 상담을 넣어야만 사라진다.
     var otNeed={};
     try{
-      var otIds=mine.filter(isOtLesson).map(function(s){ return s.id; });
-      if(otIds.length){
-        var cs=await sb.from('consults').select('schedule_id').in('schedule_id',otIds);
-        var done={}; if(!cs.error && cs.data) cs.data.forEach(function(c){ done[String(c.schedule_id)]=1; });
-        otIds.forEach(function(id){ if(!done[String(id)]) otNeed[String(id)]=1; });
+      var otRows=mine.filter(isOtLesson);
+      if(otRows.length){
+        // ⚠️ 수업에 연결된 상담만 보면, 상담 탭에서 그냥 새로 적은 건 못 알아본다.
+        //    (2026-08-13 원장 지적 — 박성준 상담을 남겼는데 알림이 계속 떴다.
+        //     '상담 입력 →' 버튼을 거쳐야만 수업이 연결되기 때문이다.)
+        //    그래서 이름+날짜로도 본다: 같은 학생 이름으로 그 OT 날짜 이후에 적은 상담이 있으면 된 것으로 친다.
+        // 이름 맞추기용 정규화 — '박성준 (신규)' 와 '박성준' 을 같은 사람으로 본다.
+        // (hwNorm 을 쓰지 않고 여기서 따로 둔다 — 저 함수는 한참 아래에 있어 얽히면 위험하다)
+        var otNorm=function(x){ return String(x||'').replace(/\([^)]*\)/g,'').replace(/\s+/g,'').toLowerCase(); };
+        var cs=await sb.from('consults').select('schedule_id,name,consulted_on');
+        var doneId={}, byName={};
+        if(!cs.error && cs.data) cs.data.forEach(function(c){
+          if(c.schedule_id) doneId[String(c.schedule_id)]=1;
+          var k=otNorm(c.name||'');
+          if(k) (byName[k]=byName[k]||[]).push(String(c.consulted_on||''));
+        });
+        otRows.forEach(function(s){
+          if(doneId[String(s.id)]) return;
+          var k=otNorm(s.student_name||''), day=ymd(new Date(s.starts_at));
+          var hit=(byName[k]||[]).some(function(d){ return d && d>=day; });
+          if(!hit) otNeed[String(s.id)]=1;
+        });
       }
     }catch(e){}   // consults.schedule_id 가 아직 없으면(ot_schedule.sql 미실행) 알림을 띄우지 않는다
     mine.sort(function(a,b){ return new Date(b.starts_at)-new Date(a.starts_at); });
