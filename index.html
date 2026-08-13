@@ -3442,6 +3442,21 @@
 .std-mk.no.on{background:#c0342b;border-color:#c0342b}
 .std-mk.clr.on{background:var(--surface-2);border-color:var(--line-strong);color:var(--ink-soft)}
 .std-mk:disabled{opacity:.5;cursor:default}
+/* 스터디 교재 첨부 (2026-08-13) */
+.std-files{margin-top:8px;border-top:1px dashed var(--line);padding-top:7px}
+.std-files .std-lb{display:block;font-size:12px;font-weight:800;color:var(--muted);margin-bottom:4px}
+.std-file{display:flex;align-items:center;gap:6px;margin-top:4px}
+.std-file .f-name{flex:1;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;
+                  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                  text-decoration:underline;text-underline-offset:2px}
+.std-file .f-size{font-size:11px;color:var(--muted);font-family:var(--font-num);white-space:nowrap}
+.std-file .f-del{border:1px solid var(--line-strong);background:var(--surface);color:#c0342b;border-radius:7px;
+                 padding:2px 7px;font-size:11.5px;font-weight:800;cursor:pointer;font-family:inherit}
+.std-file .f-del:disabled{opacity:.5;cursor:default}
+.std-file-none{font-size:12px;color:var(--muted)}
+.std-add{width:100%;margin-top:6px;border:1px dashed var(--line-strong);background:var(--surface-2);color:var(--ink-soft);
+         border-radius:8px;padding:5px 10px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit}
+.std-add:disabled{opacity:.6;cursor:default}
 /* 사전 OT 체크 (2026-08-12)
    ⚠️ .dash-row>label 이 세로 flex(column)라 그냥 두면 체크박스가 한 줄을 통째로 차지하고
    글자 위에 빈 공간이 생긴다. 그래서 여기서 display:block 으로 되돌린다(선택자 우선순위도 맞춤). */
@@ -6385,6 +6400,9 @@
   // ⚠️ 스터디는 schedules 에 넣지 않는다 — 남은 수업 횟수가 '확정 스케줄 수'로 깎이기 때문.
   var STUDY_WEEKS=4;                     // 다가오는 4주치만 보여준다
   var _studyOff=null, _studySignups=[], _studyRooms=[];   // _studyOff===null = study.sql 미실행
+  // 회차별 교재 (2026-08-13). _studyFilesOk=false = study_files.sql 미실행
+  var _studyFiles=[], _studyFilesOk=true, _studyUpDay=null;
+  var STUDY_BUCKET='study-files', STUDY_MAX=20*1024*1024;   // 한 파일 20MB (버킷에도 같은 제한)
   // 회차 (원장 확정 2026-08-12): 2026-08-01 이 1회차, 쉬는 날은 세지 않는다.
   // 8회차가 끝나면 3만원을 받고 그다음 스터디부터 다시 1회차로 돌아간다.
   // 기준일을 상수로 둔 이유 = 표를 새로 만들지 않아도 되고, 8/22 가 7회차라는 원장 말과 맞는다.
@@ -6432,8 +6450,72 @@
       _studySignups=(!s.error&&s.data)?s.data.filter(function(x){ return !endedIds[String(x.student_id)]; }):[];
       var r=await sb.from('study_rooms').select('*').gte('study_date',from).lte('study_date',to);
       _studyRooms=(!r.error&&r.data)?r.data:[];
+      // 교재 (2026-08-13). 표가 아직 없어도 스터디 카드 자체는 그대로 나와야 하므로
+      // 바깥 try 에 맡기지 않고 여기서 따로 받는다(바깥에서 걸리면 카드가 통째로 사라진다).
+      try{
+        var f=await sb.from('study_files').select('*').gte('study_date',from).lte('study_date',to).order('created_at');
+        _studyFilesOk = !f.error;
+        _studyFiles = (!f.error&&f.data)?f.data:[];
+      }catch(e2){ _studyFilesOk=false; _studyFiles=[]; }
     }catch(e){ _studyOff=null; }
     drawStudy();
+  }
+  // 교재를 올리고 지울 수 있는 사람 = 원장·매니저·선생님 (원장 지시 2026-08-13).
+  // isOps() 는 원장·매니저뿐이라 여기서는 쓰지 않는다.
+  function canStudyFile(){
+    return !!(profile && (profile.role==='master'||profile.role==='manager'||profile.role==='admin'));
+  }
+  function fmtSize(n){
+    n=Number(n||0);
+    if(n<=0) return '';
+    return n<1048576 ? (Math.max(1,Math.round(n/1024))+'KB') : ((n/1048576).toFixed(1)+'MB');
+  }
+  // 파일 이름에는 한글·공백·괄호가 섞여 있어 그대로 경로로 쓰면 깨진다.
+  // → 경로는 영숫자로 새로 만들고, 원래 이름은 표(name 칸)에 남겨 받을 때 그 이름으로 내려준다.
+  async function studyUpload(day, file){
+    if(file.size > STUDY_MAX) return '20MB 를 넘습니다.';
+    var m=String(file.name||'').match(/\.[A-Za-z0-9]{1,8}$/);
+    var path=day+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+(m?m[0].toLowerCase():'');
+    var up=await sb.storage.from(STUDY_BUCKET).upload(path, file, {contentType:file.type||undefined});
+    if(up.error) return up.error.message;
+    var r=await sb.from('study_files').insert({
+      study_date:day, path:path, name:String(file.name||'교재').slice(0,200), size:file.size,
+      created_by:(profile?profile.id:null), created_by_name:(profile?(profile.name||null):null)
+    });
+    // 표에 못 넣으면 올라간 파일이 주인 없이 떠돈다(소각 대상에도 안 잡힌다) → 되돌린다.
+    if(r.error){ await sb.storage.from(STUDY_BUCKET).remove([path]); return r.error.message; }
+    return '';
+  }
+  // 버킷이 비공개라 주소를 알아도 안 열린다. 5분짜리 서명 링크를 그때그때 만들어 받는다.
+  async function studyDownload(path, name){
+    if(!sb) return;
+    var s=await sb.storage.from(STUDY_BUCKET).createSignedUrl(path, 300, {download:(name||true)});
+    if(s.error || !s.data || !s.data.signedUrl){
+      alert('파일을 열 수 없어요.'+(s.error?('\n\n'+s.error.message):''));
+      return;
+    }
+    var a=document.createElement('a');
+    a.href=s.data.signedUrl; a.target='_blank'; a.rel='noopener';
+    if(name) a.download=name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  // 회차 카드 안의 교재 칸 (원장·매니저·선생님에게만 보인다)
+  function studyFileBox(day){
+    if(!canStudyFile()) return '';
+    if(!_studyFilesOk){
+      return '<div class="std-files"><span class="std-lb">교재</span>'
+           + '<div class="std-file-none" style="color:#c0342b">study_files.sql 을 먼저 실행하세요.</div></div>';
+    }
+    var list=_studyFiles.filter(function(f){ return f.study_date===day; });
+    var rows = list.length ? list.map(function(f){
+      return '<div class="std-file">'
+        + '<span class="f-name" data-std-dl="'+esc(f.path)+'" data-std-dlname="'+esc(f.name||'교재')+'" title="'+esc(f.name||'')+'">'+esc(f.name||'교재')+'</span>'
+        + '<span class="f-size">'+fmtSize(f.size)+'</span>'
+        + '<button type="button" class="f-del" data-std-fdel="'+esc(String(f.id))+'" data-std-fpath="'+esc(f.path)+'" data-std-fname="'+esc(f.name||'')+'">삭제</button>'
+        + '</div>';
+    }).join('') : '<div class="std-file-none">아직 올린 교재가 없어요.</div>';
+    return '<div class="std-files"><span class="std-lb">교재 ('+list.length+')</span>'+rows
+      + '<button type="button" class="std-add" data-std-fadd="'+esc(day)+'">+ 교재 첨부</button></div>';
   }
   // 참·불을 대신 찍어 줄 수 있는 학생 명단 (2026-08-12 원장 지시).
   // 원장·매니저는 자격이 켜진 학생 전부, 선생님은 본인 담당 학생만.
@@ -6519,9 +6601,11 @@
         + tally
         + '<div class="std-names">'+names+'</div>'+noLine+payLine
         + '<div class="std-rooms"><span class="std-lb">강의장</span>'+roomBtns+'</div>'
-        + markBox + '</div>';
+        + studyFileBox(day) + markBox + '</div>';
     }).join('');
-    box.innerHTML='<div class="std-wrap">'+cards+'</div>';
+    // 파일 고르는 칸은 카드마다 두지 않고 하나만 둔다(어느 날짜에 올릴지는 _studyUpDay 로 기억).
+    box.innerHTML='<div class="std-wrap">'+cards+'</div>'
+      + '<input type="file" id="studyFileInput" multiple style="display:none">';
     if($('studyCount')) $('studyCount').textContent='(앞으로 '+STUDY_WEEKS+'주 · 신청 '+total+'명)';
     // 쉬는 날 목록
     if($('studyOffTable')){
@@ -6540,6 +6624,28 @@
   }
   if($('studyBox')) $('studyBox').addEventListener('click', async function(e){
     if(!sb) return;
+    // ---- 교재 (2026-08-13) : 첨부 / 받기 / 삭제 ----
+    var fadd=(e.target&&e.target.closest)?e.target.closest('[data-std-fadd]'):null;
+    if(fadd){
+      _studyUpDay=fadd.getAttribute('data-std-fadd');
+      var inp=$('studyFileInput');
+      if(inp){ inp.value=''; inp.click(); }
+      return;
+    }
+    var fdl=(e.target&&e.target.closest)?e.target.closest('[data-std-dl]'):null;
+    if(fdl){ await studyDownload(fdl.getAttribute('data-std-dl'), fdl.getAttribute('data-std-dlname')); return; }
+    var fdel=(e.target&&e.target.closest)?e.target.closest('[data-std-fdel]'):null;
+    if(fdel){
+      var fnm=fdel.getAttribute('data-std-fname')||'이 파일';
+      if(!confirm('"'+fnm+'" 을(를) 지울까요?\n\n되돌릴 수 없어요.')) return;
+      fdel.disabled=true;
+      // 파일 실체를 먼저 지운다. 표만 지우면 파일이 주인 없이 남는다.
+      await sb.storage.from(STUDY_BUCKET).remove([fdel.getAttribute('data-std-fpath')]);
+      var rd=await sb.from('study_files').delete().eq('id',fdel.getAttribute('data-std-fdel'));
+      fdel.disabled=false;
+      if(rd.error){ alert('삭제 실패: '+rd.error.message); return; }
+      await loadStudy(); return;
+    }
     // 참·불 대신 체크 (원장·매니저 전체 / 선생님은 담당 학생만 — 서버 함수가 한 번 더 검사한다)
     var mk=(e.target&&e.target.closest)?e.target.closest('[data-mk]'):null;
     if(mk){
@@ -6583,6 +6689,26 @@
                : await sb.from('study_rooms').insert({study_date:day, room_id:rid});
     b.disabled=false;
     if(r.error){ alert(r.error.message); return; }
+    await loadStudy();
+  });
+  // 파일을 고르면 바로 올린다. change 는 버블링되므로 studyBox 에 한 번만 걸면
+  // 다시 그려도(매번 input 이 새로 생겨도) 계속 동작한다.
+  if($('studyBox')) $('studyBox').addEventListener('change', async function(e){
+    var inp=e.target;
+    if(!inp || inp.id!=='studyFileInput' || !sb) return;
+    var files=[].slice.call(inp.files||[]);
+    var day=_studyUpDay;
+    inp.value='';
+    if(!files.length || !day) return;
+    var btn=$('studyBox').querySelector('[data-std-fadd="'+day+'"]');
+    if(btn){ btn.disabled=true; btn.textContent='올리는 중…'; }
+    var bad=[];
+    for(var i=0;i<files.length;i++){
+      var msg=await studyUpload(day, files[i]);
+      if(msg) bad.push(files[i].name+' — '+msg);
+    }
+    if(btn){ btn.disabled=false; btn.textContent='+ 교재 첨부'; }
+    if(bad.length) alert('올리지 못한 파일이 있어요.\n\n'+bad.join('\n'));
     await loadStudy();
   });
   if($('studyOffAdd')) $('studyOffAdd').onclick=async function(){
@@ -8525,6 +8651,13 @@
     // 회차를 세려면 기준일부터의 쉬는 날이 다 필요하다(study_weekend 는 그 날짜 것만 알려준다).
     var offRes=await sb.from('study_off').select('off_date');
     var offAll=(!offRes.error&&offRes.data)?offRes.data:[];
+    // 그날 쓸 교재 (2026-08-13). 지난 회차 것은 서버가 아예 안 내려주고, 새벽에 소각된다.
+    // 표가 아직 없거나(=SQL 미실행) 자격이 없으면 조용히 빈 목록으로 둔다.
+    var myFiles=[];
+    try{
+      var fr=await sb.from('study_files').select('id,study_date,name,path,size').gte('study_date',today).order('created_at');
+      if(!fr.error && fr.data) myFiles=fr.data;
+    }catch(e){}
     box.innerHTML='<div class="std-wrap">'+days.map(function(x){
       var dow=['일','월','화','수','목','금','토'][new Date(x.day+'T00:00:00').getDay()];
       var rnd=studyRound(x.day, offAll);
@@ -8541,8 +8674,19 @@
                : '<b style="color:#e8892b">아직 안 정하셨어요.</b> 갈지 안 갈지 눌러주세요.';
       var payLine = (rnd && rnd.n===STUDY_CYCLE)
         ? '<div class="std-pay">이번 '+STUDY_CYCLE+'회 마지막 날이에요. 다음 스터디부터 새 1회차라 '+STUDY_FEE+'을 내셔야 해요.</div>' : '';
+      var fl=myFiles.filter(function(f){ return f.study_date===x.day; });
+      var fbox = fl.length
+        ? '<div class="std-files"><span class="std-lb">교재 받기</span>'
+          + fl.map(function(f){
+              return '<div class="std-file">'
+                + '<span class="f-name" data-std-dl="'+esc(f.path)+'" data-std-dlname="'+esc(f.name||'교재')+'">'+esc(f.name||'교재')+'</span>'
+                + '<span class="f-size">'+fmtSize(f.size)+'</span></div>';
+            }).join('')
+          + '<div class="std-file-none" style="margin-top:5px">스터디가 끝나면 파일이 없어지니 그날 받아 쓰세요.</div></div>'
+        : '';
       return '<div class="std-card">'+head
         + '<div class="std-names">'+note+'<br><span style="color:var(--muted);font-size:12px">지금 '+(x.n||0)+'명 간다고 했어요.</span></div>'+payLine
+        + fbox
         + '<div class="std-vote">'
         +   '<button type="button" class="std-join'+(v==='yes'?' on':'')+'" data-std-vote="yes" data-std-day="'+esc(x.day)+'">갈게요</button>'
         +   '<button type="button" class="std-join no'+(v==='no'?' on':'')+'" data-std-vote="no" data-std-day="'+esc(x.day)+'">안 가요</button>'
@@ -8550,6 +8694,9 @@
     }).join('')+'</div>';
   }
   if($('myStudy')) $('myStudy').addEventListener('click', async function(e){
+    // 교재 받기 (2026-08-13)
+    var dl=(e.target&&e.target.closest)?e.target.closest('[data-std-dl]'):null;
+    if(dl){ await studyDownload(dl.getAttribute('data-std-dl'), dl.getAttribute('data-std-dlname')); return; }
     var b=(e.target&&e.target.closest)?e.target.closest('[data-std-vote]'):null;
     if(!b||!sb||!profile) return;
     var day=b.getAttribute('data-std-day'), want=(b.getAttribute('data-std-vote')==='yes');
