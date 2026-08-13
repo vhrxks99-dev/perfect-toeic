@@ -58,15 +58,39 @@ function dueText(nextISO: string | null): string {
 
 type SendResult = { ok: boolean; detail: unknown };
 
+// 템플릿 아이디는 솔라피에서 직접 찾아 쓴다.
+// 왜: 템플릿을 다시 등록하면 아이디가 바뀐다. 2026-08-13 실제로 바뀌어서
+//     Secret 에 박아 둔 옛 아이디로 보내다가 '유효한 템플릿 아이디가 아닙니다'로 막혔다.
+//     이름('재결제')으로 찾으면 다시 등록해도 알아서 따라간다.
+// 채널(pfId)도 같은 응답에서 가져온다 — 짝이 안 맞으면 역시 막히기 때문이다.
+let _tpl: { templateId: string; pfId: string } | null = null;
+async function template(): Promise<{ templateId: string; pfId: string }> {
+  if (_tpl) return _tpl;
+  const want = Deno.env.get("SOLAPI_TEMPLATE_NAME") || "재결제";
+  const res = await fetch("https://api.solapi.com/kakao/v2/templates?isHidden=false", {
+    headers: { Authorization: await authHeader() },
+  });
+  const json: any = await res.json().catch(() => ({}));
+  const list: any[] = json?.templateList ?? json?.data ?? (Array.isArray(json) ? json : []);
+  const hit = list.find((t) => t?.name === want && t?.status === "APPROVED")
+           ?? list.find((t) => t?.status === "APPROVED");
+  if (!hit?.templateId) {
+    throw new Error("승인된 템플릿을 찾지 못했습니다: " + JSON.stringify(json).slice(0, 300));
+  }
+  _tpl = { templateId: hit.templateId, pfId: hit.channelId ?? hit.pfId ?? env("SOLAPI_PFID") };
+  return _tpl;
+}
+
 async function sendOne(to: string, name: string, due: string): Promise<SendResult> {
+  const tpl = await template();
   const body = {
     message: {
       to: to.replace(/[^0-9]/g, ""),
       from: env("SOLAPI_FROM"),
       type: "ATA",                       // 알림톡
       kakaoOptions: {
-        pfId: env("SOLAPI_PFID"),
-        templateId: env("SOLAPI_TEMPLATE_ID"),
+        pfId: tpl.pfId,
+        templateId: tpl.templateId,
         disableSms: true,                // 실패해도 문자로 대체 발송하지 않는다(요금·문구 사고 방지)
         variables: { "#{이름}": name, "#{결제기한}": due },
       },
