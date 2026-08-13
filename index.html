@@ -3681,6 +3681,10 @@
 .cal-rhead.none{color:#e8892b}
 .cal-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
 .cal-search input{flex:0 0 240px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;font-family:inherit}
+/* 선생님별 보기 (2026-08-13). 고르면 파랗게 표시해 지금 걸려 있다는 걸 알린다. */
+.cal-search select{padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;
+                   font-family:inherit;background:var(--surface);color:var(--ink);font-weight:700;max-width:180px}
+.cal-search select.on{border-color:var(--accent);color:var(--accent);background:var(--surface-2)}
 .cal-search .hit{font-size:12px;font-weight:700;color:var(--muted)}
 /* 검색한 학생의 수업 날짜 목록 (2026-08-12) */
 .sc-found{border:1px solid var(--line);border-radius:12px;background:var(--surface-2);padding:10px 12px;margin:0 0 10px}
@@ -3881,6 +3885,8 @@
         <button class="btn btn-ghost" id="calToday" type="button">오늘</button>
       </div>
       <div class="cal-search">
+        <!-- 선생님별 보기 (원장 요청 2026-08-13) — 일·주·월 뷰 전부에 걸린다 -->
+        <select id="calTeacher" aria-label="선생님별 보기"><option value="">👩‍🏫 선생님 전체</option></select>
         <input type="text" id="scSearch" placeholder="🔍 학생 이름 검색" autocomplete="off">
         <button class="btn btn-ghost" type="button" id="scSearchClear">지우기</button>
         <span class="hit" id="scSearchInfo"></span>
@@ -6119,6 +6125,30 @@
   function startOfWeek(d){ var x=new Date(d); var day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
   async function fetchRange(start,end){ var rows=[]; if(sb){ var r=await sb.from('schedules').select('*').gte('starts_at',start.toISOString()).lt('starts_at',end.toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; } return rows; }
   function updateModeButtons(){ [['calDay','day'],['calWeekBtn','week'],['calMonth','month']].forEach(function(m){ var el=$(m[0]); if(el) el.classList.toggle('on', calMode===m[1]); }); }
+  // ---- 선생님별 보기 (원장 요청 2026-08-13) ------------------------------------
+  // '' = 전체. 일·주·월 어느 뷰든 같은 값을 쓴다.
+  // ⚠️ fetchRange 는 선생님 알림(computeTeacherAlerts)도 쓰므로 거기서 거르면 안 된다.
+  //    달력을 그리는 renderGrid·renderMonth 에서만 거른다.
+  var _calTeacher='';
+  function calFilterRows(rows){
+    if(!_calTeacher) return rows;
+    return (rows||[]).filter(function(s){ return String(s.teacher_id||'')===_calTeacher; });
+  }
+  // 명단은 회원이 로드된 뒤에 채워진다. 고른 값은 다시 그려도 유지한다.
+  function fillCalTeacher(){
+    var sel=$('calTeacher'); if(!sel) return;
+    var list=(_members||[]).filter(function(m){ return m.role==='admin'||m.role==='master'; })
+      .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+    var want=_calTeacher;
+    var html='<option value="">👩‍🏫 선생님 전체</option>';
+    list.forEach(function(t){ html+='<option value="'+esc(String(t.id))+'">'+esc(t.name||'선생님')+'</option>'; });
+    sel.innerHTML=html;
+    // 명단에서 사라진 선생님을 고른 상태였다면 전체로 되돌린다
+    if(want && !list.some(function(t){ return String(t.id)===want; })) _calTeacher='';
+    sel.value=_calTeacher;
+    sel.classList.toggle('on', !!_calTeacher);
+  }
+  if($('calTeacher')) $('calTeacher').onchange=function(){ _calTeacher=this.value||''; renderCalendar(); };
   function minsFromStart(iso){ var d=new Date(iso); return (d.getHours()-DAY_START)*60 + d.getMinutes(); }
   function slotISO(dstr, t){ if(t==='24:00'){ var x=new Date(dstr+'T00:00'); x.setDate(x.getDate()+1); return x.toISOString(); } return new Date(dstr+'T'+t).toISOString(); }
   function layoutDay(evs){
@@ -6170,7 +6200,7 @@
       if(nDays===1){ $('calTitle').textContent=(start.getMonth()+1)+'월 '+start.getDate()+'일 ('+DOW[(start.getDay()+6)%7]+')'; }
       else { var e2=new Date(end); e2.setDate(e2.getDate()-1); $('calTitle').textContent=(start.getMonth()+1)+'월 '+start.getDate()+'일 ~ '+(e2.getMonth()+1)+'월 '+e2.getDate()+'일'; }
     }
-    var rows=await fetchRange(start,end);
+    var rows=calFilterRows(await fetchRange(start,end));
     window.__wtCalRows=rows;   // 달력 블록을 눌러 수정할 때 여기서 찾는다
     var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
     // 주말 스터디는 schedules 가 아니라 별도 표에 있다(수업 횟수가 깎이면 안 되므로).
@@ -6339,7 +6369,7 @@
     if($('calTitle')) $('calTitle').textContent=y+'년 '+(mo+1)+'월';
     var first=new Date(y,mo,1), gs=startOfWeek(first);
     var end=new Date(gs); end.setDate(end.getDate()+42);
-    var rows=await fetchRange(gs,end);
+    var rows=calFilterRows(await fetchRange(gs,end));
     var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
     var todayKey=ymd(new Date()), html='';
     DOW.forEach(function(n,idx){ html+='<div class="cal-mh '+(idx===5?'cal-sat':(idx===6?'cal-sun':''))+'">'+n+'</div>'; });
@@ -6356,6 +6386,7 @@
     $('calMonthGrid').innerHTML=html;
   }
   async function renderCalendar(){
+    fillCalTeacher();
     if(calMode==='month'){ if($('calScroll'))$('calScroll').style.display='none'; if($('calMonthGrid'))$('calMonthGrid').style.display=''; await renderMonth(); }
     else { if($('calScroll'))$('calScroll').style.display=''; if($('calMonthGrid'))$('calMonthGrid').style.display='none'; await renderGrid(calMode==='day'?1:7); }
     updateLegend();
