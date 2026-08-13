@@ -2450,20 +2450,19 @@
       접수·고사장은 <a href="https://exam.toeic.co.kr" target="_blank" rel="noopener">한국TOEIC위원회 공식 홈페이지</a>에서 확인하세요.</p>
 
     <h3 class="exam-h3 reveal">토익스피킹 <span>TOEIC Speaking</span></h3>
+    <div class="exam-next reveal" id="tsNext"></div>
     <div class="exam-grid reveal" id="tsGrid"></div>
     <button type="button" class="exam-more reveal" id="tsMore"></button>
     <p class="exam-note-s reveal">주로 <b>토·일요일</b>에 보고, 성적은 시험일로부터 <b>약 5일 뒤 낮 12시</b>에 나옵니다.
       접수는 <a href="https://www.toeicswt.co.kr" target="_blank" rel="noopener">토익스피킹 공식 홈페이지</a>에서 하실 수 있습니다.</p>
 
+    <!-- 오픽은 거의 매일 보는 상시 시험이라 날짜를 적지 않는다(원장 지시 2026-08-13). -->
     <h3 class="exam-h3 reveal">오픽 <span>OPIc</span></h3>
     <div class="exam-grid reveal">
       <div class="ex-card ex-wide">
-        <div class="ex-h"><b>거의 매일 볼 수 있어요</b></div>
-        <div class="ex-sub">오픽은 정해진 회차가 없는 <b>상시 시험</b>입니다. 원하는 날짜를 골라 접수하시면 됩니다.<br>성적은 시험일로부터 <b>5일 뒤 오후 1시</b>에 나옵니다.</div>
-        <label class="ec-pick">시험 본 날 (또는 볼 날)
-          <input type="date" id="opDate">
-        </label>
-        <div class="ec-out" id="opOut">날짜를 고르면 성적 발표일을 알려드려요.</div>
+        <div class="ex-h"><b>원하는 날짜에 보시면 됩니다</b></div>
+        <div class="ex-sub">오픽은 정해진 회차가 없는 <b>상시 시험</b>이라 거의 매일 볼 수 있습니다.
+          성적은 시험일로부터 <b>5일 뒤 오후 1시</b>에 나옵니다.</div>
         <a class="ec-link" href="https://www.opic.or.kr/opics/servlet/controller.opic.site.receipt.AnnualScheduleServlet?p_process=select-new-list" target="_blank" rel="noopener">오픽 시험일정·접수 바로가기 →</a>
       </div>
     </div>
@@ -5433,8 +5432,11 @@
     if(!from||!to||!sb) return;
     var a=new Date(from+'T00:00'), b=new Date(to+'T00:00'); b.setDate(b.getDate()+1);
     var r=await sb.from('schedules').select('*').gte('starts_at',a.toISOString()).lt('starts_at',b.toISOString()).order('starts_at');
-    // 휴강한 수업은 그 방을 놓은 것이다. 배정표에서 빼야 그 시간 강의장이 비어 보인다.
-    _asRows=(!r.error&&r.data)?r.data.filter(function(x){ return (x.status||'confirmed')!=='canceled'; }):[];
+    // 휴강·결석한 수업은 그 방을 놓은 것이다. 배정표에서 빼야 그 시간 강의장이 비어 보인다.
+    _asRows=(!r.error&&r.data)?r.data.filter(function(x){
+      var st=x.status||'confirmed';
+      return st!=='canceled' && st!=='noshow';
+    }):[];
     drawRoomAssign();
   }
   function drawRoomAssign(){
@@ -5753,7 +5755,8 @@
   // 수업 결과 — status 를 사람 말로 바꾼다. 확정(confirmed)이 곧 출석이다.
   function lessonResultLabel(st){ return st==='noshow' ? '결석' : (st==='canceled' ? '휴강' : '출석'); }
   // 결과를 남길 수 있는 수업인가. 서버 set_lesson_result 와 같은 기준이어야 헛클릭이 안 난다.
-  //  · 결석은 끝난 수업에만(안 온 게 확정돼야 하므로) — 그건 아래에서 버튼을 안 그리는 것으로 막는다.
+  //  · 결석은 앞으로의 수업에도 찍을 수 있다(원장 지시 2026-08-13 — 학생이 미리 못 온다고 하면
+  //    차감은 하되 그 시간 강의장은 열어야 한다). 학생이 회원으로 연결돼 있어야 한다.
   //  · 휴강은 앞으로의 수업도 미리 찍을 수 있어야 한다. 그래야 그 시간 강의장이 미리 열린다.
   //  · 학생을 안 고르고 잡은 수업에도 휴강은 된다. 깎을 횟수는 없어도
   //    '그 시간 강의장을 놓는다'는 뜻은 그대로 살아 있기 때문이다(원장 지시 2026-08-09).
@@ -5780,7 +5783,7 @@
     } else if(cur==='canceled'){
       now='<b style="color:#8a5a00">휴강</b> — 차감 없음. 그 시간 강의장도 비워져 있습니다.';
       btns=[['confirmed', past?'출석으로 되돌리기':'수업 되살리기']];
-      if(past && hasStu) btns.push(['noshow','결석으로 바꾸기 · 1회 차감']);
+      if(hasStu) btns.push(['noshow','결석으로 바꾸기 · 1회 차감']);
       hint='되살리면 강의장은 비어 있는 채로 돌아옵니다. 강의장을 다시 골라주세요.';
     } else if(past){
       now= hasStu
@@ -5792,9 +5795,14 @@
         ? '학생이 안 왔으면 결석, 학생 잘못이 아니면(선생님 사정·공휴일·사전 양해) 휴강입니다.'
         : '결석을 쓰려면 수업 수정에서 학생을 회원 명단에서 골라주세요.';
     } else {
+      // 원장 지시(2026-08-13): 학생이 미리 못 온다고 하면 그때 결석을 찍을 수 있어야 한다.
+      // 차감은 그대로 하되 강의장은 놓아야 그 시간 방을 다른 선생님이 쓴다.
       now='<b>예정된 수업</b>입니다. 끝나면 저절로 출석으로 잡힙니다.';
-      btns=[['canceled','휴강 · 차감 없고 강의장이 열립니다']];
-      hint='결석은 수업이 끝난 뒤에 표시할 수 있어요.';
+      btns = hasStu ? [['noshow','결석 · 1회 차감 + 강의장 열림'],['canceled','휴강 · 차감 없고 강의장 열림']]
+                    : [['canceled','휴강 · 차감 없고 강의장이 열립니다']];
+      hint = hasStu
+        ? '학생 사정으로 안 오면 결석(차감), 학생 잘못이 아니면 휴강(차감 없음)입니다. 둘 다 강의장은 열립니다.'
+        : '결석을 쓰려면 수업 수정에서 학생을 회원 명단에서 골라주세요.';
     }
     if($('waSeResultNow')) $('waSeResultNow').innerHTML=now;
     if($('waSeResultHint')) $('waSeResultHint').textContent=hint;
@@ -5807,7 +5815,7 @@
     var b=(e.target&&e.target.closest)?e.target.closest('[data-lres]'):null;
     if(!b||!_seId||!sb) return;
     var want=b.getAttribute('data-lres'), err=$('waSeErr'); err.textContent='';
-    if(want==='noshow' && !confirm('결석으로 표시할까요?\n\n수업 횟수 1회는 그대로 차감됩니다.')) return;
+    if(want==='noshow' && !confirm('결석으로 표시할까요?\n\n· 수업 횟수 1회는 그대로 차감됩니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
     if(want==='canceled' && !confirm('휴강으로 표시할까요?\n\n· 수업 횟수 1회가 학생에게 돌아갑니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
     var r=await sb.rpc('set_lesson_result',{p_id:_seId, p_result:want});
     if(r.error){
@@ -5818,7 +5826,10 @@
     }
     if(r.data && r.data.ok===false){ err.textContent=r.data.msg||'처리하지 못했습니다.'; return; }
     closeSchedEdit();
-    if(r.data && r.data.room_freed) alert('휴강으로 바꿨습니다.\n\n그 시간 강의장이 비워졌습니다. 이제 다른 선생님이 그 방을 잡을 수 있습니다.');
+    if(r.data && r.data.room_freed){
+      alert((want==='noshow' ? '결석으로 표시했습니다. 수업 횟수 1회가 차감됐어요.' : '휴강으로 바꿨습니다. 횟수는 차감되지 않아요.')
+        + '\n\n그 시간 강의장이 비워졌습니다. 이제 다른 선생님이 그 방을 잡을 수 있습니다.');
+    }
     await loadSchedules(); await renderCalendar(); await loadRoomAssign();
     await loadAttendance(); await loadTeacherAlerts();
   });
@@ -7131,8 +7142,11 @@
     $('scFree').style.display='';
     if(endISO<=startISO){ $('scFree').innerHTML='<span style="color:#c0342b">종료가 시작보다 빨라요.</span>'; return; }
     var r=await sb.from('schedules').select('room_id,status').lt('starts_at',endISO).gt('ends_at',startISO);
-    // 휴강한 수업은 방을 놓은 것이므로 '사용중'으로 세지 않는다.
-    var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){ if(x.room_id!=null && (x.status||'confirmed')!=='canceled') busy[x.room_id]=true; });
+    // 휴강·결석한 수업은 방을 놓은 것이므로 '사용중'으로 세지 않는다(서버 트리거와 같은 기준).
+    var busy={}; if(!r.error&&r.data) r.data.forEach(function(x){
+      var st=x.status||'confirmed';
+      if(x.room_id!=null && st!=='canceled' && st!=='noshow') busy[x.room_id]=true;
+    });
     var free=_rooms.filter(function(rm){ return rm.active!==false && !busy[rm.id]; });
     var busyR=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
     $('scFree').innerHTML='🟢 빈 강의장: <b>'+(free.length?free.map(function(x){return esc(roomLabel(x));}).join(', '):'없음')+'</b>'+(busyR.length?' &nbsp;&nbsp;🔴 사용중: '+busyR.map(function(x){return esc(roomLabel(x));}).join(', '):'');
@@ -9368,6 +9382,22 @@
   var ts=document.getElementById('tsGrid'), more=document.getElementById('tsMore');
   if(ts){
     var up=TS.filter(function(x){ return days(d(x[1]))>=0; });   // 성적 발표가 남은 것만
+    // 토익처럼 '다음 시험'을 따로 크게 알려 준다(원장 지시 2026-08-13)
+    var tsBox=document.getElementById('tsNext');
+    var nextS=null;
+    for(var k=0;k<TS.length;k++){ if(days(d(TS[k][0]))>=0){ nextS=TS[k]; break; } }
+    if(tsBox){
+      if(!nextS){
+        tsBox.innerHTML='<div><div class="en-main">2026년 토익스피킹 일정이 모두 끝났습니다.</div>'
+          + '<div class="en-sub">2027년 일정이 나오면 올려 드리겠습니다.</div></div>';
+      } else {
+        var se=d(nextS[0]), sr=d(nextS[1]), sl=days(se);
+        tsBox.innerHTML='<div class="en-left"><span class="en-dd">'+(sl===0?'오늘':'D-'+sl)+'</span></div>'
+          + '<div><span class="en-tag">다음 토익스피킹 시험</span>'
+          + '<div class="en-main">'+full(se)+'</div>'
+          + '<div class="en-sub">성적 발표 '+full(sr)+' 낮 12시</div></div>';
+      }
+    }
     var open=false;
     var drawTs=function(){
       var list=open?up:up.slice(0,8);
@@ -9383,18 +9413,7 @@
     if(more) more.onclick=function(){ open=!open; drawTs(); };
   }
 
-  // 오픽 — 상시 시험이라 날짜 대신 성적 발표일을 계산해 준다(시험일 +5일, 오후 1시)
-  var inp=document.getElementById('opDate'), out=document.getElementById('opOut');
-  if(inp&&out){
-    inp.addEventListener('change', function(){
-      if(!inp.value){ out.className='ec-out'; out.textContent='날짜를 고르면 성적 발표일을 알려드려요.'; return; }
-      var x=d(inp.value); x.setDate(x.getDate()+5);
-      var left=days(x);
-      out.className='ec-out on';
-      out.innerHTML='성적 발표 <b>'+x.getFullYear()+'년 '+full(x)+' 오후 1시</b>'
-        + (left>0 ? ('<br><span style="font-size:13px;color:var(--muted)">오늘부터 '+left+'일 뒤예요.</span>') : '');
-    });
-  }
+  // 오픽은 상시 시험이라 날짜를 적지 않는다(원장 지시 2026-08-13). 안내 문구만 둔다.
 })();
 </script>
 <script>
