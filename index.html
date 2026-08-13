@@ -621,7 +621,7 @@
         <a href="#diagnose">완벽한토익 소개</a>
         <!-- 강사진(#teachers)은 섹션이 있는데 메뉴에서 빠져 있었다(원장 지적 2026-08-08).
              푸터에는 있었지만 상단 메뉴에서만 없어서 아무도 못 찾았다. -->
-        <div class="submenu"><a href="#diagnose">브랜드소개</a><a href="#strengths">완토의 강점</a><a href="#teachers">강사진 소개</a><a href="#notice">공지사항</a></div>
+        <div class="submenu"><a href="#diagnose">브랜드소개</a><a href="#strengths">완토의 강점</a><a href="#teachers">강사진 소개</a><a href="#examdates">토익 시험일정</a><a href="#notice">공지사항</a></div>
       </div>
       <div class="navitem">
         <a href="#apply-form">수강신청</a>
@@ -659,6 +659,7 @@
       <a href="#apply-form" data-close>수강신청문의</a><a href="#books" data-close>교재</a><a href="#payment" data-close>결제</a></div></div>
     <div class="dgroup"><span>수강안내</span><div class="dsub">
       <a href="#course-toeic" data-close>토익</a><a href="#course-speaking" data-close>토익스피킹</a><a href="#course-opic" data-close>오픽</a><a href="#course-conversation" data-close>영어회화</a></div></div>
+    <div class="dgroup"><a class="dtop" href="#examdates" data-close>토익 시험일정</a></div>
     <div class="dgroup"><a class="dtop" href="#leveltest" data-close>완토 진단 테스트</a></div>
     <div class="dgroup"><a class="dtop" href="#voca" data-close>VOCA 단어테스트</a></div>
     <div class="dgroup"><a class="dtop" href="#reviews" data-close>수강후기</a></div>
@@ -766,6 +767,49 @@
 </section>
 
 <!-- ================= NOTICE ================= -->
+<!-- ===== 토익 시험일정 (2026-08-13 원장 요청) =====================
+     출처: 한국TOEIC위원회 공식 시험일정(exam.toeic.co.kr), 2026-08-13에 옮겨 적음.
+     ⚠️ 날짜는 사실이라 그대로 적되, 해마다 새 일정이 나오면 EXAM_DATES 를 갈아 끼울 것.
+     2027년 일정은 아직 공개 전이다. -->
+<section class="sec" id="examdates">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">시험일정 <b>· TOEIC SCHEDULE</b></span>
+      <h2>2026년 토익 정기시험 일정</h2>
+      <p>시험일과 성적 발표일을 한눈에 보실 수 있습니다. 접수는 한국TOEIC위원회 공식 홈페이지에서 진행하세요.</p>
+    </div>
+
+    <div class="exam-next reveal" id="examNext"></div>
+
+    <div class="exam-wrap reveal">
+      <table class="exam-table" id="examTable">
+        <thead>
+          <tr><th>회차</th><th>시험일</th><th>성적 발표</th><th>남은 기간</th></tr>
+        </thead>
+        <tbody>
+          <tr data-d="2026-08-09" data-r="2026-08-18"><td data-l="회차">제575회</td><td data-l="시험일">8월 9일 (일)</td><td data-l="성적 발표">8월 18일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-08-23" data-r="2026-09-03"><td data-l="회차">제576회</td><td data-l="시험일">8월 23일 (일)</td><td data-l="성적 발표">9월 3일 (목)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-08-30" data-r="2026-09-08"><td data-l="회차">제577회</td><td data-l="시험일">8월 30일 (일)</td><td data-l="성적 발표">9월 8일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-09-06" data-r="2026-09-15"><td data-l="회차">제578회</td><td data-l="시험일">9월 6일 (일)</td><td data-l="성적 발표">9월 15일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-09-20" data-r="2026-09-29"><td data-l="회차">제579회</td><td data-l="시험일">9월 20일 (일)</td><td data-l="성적 발표">9월 29일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-10-11" data-r="2026-10-20"><td data-l="회차">제580회</td><td data-l="시험일">10월 11일 (일)</td><td data-l="성적 발표">10월 20일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-10-31" data-r="2026-11-10"><td data-l="회차">제581회</td><td data-l="시험일">10월 31일 <b class="exam-sat">(토)</b></td><td data-l="성적 발표">11월 10일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-11-15" data-r="2026-11-24"><td data-l="회차">제582회</td><td data-l="시험일">11월 15일 (일)</td><td data-l="성적 발표">11월 24일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-11-29" data-r="2026-12-08"><td data-l="회차">제583회</td><td data-l="시험일">11월 29일 (일)</td><td data-l="성적 발표">12월 8일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-12-13" data-r="2026-12-22"><td data-l="회차">제584회</td><td data-l="시험일">12월 13일 (일)</td><td data-l="성적 발표">12월 22일 (화)</td><td data-l="남은 기간"></td></tr>
+          <tr data-d="2026-12-27" data-r="2027-01-06"><td data-l="회차">제585회</td><td data-l="시험일">12월 27일 (일)</td><td data-l="성적 발표">2027년 1월 6일 (수)</td><td data-l="남은 기간"></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="exam-note reveal">
+      <p><b>시험 시간</b> 오전 9:20 입실 완료 · <b>성적 발표</b> 발표일 낮 12:00부터 확인 가능합니다.</p>
+      <p>10월 31일 제581회는 <b>토요일</b> 시험입니다. 요일을 꼭 확인하세요.</p>
+      <p class="exam-src">접수·고사장 확인은 <a href="https://exam.toeic.co.kr" target="_blank" rel="noopener">한국TOEIC위원회 공식 홈페이지</a>에서 하실 수 있습니다. 표의 날짜는 공식 발표 기준이며, 변경될 수 있으니 접수 전 공식 홈페이지를 한 번 더 확인해주세요.</p>
+    </div>
+  </div>
+</section>
+
 <section class="sec" id="notice">
   <div class="wrap">
     <div class="sec-head reveal">
@@ -3423,6 +3467,42 @@
   #csTable td[data-l="관리"]{margin-top:6px}
   .wa-table-wrap:has(#csTable){border:none;border-radius:0}
   #csDate,#csName,#csPhone,#csTeacher,#csChannel,#csMemo{font-size:16px !important;padding:11px 12px !important}
+}
+/* 토익 시험일정 (2026-08-13) */
+.exam-next{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 18px;
+           border:1px solid var(--line-strong);border-radius:16px;padding:18px 22px;background:var(--surface)}
+.exam-next .en-left{display:flex;align-items:baseline;gap:8px}
+.exam-next .en-dd{font-family:var(--font-num);font-size:34px;font-weight:800;line-height:1;color:var(--accent)}
+.exam-next .en-tag{font-size:12px;font-weight:800;letter-spacing:.04em;color:var(--muted)}
+.exam-next .en-main{font-size:18px;font-weight:800;color:var(--ink)}
+.exam-next .en-sub{margin-top:3px;font-size:13.5px;color:var(--muted)}
+.exam-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.exam-table{width:100%;border-collapse:collapse;font-size:15px}
+.exam-table th{background:var(--surface-2);color:var(--muted);font-size:12.5px;font-weight:800;
+               text-align:left;padding:12px 16px;white-space:nowrap;border-bottom:1px solid var(--line)}
+.exam-table td{padding:13px 16px;border-bottom:1px solid var(--line);white-space:nowrap;color:var(--ink)}
+.exam-table tbody tr:last-child td{border-bottom:none}
+.exam-table td:first-child{font-weight:800;font-family:var(--font-num)}
+.exam-table tr.is-next td{background:var(--surface-2);font-weight:800}
+.exam-table tr.is-next td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.exam-table tr.is-past td{color:var(--muted)}
+.exam-sat{color:#c0342b}
+.ex-dd{font-family:var(--font-num);font-weight:800;color:var(--accent)}
+.ex-done{font-size:12.5px;font-weight:800;color:var(--muted)}
+.exam-note{margin-top:16px;font-size:14px;color:var(--ink-soft);line-height:1.8}
+.exam-note p{margin:0 0 4px}
+.exam-note .exam-src{margin-top:8px;font-size:13px;color:var(--muted)}
+@media(max-width:640px){
+  .exam-wrap{border:none;border-radius:0;overflow:visible;background:transparent}
+  .exam-table, .exam-table tbody, .exam-table tr, .exam-table td{display:block;width:100%}
+  .exam-table thead{display:none}
+  .exam-table tr{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+  .exam-table tr.is-next{border-color:var(--accent)}
+  .exam-table td{border:none;padding:3px 0;white-space:normal;font-size:15px}
+  .exam-table td:before{content:attr(data-l);display:block;font-size:11.5px;font-weight:800;color:var(--muted);margin-bottom:2px}
+  .exam-table tr.is-next td:first-child{box-shadow:none}
+  .exam-table td:first-child{font-size:17px}
+  .exam-next .en-dd{font-size:28px}
 }
 /* 주말 스터디 카드 (2026-08-10) */
 .std-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin:8px 0 4px}
@@ -9159,9 +9239,52 @@
   .navitem>a.nav-active{color:var(--accent);background:var(--surface-2)}
 </style>
 <script>
+/* 토익 시험일정 — 지난 시험 흐리게, 다음 시험 강조, 남은 날짜 계산 (2026-08-13) */
+(function(){
+  var tb=document.getElementById('examTable'); if(!tb) return;
+  function d(s){ var p=String(s).split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function fmt(x){ return (x.getMonth()+1)+'월 '+x.getDate()+'일'; }
+  var today=new Date(); today.setHours(0,0,0,0);
+  var rows=tb.querySelectorAll('tbody tr'), next=null;
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i], ex=d(r.getAttribute('data-d')), rp=d(r.getAttribute('data-r'));
+    var left=Math.round((ex-today)/86400000);
+    var cell=r.querySelector('td[data-l="남은 기간"]');
+    if(left>0){
+      if(!next) { next=r; r.classList.add('is-next'); }
+      if(cell) cell.innerHTML='<span class="ex-dd">D-'+left+'</span>';
+    } else if(left===0){
+      if(!next) { next=r; r.classList.add('is-next'); }
+      if(cell) cell.innerHTML='<span class="ex-dd">오늘</span>';
+    } else {
+      r.classList.add('is-past');
+      // 시험은 끝났지만 성적이 아직 안 나온 회차는 그것만 알려준다
+      var rl=Math.round((rp-today)/86400000);
+      if(cell) cell.innerHTML = rl>0 ? '<span class="ex-done">성적 D-'+rl+'</span>' : '<span class="ex-done">종료</span>';
+    }
+  }
+  var box=document.getElementById('examNext');
+  if(box){
+    if(!next){
+      box.innerHTML='<div><div class="en-main">2026년 정기시험이 모두 끝났습니다.</div>'
+        + '<div class="en-sub">2027년 일정이 나오면 이곳에 올려 드리겠습니다.</div></div>';
+    } else {
+      var ex2=d(next.getAttribute('data-d')), rp2=d(next.getAttribute('data-r'));
+      var lf=Math.round((ex2-today)/86400000);
+      var tds=next.querySelectorAll('td');
+      box.innerHTML='<div class="en-left"><span class="en-dd">'+(lf===0?'오늘':'D-'+lf)+'</span></div>'
+        + '<div><span class="en-tag">다음 시험</span>'
+        + '<div class="en-main">'+tds[0].textContent+' · '+fmt(ex2)+'</div>'
+        + '<div class="en-sub">성적 발표 '+fmt(rp2)+' 낮 12시</div></div>';
+    }
+  }
+})();
+</script>
+<script>
 (function(){
   var PAGE_OF={
     hero:'home', stats:'home', apply:'home',
+    examdates:'examdates',
     notice:'intro', diagnose:'intro', strengths:'intro', 'class-gallery':'intro',
     curriculum:'curriculum', courses:'curriculum',
     teachers:'teachers', reviews:'reviews',
