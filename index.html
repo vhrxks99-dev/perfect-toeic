@@ -6573,6 +6573,9 @@
     return (_rooms||[]).filter(function(r){ return picked[String(r.id)]; })
                        .sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
   }
+  // ⚠️ 매번 다른 조합이 나와야 한다(원장 지적 2026-08-13: "다시 배분을 눌러도 항상 같은 값이야").
+  //    실력 순서는 지키되 **같은 실력끼리는 순서를 섞고**, 방을 도는 방향도 무작위로 뒤집는다.
+  //    그래서 720점이 여러 명이면 누를 때마다 짝이 바뀐다.
   function studyPlan(day){
     var rooms=studyRoomsOf(day);
     var go=_studySignups.filter(function(s){ return s.study_date===day && s.going!==false; });
@@ -6584,12 +6587,25 @@
     var mid = known.length ? (known.length%2 ? known[(known.length-1)/2]
                                              : Math.round((known[known.length/2-1]+known[known.length/2])/2))
                            : 0;
-    var sorted=go.slice().sort(function(a,b){
-      var d=studyLevelOf(b.student_id,mid)-studyLevelOf(a.student_id,mid);
-      if(d) return d;
-      return String(a.student_name||'').localeCompare(String(b.student_name||''),'ko');
-    });
-    return { rooms:rooms, go:go, mid:mid, buckets:studySnake(sorted, rooms) };
+    var sorted=go.map(function(s){ return { s:s, r:Math.random() }; })
+                 .sort(function(a,b){
+                   var d=studyLevelOf(b.s.student_id,mid)-studyLevelOf(a.s.student_id,mid);
+                   return d ? d : (a.r-b.r);          // 실력이 같으면 무작위
+                 })
+                 .map(function(x){ return x.s; });
+    // 방 도는 방향도 반반으로 뒤집는다(잘하는 학생이 늘 A 로만 가지 않게).
+    var order=rooms.map(function(_,i){ return i; });
+    if(Math.random()<0.5) order.reverse();
+    var dealt=studySnake(sorted, order.map(function(i){ return rooms[i]; }));
+    var buckets=rooms.map(function(){ return []; });
+    order.forEach(function(ri,k){ buckets[ri]=dealt[k]; });
+    return { rooms:rooms, go:go, mid:mid, buckets:buckets };
+  }
+  // 지금 저장된 배분과 같은지 비교할 때 쓰는 지문
+  function studyPlanSig(rooms, buckets){
+    var pairs=[];
+    (buckets||[]).forEach(function(b,i){ b.forEach(function(s){ pairs.push(String(s.student_id)+'>'+rooms[i].id); }); });
+    return pairs.sort().join('|');
   }
   function studyAssignBox(day){
     if(!canStudyFile()) return '';       // 원장·매니저·선생님만
@@ -6736,7 +6752,21 @@
     var asg=(e.target&&e.target.closest)?e.target.closest('[data-std-asg]'):null;
     if(asg){
       var aday=asg.getAttribute('data-std-asg');
-      var plan=studyPlan(aday);
+      // 지금 저장된 배분과 같으면 다시 굴린다 — "눌러도 그대로"가 되지 않게(원장 지적).
+      // 조합이 하나뿐인 날(방 1개 등)에는 몇 번 굴려도 같으므로 횟수를 제한한다.
+      var nowSig=(function(){
+        var p=[];
+        _studySignups.forEach(function(s){
+          if(s.study_date===aday && s.going!==false && s.room_id) p.push(String(s.student_id)+'>'+s.room_id);
+        });
+        return p.sort().join('|');
+      })();
+      var plan=null;
+      for(var t=0;t<12;t++){
+        plan=studyPlan(aday);
+        if(!plan.buckets) break;
+        if(studyPlanSig(plan.rooms, plan.buckets)!==nowSig) break;
+      }
       if(!plan.buckets){ alert('강의장을 먼저 고르고, 간다고 한 학생이 있어야 나눌 수 있어요.'); return; }
       var over=plan.buckets.reduce(function(n,b,i){ var c=Number(plan.rooms[i].capacity)||99; return n+Math.max(0,b.length-c); },0);
       if(over && !confirm('정원보다 '+over+'명 많습니다.\n\n강의장을 하나 더 고르는 게 좋아요. 그래도 나눌까요?')) return;
