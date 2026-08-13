@@ -4144,7 +4144,7 @@
         <b>재등록률</b> = 결제한 학생 중 2번 이상 결제한 학생 &nbsp;·&nbsp;
         <b>상담 전환율</b> = 등록함 ÷ (등록함＋등록 안 함) &nbsp;·&nbsp;
         <b>퇴원율</b> = 중도 퇴원 ÷ 담당 학생 전체<br>
-        ※ 구글 캘린더에서 이름만 넘어온 수업은 출석과 짝지을 수 없어 출석률 계산에서 빠집니다.
+        ※ 학생 회원과 연결되지 않은 수업(구글 캘린더에 이름만 적힌 것 포함)은 누구 출석인지 알 수 없어 계산에서 빠집니다.
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="evTable"></table></div>
       <div id="evNote" class="dash-note"></div>
@@ -8925,20 +8925,30 @@
     // 1) 지난 수업 (출석률 분모) — 학생 회원이 연결된 것만
     //    2026-08-09부터 출석은 등원 기록이 아니라 수업의 status 로 본다(키오스크를 없앴다).
     //      confirmed = 출석 · noshow = 결석 · canceled = 휴강(분모에서 빠진다) · pending = 승인 전
-    //    구글 캘린더에서 온 수업은 횟수도 안 세므로 여기서도 뺀다.
-    //    ⚠️ 구글발을 서버에서 미리 빼야 한다(2026-08-12). 이제 구글 수업도 학생과 연결되어
-    //       1,900건이 넘는데, PostgREST 는 1,000행까지만 주므로 받아온 뒤에 거르면
-    //       정작 필요한 웹 수업이 잘려 나가 출석률이 0% 로 보인다.
-    var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source')
-             .not('student_id','is',null).or('source.is.null,source.neq.gcal');
-    if(from){ sq=sq.gte('starts_at',from.toISOString()).lt('starts_at',to.toISOString()); }
-    var sr=await sq;
-    var scheds=(!sr.error&&sr.data)?sr.data.filter(function(s){
+    //    ⚠️ 구글 캘린더에서 온 수업도 **학생 회원과 연결돼 있으면 센다**(2026-08-13 원장 지적
+    //       "이창희 김태완 출석률 반영이 안 되고 있어"). 두 분 수업은 전부 구글에서 넘어오는데
+    //       예전에는 구글발을 통째로 뺐던 탓에 두 분만 출석률이 비어 있었다.
+    //       (횟수 차감은 여전히 웹 수업만 — 그건 결제 회차 얘기라 별개다.)
+    //    ⚠️ PostgREST 는 한 번에 1,000행까지만 준다. 지금은 학생 연결된 수업이 그보다 적지만
+    //       늘어나면 조용히 잘려 출석률이 틀려지므로 1,000건씩 끝까지 받아 온다.
+    var scheds=[], _page=0;
+    while(true){
+      var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source')
+               .not('student_id','is',null).order('starts_at',{ascending:true})
+               .range(_page*1000, _page*1000+999);
+      if(from){ sq=sq.gte('starts_at',from.toISOString()).lt('starts_at',to.toISOString()); }
+      var sr=await sq;
+      if(sr.error||!sr.data||!sr.data.length) break;
+      scheds=scheds.concat(sr.data);
+      if(sr.data.length<1000) break;
+      _page++;
+      if(_page>20) break;   // 안전장치
+    }
+    scheds=scheds.filter(function(s){
       if(new Date(s.ends_at)>=now) return false;
-      if((s.source||'web')==='gcal') return false;
       var st=s.status||'confirmed';
       return st==='confirmed' || st==='noshow';
-    }):[];
+    });
 
     // 3) 결제 (재등록률) — 기간과 무관하게 누적으로 본다. 두 번 이상 결제 = 재등록.
     //    담당강사가 안 찍힌 예전 결제는 그 학생의 현재 담당강사로 본다.
