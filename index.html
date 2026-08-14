@@ -3147,9 +3147,9 @@
       <label>강의장<select id="waSeRoom"></select></label>
       <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
       <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
-      <!-- 시간을 바꿀 때만 나온다. 학생 화면에도 그대로 보이므로 사실대로 골라야 한다. -->
-      <label id="waSeReasonBox" style="display:none">시간 변경 사유
-        <span class="wa-hint">학생 '내 학습' 화면에 그대로 보입니다</span>
+      <!-- 학생 화면에도 그대로 보이므로 사실대로 골라야 한다. 늘 보여준다(안 보이면 없는 줄 아신다). -->
+      <label id="waSeReasonBox">시간 변경 사유
+        <span class="wa-hint" id="waSeReasonHint">시간을 바꿀 때만 필요합니다 · 학생 화면에 그대로 보입니다</span>
         <select id="waSeReason">
           <option value="">— 골라주세요 —</option>
           <option value="student">학생분 요청</option>
@@ -3158,7 +3158,7 @@
           <option value="holiday">공휴일 · 휴원</option>
         </select>
       </label>
-      <label id="waSeNoteBox" style="display:none">한 줄 설명 <span class="wa-hint">선택</span>
+      <label id="waSeNoteBox">한 줄 설명 <span class="wa-hint">선택</span>
         <input type="text" id="waSeNote" placeholder="예: 학생분이 시험 일정 때문에 요청">
       </label>
       <label class="sc-otbox"><input type="checkbox" id="waSeIsOt"> <b>사전 OT (첫 수업)</b>
@@ -3874,6 +3874,8 @@
       <!-- 학생이 넣은 예약 요청. 대시보드 위쪽 알림 배너에도 뜨지만, 원장 지시(2026-08-10)로
            스케줄 탭 안에서도 따로 보이게 한다("수업 스케줄 알림에 따로 뜨게"). -->
       <div id="scPendBox"></div>
+      <!-- 24시간 안에 있는 수업을 옮기려는 요청. 원장님이 승인해야 반영된다. -->
+      <div id="scChgReqBox"></div>
       <!-- 수업 시간이 옮겨진 기록. 원장·매니저만 보인다(applyTabRoles 아님 — renderSchedChanges 가 판단). -->
       <div id="scChgBox"></div>
       <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
@@ -5844,10 +5846,16 @@
     if(!_seOrig) return false;
     return $('waSeDate').value!==_seOrig.d || $('waSeStart').value!==_seOrig.s || $('waSeEnd').value!==_seOrig.e;
   }
+  // 사유 칸은 **항상 보여준다**(2026-08-14 원장 지적 — "애초에 사유 기재하는 칸이 없는데?").
+  // 처음에는 시간을 바꿀 때만 나타나게 했는데, 창을 열었을 때 안 보이니 없는 줄 아신다.
+  // 시간을 안 바꾸면 어차피 서버가 무시하므로 늘 띄워 두는 편이 낫다.
+  // 시간을 건드리면 '꼭 골라주세요'로 문구만 바뀐다.
   function seToggleReason(){
     var on=seTimeChanged();
-    if($('waSeReasonBox')) $('waSeReasonBox').style.display=on?'':'none';
-    if($('waSeNoteBox'))   $('waSeNoteBox').style.display=on?'':'none';
+    var lab=$('waSeReasonHint');
+    if(lab) lab.innerHTML = on
+      ? '<b style="color:#c0342b">시간을 바꾸셨어요 — 사유를 꼭 골라주세요</b>'
+      : '시간을 바꿀 때만 필요합니다 · 학생 화면에 그대로 보입니다';
   }
   ['waSeDate','waSeStart','waSeEnd'].forEach(function(id){
     if($(id)) $(id).addEventListener('change', seToggleReason);
@@ -5976,6 +5984,13 @@
     }
     // 겹침·강의장 규칙은 서버가 막는다. 그 메시지를 그대로 보여준다.
     if(r.error){ err.textContent=r.error.message; return; }
+    // 24시간 안에 있는 수업은 선생님이 바로 못 바꾼다 → 원장님 승인 요청으로 넘어간다(2026-08-14 원장 지시).
+    if(r.data && r.data.pending){
+      closeSchedEdit();
+      alert('수업 시작까지 24시간이 안 남았습니다.\n\n바로 바꿀 수 없어 원장님께 승인 요청을 보냈습니다.\n승인되면 그때 시간이 바뀌고, 학생 화면에도 그렇게 표시됩니다.');
+      try{ await loadTeacherAlerts(); }catch(e){}
+      return;
+    }
     if(r.data && r.data.ok===false){ err.textContent=r.data.msg||'저장하지 못했습니다.'; return; }
     closeSchedEdit();
     await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadTeacherAlerts();
@@ -6137,6 +6152,7 @@
     // 스케줄 탭 목록은 알림 배너보다 먼저 그린다 — 아래에 'alerts 도 pend 도 없으면 return' 이 있어서
     // 여기서 안 그리면 예약이 0건일 때 스케줄 탭의 옛 목록이 지워지지 않는다.
     drawSchedPending(pend);
+    try{ await renderSchedChangeReqs(); }catch(e){}
     try{ await renderSchedChanges(); }catch(e){}
     // 2026-08-09 — '등원 기록이 없어요' 노쇼 알림은 없앴다.
     // 등원 키오스크를 걷어낸 뒤로는 아무도 체크인을 찍지 않아서, 끝난 수업이 전부 노쇼 후보로 떴다.
@@ -6180,6 +6196,55 @@
       + '<div class="wa-al-head">🙋 학생이 넣은 수업 예약 요청 <span class="wa-al-badge">'+pend.length+'</span></div>'
       + '<ul>'+lis+'</ul></div>';
   }
+  // 24시간 안에 있는 수업을 옮겨 달라는 요청 (2026-08-14 원장 지시).
+  // 선생님이 저장을 누르면 바로 바뀌지 않고 여기로 온다. 원장님이 승인해야 반영된다.
+  // 선생님 화면에도 보인다(내가 올린 요청이 어떻게 됐는지 알아야 하므로) — 버튼만 원장님께 나온다.
+  async function renderSchedChangeReqs(){
+    var box=$('scChgReqBox'); if(!box||!sb) return;
+    var rows=[];
+    try{
+      var r=await sb.from('schedule_change_requests')
+                    .select('id,student_name,teacher_name,requested_by_name,reason,note,old_starts_at,new_starts_at,new_ends_at,created_at')
+                    .eq('status','pending')
+                    .order('created_at',{ascending:true});
+      if(r.error){ box.innerHTML=''; return; }
+      rows=r.data||[];
+    }catch(e){ box.innerHTML=''; return; }
+    if(!rows.length){ box.innerHTML=''; return; }
+    var canDecide=isOps();
+    var lis=rows.map(function(q){
+      var btns = canDecide
+        ? '<button class="wa-al-approve" data-chgok="'+esc(String(q.id))+'">승인</button>'
+          +'<button class="wa-al-reject" data-chgno="'+esc(String(q.id))+'">거절</button>'
+        : '<span style="color:#8a5a00;font-weight:700">원장님 승인 대기중</span>';
+      return '<li><span class="wa-al-tag t-req">시간변경 요청</span>'
+        + '<b>'+esc(q.student_name||'학생 미지정')+'</b> — '
+        + esc(fmtDT(q.old_starts_at))+' → '+esc(fmtDT(q.new_starts_at))
+        + ' <span style="color:#c0342b;font-weight:800">'+esc(chgReasonLabel(q.reason))+'</span>'
+        + (q.note?' <span style="color:var(--muted)">'+esc(q.note)+'</span>':'')
+        + ' <span style="color:var(--muted)">· '+esc(q.requested_by_name||'?')+' 요청</span>'
+        + '<span class="wa-al-sp"></span>'+btns+'</li>';
+    }).join('');
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
+      + '<div class="wa-al-head">⏰ 24시간 안 수업 변경 요청 <span class="wa-al-badge">'+rows.length+'</span></div>'
+      + '<ul>'+lis+'</ul></div>';
+  }
+  if($('scChgReqBox')) $('scChgReqBox').addEventListener('click', async function(e){
+    var t=e.target;
+    var ok=(t&&t.closest)?t.closest('[data-chgok]'):null;
+    var no=(t&&t.closest)?t.closest('[data-chgno]'):null;
+    if(!ok&&!no) return;
+    if(!sb) return;
+    var id=(ok||no).getAttribute(ok?'data-chgok':'data-chgno');
+    if(no && !confirm('이 변경 요청을 거절할까요?\n\n수업 시간은 그대로 둡니다.')) return;
+    var msg = no ? (prompt('거절 사유를 적어주세요(선택). 선생님께 보입니다.','')||null) : null;
+    var r=await sb.rpc('decide_schedule_change',{p_req:parseInt(id,10), p_ok:!!ok, p_msg:msg});
+    if(r.error){ alert('처리 실패: '+r.error.message); return; }
+    if(r.data && r.data.ok===false){ alert(r.data.msg||'처리하지 못했습니다.'); return; }
+    await loadTeacherAlerts();
+    try{ await renderCalendar(); }catch(e){}
+    try{ await loadAttendance(); }catch(e){}
+  });
   // 수업 시간이 옮겨진 기록 (2026-08-14 원장 지시).
   // "학생과 약속한 시간을 선생님 사정으로 바꾸는 일이 너무 많은데 관리가 안 된다"가 출발점이다.
   // 최근 30일치를 강사별로 세어 보여준다 — 느낌이 아니라 숫자로 말할 수 있어야 한다.
