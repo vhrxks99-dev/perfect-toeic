@@ -7784,7 +7784,7 @@
       var r2=await sb.from('attendance').select('id,student_id,student_name,attended_on,created_at,checked_in_at,checked_out_at,source').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
       // 결제 안내 대기열. payment_alert.sql 을 아직 안 돌렸으면 표가 없어 오류가 나는데,
       // 그때는 안내만 못 보여줄 뿐 출석 화면은 그대로 돌아가야 한다.
-      var r3=await sb.from('notify_outbox').select('student_id,body,created_at,sent_at').eq('kind','payment_due').order('created_at',{ascending:false});
+      var r3=await sb.from('notify_outbox').select('student_id,body,created_at,sent_at,tries,error').eq('kind','payment_due').order('created_at',{ascending:false});
       window.__wtNotify=(!r3.error&&r3.data)?r3.data:null;
     }
     // 2026-08-08 원장 지시로 차감 기준이 '출석'에서 '스케줄'로 바뀌었다.
@@ -7909,10 +7909,15 @@
       // 휴대폰 번호가 없으면 카카오 알림톡이 안 나간다(번호로 보내는 방식이라).
       var hasPhone=!!String(x.s.phone||'').replace(/[^0-9]/g,'');
       if(!hasPhone) noPhone++;
+      // 발송기는 tries 가 3 이상인 줄을 건너뛴다. 그래서 tries>=3 은 '보내는 중'이 아니라
+      // 영영 안 나가는 줄이다 — 일부러 뺀 학생(원장 지시)이 여기 들어온다.
+      // 2026-08-14 송희도를 제외해 놨는데 화면이 '보내는 중'으로 떠서 오해를 샀다.
+      var stuck = !!n && !n.sent_at && (n.tries||0) >= 3;
       var tag = !hasPhone ? '<span style="color:#c0342b;font-weight:800">번호 없음</span>'
               : (!notif ? ''
               : (n ? (n.sent_at ? '<span style="color:#0f7a52;font-weight:800">안내 보냄</span>'
-                                : '<span style="color:#8a5a00;font-weight:800">보내는 중</span>')
+                   : (stuck   ? '<span style="color:var(--muted);font-weight:800" title="'+esc(String(n.error||''))+'">발송 안 함</span>'
+                              : '<span style="color:#8a5a00;font-weight:800">보내는 중</span>'))
                    : '<span style="color:var(--muted)">안내 안 나감</span>'));
       h+='<span style="display:inline-block;margin-right:14px">'
        + '<b>'+esc(x.s.name||'-')+'</b> '
