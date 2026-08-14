@@ -7797,7 +7797,7 @@
       //    회원과 연결 안 된 행(student_id 없음)은 어차피 안 세므로 서버에서 미리 뺀다.
       for(var scFrom=0;;scFrom+=1000){
         var r4=await sb.from('schedules')
-                       .select('student_id,status,source,starts_at,is_ot,student_name,subject')
+                       .select('student_id,status,source,starts_at,ends_at,is_ot,student_name,subject')
                        .not('student_id','is',null)
                        .order('id',{ascending:true})
                        .range(scFrom, scFrom+999);
@@ -7810,10 +7810,15 @@
       var r5=await sb.from('session_adjustments').select('id,student_id,student_name,delta,happened_on,reason,created_at').order('happened_on',{ascending:false}).order('id',{ascending:false});
       adjs=(!r5.error&&r5.data)?r5.data:null;
     }
-    var purchased={}, attended={}, used={}, adjSum={};
+    var purchased={}, attended={}, used={}, usedDone={}, adjSum={};
     pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
     atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
-    scheds.forEach(function(s){ if(countsAsUsed(s)) used[s.student_id]=(used[s.student_id]||0)+1; });
+    scheds.forEach(function(s){
+      if(!countsAsUsed(s)) return;
+      used[s.student_id]=(used[s.student_id]||0)+1;
+      // 결제 안내는 '이미 끝난 수업'만 센다 — 서버 sessions_left_done() 과 같은 기준.
+      if(countsAsDone(s)) usedDone[s.student_id]=(usedDone[s.student_id]||0)+1;
+    });
     (adjs||[]).forEach(function(a){ adjSum[a.student_id]=(adjSum[a.student_id]||0)+(a.delta||0); });
     // 결석·휴강 건수 — 선생님이 달력에서 표시한 결과다. 구글발은 횟수를 안 세므로 뺀다.
     var noshowN={}, cancelN={};
@@ -7824,7 +7829,7 @@
       else if(st==='canceled') cancelN[s.student_id]=(cancelN[s.student_id]||0)+1;
     });
     window.__wtNoshow=noshowN; window.__wtCancel=cancelN;
-    window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAttU=used; window.__wtAtts=atts;
+    window.__wtAttP=purchased; window.__wtAttD=attended; window.__wtAttU=used; window.__wtAttDone=usedDone; window.__wtAtts=atts;
     window.__wtAdjs=adjs; window.__wtAdjSum=adjSum;
     drawAtt();
   }
@@ -7833,6 +7838,16 @@
     var buy=(window.__wtAttP||{})[id]||0;
     var adj=(window.__wtAdjSum||{})[id]||0;
     var use=(window.__wtAttU||{})[id]||0;
+    return buy + adj - use;
+  }
+  // 결제 안내용 남은 횟수 — 서버 sessions_left_done() 과 같은 식이어야 한다.
+  // 위 remainOf 와 다른 점은 딱 하나: **아직 안 한 수업은 빼지 않는다.**
+  // 8회를 끊고 8개를 한꺼번에 잡아도 여기서는 0회가 되지 않고, 7회를 마쳐야 1회가 된다.
+  // (원장 지시 2026-08-13 "8회수업기준 7회차 수업을 완료하고 나면", 2026-08-14 화면에도 같은 기준 적용)
+  function remainDoneOf(id){
+    var buy=(window.__wtAttP||{})[id]||0;
+    var adj=(window.__wtAdjSum||{})[id]||0;
+    var use=(window.__wtAttDone||{})[id]||0;
     return buy + adj - use;
   }
   // 구글 캘린더 수업을 세기 시작한 기준 시각 (2026-08-12 원장 지시).
@@ -7852,6 +7867,13 @@
     if((s.source||'web')==='gcal' && !(Date.parse(s.starts_at)>GCAL_CUT)) return false;
     return true;
   }
+  // 이미 끝난 수업인가. 결제 안내에서만 쓴다(서버 sessions_left_done 의 `ends_at < now()`).
+  // ends_at 이 비어 있으면 끝난 걸로 보지 않는다 — SQL 도 NULL 이면 거짓이라 안 센다.
+  function countsAsDone(s){
+    if(!countsAsUsed(s)) return false;
+    var e=Date.parse(s.ends_at);
+    return !!e && e < Date.now();
+  }
   // 사전 OT 인가. is_ot 칸이 정답이지만, 구글 캘린더에는 원장님이 제목에 (신규)를 붙여
   // 입력하고 계셔서 그것도 OT 로 본다(구글 유입분은 어차피 차감 대상이 아니라 표시용).
   function isOtLesson(s){
@@ -7860,7 +7882,11 @@
     return /\(\s*신규\s*\)/.test(String(s.student_name||'')+' '+String(s.subject||''));
   }
   // 남은 수업이 1회 이하인 학생 = 결제 안내 대상.
-  // 안내 문자가 나갔는지도 같이 보여준다(아직 발송 연동 전이라 '대기중'으로 뜬다).
+  // ⚠️ 여기서 세는 '남은 횟수'는 remainOf 가 아니라 **remainDoneOf**(끝난 수업만 뺀 값)다.
+  //    remainOf 는 잡아 둔 수업까지 빼기 때문에 8회를 끊고 8개를 한꺼번에 잡으면
+  //    한 번도 안 했는데 0회로 떠서 결제 안내 목록에 올라왔다(2026-08-14 원장 지적).
+  //    알림톡을 쏘는 서버 기준(sessions_left_done)과 화면 목록을 같은 식으로 맞춘 것이다.
+  // 안내 알림톡이 나갔는지도 같이 보여준다(안내 보냄 / 보내는 중 / 안내 안 나감).
   function drawPaymentDue(){
     if(!$('attDue')) return;
     var purchased=window.__wtAttP||{}, used=window.__wtAttU||{}, notif=window.__wtNotify;
@@ -7868,7 +7894,7 @@
     var scD=attScopeSet();
     var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'
                                                      && attInScope(scD, m.id, m.name); });
-    var due=students.map(function(s){ return { s:s, rem:remainOf(s.id) }; })
+    var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
                     .filter(function(x){ return x.rem<=1; })
                     .sort(function(a,b){ return a.rem-b.rem; });
     if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
