@@ -3807,6 +3807,7 @@
     <div class="dash-tabs">
       <button class="dash-tab on" data-dtab="members">회원</button>
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
+      <button class="dash-tab" data-dtab="off">휴무</button>
       <button class="dash-tab" data-dtab="study">스터디</button>
       <button class="dash-tab" data-dtab="pay">수납</button>
       <button class="dash-tab" data-dtab="payroll">정산</button>
@@ -3845,6 +3846,39 @@
       <div class="wa-table-wrap"><table class="wa-table" id="waTable"></table></div>
     </div>
 
+    <!-- 휴무 — 2026-08-14 원장 지시로 수업 스케줄 탭에서 떼어내 따로 뒀다.
+         ("휴무를 스케줄페이지에 넣어놓다보니 불편해") 안의 내용과 id 는 그대로라 코드는 안 건드렸다. -->
+    <div class="dash-pane" data-dpane="off">
+      <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="dash-note" style="margin-top:0">여기 넣어둔 날짜·시간에는 <b>학생이 수업 예약을 걸 수 없습니다.</b> 선생님을 <b>학원 전체 휴무</b>로 두면 모든 선생님이 한 번에 쉽니다.<br>휴무는 수업이 아니라서 스케줄표·강의장 배정·정산에 섞이지 않습니다.</div>
+      <div class="dash-form" style="margin-top:8px">
+        <div class="dash-row">
+          <label>선생님<select id="offTeacher"></select></label>
+          <!-- 여름휴가처럼 며칠씩 쉬는 걸 하루하루 넣기 번거롭다는 요청(이창희쌤 2026-08-10).
+               종료일을 비우면 예전처럼 하루만 등록된다. -->
+          <label>시작일<input type="date" id="offDate"></label>
+          <label>종료일<input type="date" id="offDateTo"><span class="wa-hint">하루만 쉬면 비워두세요</span></label>
+          <!-- label 안에 label 을 또 넣고 &nbsp; 로 높이를 맞추던 자리였다. HTML 규칙에도
+               어긋나고 폰에서는 체크칸이 날짜칸에 눌려 붙었다(2026-08-12 원장 지적).
+               한 겹으로 펴고 폰에서는 한 줄을 통째로 쓰게 했다. -->
+          <label class="off-allday">
+            <input type="checkbox" id="offAllDay" checked><span>종일</span>
+          </label>
+        </div>
+        <div class="dash-row" id="offHourRow" style="display:none">
+          <label>시작<select id="offStart" class="timesel"></select></label>
+          <label>종료<select id="offEnd" class="timesel"></select></label>
+          <label style="flex:2">사유<input type="text" id="offReason" placeholder="예: 휴가 / 개인사정"></label>
+        </div>
+        <div class="dash-row" id="offReasonRow">
+          <label style="flex:2">사유<input type="text" id="offReasonAll" placeholder="예: 휴가 / 개인사정 / 설 연휴"></label>
+        </div>
+        <p class="wa-err" id="offErr"></p>
+        <div class="wa-ok" id="offOk"></div>
+        <button class="btn btn-primary" id="offAdd" type="button">＋ 휴무 추가</button>
+      </div>
+      <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
+    </div>
     <div class="dash-pane" data-dpane="sched">
       <div class="dash-form">
         <div class="dash-row">
@@ -3878,36 +3912,6 @@
       <div id="scChgReqBox"></div>
       <!-- 수업 시간이 옮겨진 기록. 원장·매니저만 보인다(applyTabRoles 아님 — renderSchedChanges 가 판단). -->
       <div id="scChgBox"></div>
-      <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
-      <div class="dash-note" style="margin-top:0">여기 넣어둔 날짜·시간에는 <b>학생이 수업 예약을 걸 수 없습니다.</b> 선생님을 <b>학원 전체 휴무</b>로 두면 모든 선생님이 한 번에 쉽니다.<br>휴무는 수업이 아니라서 스케줄표·강의장 배정·정산에 섞이지 않습니다.</div>
-      <div class="dash-form" style="margin-top:8px">
-        <div class="dash-row">
-          <label>선생님<select id="offTeacher"></select></label>
-          <!-- 여름휴가처럼 며칠씩 쉬는 걸 하루하루 넣기 번거롭다는 요청(이창희쌤 2026-08-10).
-               종료일을 비우면 예전처럼 하루만 등록된다. -->
-          <label>시작일<input type="date" id="offDate"></label>
-          <label>종료일<input type="date" id="offDateTo"><span class="wa-hint">하루만 쉬면 비워두세요</span></label>
-          <!-- label 안에 label 을 또 넣고 &nbsp; 로 높이를 맞추던 자리였다. HTML 규칙에도
-               어긋나고 폰에서는 체크칸이 날짜칸에 눌려 붙었다(2026-08-12 원장 지적).
-               한 겹으로 펴고 폰에서는 한 줄을 통째로 쓰게 했다. -->
-          <label class="off-allday">
-            <input type="checkbox" id="offAllDay" checked><span>종일</span>
-          </label>
-        </div>
-        <div class="dash-row" id="offHourRow" style="display:none">
-          <label>시작<select id="offStart" class="timesel"></select></label>
-          <label>종료<select id="offEnd" class="timesel"></select></label>
-          <label style="flex:2">사유<input type="text" id="offReason" placeholder="예: 휴가 / 개인사정"></label>
-        </div>
-        <div class="dash-row" id="offReasonRow">
-          <label style="flex:2">사유<input type="text" id="offReasonAll" placeholder="예: 휴가 / 개인사정 / 설 연휴"></label>
-        </div>
-        <p class="wa-err" id="offErr"></p>
-        <div class="wa-ok" id="offOk"></div>
-        <button class="btn btn-primary" id="offAdd" type="button">＋ 휴무 추가</button>
-      </div>
-      <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
-
       <div class="cal-head">
         <div class="cal-modes">
           <button class="cal-mode" id="calDay" type="button">일</button>
