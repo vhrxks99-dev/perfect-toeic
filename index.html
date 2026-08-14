@@ -8332,12 +8332,20 @@
     // 외부에서 유입만 된 학생, 다음 달에 첫 OT 하는 학생, 테스트 계정까지 섞였다(2026-08-14 원장 지적).
     // 결제 '안내'는 이미 끊어서 다 쓴 사람에게 하는 것이지, 아직 시작도 안 한 사람에게 하는 게 아니다.
     // 단 통통통 이관 학생은 결제 없이 조정으로만 횟수가 있으므로 hasSessionsEver 로 본다.
-    var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
-                    .filter(function(x){ return x.rem<=1 && hasSessionsEver(x.s.id); })
-                    .sort(function(a,b){ return a.rem-b.rem; });
-    if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
     var sentBy={};
     if(notif) notif.forEach(function(n){ if(!sentBy[n.student_id]) sentBy[n.student_id]=n; });
+    // 안내가 이미 나갔거나 일부러 뺀 학생은 목록에서 지운다(원장 요청 2026-08-14
+    // "확인한 건 알아서 삭제해주면 좋을 것 같은데"). 여기는 '아직 안 한 일'만 남긴다.
+    // 안내가 나간 뒤의 입금 확인은 수납 탭에서 하는 다른 일이다.
+    // 안 나간 채로 남는 것 = 번호 없음 / 대기 중 / 아직 대기열에 없음.
+    function alreadyHandled(sid){
+      var n=sentBy[sid];
+      return !!n && (!!n.sent_at || (n.tries||0) >= 3);
+    }
+    var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
+                    .filter(function(x){ return x.rem<=1 && hasSessionsEver(x.s.id) && !alreadyHandled(x.s.id); })
+                    .sort(function(a,b){ return a.rem-b.rem; });
+    if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
     var h='💳 <b>결제 안내가 필요한 학생 '+due.length+'명</b>';
     if(notif===null) h+=' <span style="color:#c0342b;font-weight:700">(안내 대기열이 아직 없습니다 — payment_alert.sql 을 먼저 실행하세요)</span>';
     h+='<div style="margin-top:6px;line-height:1.9">';
@@ -8347,15 +8355,10 @@
       // 휴대폰 번호가 없으면 카카오 알림톡이 안 나간다(번호로 보내는 방식이라).
       var hasPhone=!!String(x.s.phone||'').replace(/[^0-9]/g,'');
       if(!hasPhone) noPhone++;
-      // 발송기는 tries 가 3 이상인 줄을 건너뛴다. 그래서 tries>=3 은 '보내는 중'이 아니라
-      // 영영 안 나가는 줄이다 — 일부러 뺀 학생(원장 지시)이 여기 들어온다.
-      // 2026-08-14 송희도를 제외해 놨는데 화면이 '보내는 중'으로 떠서 오해를 샀다.
-      var stuck = !!n && !n.sent_at && (n.tries||0) >= 3;
+      // 보낸 것·일부러 뺀 것은 위에서 이미 걸러 냈다. 여기 남는 건 아직 안 나간 것뿐이다.
       var tag = !hasPhone ? '<span style="color:#c0342b;font-weight:800">번호 없음</span>'
               : (!notif ? ''
-              : (n ? (n.sent_at ? '<span style="color:#0f7a52;font-weight:800">안내 보냄</span>'
-                   : (stuck   ? '<span style="color:var(--muted);font-weight:800" title="'+esc(String(n.error||''))+'">발송 안 함</span>'
-                              : '<span style="color:#8a5a00;font-weight:800">보내는 중</span>'))
+              : (n ? '<span style="color:#8a5a00;font-weight:800">보내는 중</span>'
                    : '<span style="color:var(--muted)">안내 안 나감</span>'));
       h+='<span style="display:inline-block;margin-right:14px">'
        + '<b>'+esc(x.s.name||'-')+'</b> '
