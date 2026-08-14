@@ -8277,6 +8277,13 @@
   //    한 번도 안 했는데 0회로 떠서 결제 안내 목록에 올라왔다(2026-08-14 원장 지적).
   //    알림톡을 쏘는 서버 기준(sessions_left_done)과 화면 목록을 같은 식으로 맞춘 것이다.
   // 안내 알림톡이 나갔는지도 같이 보여준다(안내 보냄 / 보내는 중 / 안내 안 나감).
+  // 수업 횟수를 한 번이라도 가진 적이 있는 사람인가.
+  // ⚠️ '결제(payments)'만 보면 안 된다 — 통통통에서 넘어온 학생은 결제 기록 없이
+  //    '횟수 조정'으로만 횟수가 들어와 있다(2026-08-14 이보민이 여기서 빠졌다).
+  //    구매 + 조정 을 같이 봐야 한다. 둘 다 0 이면 아직 시작도 안 한 사람이다.
+  function hasSessionsEver(id){
+    return ((window.__wtAttP||{})[id]||0) + ((window.__wtAdjSum||{})[id]||0) > 0;
+  }
   // 곧 결제 안내 알림톡이 나갈 학생 (2026-08-14 원장 요청).
   // 발송 조건은 서버와 똑같이 **끝낸 수업 기준 남은 1회**다(remainDoneOf===1).
   // 여기에 이름이 떠 있으면 다음 발송 시각에 나간다고 보시면 된다.
@@ -8284,11 +8291,10 @@
     var box=$('attSendSoon'); if(!box) return;
     var notif=window.__wtNotify;                    // null = payment_alert.sql 미실행
     var scD=attScopeSet();
-    var bought=window.__wtAttP||{};
     var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'
                                                      && attInScope(scD, m.id, m.name); });
-    // 결제 이력이 없는 사람은 뺀다 — 결제 안내 목록과 같은 기준이다.
-    var soon=students.filter(function(s){ return (bought[s.id]||0)>0 && remainDoneOf(s.id)===1; });
+    // 횟수가 아예 없는 사람은 뺀다 — 결제 안내 목록과 같은 기준이다.
+    var soon=students.filter(function(s){ return hasSessionsEver(s.id) && remainDoneOf(s.id)===1; });
     // 대기열에 이미 들어갔는데 아직 안 나간 줄도 같이 보여준다(내가 못 세는 경우 대비).
     var byStu={};
     (notif||[]).forEach(function(n){ if(!byStu[n.student_id]) byStu[n.student_id]=n; });
@@ -8322,12 +8328,12 @@
     var scD=attScopeSet();
     var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'
                                                      && attInScope(scD, m.id, m.name); });
-    // 한 번도 횟수를 결제한 적 없는 사람은 뺀다. 안 그러면 0회로 잡혀 전부 목록에 올라온다 —
+    // 횟수를 한 번도 가진 적 없는 사람은 뺀다. 안 그러면 0회로 잡혀 전부 목록에 올라온다 —
     // 외부에서 유입만 된 학생, 다음 달에 첫 OT 하는 학생, 테스트 계정까지 섞였다(2026-08-14 원장 지적).
     // 결제 '안내'는 이미 끊어서 다 쓴 사람에게 하는 것이지, 아직 시작도 안 한 사람에게 하는 게 아니다.
-    var bought=window.__wtAttP||{};
+    // 단 통통통 이관 학생은 결제 없이 조정으로만 횟수가 있으므로 hasSessionsEver 로 본다.
     var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
-                    .filter(function(x){ return x.rem<=1 && (bought[x.s.id]||0)>0; })
+                    .filter(function(x){ return x.rem<=1 && hasSessionsEver(x.s.id); })
                     .sort(function(a,b){ return a.rem-b.rem; });
     if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
     var sentBy={};
