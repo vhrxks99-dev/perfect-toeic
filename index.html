@@ -3176,7 +3176,9 @@
         <select id="waSeReason">
           <option value="">— 골라주세요 —</option>
           <option value="student">학생분 요청</option>
-          <option value="teacher">선생님 사정</option>
+          <!-- '선생님 사정'이라고 쓰니 선생님 입장에서 탓하는 말로 읽힌다는 지적(원장 2026-08-14).
+               구분은 그대로 두고(강사별 집계에 쓴다) 말만 중립적으로 바꿨다. 값은 그대로 teacher. -->
+          <option value="teacher">강사 일정 조정</option>
           <option value="academy">학원 사정</option>
           <option value="holiday">공휴일 · 휴원</option>
           <option value="mistake">잘못 잡은 수업 (없던 일로)</option>
@@ -3211,10 +3213,10 @@
       <label>몇 회<input type="number" id="waAdjQty" min="1" max="100" value="1" required></label>
       <label>날짜<input type="date" id="waAdjDate" required></label>
       <label>사유 <span class="wa-hint">나중에 왜 이렇게 됐는지 알아보려면 적어두세요</span>
-        <input type="text" id="waAdjReason" placeholder="예: 선생님 사정으로 수업 취소" list="waAdjReasons">
+        <input type="text" id="waAdjReason" placeholder="예: 강사 일정 조정으로 수업 취소" list="waAdjReasons">
       </label>
       <datalist id="waAdjReasons">
-        <option value="선생님 사정으로 수업 취소"></option>
+        <option value="강사 일정 조정으로 수업 취소"></option>
         <option value="학생 사정 (규정상 차감 안 함)"></option>
         <option value="서비스 수업 제공"></option>
         <option value="지난 기록 맞추기"></option>
@@ -4101,7 +4103,7 @@
         남은 횟수 = <b>구매</b> ＋ <b>조정</b> － <b>잡힌 수업</b><br>
         <b>수업 스케줄을 잡으면</b> 1회 차감되고, 스케줄을 지우면 다시 1회 돌아옵니다. 횟수권은 수납 탭에서 판매(충전)합니다.
         구글 캘린더에서 넘어온 수업과 <b>승인 전 예약 요청</b>은 차감하지 않습니다.<br>
-        규칙에서 벗어나는 경우(선생님 사정 취소, 서비스 수업 등)는 표의 <b>＋ －</b> 로 날짜·사유를 적어 손으로 맞춰주세요.<br>
+        규칙에서 벗어나는 경우(강사 일정 조정, 서비스 수업 등)는 표의 <b>＋ －</b> 로 날짜·사유를 적어 손으로 맞춰주세요.<br>
         <b>출석은 따로 찍지 않습니다.</b> 잡힌 수업이 곧 출석이고, 학생이 안 왔을 때만 <b>달력에서 그 수업을 눌러</b> 결석·휴강으로 표시하세요.
         <b>결석</b>은 횟수가 그대로 빠지고, <b>휴강</b>은 1회가 돌아옵니다.
       </div>
@@ -5944,7 +5946,7 @@
   // 사유 코드를 사람 말로. 학생 화면·원장님 목록에서 같이 쓴다.
   function chgReasonLabel(r){
     return r==='student' ? '학생분 요청'
-         : r==='teacher' ? '선생님 사정'
+         : r==='teacher' ? '강사 일정 조정'
          : r==='academy' ? '학원 사정'
          : r==='holiday' ? '공휴일 · 휴원'
          : r==='mistake' ? '잘못 잡은 수업'
@@ -5994,7 +5996,7 @@
       btns = hasStu ? [['noshow','결석 · 1회 차감'],['canceled','휴강 · 차감 없음']]
                     : [['canceled','휴강 · 강의장이 열립니다']];
       hint = hasStu
-        ? '학생이 안 왔으면 결석, 학생 잘못이 아니면(선생님 사정·공휴일·사전 양해) 휴강입니다.'
+        ? '학생이 안 왔으면 결석, 학생 사정이 아니면(강사 일정 조정·공휴일·사전 양해) 휴강입니다.'
         : '결석을 쓰려면 수업 수정에서 학생을 회원 명단에서 골라주세요.';
     } else {
       // 원장 지시(2026-08-13): 학생이 미리 못 온다고 하면 그때 결석을 찍을 수 있어야 한다.
@@ -6008,7 +6010,7 @@
                     : [['canceled','휴강 · 차감 없음']];
       // 원장 2026-08-14 "휴강이랑 삭제랑 뭐가 다른지 오히려 헷갈려" → 여기서 갈라 준다.
       hint = hasStu
-        ? '수업을 못 하게 되면 눌러주세요. 학생이 안 오면 <b>결석</b>(차감), 그 밖의 사정이면 <b>휴강</b>(차감 없음)입니다. 미리 눌러도 되고 둘 다 강의장이 바로 열립니다.'
+        ? '수업을 못 하게 되면 눌러주세요. 학생이 안 오면 <b>결석</b>(차감), 그 밖의 사정이면 <b>휴강</b>(차감 없음)입니다. 미리 눌러도 되고 둘 다 강의장이 바로 열립니다. 사유는 탓하려는 게 아니라 나중에 무슨 일이 있었는지 알기 위한 것입니다.'
           + '<br><b>취소된 수업은 휴강</b>으로 두세요. 아래 <b>삭제</b>는 <b>잘못 잡은 수업</b>(중복 입력 같은 것)을 없던 일로 만들 때만 씁니다 — 달력에서 아예 사라집니다.'
         : '결석을 쓰려면 수업 수정에서 학생을 회원 명단에서 골라주세요.';
     }
@@ -6407,7 +6409,7 @@
       .map(function(k){
         var v=byT[k];
         return '<span style="display:inline-block;margin-right:14px"><b>'+esc(k)+'</b> '
-             + '<span style="color:'+(v.mine>=3?'#c0342b':'#8a5a00')+';font-weight:800">선생님 사정 '+v.mine+'건</span>'
+             + '<span style="color:'+(v.mine>=3?'#c0342b':'#8a5a00')+';font-weight:800">강사 일정 조정 '+v.mine+'건</span>'
              + ' <span style="color:var(--muted)">/ 전체 '+v.n+'건</span></span>';
       }).join('');
     // 건별 목록은 '변경기록' 탭으로 옮겼다(2026-08-14). 여기는 강사별 요약만 둔다.
