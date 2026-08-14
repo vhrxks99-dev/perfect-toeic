@@ -5833,7 +5833,11 @@
     if(ed){ openSchedEdit(ed.getAttribute('data-scedit')); return; }
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-scdel]'):null; if(!a) return;
     if(!confirm('이 수업 스케줄을 삭제할까요?')) return;
-    var r=await sb.from('schedules').delete().eq('id',a.getAttribute('data-scdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    // 삭제도 RPC 로만 한다 — 24시간 안 남은 수업은 선생님이 못 지우고 승인 요청으로 넘어간다.
+    var r=await sb.rpc('request_schedule_delete',{p_id:parseInt(a.getAttribute('data-scdel'),10)});
+    if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    if(r.data && r.data.pending){ alert(r.data.msg||'원장님께 승인 요청을 보냈습니다.'); try{ await loadTeacherAlerts(); }catch(e){} return; }
+    if(r.data && r.data.ok===false){ alert(r.data.msg||'삭제하지 못했습니다.'); return; }
     await loadSchedules(); await renderCalendar();
   });
 
@@ -6039,8 +6043,21 @@
     var who=($('waSeWho')&&$('waSeWho').textContent)||'';
     if(!confirm('이 수업을 삭제할까요?\n\n'+who+'\n'+$('waSeDate').value+' '+$('waSeStart').value+'~'+$('waSeEnd').value
                 +'\n\n삭제하면 학생 수업 횟수가 1회 돌아옵니다.')) return;
-    var r=await sb.from('schedules').delete().eq('id',_seId);
+    // 24시간 안 남은 수업은 선생님이 지워서 없앨 수 없다(원장 지적 2026-08-14).
+    // 안 그러면 시간 변경·휴강을 승인제로 막아도 '삭제'로 빠져나간다.
+    // 사유 칸을 골라 뒀으면 같이 넘겨 기록에 남긴다.
+    var r=await sb.rpc('request_schedule_delete',{
+      p_id:_seId,
+      p_reason:($('waSeReason')&&$('waSeReason').value)||null,
+      p_note:($('waSeNote')&&$('waSeNote').value.trim())||null });
     if(r.error){ $('waSeErr').textContent='삭제 실패: '+r.error.message; return; }
+    if(r.data && r.data.pending){
+      closeSchedEdit();
+      alert(r.data.msg||'원장님께 삭제 승인 요청을 보냈습니다.');
+      try{ await loadTeacherAlerts(); }catch(e){}
+      return;
+    }
+    if(r.data && r.data.ok===false){ $('waSeErr').textContent=r.data.msg||'삭제하지 못했습니다.'; return; }
     closeSchedEdit();
     await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadAttendance(); await loadTeacherAlerts();
   };
@@ -6254,23 +6271,23 @@
         ? '<button class="wa-al-approve" data-chgok="'+esc(String(q.id))+'">승인</button>'
           +'<button class="wa-al-reject" data-chgno="'+esc(String(q.id))+'">거절</button>'
         : '<span style="color:#8a5a00;font-weight:700">원장님 승인 대기중</span>';
-      var isCancel=(q.req_kind==='cancel');
-      // 휴강 요청은 시간이 안 바뀌므로 '→ 어디로'를 그리면 같은 시각이 두 번 나온다.
-      var what = isCancel
-        ? '<span class="wa-al-tag t-req">휴강 요청</span>'
-        : '<span class="wa-al-tag t-req">시간변경 요청</span>';
-      var when = isCancel
-        ? esc(fmtDT(q.old_starts_at))+' 수업을 휴강 <span style="color:var(--muted)">(횟수 차감 없음)</span>'
-        : esc(fmtDT(q.old_starts_at))+' → '+esc(fmtDT(q.new_starts_at));
+      var k=q.req_kind||'time', isTime=(k==='time');
+      // 휴강·삭제 요청은 시간이 안 바뀌므로 '→ 어디로'를 그리면 같은 시각이 두 번 나온다.
+      var what = k==='cancel' ? '<span class="wa-al-tag t-req">휴강 요청</span>'
+               : k==='delete' ? '<span class="wa-al-tag t-req" style="background:#fde8e6;color:#c0342b">삭제 요청</span>'
+               :                '<span class="wa-al-tag t-req">시간변경 요청</span>';
+      var when = k==='cancel' ? esc(fmtDT(q.old_starts_at))+' 수업을 휴강 <span style="color:var(--muted)">(횟수 차감 없음)</span>'
+               : k==='delete' ? esc(fmtDT(q.old_starts_at))+' 수업을 <b style="color:#c0342b">삭제</b> <span style="color:var(--muted)">(수업이 사라지고 횟수 1회 돌아감)</span>'
+               :                esc(fmtDT(q.old_starts_at))+' → '+esc(fmtDT(q.new_starts_at));
       return '<li>'+what
         + '<b>'+esc(q.student_name||'학생 미지정')+'</b> — ' + when
-        + (isCancel?'':' <span style="color:#c0342b;font-weight:800">'+esc(chgReasonLabel(q.reason))+'</span>')
+        + (isTime||q.reason ? ' <span style="color:#c0342b;font-weight:800">'+esc(chgReasonLabel(q.reason))+'</span>' : '')
         + (q.note?' <span style="color:var(--muted)">'+esc(q.note)+'</span>':'')
         + ' <span style="color:var(--muted)">· '+esc(q.requested_by_name||'?')+' 요청</span>'
         + '<span class="wa-al-sp"></span>'+btns+'</li>';
     }).join('');
     box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
-      + '<div class="wa-al-head">⏰ 24시간 안 수업 변경·휴강 요청 <span class="wa-al-badge">'+rows.length+'</span></div>'
+      + '<div class="wa-al-head">⏰ 24시간 안 수업 변경·휴강·삭제 요청 <span class="wa-al-badge">'+rows.length+'</span></div>'
       + '<ul>'+lis+'</ul></div>';
   }
   if($('scChgReqBox')) $('scChgReqBox').addEventListener('click', async function(e){
