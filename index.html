@@ -7894,8 +7894,12 @@
     var scD=attScopeSet();
     var students=_members.filter(function(m){ return m.role==='student' && m.status!=='ended'
                                                      && attInScope(scD, m.id, m.name); });
+    // 한 번도 횟수를 결제한 적 없는 사람은 뺀다. 안 그러면 0회로 잡혀 전부 목록에 올라온다 —
+    // 외부에서 유입만 된 학생, 다음 달에 첫 OT 하는 학생, 테스트 계정까지 섞였다(2026-08-14 원장 지적).
+    // 결제 '안내'는 이미 끊어서 다 쓴 사람에게 하는 것이지, 아직 시작도 안 한 사람에게 하는 게 아니다.
+    var bought=window.__wtAttP||{};
     var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
-                    .filter(function(x){ return x.rem<=1; })
+                    .filter(function(x){ return x.rem<=1 && (bought[x.s.id]||0)>0; })
                     .sort(function(a,b){ return a.rem-b.rem; });
     if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
     var sentBy={};
