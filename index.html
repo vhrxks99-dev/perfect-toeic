@@ -9624,11 +9624,18 @@
       if(!rows.length){ $('myschedTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; }
       // 메모 칸에는 강의장만 보여준다(원장 지시 2026-08-13).
       // 구글 캘린더에서 온 수업은 memo 에 숙제 안내까지 통째로 들어와 학생 화면이 지저분했다.
+      // 강의장은 이름만 적어 두면 학생이 어디인지 모른다(원장 2026-08-14).
+      // 관리 화면과 같은 형식으로 정원·옆건물까지 적는다 — 강의장 A (4인) / 강의장 C (4인 · 옆건물).
       var roomMap={};
       if(sb){
         try{
-          var rr=await sb.from('rooms').select('id,name');
-          if(!rr.error) (rr.data||[]).forEach(function(x){ roomMap[String(x.id)]=x.name; });
+          var rr=await sb.from('rooms').select('id,name,capacity,building');
+          if(!rr.error) (rr.data||[]).forEach(function(x){
+            var bits=[], c=parseInt(x.capacity,10);
+            if(c>0) bits.push(c+'인');
+            if(x.building==='미플') bits.push('옆건물');
+            roomMap[String(x.id)]=x.name+(bits.length?' ('+bits.join(' · ')+')':'');
+          });
         }catch(e){}
       }
       // 시간이 옮겨진 수업은 학생에게 그대로 보여준다(원장 지시 2026-08-14).
