@@ -3831,6 +3831,7 @@
       <button class="dash-tab on" data-dtab="members">회원</button>
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
       <button class="dash-tab" data-dtab="off">휴무</button>
+      <button class="dash-tab" data-dtab="chglog">변경기록</button>
       <button class="dash-tab" data-dtab="study">스터디</button>
       <button class="dash-tab" data-dtab="pay">수납</button>
       <button class="dash-tab" data-dtab="payroll">정산</button>
@@ -3869,6 +3870,43 @@
       <div class="wa-table-wrap"><table class="wa-table" id="waTable"></table></div>
     </div>
 
+    <!-- 변경기록 — 2026-08-14 원장 지시.
+         "원장님도 이창희 김태완 두 명이니까 서로 확인이 돼야 해. 원장님이 삭제하는 건 바로
+          되게 하는 건 좋은데 따로 확인탭에 삭제된 거 기록해줘 (…) 원장님 수업도."
+         그래서 이 탭은 **누가 했든** 다 보여준다. 원장이 직접 고친 것도 예외 없이 남는다.
+         선생님 계정에서는 RLS 가 본인 담당 수업만 내려 준다. -->
+    <div class="dash-pane" data-dpane="chglog">
+      <div class="dash-list-head">📝 수업 변경 기록 <span id="clCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="dash-note" style="margin-top:0">수업 시간을 옮기거나 휴강·삭제한 기록입니다. <b>누가 했는지 그대로 남습니다 — 원장님이 직접 하신 것도 포함됩니다.</b><br>새로 잡은 수업은 여기 안 나옵니다(달력에서 보시면 됩니다).</div>
+      <div class="dash-form" style="margin-top:8px">
+        <div class="dash-row">
+          <label>기간
+            <select id="clDays">
+              <option value="7">최근 7일</option>
+              <option value="30" selected>최근 30일</option>
+              <option value="90">최근 90일</option>
+              <option value="0">전체</option>
+            </select>
+          </label>
+          <label>종류
+            <select id="clKind">
+              <option value="">전체</option>
+              <option value="time">시간 변경</option>
+              <option value="cancel">휴강</option>
+              <option value="delete">삭제</option>
+              <option value="revive">되살림</option>
+            </select>
+          </label>
+          <label>고친 사람<select id="clWho"><option value="">전체</option></select></label>
+          <label style="flex:2">학생 이름<input type="text" id="clSearch" placeholder="이름 검색" autocomplete="off"></label>
+        </div>
+      </div>
+      <div class="wa-table-wrap"><table class="wa-table" id="clTable"></table></div>
+
+      <div class="dash-list-head" style="margin-top:24px">✅ 승인 처리 내역 <span id="clReqCount" style="color:var(--muted);font-weight:700"></span></div>
+      <div class="dash-note" style="margin-top:0">24시간 안 수업을 선생님이 바꾸려 해서 올라온 요청을 누가 승인·거절했는지입니다.</div>
+      <div class="wa-table-wrap"><table class="wa-table" id="clReqTable"></table></div>
+    </div>
     <!-- 휴무 — 2026-08-14 원장 지시로 수업 스케줄 탭에서 떼어내 따로 뒀다.
          ("휴무를 스케줄페이지에 넣어놓다보니 불편해") 안의 내용과 id 는 그대로라 코드는 안 건드렸다. -->
     <div class="dash-pane" data-dpane="off">
@@ -5294,6 +5332,8 @@
     if(name==='sched' && typeof centerToday==='function') setTimeout(centerToday, 0);
     // 스터디는 학생들이 수시로 참/불을 바꾸므로 탭을 열 때마다 새로 읽는다.
     if(name==='study' && typeof loadStudy==='function'){ try{ loadStudy(); }catch(e){} }
+    // 변경기록도 열 때마다 새로 읽는다. 방금 고친 것이 바로 보여야 확인 용도로 쓸 수 있다.
+    if(name==='chglog' && typeof loadChgLog==='function'){ try{ loadChgLog(); }catch(e){} }
   }
   (function(){ var c=$('waAdmin'); if(c) c.querySelectorAll('.dash-tab').forEach(function(b){ b.onclick=function(){ dashTab(b.getAttribute('data-dtab')); }; }); })();
 
@@ -6339,24 +6379,108 @@
              + '<span style="color:'+(v.mine>=3?'#c0342b':'#8a5a00')+';font-weight:800">선생님 사정 '+v.mine+'건</span>'
              + ' <span style="color:var(--muted)">/ 전체 '+v.n+'건</span></span>';
       }).join('');
-    var lis=rows.slice(0,40).map(function(c){
-      var what = c.kind==='cancel' ? '휴강' : (c.kind==='revive' ? '되살림' : '시간 변경');
-      var when = c.kind==='time'
-        ? esc(fmtDT(c.old_starts_at))+' → '+esc(fmtDT(c.new_starts_at))
-        : esc(fmtDT(c.new_starts_at||c.old_starts_at));
-      var rc = c.reason==='teacher' ? '#c0342b' : (c.reason==='unknown' ? '#8a5a00' : 'var(--muted)');
-      return '<li><span class="wa-al-tag t-req">'+what+'</span>'
-        + '<b>'+esc(c.student_name||'학생 미지정')+'</b> — '+when
-        + ' <span style="color:'+rc+';font-weight:800">'+esc(chgReasonLabel(c.reason))+'</span>'
-        + (c.note?' <span style="color:var(--muted)">'+esc(c.note)+'</span>':'')
-        + ' <span style="color:var(--muted)">· '+esc(c.teacher_name||'-')+' 담당 · '+esc(c.changed_by_name||'?')+' 고침 · '+mdLabel(c.created_at.slice(0,10))+'</span></li>';
-    }).join('');
+    // 건별 목록은 '변경기록' 탭으로 옮겼다(2026-08-14). 여기는 강사별 요약만 둔다.
     box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
       + '<div class="wa-al-head">🔁 최근 30일 수업 변경 <span class="wa-al-badge">'+rows.length+'</span></div>'
       + '<div style="padding:8px 14px;line-height:1.9;font-size:13px">'+sum+'</div>'
-      + '<details><summary style="cursor:pointer;padding:4px 14px 8px;font-weight:700;font-size:13px">건별로 보기</summary><ul>'+lis+'</ul></details>'
+      + '<div style="padding:0 14px 10px;font-size:12.5px;color:var(--muted);font-weight:700">건별 기록은 위쪽 <b>변경기록</b> 탭에서 보실 수 있습니다.</div>'
       + '</div>';
   }
+  // ---- 변경기록 탭 (2026-08-14 원장 지시) ----
+  // 원장이 두 명이라 서로 확인이 돼야 한다. 그래서 **원장이 직접 한 것도 예외 없이** 보여준다.
+  // 목록 자체는 schedule_changes 트리거가 쌓는다 — 화면을 거치든 안 거치든 남는다.
+  var _chgAll=[];
+  function chgKindLabel(k){
+    return k==='cancel' ? '휴강' : k==='delete' ? '삭제' : k==='revive' ? '되살림' : '시간 변경';
+  }
+  async function loadChgLog(){
+    if(!$('clTable')||!sb) return;
+    var days=parseInt(($('clDays')&&$('clDays').value)||'30',10);
+    var q=sb.from('schedule_changes')
+            .select('id,student_name,teacher_name,kind,reason,note,old_starts_at,new_starts_at,changed_by_name,created_at')
+            .order('created_at',{ascending:false}).limit(500);
+    if(days>0) q=q.gte('created_at', new Date(Date.now()-days*86400000).toISOString());
+    var r=await q;
+    if(r.error){
+      _chgAll=[];
+      $('clTable').innerHTML='<tr><td class="wa-empty" style="color:#c0342b">변경 기록 표가 아직 없습니다 — schedule_change_log.sql 을 먼저 실행하세요.</td></tr>';
+      if($('clCount')) $('clCount').textContent='';
+      return;
+    }
+    _chgAll=r.data||[];
+    // '고친 사람' 목록은 실제로 기록에 있는 이름으로만 채운다.
+    var who=$('clWho');
+    if(who){
+      var keep=who.value, names={};
+      _chgAll.forEach(function(c){ if(c.changed_by_name) names[c.changed_by_name]=1; });
+      who.innerHTML='<option value="">전체</option>'+Object.keys(names).sort().map(function(n){
+        return '<option value="'+esc(n)+'">'+esc(n)+'</option>'; }).join('');
+      if(keep) who.value=keep;
+    }
+    drawChgLog();
+    await loadChgReqLog();
+  }
+  function drawChgLog(){
+    if(!$('clTable')) return;
+    var kind=($('clKind')&&$('clKind').value)||'';
+    var who=($('clWho')&&$('clWho').value)||'';
+    var qs=(($('clSearch')&&$('clSearch').value)||'').trim();
+    var rows=_chgAll.filter(function(c){
+      if(kind && (c.kind||'time')!==kind) return false;
+      if(who && (c.changed_by_name||'')!==who) return false;
+      if(qs && String(c.student_name||'').indexOf(qs)<0) return false;
+      return true;
+    });
+    if($('clCount')) $('clCount').textContent='('+rows.length+'건'+(rows.length!==_chgAll.length?(' / 전체 '+_chgAll.length):'')+')';
+    if(!rows.length){ $('clTable').innerHTML='<tr><td class="wa-empty">기록이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>고친 때</th><th>학생</th><th>담당강사</th><th>종류</th><th>내용</th><th>사유</th><th>고친 사람</th></tr>';
+    rows.forEach(function(c){
+      var k=c.kind||'time';
+      var what = k==='time' ? esc(fmtDT(c.old_starts_at))+' → '+esc(fmtDT(c.new_starts_at))
+               : esc(fmtDT(c.old_starts_at||c.new_starts_at))+' 수업';
+      var kc = k==='delete' ? '#c0342b' : k==='cancel' ? '#8a5a00' : 'var(--ink)';
+      var rc = c.reason==='teacher' ? '#c0342b' : c.reason==='unknown' ? '#8a5a00' : 'var(--muted)';
+      h+='<tr><td style="white-space:nowrap">'+esc(fmtDT(c.created_at))+'</td>'
+       + '<td>'+esc(c.student_name||'-')+'</td><td>'+esc(c.teacher_name||'-')+'</td>'
+       + '<td style="white-space:nowrap;color:'+kc+';font-weight:800">'+esc(chgKindLabel(k))+'</td>'
+       + '<td style="white-space:nowrap">'+what+'</td>'
+       + '<td style="color:'+rc+';font-weight:700">'+esc(chgReasonLabel(c.reason))
+       + (c.note?'<br><span style="color:var(--muted);font-weight:600">'+esc(c.note)+'</span>':'')+'</td>'
+       + '<td>'+esc(c.changed_by_name||'-')+'</td></tr>';
+    });
+    $('clTable').innerHTML=h;
+  }
+  // 승인·거절 처리 내역 — 대기 중인 건은 스케줄 탭에 있으므로 여기는 끝난 것만 본다.
+  async function loadChgReqLog(){
+    if(!$('clReqTable')||!sb) return;
+    var r=await sb.from('schedule_change_requests')
+                  .select('id,req_kind,student_name,teacher_name,requested_by_name,reason,note,old_starts_at,new_starts_at,status,decided_by_name,decided_at,decide_msg,created_at')
+                  .neq('status','pending').order('decided_at',{ascending:false}).limit(200);
+    if(r.error){ $('clReqTable').innerHTML=''; if($('clReqCount')) $('clReqCount').textContent=''; return; }
+    var rows=r.data||[];
+    if($('clReqCount')) $('clReqCount').textContent='('+rows.length+'건)';
+    if(!rows.length){ $('clReqTable').innerHTML='<tr><td class="wa-empty">처리된 요청이 없습니다.</td></tr>'; return; }
+    var h='<tr><th>처리한 때</th><th>학생</th><th>요청</th><th>내용</th><th>올린 사람</th><th>결과</th></tr>';
+    rows.forEach(function(q){
+      var k=q.req_kind||'time';
+      var what = k==='time' ? esc(fmtDT(q.old_starts_at))+' → '+esc(fmtDT(q.new_starts_at))
+               : esc(fmtDT(q.old_starts_at))+' 수업';
+      var ok=(q.status==='approved');
+      h+='<tr><td style="white-space:nowrap">'+esc(q.decided_at?fmtDT(q.decided_at):'-')+'</td>'
+       + '<td>'+esc(q.student_name||'-')+'</td>'
+       + '<td style="white-space:nowrap">'+esc(k==='cancel'?'휴강':k==='delete'?'삭제':'시간 변경')+'</td>'
+       + '<td style="white-space:nowrap">'+what+'</td>'
+       + '<td>'+esc(q.requested_by_name||'-')+'</td>'
+       + '<td style="white-space:nowrap;color:'+(ok?'#0f7a52':'#c0342b')+';font-weight:800">'+(ok?'승인':'거절')
+       + ' <span style="color:var(--muted);font-weight:700">'+esc(q.decided_by_name||'')+'</span>'
+       + (q.decide_msg?'<br><span style="color:var(--muted);font-weight:600">'+esc(q.decide_msg)+'</span>':'')+'</td></tr>';
+    });
+    $('clReqTable').innerHTML=h;
+  }
+  if($('clDays'))   $('clDays').onchange=loadChgLog;
+  if($('clKind'))   $('clKind').onchange=drawChgLog;
+  if($('clWho'))    $('clWho').onchange=drawChgLog;
+  if($('clSearch')) $('clSearch').oninput=drawChgLog;
   // 최근 '확인함' 처리한 항목 — 잘못 눌렀을 때 되돌리기
   function ackUndoHtml(){
     if(!_alertCheckRows.length) return '';
