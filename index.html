@@ -5968,11 +5968,19 @@
     var want=b.getAttribute('data-lres'), err=$('waSeErr'); err.textContent='';
     if(want==='noshow' && !confirm('결석으로 표시할까요?\n\n· 수업 횟수 1회는 그대로 차감됩니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
     if(want==='canceled' && !confirm('휴강으로 표시할까요?\n\n· 수업 횟수 1회가 학생에게 돌아갑니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
-    var r=await sb.rpc('set_lesson_result',{p_id:_seId, p_result:want});
+    // 24시간 안 휴강은 선생님이 바로 못 찍는다 → 원장님 승인 요청으로 넘어간다(원장 지시 2026-08-14).
+    // 결석은 횟수가 차감되므로 그대로 바로 처리된다. 판단은 서버(request_lesson_result)가 한다.
+    var r=await sb.rpc('request_lesson_result',{p_id:_seId, p_result:want});
     if(r.error){
-      err.textContent = String(r.error.message||'').indexOf('set_lesson_result')>=0
-        ? '수업 결과 기능이 아직 없습니다. lesson_result.sql 을 먼저 실행해주세요.'
+      err.textContent = /request_lesson_result|set_lesson_result/.test(String(r.error.message||''))
+        ? '수업 결과 기능이 아직 없습니다. lesson_result.sql / schedule_change_log.sql 을 먼저 실행해주세요.'
         : ('처리 실패: '+r.error.message);
+      return;
+    }
+    if(r.data && r.data.pending){
+      closeSchedEdit();
+      alert(r.data.msg||'원장님께 승인 요청을 보냈습니다.');
+      try{ await loadTeacherAlerts(); }catch(e){}
       return;
     }
     if(r.data && r.data.ok===false){ err.textContent=r.data.msg||'처리하지 못했습니다.'; return; }
@@ -6233,7 +6241,7 @@
     var rows=[];
     try{
       var r=await sb.from('schedule_change_requests')
-                    .select('id,student_name,teacher_name,requested_by_name,reason,note,old_starts_at,new_starts_at,new_ends_at,created_at')
+                    .select('id,req_kind,student_name,teacher_name,requested_by_name,reason,note,old_starts_at,new_starts_at,new_ends_at,created_at')
                     .eq('status','pending')
                     .order('created_at',{ascending:true});
       if(r.error){ box.innerHTML=''; return; }
@@ -6246,16 +6254,23 @@
         ? '<button class="wa-al-approve" data-chgok="'+esc(String(q.id))+'">승인</button>'
           +'<button class="wa-al-reject" data-chgno="'+esc(String(q.id))+'">거절</button>'
         : '<span style="color:#8a5a00;font-weight:700">원장님 승인 대기중</span>';
-      return '<li><span class="wa-al-tag t-req">시간변경 요청</span>'
-        + '<b>'+esc(q.student_name||'학생 미지정')+'</b> — '
-        + esc(fmtDT(q.old_starts_at))+' → '+esc(fmtDT(q.new_starts_at))
-        + ' <span style="color:#c0342b;font-weight:800">'+esc(chgReasonLabel(q.reason))+'</span>'
+      var isCancel=(q.req_kind==='cancel');
+      // 휴강 요청은 시간이 안 바뀌므로 '→ 어디로'를 그리면 같은 시각이 두 번 나온다.
+      var what = isCancel
+        ? '<span class="wa-al-tag t-req">휴강 요청</span>'
+        : '<span class="wa-al-tag t-req">시간변경 요청</span>';
+      var when = isCancel
+        ? esc(fmtDT(q.old_starts_at))+' 수업을 휴강 <span style="color:var(--muted)">(횟수 차감 없음)</span>'
+        : esc(fmtDT(q.old_starts_at))+' → '+esc(fmtDT(q.new_starts_at));
+      return '<li>'+what
+        + '<b>'+esc(q.student_name||'학생 미지정')+'</b> — ' + when
+        + (isCancel?'':' <span style="color:#c0342b;font-weight:800">'+esc(chgReasonLabel(q.reason))+'</span>')
         + (q.note?' <span style="color:var(--muted)">'+esc(q.note)+'</span>':'')
         + ' <span style="color:var(--muted)">· '+esc(q.requested_by_name||'?')+' 요청</span>'
         + '<span class="wa-al-sp"></span>'+btns+'</li>';
     }).join('');
     box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
-      + '<div class="wa-al-head">⏰ 24시간 안 수업 변경 요청 <span class="wa-al-badge">'+rows.length+'</span></div>'
+      + '<div class="wa-al-head">⏰ 24시간 안 수업 변경·휴강 요청 <span class="wa-al-badge">'+rows.length+'</span></div>'
       + '<ul>'+lis+'</ul></div>';
   }
   if($('scChgReqBox')) $('scChgReqBox').addEventListener('click', async function(e){
