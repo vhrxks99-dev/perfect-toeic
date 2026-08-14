@@ -6745,6 +6745,11 @@
     if(sb){
       var r=await sb.from('teacher_off').select('*').gte('off_date', ymd(new Date(Date.now()-30*86400000))).order('off_date');
       _offs=(!r.error&&r.data)?r.data:null;
+      // 선생님은 자기 휴무와 학원 전체 휴무만 본다(2026-08-14 원장 지시. 원장·매니저는 전부).
+      // 서버 off_sel 정책이 이미 걸러 주지만, 화면에서도 한 번 더 거른다 — 정책이 빠져도 안 새게.
+      if(_offs && !isOps() && profile){
+        _offs=_offs.filter(function(o){ return o.teacher_id==null || String(o.teacher_id)===String(profile.id); });
+      }
     }
     fillOffTeacher();
     drawOffs();
@@ -6753,6 +6758,10 @@
     var sel=$('offTeacher'); if(!sel) return;
     var keep=sel.value;
     var teachers=_members.filter(function(m){ return m.role==='admin'||m.role==='manager'||m.role==='master'; });
+    // 선생님 계정에는 **본인만** 목록에 올린다(2026-08-14 원장 확인).
+    // 전에는 남의 이름까지 다 그려놓고 고르지만 못하게 잠갔는데, 명단이 보이는 것부터가 불필요하다.
+    // 서버(off_ins 정책)도 admin 은 teacher_id = 본인 것만 넣을 수 있게 막고 있다.
+    if(!isOps() && profile) teachers=teachers.filter(function(t){ return String(t.id)===String(profile.id); });
     var h='';
     // 학원 전체 휴무는 원장·매니저만 넣을 수 있다(서버 규칙과 같음)
     if(isOps()) h+='<option value="__all__">🏫 학원 전체 휴무</option>';
