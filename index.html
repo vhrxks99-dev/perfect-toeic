@@ -3147,6 +3147,20 @@
       <label>강의장<select id="waSeRoom"></select></label>
       <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
       <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
+      <!-- 시간을 바꿀 때만 나온다. 학생 화면에도 그대로 보이므로 사실대로 골라야 한다. -->
+      <label id="waSeReasonBox" style="display:none">시간 변경 사유
+        <span class="wa-hint">학생 '내 학습' 화면에 그대로 보입니다</span>
+        <select id="waSeReason">
+          <option value="">— 골라주세요 —</option>
+          <option value="student">학생분 요청</option>
+          <option value="teacher">선생님 사정</option>
+          <option value="academy">학원 사정</option>
+          <option value="holiday">공휴일 · 휴원</option>
+        </select>
+      </label>
+      <label id="waSeNoteBox" style="display:none">한 줄 설명 <span class="wa-hint">선택</span>
+        <input type="text" id="waSeNote" placeholder="예: 학생분이 시험 일정 때문에 요청">
+      </label>
       <label class="sc-otbox"><input type="checkbox" id="waSeIsOt"> <b>사전 OT (첫 수업)</b>
         <span>수강권 횟수를 차감하지 않습니다.</span></label>
       <p class="wa-err" id="waSeErr"></p>
@@ -3860,6 +3874,8 @@
       <!-- 학생이 넣은 예약 요청. 대시보드 위쪽 알림 배너에도 뜨지만, 원장 지시(2026-08-10)로
            스케줄 탭 안에서도 따로 보이게 한다("수업 스케줄 알림에 따로 뜨게"). -->
       <div id="scPendBox"></div>
+      <!-- 수업 시간이 옮겨진 기록. 원장·매니저만 보인다(applyTabRoles 아님 — renderSchedChanges 가 판단). -->
+      <div id="scChgBox"></div>
       <div class="dash-list-head">🏖️ 휴무 <span id="offCount" style="color:var(--muted);font-weight:700"></span></div>
       <div class="dash-note" style="margin-top:0">여기 넣어둔 날짜·시간에는 <b>학생이 수업 예약을 걸 수 없습니다.</b> 선생님을 <b>학원 전체 휴무</b>로 두면 모든 선생님이 한 번에 쉽니다.<br>휴무는 수업이 아니라서 스케줄표·강의장 배정·정산에 섞이지 않습니다.</div>
       <div class="dash-form" style="margin-top:8px">
@@ -5814,8 +5830,35 @@
     if($('waSeSubject')) $('waSeSubject').value=s.subject||'토익';
     $('waSeMemo').value=s.memo||'';
     if($('waSeIsOt')) $('waSeIsOt').checked=isOtLesson(s);
+    // 시간을 실제로 바꿨을 때만 사유를 묻기 위해 원래 값을 기억해 둔다.
+    _seOrig={ d:$('waSeDate').value, s:$('waSeStart').value, e:$('waSeEnd').value };
+    if($('waSeReason')) $('waSeReason').value='';
+    if($('waSeNote')) $('waSeNote').value='';
+    seToggleReason();
     $('waSeErr').textContent='';
     $('waSchedEdit').classList.add('on');
+  }
+  // 시간이 바뀌었나 — 바뀌었을 때만 사유 칸을 보여준다(강의장·메모만 고치는 경우가 훨씬 많다).
+  var _seOrig=null;
+  function seTimeChanged(){
+    if(!_seOrig) return false;
+    return $('waSeDate').value!==_seOrig.d || $('waSeStart').value!==_seOrig.s || $('waSeEnd').value!==_seOrig.e;
+  }
+  function seToggleReason(){
+    var on=seTimeChanged();
+    if($('waSeReasonBox')) $('waSeReasonBox').style.display=on?'':'none';
+    if($('waSeNoteBox'))   $('waSeNoteBox').style.display=on?'':'none';
+  }
+  ['waSeDate','waSeStart','waSeEnd'].forEach(function(id){
+    if($(id)) $(id).addEventListener('change', seToggleReason);
+  });
+  // 사유 코드를 사람 말로. 학생 화면·원장님 목록에서 같이 쓴다.
+  function chgReasonLabel(r){
+    return r==='student' ? '학생분 요청'
+         : r==='teacher' ? '선생님 사정'
+         : r==='academy' ? '학원 사정'
+         : r==='holiday' ? '공휴일 · 휴원'
+         : '사유 미기재';
   }
   function closeSchedEdit(){ if($('waSchedEdit')) $('waSchedEdit').classList.remove('on'); _seId=null; }
   // 수업 결과 — status 를 사람 말로 바꾼다. 확정(confirmed)이 곧 출석이다.
@@ -5917,17 +5960,23 @@
     var startISO=slotISO(d,s1), endISO=slotISO(d,e1);
     if(endISO<=startISO){ err.textContent='종료 시간이 시작보다 빨라요.'; return; }
     var roomId=$('waSeRoom').value?parseInt($('waSeRoom').value,10):null;
-    var patch={ starts_at:startISO, ends_at:endISO, room_id:roomId,
-                subject:$('waSeSubject').value, memo:($('waSeMemo').value.trim()||null) };
-    if($('waSeIsOt')) patch.is_ot=!!$('waSeIsOt').checked;
-    var r=await sb.from('schedules').update(patch).eq('id',_seId);
-    if(r.error && /is_ot/.test(r.error.message||'')){   // ot_schedule.sql 미실행 시
-      delete patch.is_ot;
-      r=await sb.from('schedules').update(patch).eq('id',_seId);
-      if(!r.error) alert('사전 OT 표시는 저장되지 않았습니다. ot_schedule.sql 을 먼저 실행해주세요.');
+    // 시간을 바꾸면 사유가 있어야 저장된다(서버에서도 막는다).
+    // 이 기록은 학생 '내 학습' 화면에 그대로 보인다 — 그래서 거짓으로 고르면 학생에게 걸린다.
+    var reason=$('waSeReason')?$('waSeReason').value:'';
+    if(seTimeChanged() && !reason){ err.textContent='시간을 바꿀 때는 변경 사유를 골라주세요.'; return; }
+    // 저장은 save_schedule_edit 로만 한다 — 그래야 원래 시간이 기록에 남는다.
+    var r=await sb.rpc('save_schedule_edit',{
+      p_id:_seId, p_starts:startISO, p_ends:endISO, p_room:roomId,
+      p_subject:$('waSeSubject').value, p_memo:($('waSeMemo').value.trim()||null),
+      p_is_ot: $('waSeIsOt')?!!$('waSeIsOt').checked:null,
+      p_reason: reason||null, p_note: ($('waSeNote')&&$('waSeNote').value.trim())||null });
+    if(r.error && /save_schedule_edit/.test(r.error.message||'')){
+      err.textContent='변경 기록 기능이 아직 없습니다. schedule_change_log.sql 을 먼저 실행해주세요.';
+      return;
     }
     // 겹침·강의장 규칙은 서버가 막는다. 그 메시지를 그대로 보여준다.
     if(r.error){ err.textContent=r.error.message; return; }
+    if(r.data && r.data.ok===false){ err.textContent=r.data.msg||'저장하지 못했습니다.'; return; }
     closeSchedEdit();
     await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadTeacherAlerts();
     try{ await loadAttendance(); }catch(e){}   // OT 로 바꾸면 남은 횟수가 달라진다
@@ -6088,6 +6137,7 @@
     // 스케줄 탭 목록은 알림 배너보다 먼저 그린다 — 아래에 'alerts 도 pend 도 없으면 return' 이 있어서
     // 여기서 안 그리면 예약이 0건일 때 스케줄 탭의 옛 목록이 지워지지 않는다.
     drawSchedPending(pend);
+    try{ await renderSchedChanges(); }catch(e){}
     // 2026-08-09 — '등원 기록이 없어요' 노쇼 알림은 없앴다.
     // 등원 키오스크를 걷어낸 뒤로는 아무도 체크인을 찍지 않아서, 끝난 수업이 전부 노쇼 후보로 떴다.
     // 이제 확정된 수업이 곧 출석이고, 안 온 경우만 달력에서 수업을 눌러 '결석'으로 표시한다.
@@ -6129,6 +6179,57 @@
     box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
       + '<div class="wa-al-head">🙋 학생이 넣은 수업 예약 요청 <span class="wa-al-badge">'+pend.length+'</span></div>'
       + '<ul>'+lis+'</ul></div>';
+  }
+  // 수업 시간이 옮겨진 기록 (2026-08-14 원장 지시).
+  // "학생과 약속한 시간을 선생님 사정으로 바꾸는 일이 너무 많은데 관리가 안 된다"가 출발점이다.
+  // 최근 30일치를 강사별로 세어 보여준다 — 느낌이 아니라 숫자로 말할 수 있어야 한다.
+  // RLS 가 알아서 걸러 준다: 원장·매니저는 전체, 선생님은 본인 수업만.
+  async function renderSchedChanges(){
+    var box=$('scChgBox'); if(!box||!sb) return;
+    var since=new Date(Date.now()-30*86400000).toISOString();
+    var rows=[];
+    try{
+      var r=await sb.from('schedule_changes')
+                    .select('id,student_name,teacher_name,kind,reason,note,old_starts_at,new_starts_at,changed_by_name,created_at')
+                    .gte('created_at', since)
+                    .order('created_at',{ascending:false})
+                    .limit(200);
+      if(r.error){ box.innerHTML=''; return; }   // 표가 아직 없으면 조용히 넘어간다
+      rows=r.data||[];
+    }catch(e){ box.innerHTML=''; return; }
+    if(!rows.length){ box.innerHTML=''; return; }
+    // 강사별 집계 — '선생님 사정'만 센다. 학생이 요청한 건 강사 잘못이 아니다.
+    var byT={};
+    rows.forEach(function(c){
+      var k=c.teacher_name||'(담당 없음)';
+      if(!byT[k]) byT[k]={n:0, mine:0};
+      byT[k].n++;
+      if(c.reason==='teacher') byT[k].mine++;
+    });
+    var sum=Object.keys(byT).sort(function(a,b){ return byT[b].mine-byT[a].mine || byT[b].n-byT[a].n; })
+      .map(function(k){
+        var v=byT[k];
+        return '<span style="display:inline-block;margin-right:14px"><b>'+esc(k)+'</b> '
+             + '<span style="color:'+(v.mine>=3?'#c0342b':'#8a5a00')+';font-weight:800">선생님 사정 '+v.mine+'건</span>'
+             + ' <span style="color:var(--muted)">/ 전체 '+v.n+'건</span></span>';
+      }).join('');
+    var lis=rows.slice(0,40).map(function(c){
+      var what = c.kind==='cancel' ? '휴강' : (c.kind==='revive' ? '되살림' : '시간 변경');
+      var when = c.kind==='time'
+        ? esc(fmtDT(c.old_starts_at))+' → '+esc(fmtDT(c.new_starts_at))
+        : esc(fmtDT(c.new_starts_at||c.old_starts_at));
+      var rc = c.reason==='teacher' ? '#c0342b' : (c.reason==='unknown' ? '#8a5a00' : 'var(--muted)');
+      return '<li><span class="wa-al-tag t-req">'+what+'</span>'
+        + '<b>'+esc(c.student_name||'학생 미지정')+'</b> — '+when
+        + ' <span style="color:'+rc+';font-weight:800">'+esc(chgReasonLabel(c.reason))+'</span>'
+        + (c.note?' <span style="color:var(--muted)">'+esc(c.note)+'</span>':'')
+        + ' <span style="color:var(--muted)">· '+esc(c.teacher_name||'-')+' 담당 · '+esc(c.changed_by_name||'?')+' 고침 · '+mdLabel(c.created_at.slice(0,10))+'</span></li>';
+    }).join('');
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
+      + '<div class="wa-al-head">🔁 최근 30일 수업 변경 <span class="wa-al-badge">'+rows.length+'</span></div>'
+      + '<div style="padding:8px 14px;line-height:1.9;font-size:13px">'+sum+'</div>'
+      + '<details><summary style="cursor:pointer;padding:4px 14px 8px;font-weight:700;font-size:13px">건별로 보기</summary><ul>'+lis+'</ul></details>'
+      + '</div>';
   }
   // 최근 '확인함' 처리한 항목 — 잘못 눌렀을 때 되돌리기
   function ackUndoHtml(){
@@ -9115,12 +9216,37 @@
           if(!rr.error) (rr.data||[]).forEach(function(x){ roomMap[String(x.id)]=x.name; });
         }catch(e){}
       }
+      // 시간이 옮겨진 수업은 학생에게 그대로 보여준다(원장 지시 2026-08-14).
+      // 사유를 거짓으로 고르면 학생이 바로 알아채라고 만든 칸이다 — 그래서 학생 화면이 핵심이다.
+      var chgMap={};
+      if(sb && rows.length){
+        try{
+          var rc=await sb.from('schedule_changes')
+                         .select('schedule_id,kind,reason,note,old_starts_at,created_at')
+                         .in('schedule_id', rows.map(function(x){ return x.id; }))
+                         .eq('kind','time')
+                         .order('created_at',{ascending:true});
+          if(!rc.error) (rc.data||[]).forEach(function(c){
+            // 여러 번 옮겼으면 '처음 약속한 시간'을 보여준다. 나중 것으로 덮으면 몇 번을 옮겼는지 가려진다.
+            if(!chgMap[String(c.schedule_id)]) chgMap[String(c.schedule_id)]={ first:c, n:0 };
+            chgMap[String(c.schedule_id)].n++;
+            chgMap[String(c.schedule_id)].last=c;
+          });
+        }catch(e){}
+      }
       if(!rows.length){ $('myschedTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; }
-      else { var h='<tr class="hw-head"><th>일시</th><th>과목</th><th>선생님</th><th>강의장</th></tr>';
+      else { var h='<tr class="hw-head"><th>일시</th><th>과목</th><th>선생님</th><th>강의장</th><th>변경</th></tr>';
         rows.forEach(function(s){
           var rn = s.room_id ? (roomMap[String(s.room_id)]||'배정됨')
                              : (String(profile.lesson_mode||'')==='online' ? '비대면' : '미배정');
-          h+='<tr><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="강의장">'+esc(rn)+'</td></tr>';
+          var c=chgMap[String(s.id)], ch='';
+          if(c){
+            ch='<span style="color:#8a5a00;font-weight:700">'+esc(fmtDT(c.first.old_starts_at))+' 에서 옮김</span>'
+             + '<br><span style="font-size:12.5px;color:var(--muted)">'+esc(chgReasonLabel(c.last.reason))
+             + (c.n>1 ? ' · '+c.n+'번 변경' : '') + '</span>'
+             + (c.last.note ? '<br><span style="font-size:12.5px;color:var(--muted)">'+esc(c.last.note)+'</span>' : '');
+          }
+          h+='<tr><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="강의장">'+esc(rn)+'</td><td data-l="변경">'+ch+'</td></tr>';
         });
         $('myschedTable').innerHTML=h; }
     }
