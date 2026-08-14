@@ -4001,6 +4001,11 @@
         <select id="calTeacher" aria-label="선생님별 보기"><option value="">👩‍🏫 선생님 전체</option></select>
         <input type="text" id="scSearch" placeholder="🔍 학생 이름 검색" autocomplete="off">
         <button class="btn btn-ghost" type="button" id="scSearchClear">지우기</button>
+        <!-- 휴강·결석은 달력에서 뺀다(원장 2026-08-14 "미배정으로 가는 게 아니라 없애는 게
+             날 것 같아, 안 그러면 헷갈려"). 잘못 눌러 되돌려야 할 때만 여기를 켠다. -->
+        <label class="wa-check" style="margin:0;white-space:nowrap">
+          <input type="checkbox" id="calShowOff"> <span>휴강·결석도 보기</span>
+        </label>
         <span class="hit" id="scSearchInfo"></span>
       </div>
       <!-- 검색한 학생의 수업 날짜를 한눈에 (2026-08-12 원장 요청 —
@@ -6613,9 +6618,19 @@
   //    달력을 그리는 renderGrid·renderMonth 에서만 거른다.
   var _calTeacher='';
   function calFilterRows(rows){
-    if(!_calTeacher) return rows;
-    return (rows||[]).filter(function(s){ return String(s.teacher_id||'')===_calTeacher; });
+    var out=rows||[];
+    // 휴강·결석은 강의장을 놓기 때문에 '미배정' 칸으로 내려가 붙는다. 그러면 아직 방을
+    // 안 정한 수업과 섞여서 헷갈린다(원장 2026-08-14). 기본으로 달력에서 뺀다.
+    // 잘못 눌렀을 때 되돌리려면 수업을 눌러야 하므로 '휴강·결석도 보기'로 되살릴 수 있게 뒀다.
+    var showOff=!!($('calShowOff')&&$('calShowOff').checked);
+    if(!showOff) out=out.filter(function(s){
+      var st=s.status||'confirmed';
+      return st!=='canceled' && st!=='noshow';
+    });
+    if(!_calTeacher) return out;
+    return out.filter(function(s){ return String(s.teacher_id||'')===_calTeacher; });
   }
+  if($('calShowOff')) $('calShowOff').onchange=function(){ renderCalendar(); };
   // 명단은 회원이 로드된 뒤에 채워진다. 고른 값은 다시 그려도 유지한다.
   function fillCalTeacher(){
     var sel=$('calTeacher'); if(!sel) return;
