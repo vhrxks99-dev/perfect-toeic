@@ -8268,7 +8268,7 @@
     // 남은 횟수가 1회로 떨어지는 시점 = '다음에 끝나는 수업'이 끝나는 때.
     // 결제 안내를 미리 예고하는 데 쓴다(2026-08-14 원장 요청 — "2회 남은 경우 곧 전송될
     // 학생으로 띄우고, 1회 시점이 언제인지도 같이 보여줘").
-    var nextEnd={}, nowMs=Date.now();
+    var nextEnd={}, future={}, nowMs=Date.now();
     scheds.forEach(function(s){
       if(!countsAsUsed(s)) return;
       used[s.student_id]=(used[s.student_id]||0)+1;
@@ -8279,10 +8279,15 @@
         if(e && e>nowMs){
           var k=s.student_id;
           if(!nextEnd[k] || e<nextEnd[k]) nextEnd[k]=e;
+          // 앞으로 잡혀 있는 수업 날짜 목록 (원장 요청 2026-08-14 —
+          // "잡힌 수업이 4회인데 앞으로 남은 수업이 3회라 헷갈린다").
+          (future[k]=future[k]||[]).push(Date.parse(s.starts_at));
         }
       }
     });
+    Object.keys(future).forEach(function(k){ future[k].sort(function(a,b){ return a-b; }); });
     window.__wtNextEnd=nextEnd;
+    window.__wtFuture=future;
     (adjs||[]).forEach(function(a){ adjSum[a.student_id]=(adjSum[a.student_id]||0)+(a.delta||0); });
     // 결석·휴강 건수 — 선생님이 달력에서 표시한 결과다. 구글발은 횟수를 안 세므로 뺀다.
     var noshowN={}, cancelN={};
@@ -8554,7 +8559,24 @@
       list.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0,
                                     ns=noshowN[s.id]||0, cn=cancelN[s.id]||0,
                                     aj=adjSum[s.id]||0, rem=remainOf(s.id);
-        h+='<tr><td>'+esc(s.name)+'</td><td>'+(pu+aj)+'회</td><td>'+us+'회</td>'
+        // '잡힌 수업' 숫자만 보면 그중 몇 개가 아직 안 한 수업인지 알 수 없다
+        // (원장 2026-08-14 — "정은비 잡힌 수업이 4회인데 앞으로 3회라 헷갈려").
+        // 그래서 앞으로 잡혀 있는 날짜를 숫자 밑에 그대로 적는다.
+        var fut=(window.__wtFuture||{})[s.id]||[];
+        var futTxt='';
+        if(fut.length){
+          // 요일 이름은 여기서 직접 만든다 — 파일 안에 DOW 가 두 벌(월시작·일시작) 있어
+          // 어느 쪽이 잡히는지에 따라 요일이 어긋날 수 있다.
+          var W=['일','월','화','수','목','금','토'];
+          var shown=fut.slice(0,6).map(function(ms){
+            var d=new Date(ms);
+            return (d.getMonth()+1)+'/'+d.getDate()+'('+W[d.getDay()]+')';
+          }).join(' · ');
+          futTxt='<div style="margin-top:3px;font-size:11.5px;font-weight:700;color:var(--muted);white-space:normal">'
+               + '앞으로 '+fut.length+'회 · '+esc(shown)
+               + (fut.length>6 ? (' 외 '+(fut.length-6)+'건') : '') + '</div>';
+        }
+        h+='<tr><td>'+esc(s.name)+'</td><td>'+(pu+aj)+'회</td><td>'+us+'회'+futTxt+'</td>'
          + '<td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td>'
          + (withBtns?('<td style="white-space:nowrap"><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjplus="'+esc(s.id)+'">＋</button> <button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjminus="'+esc(s.id)+'">－</button></td>'):'')
          + '<td>'+(ns?('<b style="color:#c0342b">'+ns+'회</b>'):'<span style="color:var(--muted)">-</span>')+'</td>'
