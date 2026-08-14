@@ -3027,6 +3027,26 @@
 .wa-check{display:flex!important;flex-direction:row!important;align-items:flex-start;gap:8px!important;font-size:12.5px!important;font-weight:600!important;color:var(--ink-soft)!important;cursor:pointer;line-height:1.5;margin-top:6px}
 .wa-check input{margin-top:2px!important;flex:none;width:auto!important;display:inline-block}
 .wa-form .btn{margin-top:6px;width:100%}
+/* 수업 수정 창.
+   이 폼에는 클래스가 없어서 폼 스타일이 하나도 안 걸려 있었다 → 라벨과 입력칸이
+   한 줄에 뒤엉켜 폰에서 못 볼 지경이었다(2026-08-14 원장 지적 "레이아웃이 너무 보기 복잡해").
+   한 줄에 한 칸씩 세우고, 짝이 되는 칸(시작·종료 / 강의장·과목)만 나란히 둔다. */
+#waSchedEditForm{display:flex;flex-direction:column;gap:12px}
+#waSchedEditForm>label:not(.sc-otbox),#waSchedEditForm .se-row>label{display:block;font-size:12.5px;font-weight:800;color:var(--ink-soft);margin:0}
+#waSchedEditForm>label>input:not([type=checkbox]),#waSchedEditForm>label>select,
+#waSchedEditForm .se-row>label>input,#waSchedEditForm .se-row>label>select{
+  display:block;width:100%;margin-top:5px;box-sizing:border-box;padding:11px 13px;
+  border:1.5px solid var(--line-strong);border-radius:10px;font-size:15px;
+  font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
+#waSchedEditForm>label>input:not([type=checkbox]):focus,#waSchedEditForm>label>select:focus,
+#waSchedEditForm .se-row>label>input:focus,#waSchedEditForm .se-row>label>select:focus{
+  outline:2px solid var(--accent);border-color:var(--accent)}
+#waSchedEditForm .se-row{display:flex;gap:10px}
+#waSchedEditForm .se-row>label{flex:1;min-width:0}
+#waSchedEditForm .wa-hint{display:block;font-weight:600;color:var(--muted);font-size:11.5px;margin-top:3px}
+/* 수업 결과는 폼과 성격이 다른 구역이라 카드로 감싸 눈으로 갈라 준다. */
+#waSeResult{border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:var(--surface-2)}
+#waSeResultBtns .btn{width:auto}
 .wa-err{color:#c0342b;font-size:13px;font-weight:600;margin:0}
 /* 저장이 됐는지 안 됐는지 알 수 없다는 지적(2026-08-10). 실패는 빨간 글씨로 뜨는데
    성공은 아무것도 안 떴다. 초록 상자로 "무엇이 잡혔는지"까지 적어 준다. */
@@ -3142,8 +3162,11 @@
     </div>
     <form id="waSchedEditForm" autocomplete="off">
       <label>날짜<input type="date" id="waSeDate" required></label>
-      <label>시작<select id="waSeStart" class="timesel" required></select></label>
-      <label>종료<select id="waSeEnd" class="timesel" required></select></label>
+      <!-- 시작·종료는 짝이라 한 줄에 나란히. 나머지는 한 줄에 하나씩 세운다. -->
+      <div class="se-row">
+        <label>시작<select id="waSeStart" class="timesel" required></select></label>
+        <label>종료<select id="waSeEnd" class="timesel" required></select></label>
+      </div>
       <label>강의장<select id="waSeRoom"></select></label>
       <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
       <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
@@ -5923,15 +5946,17 @@
       // 차감은 그대로 하되 강의장은 놓아야 그 시간 방을 다른 선생님이 쓴다.
       // 문구 주의(2026-08-13 원장 지적): '끝나면'이라고만 써 두면 수업이 끝나야 결석을
       // 찍을 수 있는 줄로 읽힌다. 미리 찍을 수 있다는 걸 문장에서 먼저 말한다.
-      now='<b>예정된 수업</b>입니다. 못 온다고 미리 연락이 오면 <b>지금 바로</b> 결석·휴강을 찍으세요 — 그 시간 강의장이 곧바로 열립니다. 아무것도 안 누르면 끝난 뒤 출석으로 잡힙니다.';
-      btns = hasStu ? [['noshow','결석 · 1회 차감 + 강의장 열림'],['canceled','휴강 · 차감 없고 강의장 열림']]
-                    : [['canceled','휴강 · 차감 없고 강의장이 열립니다']];
+      // 문구는 짧게. 길게 써 두니 오히려 언제 누르는지 모르겠다는 지적을 받았다
+      // (2026-08-14 원장 "휴강은 언제 누르는거야?"). 한 줄 상태 + 한 줄 설명으로 줄인다.
+      now='<b>예정된 수업</b> — 그냥 두시면 출석으로 잡힙니다.';
+      btns = hasStu ? [['noshow','결석 · 1회 차감'],['canceled','휴강 · 차감 없음']]
+                    : [['canceled','휴강 · 차감 없음']];
       hint = hasStu
-        ? '학생 사정으로 안 오면 결석(차감), 학생 잘못이 아니면 휴강(차감 없음)입니다. 둘 다 강의장은 열립니다.'
+        ? '수업을 못 하게 되면 눌러주세요. 학생 사정이면 <b>결석</b>, 선생님·학원 사정이나 공휴일이면 <b>휴강</b>입니다. 미리 눌러도 되고, 둘 다 그 시간 강의장이 바로 열립니다.'
         : '결석을 쓰려면 수업 수정에서 학생을 회원 명단에서 골라주세요.';
     }
     if($('waSeResultNow')) $('waSeResultNow').innerHTML=now;
-    if($('waSeResultHint')) $('waSeResultHint').textContent=hint;
+    if($('waSeResultHint')) $('waSeResultHint').innerHTML=hint;   // <b> 를 쓰므로 innerHTML
     if($('waSeResultBtns')) $('waSeResultBtns').innerHTML=btns.map(function(b){
       return '<button class="btn btn-ghost" type="button" data-lres="'+b[0]+'" style="padding:6px 12px;font-size:13px">'+esc(b[1])+'</button>';
     }).join('');
