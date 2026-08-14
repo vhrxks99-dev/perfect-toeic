@@ -3226,6 +3226,14 @@
   </div>
 </div>
 <!-- 수업 횟수 손보기. 자동 차감(스케줄 기준)은 그대로 두고 예외만 여기서 보정한다. -->
+<div class="wa-overlay" id="waFut" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waFutClose" type="button" aria-label="닫기">&times;</button>
+    <div class="wa-head" id="waFutWho">잡힌 수업</div>
+    <div class="fut-sum" id="waFutSum"></div>
+    <div id="waFutList"></div>
+  </div>
+</div>
 <div class="wa-overlay" id="waAdj" aria-hidden="true">
   <div class="wa-card">
     <button class="wa-x" id="waAdjClose" aria-label="닫기">&times;</button>
@@ -3331,12 +3339,22 @@
    가로 스크롤이 생겨 수정·탈퇴 버튼이 화면 밖으로 밀린다. */
 #waAdmin .wa-card{max-width:1680px;width:100%;max-height:none;min-height:100vh;border-radius:0;box-shadow:none;padding:24px clamp(16px,3vw,40px) 64px}
 #waAdmin .wa-table th,#waAdmin .wa-table td{padding-left:10px;padding-right:10px}
-/* 앞으로 잡힌 수업 날짜 — 좁은 칸에 넣으면 다섯 줄로 접혀서 못 알아본다(원장 2026-08-14).
-   학생 줄 아래에 표 너비를 다 쓰는 줄을 하나 붙여 한 줄로 적는다. */
-.wa-table tr.att-main td{border-bottom:none;padding-bottom:3px}
-.wa-table tr.att-sub td{border-bottom:1px solid var(--line);padding-top:0;padding-bottom:9px;
-  font-size:12px;font-weight:700;color:var(--muted);white-space:normal}
-.wa-table tr.att-sub b{color:var(--ink-soft)}
+/* 학생 이름을 누르면 뜨는 수업 날짜 목록 (원장 2026-08-14 A안).
+   표 안에 날짜를 적으면 칸이 좁아 접히거나 잘린다 — 표는 숫자만 두고 목록은 여기서 본다. */
+#waFutList{max-height:46vh;overflow:auto;margin-top:4px}
+.fut-row{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.fut-row:last-child{border-bottom:none}
+.fut-mark{flex:none;width:20px;text-align:center;font-weight:800}
+.fut-date{flex:none;min-width:96px;font-weight:800;color:var(--ink)}
+.fut-time{flex:1;color:var(--muted);font-size:13px;font-weight:700}
+.fut-tag{flex:none;font-size:12px;font-weight:800;padding:2px 8px;border-radius:999px}
+.fut-done .fut-date,.fut-done .fut-mark{color:var(--muted)}
+.fut-done .fut-tag{background:var(--surface-2);color:var(--muted)}
+.fut-next .fut-tag{background:#eaf2ff;color:#1b5fd0}
+.fut-soon .fut-tag{background:#f3f5f8;color:var(--ink-soft)}
+.fut-sum{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;font-weight:800;margin:2px 0 6px}
+.fut-sum span{color:var(--muted)}
+.fut-sum b{color:var(--ink)}
 #waAdmin .wa-table-wrap{max-height:none}
 #waAdmin .wa-x{top:18px;right:22px;font-size:30px;z-index:5}
 #waAdmin .wa-head{font-size:23px}
@@ -4144,7 +4162,8 @@
         구글 캘린더에서 넘어온 수업과 <b>승인 전 예약 요청</b>은 차감하지 않습니다.<br>
         규칙에서 벗어나는 경우(강사 일정 조정, 서비스 수업 등)는 표의 <b>＋ －</b> 로 날짜·사유를 적어 손으로 맞춰주세요.<br>
         <b>출석은 따로 찍지 않습니다.</b> 잡힌 수업이 곧 출석이고, 학생이 안 왔을 때만 <b>달력에서 그 수업을 눌러</b> 결석·휴강으로 표시하세요.
-        <b>결석</b>은 횟수가 그대로 빠지고, <b>휴강</b>은 1회가 돌아옵니다.
+        <b>결석</b>은 횟수가 그대로 빠지고, <b>휴강</b>은 1회가 돌아옵니다.<br>
+        <b>학생 이름을 누르면</b> 그 학생 수업이 언제언제인지 — 끝난 수업과 앞으로의 수업이 날짜로 다 나옵니다.
       </div>
       <div id="attDue" class="dash-note" style="margin-top:8px;display:none"></div>
       <!-- 선생님은 본인 담당 학생만 보인다. 원장님·매니저만 이 칸으로 선생님을 골라 본다(2026-08-12 원장 지시). -->
@@ -8274,10 +8293,18 @@
     // 남은 횟수가 1회로 떨어지는 시점 = '다음에 끝나는 수업'이 끝나는 때.
     // 결제 안내를 미리 예고하는 데 쓴다(2026-08-14 원장 요청 — "2회 남은 경우 곧 전송될
     // 학생으로 띄우고, 1회 시점이 언제인지도 같이 보여줘").
-    var nextEnd={}, future={}, nowMs=Date.now();
+    var nextEnd={}, lessons={}, nowMs=Date.now();
     scheds.forEach(function(s){
       if(!countsAsUsed(s)) return;
       used[s.student_id]=(used[s.student_id]||0)+1;
+      // '잡힌 수업' 숫자만으로는 그게 언제인지 알 수 없다(원장 2026-08-14 —
+      // "정은비 잡힌 수업이 4회인데 앞으로 3회라 헷갈려", "이전에 잡힌 수업은 하나도 안 보여").
+      // 지난 수업·앞으로의 수업을 한 학생 목록으로 모아 둔다. 학생 이름을 누르면 이걸 보여준다.
+      // 세는 기준은 '잡힌 수업' 숫자와 똑같다(countsAsUsed) — 숫자와 목록이 어긋나면 안 된다.
+      (lessons[s.student_id]=lessons[s.student_id]||[]).push({
+        t: Date.parse(s.starts_at), e: Date.parse(s.ends_at),
+        d: countsAsDone(s), j: s.subject||''
+      });
       // 결제 안내는 '이미 끝난 수업'만 센다 — 서버 sessions_left_done() 과 같은 기준.
       if(countsAsDone(s)) usedDone[s.student_id]=(usedDone[s.student_id]||0)+1;
       else {
@@ -8285,15 +8312,13 @@
         if(e && e>nowMs){
           var k=s.student_id;
           if(!nextEnd[k] || e<nextEnd[k]) nextEnd[k]=e;
-          // 앞으로 잡혀 있는 수업 날짜 목록 (원장 요청 2026-08-14 —
-          // "잡힌 수업이 4회인데 앞으로 남은 수업이 3회라 헷갈린다").
-          (future[k]=future[k]||[]).push(Date.parse(s.starts_at));
         }
       }
     });
-    Object.keys(future).forEach(function(k){ future[k].sort(function(a,b){ return a-b; }); });
+    Object.keys(lessons).forEach(function(k){ lessons[k].sort(function(a,b){ return a.t-b.t; }); });
     window.__wtNextEnd=nextEnd;
-    window.__wtFuture=future;
+    window.__wtLessons=lessons;
+    window.__wtStuById={};       // 이름 클릭 팝업에서 쓴다. attRows 가 채운다.
     (adjs||[]).forEach(function(a){ adjSum[a.student_id]=(adjSum[a.student_id]||0)+(a.delta||0); });
     // 결석·휴강 건수 — 선생님이 달력에서 표시한 결과다. 구글발은 횟수를 안 세므로 뺀다.
     var noshowN={}, cancelN={};
@@ -8565,29 +8590,19 @@
       list.forEach(function(s){ var pu=purchased[s.id]||0, us=used[s.id]||0,
                                     ns=noshowN[s.id]||0, cn=cancelN[s.id]||0,
                                     aj=adjSum[s.id]||0, rem=remainOf(s.id);
-        // '잡힌 수업' 숫자만 보면 그중 몇 개가 아직 안 한 수업인지 알 수 없다
-        // (원장 2026-08-14 — "정은비 잡힌 수업이 4회인데 앞으로 3회라 헷갈려").
-        // 날짜를 '잡힌 수업' 칸 안에 넣었더니 칸이 좁아 다섯 줄로 접혔다("한눈에 안 들어온다").
-        // 그래서 학생 줄 밑에 표 너비를 다 쓰는 줄을 따로 붙여 한 줄로 적는다.
-        var fut=(window.__wtFuture||{})[s.id]||[];
-        var subTxt='';
-        if(fut.length){
-          // 요일 이름은 여기서 직접 만든다 — 파일 안에 DOW 가 두 벌(월시작·일시작) 있어
-          // 어느 쪽이 잡히는지에 따라 요일이 어긋날 수 있다.
-          var W=['일','월','화','수','목','금','토'];
-          var shown=fut.slice(0,4).map(function(ms){
-            var d=new Date(ms);
-            return (d.getMonth()+1)+'/'+d.getDate()+'('+W[d.getDay()]+')';
-          }).join(' · ');
-          subTxt='앞으로 <b>'+fut.length+'회</b> &nbsp; '+esc(shown)
-               + (fut.length>4 ? (' · 외 '+(fut.length-4)+'건') : '');
-        }
-        h+='<tr'+(subTxt?' class="att-main"':'')+'><td>'+esc(s.name)+'</td><td>'+(pu+aj)+'회</td><td>'+us+'회</td>'
+        // 날짜를 표 안에 적는 방법은 두 번 다 실패했다(칸 안 → 다섯 줄로 접힘,
+        // 학생 줄 밑 한 줄 → 회차 많으면 잘림). 원장 선택(2026-08-14, A안):
+        // 표는 숫자만 두고, 학생 이름을 누르면 그 학생 수업 날짜를 전부 띄운다.
+        var les=(window.__wtLessons||{})[s.id]||[];
+        if(window.__wtStuById) window.__wtStuById[s.id]={name:s.name, rem:rem};
+        var nameCell = les.length
+          ? '<a class="wa-link" data-futstu="'+esc(s.id)+'" title="잡힌 수업 날짜 보기">'+esc(s.name)+'</a>'
+          : esc(s.name);
+        h+='<tr><td>'+nameCell+'</td><td>'+(pu+aj)+'회</td><td>'+us+'회</td>'
          + '<td><b style="color:'+(rem>0?'var(--accent)':'#c0342b')+'">'+rem+'회</b></td>'
          + (withBtns?('<td style="white-space:nowrap"><button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjplus="'+esc(s.id)+'">＋</button> <button class="btn btn-ghost" type="button" style="padding:5px 10px;font-size:13px;font-weight:800" data-adjminus="'+esc(s.id)+'">－</button></td>'):'')
          + '<td>'+(ns?('<b style="color:#c0342b">'+ns+'회</b>'):'<span style="color:var(--muted)">-</span>')+'</td>'
-         + '<td>'+(cn?(cn+'회'):'<span style="color:var(--muted)">-</span>')+'</td></tr>';
-        if(subTxt) h+='<tr class="att-sub"><td colspan="'+(withBtns?7:6)+'">📅 '+subTxt+'</td></tr>'; });
+         + '<td>'+(cn?(cn+'회'):'<span style="color:var(--muted)">-</span>')+'</td></tr>'; });
       return h;
     }
     if(!live.length){ $('attTable').innerHTML='<tr><td class="wa-empty">'
@@ -8679,12 +8694,48 @@
     closeAdj();
     await loadAttendance();
   });
-  if($('attTable')) $('attTable').addEventListener('click', function(e){
+  // 학생 이름 → 그 학생의 잡힌 수업 날짜 전부 (지난 것도 같이).
+  // 표에 날짜를 적으면 좁아서 접히거나 잘린다 — 원장이 A안(누르면 목록)을 골랐다(2026-08-14).
+  function openFut(sid){
+    var box=$('waFut'); if(!box) return;
+    var les=(window.__wtLessons||{})[sid]||[];
+    var st=(window.__wtStuById||{})[sid]||{};
+    var W=['일','월','화','수','목','금','토'];   // 파일에 DOW 가 두 벌(월시작·일시작) 있어 여기서 직접 만든다
+    var nowMs=Date.now(), doneN=0, leftN=0, nextIdx=-1;
+    les.forEach(function(x,i){
+      if(x.d) doneN++; else { leftN++; if(nextIdx<0 && x.t>=nowMs) nextIdx=i; }
+    });
+    $('waFutWho').textContent=(st.name||'학생')+' · 잡힌 수업 '+les.length+'회';
+    $('waFutSum').innerHTML='<span>끝난 수업 <b>'+doneN+'회</b></span>'
+      + '<span>앞으로 <b>'+leftN+'회</b></span>'
+      + (st.rem==null?'':'<span>남은 횟수 <b>'+st.rem+'회</b></span>');
+    var h='';
+    les.forEach(function(x,i){
+      var d=new Date(x.t);
+      var cls=x.d?'fut-done':(i===nextIdx?'fut-next':'fut-soon');
+      h+='<div class="fut-row '+cls+'">'
+       + '<div class="fut-mark">'+(x.d?'✓':'·')+'</div>'
+       + '<div class="fut-date">'+(d.getMonth()+1)+'/'+d.getDate()+'('+W[d.getDay()]+')</div>'
+       + '<div class="fut-time">'+hm(x.t)+(x.j&&x.j!=='토익'?(' · '+esc(x.j)):'')+'</div>'
+       + '<div class="fut-tag">'+(x.d?'완료':(i===nextIdx?'다음 수업':'예정'))+'</div>'
+       + '</div>';
+    });
+    $('waFutList').innerHTML = h || '<div class="wa-empty">잡힌 수업이 없습니다.</div>';
+    box.classList.add('on');
+  }
+  function closeFut(){ if($('waFut')) $('waFut').classList.remove('on'); }
+  if($('waFutClose')) $('waFutClose').addEventListener('click', closeFut);
+  if($('waFut')) $('waFut').addEventListener('click', function(e){ if(e.target===this) closeFut(); });
+  function attTableClick(e){
+    var f=(e.target&&e.target.closest)?e.target.closest('a[data-futstu]'):null;
+    if(f){ e.preventDefault(); openFut(f.getAttribute('data-futstu')); return; }
     var p=(e.target&&e.target.closest)?e.target.closest('button[data-adjplus]'):null;
     var m=(e.target&&e.target.closest)?e.target.closest('button[data-adjminus]'):null;
     if(p) openAdj(p.getAttribute('data-adjplus'), 1);
     else if(m) openAdj(m.getAttribute('data-adjminus'), -1);
-  });
+  }
+  if($('attTable')) $('attTable').addEventListener('click', attTableClick);
+  if($('attEndedTable')) $('attEndedTable').addEventListener('click', attTableClick);
   if($('adjTable')) $('adjTable').addEventListener('click', async function(e){
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-adjdel]'):null; if(!a) return;
     e.preventDefault();
