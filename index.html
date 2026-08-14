@@ -8200,12 +8200,24 @@
     var purchased={}, attended={}, used={}, usedDone={}, adjSum={};
     pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
     atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
+    // 남은 횟수가 1회로 떨어지는 시점 = '다음에 끝나는 수업'이 끝나는 때.
+    // 결제 안내를 미리 예고하는 데 쓴다(2026-08-14 원장 요청 — "2회 남은 경우 곧 전송될
+    // 학생으로 띄우고, 1회 시점이 언제인지도 같이 보여줘").
+    var nextEnd={}, nowMs=Date.now();
     scheds.forEach(function(s){
       if(!countsAsUsed(s)) return;
       used[s.student_id]=(used[s.student_id]||0)+1;
       // 결제 안내는 '이미 끝난 수업'만 센다 — 서버 sessions_left_done() 과 같은 기준.
       if(countsAsDone(s)) usedDone[s.student_id]=(usedDone[s.student_id]||0)+1;
+      else {
+        var e=Date.parse(s.ends_at);
+        if(e && e>nowMs){
+          var k=s.student_id;
+          if(!nextEnd[k] || e<nextEnd[k]) nextEnd[k]=e;
+        }
+      }
     });
+    window.__wtNextEnd=nextEnd;
     (adjs||[]).forEach(function(a){ adjSum[a.student_id]=(adjSum[a.student_id]||0)+(a.delta||0); });
     // 결석·휴강 건수 — 선생님이 달력에서 표시한 결과다. 구글발은 횟수를 안 세므로 뺀다.
     var noshowN={}, cancelN={};
@@ -8308,8 +8320,10 @@
       var n=sentBy[sid];
       return !!n && (!!n.sent_at || (n.tries||0) >= 3);
     }
+    // 2회 남은 학생까지 잡는다(원장 요청 2026-08-14). 발송은 그대로 1회일 때만 나가고,
+    // 2회는 '곧 대상이 됩니다'로 미리 알려 주기만 한다.
     var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
-                    .filter(function(x){ return x.rem<=1 && hasSessionsEver(x.s.id) && !alreadyHandled(x.s.id); })
+                    .filter(function(x){ return x.rem<=2 && hasSessionsEver(x.s.id) && !alreadyHandled(x.s.id); })
                     .sort(function(a,b){ return a.rem-b.rem; });
     // 오늘 나간 안내. 목록이 비었을 때 칸을 통째로 숨기면 기능이 죽은 줄 아신다
     // (2026-08-14 원장 "하나로 합친 거 맞아? 모바일에 안 뜨는데?" — 사실은 대상이 0명이었다).
@@ -8336,12 +8350,30 @@
       $('attDue').style.display='';
       return;
     }
-    // 자동으로 나가는 쪽 = 남은 딱 1회 + 번호 있음. 나머지는 손으로 챙겨야 한다.
+    // 세 갈래 — 2회(예고) / 1회(자동 발송) / 손으로 챙길 것.
     function hasPhoneOf(s){ return !!String(s.phone||'').replace(/[^0-9]/g,''); }
-    var auto=due.filter(function(x){ return x.rem===1 && hasPhoneOf(x.s); });
-    var manual=due.filter(function(x){ return !(x.rem===1 && hasPhoneOf(x.s)); });
+    var soon2 =due.filter(function(x){ return x.rem===2; });
+    var auto  =due.filter(function(x){ return x.rem===1 && hasPhoneOf(x.s); });
+    var manual=due.filter(function(x){ return x.rem<=1 && !(x.rem===1 && hasPhoneOf(x.s)); });
+    var nextEnd=window.__wtNextEnd||{};
     var h='💳 <b>결제 안내 '+due.length+'명</b>';
     if(notif===null) h+=' <span style="color:#c0342b;font-weight:700">(안내 대기열이 아직 없습니다 — payment_alert.sql 을 먼저 실행하세요)</span>';
+    if(soon2.length){
+      h+='<div style="margin-top:8px"><b>⏳ 곧 전송될 학생 · '+soon2.length+'명</b>'
+       + '<div style="margin-top:4px;line-height:1.9">'
+       + soon2.map(function(x){
+           var e=nextEnd[x.s.id];
+           // 다음 수업이 끝나면 1회가 되고, 그때부터 자동 발송 대상이 된다.
+           var when = e ? (fmtDT(new Date(e).toISOString())+' 수업 끝나면')
+                        : '<span style="color:#c0342b">다음 수업이 아직 안 잡혔어요</span>';
+           return '<span style="display:inline-block;margin-right:14px"><b>'+esc(x.s.name||'-')+'</b> '
+                + '<span style="font-weight:800">남은 2회</span>'
+                + '<span style="color:var(--muted);font-weight:700"> · '+when+' 1회</span>'
+                + (hasPhoneOf(x.s)?'':' <span style="color:#c0342b;font-weight:800">번호 없음</span>')
+                + '</span>';
+         }).join('')
+       + '</div></div>';
+    }
     if(auto.length){
       h+='<div style="margin-top:8px"><b style="color:#8a5a00">📤 곧 자동으로 나갑니다 · '+auto.length+'명</b>'
        + '<div style="margin-top:4px;line-height:1.9">'
@@ -8367,8 +8399,9 @@
        + '</div></div>';
     }
     h+=sentLine;
-    h+='<div style="margin-top:8px;color:var(--muted);font-weight:700">남은 수업이 <b>딱 1회</b>가 되면 자동 발송 대상이 됩니다. '
-     + '30분마다 확인해서 <b>오전 10시 13분 ~ 오후 8시 43분</b> 사이에 나갑니다.<br>'
+    h+='<div style="margin-top:8px;color:var(--muted);font-weight:700">안내는 남은 수업이 <b>딱 1회</b>가 됐을 때 나갑니다. '
+     + '2회 남은 학생은 미리 알려드리는 것이고 아직 안 나갑니다.<br>'
+     + '30분마다 확인해서 <b>오전 10시 13분 ~ 오후 8시 43분</b> 사이에 발송하고, '
      + '안내가 나갔거나 결제가 들어오면 이 목록에서 저절로 빠집니다.</div>';
     // 실제로 나갈 문구를 그대로 보여준다(원장님 확인용).
     var last=notif&&notif.length?notif[0]:null;
