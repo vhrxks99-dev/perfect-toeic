@@ -3171,14 +3171,15 @@
       <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
       <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
       <!-- 학생 화면에도 그대로 보이므로 사실대로 골라야 한다. 늘 보여준다(안 보이면 없는 줄 아신다). -->
-      <label id="waSeReasonBox">시간 변경 사유
-        <span class="wa-hint" id="waSeReasonHint">시간을 바꿀 때만 필요합니다 · 학생 화면에 그대로 보입니다</span>
+      <label id="waSeReasonBox">사유
+        <span class="wa-hint" id="waSeReasonHint">시간을 바꾸거나 휴강·삭제할 때 필요합니다 · 학생 화면에 그대로 보입니다</span>
         <select id="waSeReason">
           <option value="">— 골라주세요 —</option>
           <option value="student">학생분 요청</option>
           <option value="teacher">선생님 사정</option>
           <option value="academy">학원 사정</option>
           <option value="holiday">공휴일 · 휴원</option>
+          <option value="mistake">잘못 잡은 수업 (없던 일로)</option>
         </select>
       </label>
       <label id="waSeNoteBox">한 줄 설명 <span class="wa-hint">선택</span>
@@ -3189,7 +3190,7 @@
       <p class="wa-err" id="waSeErr"></p>
       <div class="wa-admin-actions" style="margin:0">
         <button class="btn btn-primary" type="submit">저장</button>
-        <button class="btn btn-ghost" type="button" id="waSeDel" style="color:#c0342b">이 수업 삭제</button>
+        <button class="btn btn-ghost" type="button" id="waSeDel" style="color:#c0342b" title="달력에서 아예 없앱니다. 취소된 수업은 휴강으로 두세요.">잘못 잡은 수업 지우기</button>
       </div>
     </form>
   </div>
@@ -5935,7 +5936,7 @@
     var lab=$('waSeReasonHint');
     if(lab) lab.innerHTML = on
       ? '<b style="color:#c0342b">시간을 바꾸셨어요 — 사유를 꼭 골라주세요</b>'
-      : '시간을 바꿀 때만 필요합니다 · 학생 화면에 그대로 보입니다';
+      : '시간을 바꾸거나 휴강·삭제할 때 필요합니다 · 학생 화면에 그대로 보입니다';
   }
   ['waSeDate','waSeStart','waSeEnd'].forEach(function(id){
     if($(id)) $(id).addEventListener('change', seToggleReason);
@@ -5946,6 +5947,7 @@
          : r==='teacher' ? '선생님 사정'
          : r==='academy' ? '학원 사정'
          : r==='holiday' ? '공휴일 · 휴원'
+         : r==='mistake' ? '잘못 잡은 수업'
          : '사유 미기재';
   }
   function closeSchedEdit(){ if($('waSchedEdit')) $('waSchedEdit').classList.remove('on'); _seId=null; }
@@ -6004,8 +6006,10 @@
       now='<b>예정된 수업</b> — 그냥 두시면 출석으로 잡힙니다.';
       btns = hasStu ? [['noshow','결석 · 1회 차감'],['canceled','휴강 · 차감 없음']]
                     : [['canceled','휴강 · 차감 없음']];
+      // 원장 2026-08-14 "휴강이랑 삭제랑 뭐가 다른지 오히려 헷갈려" → 여기서 갈라 준다.
       hint = hasStu
-        ? '수업을 못 하게 되면 눌러주세요. 학생 사정이면 <b>결석</b>, 선생님·학원 사정이나 공휴일이면 <b>휴강</b>입니다. 미리 눌러도 되고, 둘 다 그 시간 강의장이 바로 열립니다.'
+        ? '수업을 못 하게 되면 눌러주세요. 학생이 안 오면 <b>결석</b>(차감), 그 밖의 사정이면 <b>휴강</b>(차감 없음)입니다. 미리 눌러도 되고 둘 다 강의장이 바로 열립니다.'
+          + '<br><b>취소된 수업은 휴강</b>으로 두세요. 아래 <b>삭제</b>는 <b>잘못 잡은 수업</b>(중복 입력 같은 것)을 없던 일로 만들 때만 씁니다 — 달력에서 아예 사라집니다.'
         : '결석을 쓰려면 수업 수정에서 학생을 회원 명단에서 골라주세요.';
     }
     if($('waSeResultNow')) $('waSeResultNow').innerHTML=now;
@@ -6019,11 +6023,20 @@
     var b=(e.target&&e.target.closest)?e.target.closest('[data-lres]'):null;
     if(!b||!_seId||!sb) return;
     var want=b.getAttribute('data-lres'), err=$('waSeErr'); err.textContent='';
+    // 휴강에도 사유를 받는다(원장 2026-08-14 "사유 기재하는 곳이 없어").
+    // 확인창보다 먼저 검사한다 — 확인을 누른 뒤에 막으면 두 번 일하게 된다.
+    var lreason=($('waSeReason')&&$('waSeReason').value)||'';
+    if(want==='canceled' && !lreason){
+      err.textContent='휴강 사유를 아래 ‘사유’ 칸에서 골라주세요.';
+      if($('waSeReason')) $('waSeReason').focus();
+      return;
+    }
     if(want==='noshow' && !confirm('결석으로 표시할까요?\n\n· 수업 횟수 1회는 그대로 차감됩니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
     if(want==='canceled' && !confirm('휴강으로 표시할까요?\n\n· 수업 횟수 1회가 학생에게 돌아갑니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
     // 24시간 안 휴강은 선생님이 바로 못 찍는다 → 원장님 승인 요청으로 넘어간다(원장 지시 2026-08-14).
     // 결석은 횟수가 차감되므로 그대로 바로 처리된다. 판단은 서버(request_lesson_result)가 한다.
-    var r=await sb.rpc('request_lesson_result',{p_id:_seId, p_result:want});
+    var r=await sb.rpc('request_lesson_result',{p_id:_seId, p_result:want,
+      p_reason: lreason||null, p_note: ($('waSeNote')&&$('waSeNote').value.trim())||null});
     if(r.error){
       err.textContent = /request_lesson_result|set_lesson_result/.test(String(r.error.message||''))
         ? '수업 결과 기능이 아직 없습니다. lesson_result.sql / schedule_change_log.sql 을 먼저 실행해주세요.'
@@ -6089,6 +6102,13 @@
   // 달력에서 바로 지울 수 있게 (중복으로 잡힌 수업 정리용). 지우면 수업 횟수도 1회 돌아온다.
   if($('waSeDel')) $('waSeDel').onclick=async function(){
     if(!_seId||!sb) return;
+    // 지울 때도 사유를 받는다(원장 2026-08-14). 안 고르면 서버도 거부한다.
+    var dreason=($('waSeReason')&&$('waSeReason').value)||'';
+    if(!dreason){
+      $('waSeErr').textContent='삭제 사유를 아래 ‘사유’ 칸에서 골라주세요. 잘못 잡은 수업이면 ‘잘못 잡은 수업’을 고르세요.';
+      if($('waSeReason')) $('waSeReason').focus();
+      return;
+    }
     var who=($('waSeWho')&&$('waSeWho').textContent)||'';
     if(!confirm('이 수업을 삭제할까요?\n\n'+who+'\n'+$('waSeDate').value+' '+$('waSeStart').value+'~'+$('waSeEnd').value
                 +'\n\n삭제하면 학생 수업 횟수가 1회 돌아옵니다.')) return;
