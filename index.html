@@ -3583,6 +3583,7 @@
 .exam-next .en-sub{margin-top:3px;font-size:13.5px;color:var(--muted)}
 /* 카드(박스) 배치 — 원장 지시 2026-08-13 "스터디 레이아웃처럼 각각 박스로" */
 .exam-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:12px;margin-bottom:12px}
+.ex-short{display:none}
 .ex-card{border:1px solid var(--line-strong);border-radius:14px;padding:15px 17px;background:var(--surface)}
 .ex-card.ex-wide{grid-column:1/-1;max-width:560px}
 .ex-card.is-next{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
@@ -3633,6 +3634,18 @@
 .exam-note p{margin:0 0 4px}
 .exam-note .exam-src{margin-top:8px;font-size:13px;color:var(--muted)}
 @media(max-width:640px){
+  /* 시험 일정 칸 — 한 줄에 세 칸. 큰 칸이 세로로 늘어서서 밑으로 한참 내려야 했다
+     (원장 2026-08-14). 좁아진 칸에는 '8월 23일 (일)' 대신 '8/23(일)' 을 쓴다(.ex-short). */
+  .exam-grid{grid-template-columns:repeat(3,1fr);gap:7px}
+  .ex-long{display:none}
+  .ex-short{display:inline}
+  .ex-card{padding:9px 8px;border-radius:11px}
+  .ex-card.ex-wide{max-width:none}
+  .ex-h{flex-direction:column;align-items:flex-start;gap:4px}
+  .ex-h b{font-size:13.5px;letter-spacing:-.3px}
+  .ex-badge{font-size:11px;padding:1px 7px}
+  .ex-round{margin-top:4px;font-size:11px}
+  .ex-sub{margin-top:4px;font-size:11px;line-height:1.45}
   .exam-wrap{border:none;border-radius:0;overflow:visible;background:transparent}
   .exam-table, .exam-table tbody, .exam-table tr, .exam-table td{display:block;width:100%}
   .exam-table thead{display:none}
@@ -10203,6 +10216,14 @@
     return y+fmt(x)+' ('+DOW[x.getDay()]+')';
   }
   function days(x){ return Math.round((x-today)/86400000); }
+  // 휴대폰에서는 한 줄에 세 칸씩 넣는다(원장 2026-08-14 — "밑으로 쭉쭉 내려야 해서 불편해").
+  // 칸이 좁아지면 '8월 23일 (일)' 같은 긴 표기가 네 줄로 접히므로 짧은 표기를 같이 만들어
+  // CSS 로 바꿔 끼운다(.ex-long ↔ .ex-short).
+  function shortD(x){
+    // 해가 넘어가면 연도를 붙인다. '27.1/6' 은 날짜처럼 안 읽혀서 '27년 1/6' 으로 쓴다.
+    var y = x.getFullYear()!==today.getFullYear() ? (String(x.getFullYear()).slice(2)+'년 ') : '';
+    return y+(x.getMonth()+1)+'/'+x.getDate()+'('+DOW[x.getDay()]+')';
+  }
 
   // 한국TOEIC위원회 공식 시험일정 (exam.toeic.co.kr) — 회차 / 시험일 / 성적발표일
   var TOEIC=[
@@ -10243,12 +10264,17 @@
       badge='<span class="ex-badge gray">'+(rl>0?('성적 D-'+rl):(rl===0?'성적 오늘':'종료'))+'</span>';
     }
     // 토익은 거의 다 일요일이라 토요일 회차만 짚어 준다. 토스는 토·일이 정상이라 안 붙인다.
-    var sat = (round && ex.getDay()===6) ? '<b class="exam-sat">토요일 시험</b>' : '';
-    var mid = round ? (round + (sat?(' · '+sat):'')) : '';
+    var isSat = round && ex.getDay()===6;
+    var mid = round
+      ? ('<span class="ex-long">'+round+(isSat?' · <b class="exam-sat">토요일 시험</b>':'')+'</span>'
+        +'<span class="ex-short">'+round.replace('제','')+(isSat?' <b class="exam-sat">토</b>':'')+'</span>')
+      : '';
     return '<div class="'+cls+'">'
-      + '<div class="ex-h"><b>'+full(ex)+'</b>'+badge+'</div>'
+      + '<div class="ex-h"><b><span class="ex-long">'+full(ex)+'</span>'
+      + '<span class="ex-short">'+shortD(ex)+'</span></b>'+badge+'</div>'
       + (mid ? ('<div class="ex-round">'+mid+'</div>') : '')
-      + '<div class="ex-sub">성적 발표 '+full(rp)+' '+time+'</div></div>';
+      + '<div class="ex-sub"><span class="ex-long">성적 발표 '+full(rp)+' '+time+'</span>'
+      + '<span class="ex-short">성적 '+shortD(rp)+'</span></div></div>';
   }
 
   // 토익 — 성적까지 다 나온 회차는 화면에서 뺀다(성적 기다리는 중이면 남겨 둔다)
