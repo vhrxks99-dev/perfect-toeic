@@ -3877,7 +3877,7 @@
          선생님 계정에서는 RLS 가 본인 담당 수업만 내려 준다. -->
     <div class="dash-pane" data-dpane="chglog">
       <div class="dash-list-head">📝 수업 변경 기록 <span id="clCount" style="color:var(--muted);font-weight:700"></span></div>
-      <div class="dash-note" style="margin-top:0">수업 시간을 옮기거나 휴강·삭제한 기록입니다. <b>누가 했는지 그대로 남습니다 — 원장님이 직접 하신 것도 포함됩니다.</b><br>새로 잡은 수업은 여기 안 나옵니다(달력에서 보시면 됩니다).</div>
+      <div class="dash-note" style="margin-top:0">수업 시간을 옮기거나 휴강·삭제한 기록입니다. <b>누가 했는지 그대로 남습니다 — 원장님이 직접 하신 것도 포함됩니다.</b><br>기본으로 <b>수업 시작 24시간 안에 손댄 것</b>만 보여드립니다. 여유 있게 미리 바꾼 건 '범위'를 전체로 두면 나옵니다.<br>새로 잡은 수업은 여기 안 나옵니다(달력에서 보시면 됩니다).</div>
       <div class="dash-form" style="margin-top:8px">
         <div class="dash-row">
           <label>기간
@@ -3886,6 +3886,15 @@
               <option value="30" selected>최근 30일</option>
               <option value="90">최근 90일</option>
               <option value="0">전체</option>
+            </select>
+          </label>
+          <!-- 원장 지시 2026-08-14: "24시간 내에 된 거만 기록되면 돼. 24시간 전 변경은 자유롭게".
+               기록 자체는 다 남긴다(지우면 나중에 되살릴 수 없다). 대신 화면 기본을 24시간 안으로 두고,
+               전체를 보고 싶으면 여기서 바꾸면 된다. -->
+          <label>범위
+            <select id="clScope">
+              <option value="late" selected>수업 24시간 안에 한 것만</option>
+              <option value="all">전체</option>
             </select>
           </label>
           <label>종류
@@ -6425,7 +6434,14 @@
     var kind=($('clKind')&&$('clKind').value)||'';
     var who=($('clWho')&&$('clWho').value)||'';
     var qs=(($('clSearch')&&$('clSearch').value)||'').trim();
+    var scope=($('clScope')&&$('clScope').value)||'late';
     var rows=_chgAll.filter(function(c){
+      // '수업 시작까지 24시간이 안 남았을 때 손댄 것'만 기본으로 본다(원장 지시 2026-08-14).
+      // 판단 기준 = 원래 수업 시각 − 고친 시각 < 24시간.
+      if(scope==='late'){
+        var base=Date.parse(c.old_starts_at||c.new_starts_at), at=Date.parse(c.created_at);
+        if(!base || !at || (base-at) >= 24*3600*1000) return false;
+      }
       if(kind && (c.kind||'time')!==kind) return false;
       if(who && (c.changed_by_name||'')!==who) return false;
       if(qs && String(c.student_name||'').indexOf(qs)<0) return false;
@@ -6478,6 +6494,7 @@
     $('clReqTable').innerHTML=h;
   }
   if($('clDays'))   $('clDays').onchange=loadChgLog;
+  if($('clScope'))  $('clScope').onchange=drawChgLog;
   if($('clKind'))   $('clKind').onchange=drawChgLog;
   if($('clWho'))    $('clWho').onchange=drawChgLog;
   if($('clSearch')) $('clSearch').oninput=drawChgLog;
@@ -9149,8 +9166,12 @@
     // 수납(학생이 낸 돈 등록·조회)은 원장님·매니저 업무다.
     // 선생님은 '정산' 탭에서 본인 급여만 본다.
     c.querySelectorAll('.dash-tab[data-dtab="pay"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
+    // 변경기록은 원장님·매니저만 본다(원장 지시 2026-08-14).
+    // 서로 확인하려고 만든 자리라 선생님에게 열면 취지가 달라진다.
+    c.querySelectorAll('.dash-tab[data-dtab="chglog"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
     if(!ops && c.querySelector('.dash-pane[data-dpane="pay"].on')) dashTab('payroll');
     if(!ops && c.querySelector('.dash-pane[data-dpane="eval"].on')) dashTab('members');
+    if(!ops && c.querySelector('.dash-pane[data-dpane="chglog"].on')) dashTab('members');
   }
 
 
