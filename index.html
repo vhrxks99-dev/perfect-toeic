@@ -8311,7 +8311,31 @@
     var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
                     .filter(function(x){ return x.rem<=1 && hasSessionsEver(x.s.id) && !alreadyHandled(x.s.id); })
                     .sort(function(a,b){ return a.rem-b.rem; });
-    if(!due.length){ $('attDue').style.display='none'; $('attDue').innerHTML=''; return; }
+    // 오늘 나간 안내. 목록이 비었을 때 칸을 통째로 숨기면 기능이 죽은 줄 아신다
+    // (2026-08-14 원장 "하나로 합친 거 맞아? 모바일에 안 뜨는데?" — 사실은 대상이 0명이었다).
+    // 그래서 '없습니다'라고 적고, 오늘 나간 것을 같이 보여준다.
+    var nameById={};
+    (_members||[]).forEach(function(m){ nameById[String(m.id)]=m.name; });
+    var todayStr=ymd(new Date());
+    var sentToday=(notif||[]).filter(function(n){
+      return n.sent_at && ymd(new Date(n.sent_at))===todayStr;
+    });
+    var sentLine = sentToday.length
+      ? '<div style="margin-top:8px"><b style="color:#0f7a52">✅ 오늘 나간 안내 · '+sentToday.length+'명</b>'
+        + '<div style="margin-top:4px;line-height:1.9">'
+        + sentToday.map(function(n){
+            return '<span style="display:inline-block;margin-right:14px"><b>'
+                 + esc(nameById[String(n.student_id)]||'-')+'</b> '
+                 + '<span style="color:var(--muted);font-weight:700">'+esc(hm(n.sent_at))+'</span></span>';
+          }).join('')
+        + '</div></div>'
+      : '';
+    if(!due.length){
+      $('attDue').innerHTML='💳 <b>결제 안내</b> <span style="color:var(--muted);font-weight:700">지금 안내가 필요한 학생은 없습니다.</span>'
+        + sentLine;
+      $('attDue').style.display='';
+      return;
+    }
     // 자동으로 나가는 쪽 = 남은 딱 1회 + 번호 있음. 나머지는 손으로 챙겨야 한다.
     function hasPhoneOf(s){ return !!String(s.phone||'').replace(/[^0-9]/g,''); }
     var auto=due.filter(function(x){ return x.rem===1 && hasPhoneOf(x.s); });
@@ -8342,6 +8366,7 @@
          }).join('')
        + '</div></div>';
     }
+    h+=sentLine;
     h+='<div style="margin-top:8px;color:var(--muted);font-weight:700">남은 수업이 <b>딱 1회</b>가 되면 자동 발송 대상이 됩니다. '
      + '30분마다 확인해서 <b>오전 10시 13분 ~ 오후 8시 43분</b> 사이에 나갑니다.<br>'
      + '안내가 나갔거나 결제가 들어오면 이 목록에서 저절로 빠집니다.</div>';
