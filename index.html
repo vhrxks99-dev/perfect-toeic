@@ -3126,19 +3126,19 @@
     <div class="wa-sub">회원가입 후 학습 기록·수업 예약을 관리하세요.</div>
     <div class="wa-tabs"><button class="wa-tab on" data-tab="login">로그인</button><button class="wa-tab" data-tab="signup">회원가입</button></div>
     <form class="wa-form on" id="waLoginForm" data-form="login" autocomplete="on">
-      <label>이메일<input type="email" id="waLoginEmail" required placeholder="you@example.com"></label>
-      <label>비밀번호<input type="password" id="waLoginPw" required></label>
-      <label class="wa-check" style="margin-top:0"><input type="checkbox" id="waRemember"><span>아이디 저장</span></label>
+      <label>이메일<input type="email" id="waLoginEmail" name="username" autocomplete="username" required placeholder="you@example.com"></label>
+      <label>비밀번호<input type="password" id="waLoginPw" name="password" autocomplete="current-password" required></label>
+      <label class="wa-check" style="margin-top:0"><input type="checkbox" id="waRemember"><span>아이디·비밀번호 저장</span></label>
       <p class="wa-err" id="waLoginErr"></p>
       <button class="btn btn-primary" type="submit">로그인</button>
       <div class="wa-find"><a href="#" id="waFindId">이메일(아이디) 찾기</a><span class="wa-fsep">·</span><a href="#" id="waFindPw">비밀번호 찾기</a></div>
     </form>
     <form class="wa-form" id="waSignupForm" data-form="signup" autocomplete="on">
-      <label>이름 <em>*</em><input type="text" id="waSuName" required maxlength="20"></label>
-      <label>이메일 <em>*</em> <span class="wa-hint">(로그인 아이디)</span><input type="email" id="waSuEmail" required placeholder="you@example.com"></label>
+      <label>이름 <em>*</em><input type="text" id="waSuName" autocomplete="name" required maxlength="20"></label>
+      <label>이메일 <em>*</em> <span class="wa-hint">(로그인 아이디)</span><input type="email" id="waSuEmail" name="username" autocomplete="username" required placeholder="you@example.com"></label>
       <div class="wa-row">
-        <label>비밀번호 <em>*</em><input type="password" id="waSuPw" required placeholder="6자 이상"></label>
-        <label>비밀번호 확인 <em>*</em><input type="password" id="waSuPw2" required></label>
+        <label>비밀번호 <em>*</em><input type="password" id="waSuPw" autocomplete="new-password" required placeholder="6자 이상"></label>
+        <label>비밀번호 확인 <em>*</em><input type="password" id="waSuPw2" autocomplete="new-password" required></label>
       </div>
       <p class="wa-match" id="waPwMatch" aria-live="polite"></p>
       <label>휴대폰 번호 <em>*</em><input type="tel" id="waSuPhone" required maxlength="30" placeholder="010-1234-5678"></label>
@@ -4690,9 +4690,26 @@
       else { var tOpt=$('waSuTeacher').options[$('waSuTeacher').selectedIndex];
              teacherMsg='\n\n희망 선생님: '+(tOpt?tOpt.textContent:'')+'\n담당 선생님은 학원에서 확인 후 정해집니다.'; }
     }
+    // 가입한 아이디·비밀번호도 브라우저에 맡겨 둔다 — 학생들이 가장 많이 까먹는 지점이다.
+    // 폼을 비우기 전에 불러야 한다.
+    await storeLoginCred(email, pw, true);
     $('waSignupForm').reset(); closeModal(); await refresh();
     alert(name+'님, 회원가입이 완료되었습니다!'+teacherMsg);
   });
+
+  // 브라우저(크롬·엣지·사파리)의 비밀번호 저장소에 로그인 정보를 맡긴다.
+  // 이 사이트는 화면을 새로 불러오지 않고 로그인하므로(모달+ajax) 브라우저가 스스로
+  // "저장할까요?"를 못 띄우는 때가 많다 → 아래처럼 직접 맡겨야 확실하다.
+  // 지원 안 하는 브라우저(사파리 일부)면 조용히 넘어간다 — 로그인 자체는 영향 없다.
+  // force=true 는 가입 직후 — 갓 만든 계정이라 체크박스와 상관없이 한 번 맡겨 둔다
+  // (저장할지 말지는 어차피 브라우저가 본인에게 물어본다).
+  async function storeLoginCred(email, pw, force){
+    try{
+      if(!force && $('waRemember') && !$('waRemember').checked) return;   // 저장 안 하겠다고 하면 맡기지 않는다
+      if(!window.PasswordCredential || !navigator.credentials || !navigator.credentials.store) return;
+      await navigator.credentials.store(new window.PasswordCredential({ id: email, password: pw, name: email }));
+    }catch(e){}
+  }
 
   if($('waLoginForm')) $('waLoginForm').addEventListener('submit', async function(e){
     e.preventDefault();
@@ -4702,6 +4719,11 @@
     var li=await sb.auth.signInWithPassword({email:email,password:pw});
     if(li.error){ err.textContent=authErr(li.error.message); return; }
     try{ if($('waRemember') && $('waRemember').checked) localStorage.setItem('wt_saved_email', email); else localStorage.removeItem('wt_saved_email'); }catch(e){}
+    // 브라우저 비밀번호 저장소에 아이디·비밀번호를 함께 맡긴다 (2026-08-15 원장 지시 —
+    // "아이디·비밀번호를 까먹는 학생이 너무 많다"). 다음부터는 로그인 칸이 자동으로 채워진다.
+    // ⚠️ 반드시 closeModal() 앞에서 부를 것 — 폼이 화면에서 사라진 뒤엔 크롬이 저장 안내를 안 띄운다.
+    // 저장 여부는 결국 브라우저가 사용자에게 물어보므로 실패해도 로그인은 그대로 진행한다.
+    await storeLoginCred(email, pw);
     $('waLoginPw').value=''; closeModal(); await refresh();
   });
   (function(){ try{ var em=localStorage.getItem('wt_saved_email'); if(em){ if($('waLoginEmail')) $('waLoginEmail').value=em; if($('waRemember')) $('waRemember').checked=true; } }catch(e){} })();
@@ -9899,9 +9921,13 @@
     var offAll=(!offRes.error&&offRes.data)?offRes.data:[];
     // 그날 쓸 교재 (2026-08-13). 지난 회차 것은 서버가 아예 안 내려주고, 새벽에 소각된다.
     // 표가 아직 없거나(=SQL 미실행) 자격이 없으면 조용히 빈 목록으로 둔다.
+    // ⚠️ 2026-08-15 원장 지시로 '오늘 이후 전부'(gte) → '스터디 당일만'(eq) 으로 좁혔다.
+    //    미리 여러 회차를 올려 둬도 학생은 그날이 되어야 받을 수 있다.
+    //    서버(study_files.sql 의 sf_read · study_file_readable)에도 같은 잣대가 걸려 있다 —
+    //    여기만 고치면 화면에서만 안 보일 뿐 주소를 알면 받아진다. 둘 다 고칠 것.
     var myFiles=[];
     try{
-      var fr=await sb.from('study_files').select('id,study_date,name,path,size').gte('study_date',today).order('created_at');
+      var fr=await sb.from('study_files').select('id,study_date,name,path,size').eq('study_date',today).order('created_at');
       if(!fr.error && fr.data) myFiles=fr.data;
     }catch(e){}
     // 내가 어느 강의장인지 (2026-08-13). 아직 안 나눴으면 비어 있다.
