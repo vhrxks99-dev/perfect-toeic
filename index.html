@@ -9453,6 +9453,22 @@
   if($('hwDueNext'))  $('hwDueNext').onclick  = function(){ hwShiftDue(1); };
   if($('hwDueToday')) $('hwDueToday').onclick = function(){ hwSetDue(hwYmd(new Date())); };
   if($('hwDueAll'))   $('hwDueAll').onclick   = function(){ hwDayMode = (hwDayMode==='all' ? 'date' : 'all'); drawHw(); };
+  // 저장이 막혔을 때 사람이 읽을 수 있는 말로 바꿔 준다 (2026-08-16 원장 "숙제 등록 안돼 버그생겼어").
+  // 그때 화면에 뜬 건 new row violates row-level security policy for table "homeworks" 였다.
+  // 서버 설정(정책·등급·칸별 권한)은 전부 정상이었고, 실제 원인은 **로그인 만료**로 보였다 —
+  // 페이지를 오래 열어 두면 화면은 로그인된 것처럼 보이는데 토큰만 죽어서 서버가 이 영어 문구를 뱉는다.
+  // 그래서 세션이 살아 있는지 물어보고 그에 맞는 안내를 준다. 영어 원문은 그대로 두면 아무도 못 읽는다.
+  async function saveErrMsg(e){
+    var m=String((e&&e.message)||'');
+    if(/row-level security|JWT|not authenticated|permission denied/i.test(m)){
+      var live=false;
+      try{ var s=await sb.auth.getSession(); live=!!(s&&s.data&&s.data.session); }catch(_){}
+      return live
+        ? '저장 권한이 없습니다. 원장님과 담당 선생님만 등록할 수 있어요.\n계속 이러면 로그아웃 후 다시 로그인해 보세요.'
+        : '로그인이 풀렸습니다. 새로고침한 뒤 다시 로그인해주세요.';
+    }
+    return '저장 실패: '+m;
+  }
   if($('hwAdd')) $('hwAdd').onclick=async function(){
     if(!sb||!profile) return;
     var err=$('hwErr'); if(err) err.textContent='';
@@ -9469,7 +9485,12 @@
       r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content});
     }
     if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
-    if(r.error){ if(err) err.textContent='저장 실패: '+r.error.message; return; }
+    if(r.error){
+      var msg=await saveErrMsg(r.error);
+      if(err){ err.textContent=msg; try{ err.scrollIntoView({block:'center'}); }catch(_){ } }
+      alert(msg);      // 빨간 글씨만 두면 화면 밖일 때 그냥 안 눌린 줄 안다
+      return;
+    }
     hwReset(); await loadHomework();
   };
   // 선생님이 숙제 목록에서 직접 체크 — 항목 체크(data-thw)와 선생님 확인(data-tchk)
