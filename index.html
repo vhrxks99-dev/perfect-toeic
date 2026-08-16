@@ -3189,16 +3189,10 @@
       <div id="waSeResultHint" class="wa-hint" style="margin-top:6px"></div>
     </div>
     <form id="waSchedEditForm" autocomplete="off">
-      <label>날짜<input type="date" id="waSeDate" required></label>
-      <!-- 시작·종료는 짝이라 한 줄에 나란히. 나머지는 한 줄에 하나씩 세운다. -->
-      <div class="se-row">
-        <label>시작<select id="waSeStart" class="timesel" required></select></label>
-        <label>종료<select id="waSeEnd" class="timesel" required></select></label>
-      </div>
-      <label>강의장<select id="waSeRoom"></select></label>
-      <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
-      <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
-      <!-- 학생 화면에도 그대로 보이므로 사실대로 골라야 한다. 늘 보여준다(안 보이면 없는 줄 아신다). -->
+      <!-- 🚨 사유 칸은 '수업 결과' 버튼 바로 밑에 둔다(2026-08-16 원장 "휴강 버튼 누르고
+           사유도 적었는데 수정 안 돼"). 전에는 메모 아래·창 한참 밑에 있어서,
+           휴강을 누르면 '사유를 골라주세요'가 화면 밖에 찍혀 아무 일도 안 일어난 것처럼 보였다.
+           휴강·결석·삭제·시간변경이 모두 이 칸을 쓰므로 위에 있는 게 맞다. -->
       <label id="waSeReasonBox">사유
         <span class="wa-hint" id="waSeReasonHint">시간을 바꾸거나 휴강·삭제할 때 필요합니다 · 학생 화면에 그대로 보입니다</span>
         <select id="waSeReason">
@@ -3215,6 +3209,15 @@
       <label id="waSeNoteBox">한 줄 설명 <span class="wa-hint">선택</span>
         <input type="text" id="waSeNote" placeholder="예: 학생분이 시험 일정 때문에 요청">
       </label>
+      <label>날짜<input type="date" id="waSeDate" required></label>
+      <!-- 시작·종료는 짝이라 한 줄에 나란히. 나머지는 한 줄에 하나씩 세운다. -->
+      <div class="se-row">
+        <label>시작<select id="waSeStart" class="timesel" required></select></label>
+        <label>종료<select id="waSeEnd" class="timesel" required></select></label>
+      </div>
+      <label>강의장<select id="waSeRoom"></select></label>
+      <label>과목<select id="waSeSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
+      <label>메모<input type="text" id="waSeMemo" placeholder="선택"></label>
       <label class="sc-otbox"><input type="checkbox" id="waSeIsOt"> <b>사전 OT (첫 수업)</b>
         <span>수강권 횟수를 차감하지 않습니다.</span></label>
       <p class="wa-err" id="waSeErr"></p>
@@ -6036,6 +6039,21 @@
   ['waSeDate','waSeStart','waSeEnd'].forEach(function(id){
     if($(id)) $(id).addEventListener('change', seToggleReason);
   });
+  // 사유를 안 골랐을 때 — 조용히 넘어가지 않게 한 곳에 모았다(2026-08-16).
+  // 이 사이트에서 같은 유형의 버그가 벌써 네 번째다: 결과를 화면 밖에 조용히 적으면
+  // 원장님·선생님 눈에는 '눌러도 아무 일이 안 일어난다'로 보인다.
+  // 그래서 ①알림창으로 확실히 알리고 ②사유 칸을 화면 안으로 끌어오고 ③빨갛게 표시한다.
+  function seNeedReason(msg){
+    var err=$('waSeErr'); if(err) err.textContent=msg;
+    var sel=$('waSeReason');
+    if(sel){
+      try{ sel.scrollIntoView({block:'center'}); }catch(e){}
+      sel.style.outline='2px solid #c0342b';
+      sel.focus();
+      setTimeout(function(){ sel.style.outline=''; }, 2500);
+    }
+    alert(msg);
+  }
   // 사유 코드를 사람 말로. 학생 화면·원장님 목록에서 같이 쓴다.
   function chgReasonLabel(r){
     return r==='student' ? '학생분 요청'
@@ -6122,8 +6140,7 @@
     // 확인창보다 먼저 검사한다 — 확인을 누른 뒤에 막으면 두 번 일하게 된다.
     var lreason=($('waSeReason')&&$('waSeReason').value)||'';
     if(want==='canceled' && !lreason){
-      err.textContent='휴강 사유를 아래 ‘사유’ 칸에서 골라주세요.';
-      if($('waSeReason')) $('waSeReason').focus();
+      seNeedReason('휴강하려면 바로 아래 ‘사유’ 칸에서 사유를 골라주세요.\n(고른 뒤 다시 휴강을 눌러주시면 됩니다.)');
       return;
     }
     if(want==='noshow' && !confirm('결석으로 표시할까요?\n\n· 수업 횟수 1회는 그대로 차감됩니다.\n· 그 시간 강의장이 비워져 다른 선생님이 쓸 수 있게 됩니다.')) return;
@@ -6133,9 +6150,11 @@
     var r=await sb.rpc('request_lesson_result',{p_id:_seId, p_result:want,
       p_reason: lreason||null, p_note: ($('waSeNote')&&$('waSeNote').value.trim())||null});
     if(r.error){
-      err.textContent = /request_lesson_result|set_lesson_result/.test(String(r.error.message||''))
+      // 실패도 성공만큼 눈에 띄어야 한다 — 이 자리는 창을 내려야 보이는 곳이다(2026-08-16).
+      var m = /request_lesson_result|set_lesson_result/.test(String(r.error.message||''))
         ? '수업 결과 기능이 아직 없습니다. lesson_result.sql / schedule_change_log.sql 을 먼저 실행해주세요.'
         : ('처리 실패: '+r.error.message);
+      err.textContent = m; alert(m);
       return;
     }
     if(r.data && r.data.pending){
@@ -6144,8 +6163,18 @@
       try{ await loadTeacherAlerts(); }catch(e){}
       return;
     }
-    if(r.data && r.data.ok===false){ err.textContent=r.data.msg||'처리하지 못했습니다.'; return; }
+    if(r.data && r.data.ok===false){
+      var m2=r.data.msg||'처리하지 못했습니다.';
+      err.textContent=m2; alert(m2);
+      return;
+    }
     closeSchedEdit();
+    // 방을 안 놓는 경우에도 처리됐다고 알려준다 — 창만 닫히면 됐는지 안 됐는지 모른다.
+    if(!(r.data && r.data.room_freed)){
+      alert(want==='noshow' ? '결석으로 표시했습니다. 수업 횟수 1회가 차감됐어요.'
+          : want==='canceled' ? '휴강으로 바꿨습니다. 횟수는 차감되지 않아요.'
+          : '출석으로 되돌렸습니다.');
+    }
     if(r.data && r.data.room_freed){
       alert((want==='noshow' ? '결석으로 표시했습니다. 수업 횟수 1회가 차감됐어요.' : '휴강으로 바꿨습니다. 횟수는 차감되지 않아요.')
         + '\n\n그 시간 강의장이 비워졌습니다. 이제 다른 선생님이 그 방을 잡을 수 있습니다.');
@@ -6169,7 +6198,7 @@
     // 시간을 바꾸면 사유가 있어야 저장된다(서버에서도 막는다).
     // 이 기록은 학생 '내 학습' 화면에 그대로 보인다 — 그래서 거짓으로 고르면 학생에게 걸린다.
     var reason=$('waSeReason')?$('waSeReason').value:'';
-    if(seTimeChanged() && !reason){ err.textContent='시간을 바꿀 때는 변경 사유를 골라주세요.'; return; }
+    if(seTimeChanged() && !reason){ seNeedReason('시간을 바꿀 때는 ‘사유’ 칸에서 변경 사유를 골라주세요.'); return; }
     // 저장은 save_schedule_edit 로만 한다 — 그래야 원래 시간이 기록에 남는다.
     var r=await sb.rpc('save_schedule_edit',{
       p_id:_seId, p_starts:startISO, p_ends:endISO, p_room:roomId,
@@ -6200,8 +6229,7 @@
     // 지울 때도 사유를 받는다(원장 2026-08-14). 안 고르면 서버도 거부한다.
     var dreason=($('waSeReason')&&$('waSeReason').value)||'';
     if(!dreason){
-      $('waSeErr').textContent='삭제 사유를 아래 ‘사유’ 칸에서 골라주세요. 잘못 잡은 수업이면 ‘잘못 잡은 수업’을 고르세요.';
-      if($('waSeReason')) $('waSeReason').focus();
+      seNeedReason('삭제하려면 ‘사유’ 칸에서 사유를 골라주세요.\n잘못 잡은 수업이면 ‘잘못 잡은 수업’을 고르시면 됩니다.');
       return;
     }
     var who=($('waSeWho')&&$('waSeWho').textContent)||'';
@@ -8292,7 +8320,11 @@
     if(!$('attTable')) return;
     var pays=[], atts=[];
     if(sb){
-      var r1=await sb.from('payments').select('student_id,sessions'); if(!r1.error&&r1.data) pays=r1.data;
+      // kind 를 같이 받아야 '사전 OT' 결제를 횟수에서 뺄 수 있다(2026-08-16).
+      // 옛 DB(kind 칸 없음)에서도 화면이 죽지 않게 실패하면 kind 없이 다시 받는다.
+      var r1=await sb.from('payments').select('student_id,sessions,kind');
+      if(r1.error) r1=await sb.from('payments').select('student_id,sessions');
+      if(!r1.error&&r1.data) pays=r1.data;
       var r2=await sb.from('attendance').select('id,student_id,student_name,attended_on,created_at,checked_in_at,checked_out_at,source').order('created_at',{ascending:false}); if(!r2.error&&r2.data) atts=r2.data;
       // 결제 안내 대기열. payment_alert.sql 을 아직 안 돌렸으면 표가 없어 오류가 나는데,
       // 그때는 안내만 못 보여줄 뿐 출석 화면은 그대로 돌아가야 한다.
@@ -8323,7 +8355,22 @@
       adjs=(!r5.error&&r5.data)?r5.data:null;
     }
     var purchased={}, attended={}, used={}, usedDone={}, adjSum={};
-    pays.forEach(function(p){ if(p.sessions) purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions; });
+    // 🚨 사전 OT 결제 처리 (2026-08-16 원장 지적 — 장지혜 학생 건).
+    //    OT 는 6만원을 따로 받고 수납에 '횟수 1회'로 넣는데, OT '수업'은 is_ot 라서 차감을 안 한다.
+    //    그래서 OT만 한 사람은 넣기만 하고 빼지 않아 남은 횟수가 영영 1회로 남았고,
+    //    결제 안내가 '1회 남음'을 보고 재등록 알림톡을 쐈다.
+    //    ⚠️ 그렇다고 OT 를 무조건 빼면 안 된다. 등록까지 한 학생은 원장님이 잔액을 '7회'로 넣으신다
+    //       (OT 6만 + 잔액 42만 = 48만 = 8회권). 즉 OT 1회가 8회 중 1회로 들어간다 —
+    //       무조건 빼면 김한섭·박성준·서원주의 남은 횟수가 1회씩 줄어든다(실제로 한 번 그렇게 만들었다).
+    //    그래서 규칙은 **정규 수강권 결제가 아직 없는 학생의 OT 결제만 안 센다**.
+    //    서버 sessions_left / sessions_left_done 과 같은 기준이어야 화면과 알림이 어긋나지 않는다.
+    var hasPass={};
+    pays.forEach(function(p){ if((p.sessions||0)>0 && (p.kind||'payment')!=='ot') hasPass[p.student_id]=true; });
+    pays.forEach(function(p){
+      if(!p.sessions) return;
+      if((p.kind||'payment')==='ot' && !hasPass[p.student_id]) return;
+      purchased[p.student_id]=(purchased[p.student_id]||0)+p.sessions;
+    });
     atts.forEach(function(a){ attended[a.student_id]=(attended[a.student_id]||0)+1; });
     // 남은 횟수가 1회로 떨어지는 시점 = '다음에 끝나는 수업'이 끝나는 때.
     // 결제 안내를 미리 예고하는 데 쓴다(2026-08-14 원장 요청 — "2회 남은 경우 곧 전송될
@@ -9826,8 +9873,19 @@
       // 선생님이 손으로 보정한 분(session_adjustments)도 더해야 관리 화면과 숫자가 같아진다.
       var pu=0, scs=[], scAll=[], adj=0;
       if(sb){
-        var rp=await sb.from('payments').select('sessions').eq('student_id',profile.id);
-        if(!rp.error&&rp.data) rp.data.forEach(function(x){ pu+=(x.sessions||0); });
+        // 사전 OT 결제(kind='ot')는 등록 전에는 수강권이 아니라 첫 수업료다 — 총 횟수에 안 넣는다.
+        // 등록까지 하면 잔액이 7회로 들어와 OT 1회가 8회 중 1회가 되므로 그때는 센다(2026-08-16).
+        // 관리 화면 loadAttendance·서버 sessions_left 와 같은 기준이어야 한다.
+        // 옛 DB(kind 칸 없음)에서도 죽지 않게 실패하면 kind 없이 다시 받는다.
+        var rp=await sb.from('payments').select('sessions,kind').eq('student_id',profile.id);
+        if(rp.error) rp=await sb.from('payments').select('sessions').eq('student_id',profile.id);
+        if(!rp.error&&rp.data){
+          var hasPass=rp.data.some(function(x){ return (x.kind||'payment')!=='ot' && (x.sessions||0)>0; });
+          rp.data.forEach(function(x){
+            if((x.kind||'payment')==='ot' && !hasPass) return;
+            pu+=(x.sessions||0);
+          });
+        }
         // countsAsUsed 가 starts_at·is_ot·이름·과목까지 보므로 같이 받아야 한다(2026-08-12).
         // ends_at·teacher_name 은 아래 '지난 수업 내역'이 쓴다.
         var rs=await sb.from('schedules').select('status,source,student_id,starts_at,ends_at,is_ot,student_name,subject,teacher_name').eq('student_id',profile.id);
