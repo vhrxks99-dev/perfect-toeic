@@ -4353,6 +4353,36 @@
     </div>
   </div>
 </div>
+<!-- 비대면 수업 — 디스코드 수업방(원장 지시 2026-08-17).
+     메뉴는 로그인한 '학생'에게만 보인다. 초대 링크는 주소만 알면 누구나 들어올 수 있어
+     공개 화면에는 두지 않는다. -->
+<div class="wa-overlay" id="waOnline" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waOnlineClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">비대면 수업</div>
+    <div class="wa-sub">비대면 수업은 디스코드에서 진행합니다.</div>
+    <!-- 문구는 카카오 채널의 비대면 학생방(김한섭·강해라·김동현)에서 선생님이 실제로 보낸
+         안내를 그대로 옮긴 것이다. 학생들이 매번 막힌 세 곳(어플 설치·'서버로 가기'·
+         담당 선생님 방)을 미리 적어 두면 같은 문의가 안 온다. -->
+    <div class="dash-note">
+      <b>처음이신가요? 순서대로 해주세요</b><br>
+      1. 디스코드 <b>어플을 먼저 설치</b>해 주세요. 인터넷 창으로만 열면 수업에 못 들어옵니다.<br>
+      2. 아래 <b>수업방 입장</b>을 누른 뒤, 화면에 뜨는 <b>'서버로 가기'</b>를 눌러주세요.<br>
+      3. 서버에 들어오면 <b>담당 선생님 방</b>으로 들어가시면 됩니다.
+    </div>
+    <div class="dash-note">
+      <b>수업 전에 확인해 주세요</b><br>
+      · 수업은 <b>패드로</b> 들어와 주세요 (아이패드 · 갤럭시탭).<br>
+      · <b>첫 수업 전에 미리</b> 한 번 들어가 보세요. 당일에 설치하면 수업 시간을 놓칩니다.<br>
+      · 이어폰이나 헤드셋을 준비해 주세요.
+    </div>
+    <a class="btn btn-primary" id="waOnlineGo" href="https://discord.gg/u9UueBdmMM" target="_blank" rel="noopener"
+       style="display:block;text-align:center;margin-top:14px">수업방 입장</a>
+    <div style="margin-top:10px;font-size:12.5px;color:var(--muted);text-align:center">
+      잘 안 되면 카카오톡 채널로 알려주세요.
+    </div>
+  </div>
+</div>
 <!-- 내 학습 — 숙제·일정·결제·출석. 예전엔 '내 정보' 안에 있었으나 찾기 어려워 분리함 -->
 <div class="wa-overlay" id="waLearn" aria-hidden="true">
   <div class="wa-card wa-admin">
@@ -4834,7 +4864,7 @@
     function links(){
       var h='';
       if(s.role==='admin'||s.role==='manager'||s.role==='master') h+='<a class="wa-link" id="waAdminOpen">관리 페이지</a>';
-      if(s.role==='student') h+='<a class="wa-link" id="waLearnOpen">내 학습</a><a class="wa-link" id="waBookOpen">수업 예약</a>';
+      if(s.role==='student') h+='<a class="wa-link" id="waLearnOpen">내 학습</a><a class="wa-link" id="waBookOpen">수업 예약</a><a class="wa-link" id="waOnlineOpen">비대면 수업</a>';
       h+='<a class="wa-link" id="waMyOpen">내 정보</a><a class="wa-link" id="waLogout">로그아웃</a>';
       return h;
     }
@@ -4842,7 +4872,7 @@
     if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
-      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waLearnOpenM">내 학습</a><a href="#" id="waBookOpenM">수업 예약</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
+      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waLearnOpenM">내 학습</a><a href="#" id="waBookOpenM">수업 예약</a><a href="#" id="waOnlineOpenM">비대면 수업</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
       : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
   }
@@ -4863,7 +4893,9 @@
       ['waLearnOpen','click',function(){openLearn();}],
       ['waLearnOpenM','click',function(e){e.preventDefault();closeDrawer();openLearn();}],
       ['waBookOpen','click',function(){openBooking();}],
-      ['waBookOpenM','click',function(e){e.preventDefault();closeDrawer();openBooking();}]
+      ['waBookOpenM','click',function(e){e.preventDefault();closeDrawer();openBooking();}],
+      ['waOnlineOpen','click',function(){openOnline();}],
+      ['waOnlineOpenM','click',function(e){e.preventDefault();closeDrawer();openOnline();}]
     ].forEach(function(m){ var el=$(m[0]); if(el) el.addEventListener(m[1],m[2]); });
   }
   function doLogout(){ if(sb) sb.auth.signOut().then(refresh); }
@@ -5422,6 +5454,8 @@
   function openMaster(){ openAdmin(); }
   async function openMy(){ if(!profile) return; await renderMy(); $('waMy').classList.add('on'); }
   async function openLearn(){ if(!profile||!$('waLearn')) return; await renderLearn(); $('waLearn').classList.add('on'); }
+  // 비대면 수업 안내 — 읽을 내용이 고정이라 그릴 것이 없다. 창만 연다.
+  function openOnline(){ if(!profile||!$('waOnline')) return; $('waOnline').classList.add('on'); }
 
   // 카카오 간편로그인 (활성 인증 블록)
   if($('waKakao')) $('waKakao').onclick=async function(){
@@ -10176,6 +10210,17 @@
     if(e.key!=='Escape' || !$('waMy') || !$('waMy').classList.contains('on')) return;
     $('waMy').classList.remove('on');
     if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+  });
+  // 비대면 수업 창 — 좁은 카드라 배경 클릭으로 닫아도 오조작 위험이 없다.
+  if($('waOnlineClose')) $('waOnlineClose').onclick=function(){ $('waOnline').classList.remove('on'); };
+  if($('waOnline')) $('waOnline').addEventListener('click', function(e){
+    if(e.target===this) this.classList.remove('on');
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && $('waOnline') && $('waOnline').classList.contains('on')){
+      $('waOnline').classList.remove('on');
+      if(e.stopImmediatePropagation) e.stopImmediatePropagation();
+    }
   });
   if($('waLearnClose')) $('waLearnClose').onclick=function(){ $('waLearn').classList.remove('on'); };
   // ⚠️ 배경 클릭 닫기는 넣지 않는다 — wa-admin 카드는 양옆 여백이 곧 오버레이라
