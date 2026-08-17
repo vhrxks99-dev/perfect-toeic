@@ -2638,8 +2638,8 @@
     </div>
   </div>
 </section>
-<!-- 자료실 (원장 지시 2026-08-17). 자료 추가는 아래 window.LIB 한 줄만 넣으면 된다.
-     ⚠️ 시중 출판사 교재 스캔은 여기 올리지 않는다 — 저작권 문제. 완벽한토익 자체 제작 자료만.
+<!-- 자료실 (원장 지시 2026-08-17). 자료는 Supabase library_items 에서 읽는다.
+     추가는 관리 페이지 → 자료실 탭에서 원장·매니저가 직접 올린다(DB 는 2_DB 설정 SQL/library.sql).
      ⚠️ PAGE_OF 에 library 를 등록해 두었다. 빼면 모든 페이지에 이 섹션이 계속 보인다. -->
 <section class="sec" id="library">
   <div class="wrap">
@@ -4300,7 +4300,7 @@
           <button class="btn btn-ghost" id="libReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
         <div class="dash-note" style="margin-top:0">홈페이지 <b>자료실</b> 메뉴에 올라가는 파일입니다.
           올린 직후에는 <b>닫힘</b>이라 아무도 못 받습니다. <b>열기</b>를 누른 뒤 <b>받을 사람</b>을 지정하면 그 사람만 받을 수 있어요.
-          시중 교재 스캔은 저작권 때문에 올리지 않는 것이 안전합니다.</div>
+         </div>
         <div style="display:grid;gap:9px;margin:12px 0;padding:14px 15px;border:1px solid var(--line);border-radius:11px;background:var(--surface)">
           <div style="font-size:13px;font-weight:800">새 자료 올리기</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
