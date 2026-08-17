@@ -4299,7 +4299,7 @@
         <div class="dash-list-head" style="margin-top:6px">📂 자료실
           <button class="btn btn-ghost" id="libReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
         <div class="dash-note" style="margin-top:0">홈페이지 <b>자료실</b> 메뉴에 올라가는 파일입니다.
-          올린 직후에는 <b>닫힘</b>이라 아무도 못 받습니다. <b>열기</b>를 누른 뒤 <b>받을 사람</b>을 지정하면 그 사람만 받을 수 있어요.
+          올린 직후에는 <b>닫힘</b>이라 아무도 못 받습니다. <b>열기</b>를 누른 뒤 <b>받을 사람</b>을 지정하면 그 사람만 받을 수 있어요. 한 파일은 <b>50MB</b>까지 올라갑니다.
          </div>
         <div style="display:grid;gap:9px;margin:12px 0;padding:14px 15px;border:1px solid var(--line);border-radius:11px;background:var(--surface)">
           <div style="font-size:13px;font-weight:800">새 자료 올리기</div>
@@ -6044,7 +6044,8 @@
     if(!sb){ say('서버에 연결되지 않았습니다'); return; }
     var f=fi && fi.files && fi.files[0];
     if(!f){ say('파일을 먼저 골라주세요'); return; }
-    if(f.size > 200*1024*1024){ say('200MB 를 넘는 파일은 올릴 수 없습니다'); return; }
+    // 무료 요금제는 한 파일 50MB 고정이다(요금제를 올리지 않으면 못 늘린다).
+    if(f.size > 50*1024*1024){ say('이 파일은 '+libSize(f.size)+' 입니다. 지금 요금제는 한 파일 50MB까지만 올라갑니다 — 파일을 나누거나 요금제를 올려야 합니다'); return; }
     var cat=$('libCat').value;
     var safe=String(f.name).replace(/[^\w.\-가-힣()]+/g,'_');
     var path=cat+'/'+Date.now()+'_'+safe;
