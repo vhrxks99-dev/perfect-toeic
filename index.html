@@ -4864,7 +4864,11 @@
     function links(){
       var h='';
       if(s.role==='admin'||s.role==='manager'||s.role==='master') h+='<a class="wa-link" id="waAdminOpen">관리 페이지</a>';
-      if(s.role==='student') h+='<a class="wa-link" id="waLearnOpen">내 학습</a><a class="wa-link" id="waBookOpen">수업 예약</a><a class="wa-link" id="waOnlineOpen">비대면 수업</a>';
+      if(s.role==='student') h+='<a class="wa-link" id="waLearnOpen">내 학습</a><a class="wa-link" id="waBookOpen">수업 예약</a>';
+      // 비대면 수업방은 선생님·원장님도 들어가야 한다(원장 지시 2026-08-17 "나도 그 링크 타고 들어가야지").
+      // 그래서 역할을 가리지 않고 **로그인한 사람 모두**에게 보인다. 비로그인 방문자에게는
+      // 이 links() 자체가 그려지지 않으므로 초대 링크는 여전히 밖으로 새지 않는다.
+      h+='<a class="wa-link" id="waOnlineOpen">비대면 수업</a>';
       h+='<a class="wa-link" id="waMyOpen">내 정보</a><a class="wa-link" id="waLogout">로그아웃</a>';
       return h;
     }
@@ -4872,7 +4876,7 @@
     if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
-      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waLearnOpenM">내 학습</a><a href="#" id="waBookOpenM">수업 예약</a><a href="#" id="waOnlineOpenM">비대면 수업</a>':'')+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
+      ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waLearnOpenM">내 학습</a><a href="#" id="waBookOpenM">수업 예약</a>':'')+'<a href="#" id="waOnlineOpenM">비대면 수업</a>'+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
       : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
   }
