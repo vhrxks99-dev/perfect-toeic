@@ -105,7 +105,24 @@
     border-bottom:1px solid transparent;transition:border-color .25s,background .25s;
   }
   .site-head.stuck{border-color:var(--line);background:color-mix(in srgb,var(--paper) 92%, transparent)}
-  .head-in{display:flex;align-items:center;gap:28px;height:70px}
+  .head-in{display:flex;align-items:center;gap:16px;height:70px}
+  /* 로그인 메뉴를 '이름님 ▾' 한 칸으로 접는다 (원장 지적 2026-08-17 — 메뉴가 화면을 넘쳤다) */
+  .wa-menu{position:relative}
+  .wa-menu-btn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);border-radius:999px;padding:7px 12px;
+    font-family:inherit;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap;max-width:150px;
+    overflow:hidden;text-overflow:ellipsis}
+  .wa-menu-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .wa-caret{font-size:10px;color:var(--muted)}
+  .wa-menu-pop{position:absolute;right:0;top:calc(100% + 8px);min-width:152px;z-index:80;
+    background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);
+    padding:7px;display:none;flex-direction:column;gap:1px}
+  .wa-menu.on .wa-menu-pop{display:flex}
+  .wa-menu-pop .wa-link{display:block;padding:8px 10px;border-radius:8px;font-size:12.5px}
+  .wa-menu-pop .wa-link:hover{background:var(--surface-2)}
+  /* 헤더만 칸을 넓게 쓴다. 본문은 그대로 1160px */
+  .site-head .wrap.head-in{max-width:1400px}
+
   .brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:19px;letter-spacing:-.04em;flex:none}
   .brand .bmark{
     width:34px;height:34px;border-radius:9px;background:var(--ink);color:#fff;
@@ -121,7 +138,7 @@
   @media (max-width:560px){ .logo{height:46px} }
   nav.main{display:flex;gap:2px;margin-left:6px}
   .navitem{position:relative}
-  .navitem>a{padding:8px 9px;font-size:13px;font-weight:600;color:var(--ink-soft);border-radius:8px;transition:color .15s,background .15s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  .navitem>a{padding:8px 7px;font-size:13px;font-weight:600;color:var(--ink-soft);border-radius:8px;transition:color .15s,background .15s;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
   .navitem:hover>a{color:var(--ink);background:var(--surface-2)}
   .navitem:has(.submenu)>a::after{content:"▾";font-size:9px;color:var(--muted)}
   .submenu{position:absolute;top:calc(100% + 6px);left:0;min-width:172px;background:var(--surface);border:1px solid var(--line);
@@ -601,10 +618,15 @@
   /* 🚨 1000px 이던 것을 1180px 로 올렸다(원장 지적 2026-08-13 — 태블릿에서 화면이 옆으로 밀린다).
      아이패드 가로(1024px)에서 상단 메뉴+버튼이 다 펼쳐져 1169px 를 먹는 바람에
      페이지가 통째로 가로 스크롤됐다. 실측 1169px 라 1180px 아래로는 햄버거로 접는다. */
-  @media (max-width:1180px){
+  /* 메뉴·버튼은 1340px 아래에서 접는다.
+     로그인 상태에서 브랜드+메뉴+오른쪽이 1243px 쯤 되기 때문에 1180px 로는 모자랐다
+     (원장 지적 2026-08-17 — 옆으로 스크롤됐다). 본문 레이아웃은 아래 1180px 그대로 둔다. */
+  @media (max-width:1340px){
     nav.main,.head-cta .btn{display:none}
     .hamburger{display:flex}
     .head-cta{margin-left:auto}
+  }
+  @media (max-width:1180px){
     .hero-grid,.diag-grid,.loc-grid{grid-template-columns:1fr;gap:40px}
     .stat-grid{grid-template-columns:repeat(2,1fr)}
     .teach-grid{grid-template-columns:1fr}
@@ -2630,7 +2652,6 @@
     <div id="libList" class="reveal"></div>
     <p class="reveal" style="margin-top:16px;font-size:12.5px;color:var(--muted);line-height:1.6">
       찾는 자료가 없으면 <a href="https://pf.kakao.com/_JCLYG" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">카카오톡 채널</a>로 말씀해 주세요.
-      수업에서 쓰는 시중 교재는 저작권 때문에 올리지 않습니다.
     </p>
   </div>
 </section>
@@ -5240,6 +5261,27 @@
 
   function roleTag(r){ return r==='master'?'원장님':(r==='manager'?'매니저':(r==='admin'?'선생님':'학생')); }
 
+
+  // 이름 대신 이메일이 들어와 있는 계정도 있다(가입 방식에 따라). @ 앞만 보여 칸을 아끼자.
+  function waShortName(n){ n=String(n||''); var i=n.indexOf('@'); return i>0 ? n.slice(0,i) : n; }
+  function waMenuWire(){
+    var m=document.getElementById('waMenu'); if(!m) return;
+    var b=document.getElementById('waMenuBtn');
+    if(b) b.onclick=function(e){ e.stopPropagation(); m.classList.toggle('on'); };
+    m.querySelectorAll('.wa-link').forEach(function(x){
+      x.addEventListener('click', function(){ m.classList.remove('on'); });
+    });
+    if(!window.__waMenuDoc){
+      window.__waMenuDoc=true;
+      document.addEventListener('click', function(ev){
+        var mm=document.getElementById('waMenu');
+        if(mm && !mm.contains(ev.target)) mm.classList.remove('on');
+      });
+      document.addEventListener('keydown', function(ev){
+        if(ev.key==='Escape'){ var mm=document.getElementById('waMenu'); if(mm) mm.classList.remove('on'); }
+      });
+    }
+  }
   function renderAuth(){
     var s=profile;
     function links(){
@@ -5254,12 +5296,15 @@
       return h;
     }
     var a=$('waAuth');
-    if(a){ a.innerHTML = s ? '<span class="wa-user"><b>'+esc(s.name)+'</b>님</span>'+links() : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
+    // 로그인하면 링크가 5개나 붙어 상단 메뉴가 화면을 넘겼다(원장 지적 2026-08-17).
+    // 그래서 '이름님 ▾' 한 칸으로 접고, 누르면 아래로 펼친다. 링크 id 는 그대로여서 wire() 가 계속 먹는다.
+    if(a){ a.innerHTML = s ? '<div class="wa-menu" id="waMenu"><button type="button" class="wa-menu-btn" id="waMenuBtn">'+esc(waShortName(s.name))+'님 <span class="wa-caret">▾</span></button>'+'<div class="wa-menu-pop">'+links()+'</div></div>' : '<a class="wa-link wa-authlink" id="waOpen">로그인</a><span class="wa-sep">|</span><a class="wa-link wa-authlink" id="waOpenSignup">회원가입</a>'; }
     var am=$('waAuthM');
     if(am){ am.innerHTML = s
       ? '<div class="dgroup"><span>'+esc(s.name)+'님 접속중</span><div class="dsub">'+((s.role==='admin'||s.role==='manager'||s.role==='master')?'<a href="#" id="waAdminOpenM">관리 페이지</a>':'')+((s.role==='student')?'<a href="#" id="waLearnOpenM">내 학습</a><a href="#" id="waBookOpenM">수업 예약</a>':'')+'<a href="#" id="waOnlineOpenM">비대면 수업</a>'+'<a href="#" id="waMyOpenM">내 정보</a><a href="#" id="waLogoutM">로그아웃</a></div></div>'
       : '<div class="dgroup"><a class="dtop" href="#" id="waOpenM">로그인</a><a class="dtop" href="#" id="waOpenSignupM">회원가입</a></div>'; }
     wire();
+    waMenuWire();
   }
   function closeDrawer(){ var d=$('drawer'); if(d) d.classList.remove('open'); }
   function wire(){
