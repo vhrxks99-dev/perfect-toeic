@@ -2029,14 +2029,32 @@
     var n = count===0 ? pool.length : Math.min(count, pool.length);
     var items = pool.slice(0,n);
     var e2k = dir==='e2k';
-    var rows='', key='';
+    var rows='', key='', rowsArr=[], keyArr=[];
     items.forEach(function(e,i){
-      rows += '<li><span class="qw">'+esc(e2k?e.w:e.m)+'</span><span class="bl"></span></li>';
+      rows += '<li><span class="qn">'+(i+1)+'</span><span class="qw">'+esc(e2k?e.w:e.m)+'</span><span class="bl"></span></li>';
       key  += '<li><span class="kn">'+(i+1)+'.</span><b>'+esc(e.w)+'</b>'+esc(e.m)+'</li>';
+      rowsArr.push('<li><span class="qn">'+(i+1)+'</span><span class="qw">'+esc(e2k?e.w:e.m)+'</span><span class="bl"></span></li>');
+      keyArr.push('<li><span class="kn">'+(i+1)+'.</span><b>'+esc(e.w)+'</b>'+esc(e.m)+'</li>');
     });
     var meta = chosen+'  ·  '+n+'문항  ·  '+(e2k?'영어 → 뜻 쓰기':'뜻 → 영어 쓰기');
     var logo = (document.querySelector('.logo')||{}).src||'';
     function head(){ return '<div class="wm-head">'+(logo?'<img class="wm-logo" src="'+logo+'" alt="완벽한토익">':'')+'<div class="wm-div"></div><div class="wm-titles"><div class="wm-title">VOCA 단어시험</div><div class="wm-meta">'+meta+'</div></div><div class="wm-brand">완벽한토익<span>PERFECT TOEIC</span></div></div><div class="wm-rule"></div>'; }
+    // 한 장에 20행 x 2열 = 40문항. 넘치면 새 장으로 넘기고 머리글을 다시 그린다.
+    // (원장 요청 2026-08-17 "한장에 40개 단어가 들어가는게 아니라 밑으로 쭉 내려가")
+    var PER_PAGE = 40;
+    function chunkHtml(all, cls, per){
+      var out = '', i = 0;
+      while(i < all.length){
+        var part = all.slice(i, i + per);
+        var rowsN = Math.ceil(part.length / 2);
+        if(i > 0) out += '<div class="pgbreak"></div>' + head();
+        out += '<ol class="' + cls + '" style="grid-template-rows:repeat(' + rowsN + ',auto)">' + part.join('') + '</ol>';
+        i += per;
+      }
+      return out;
+    }
+    function sheetPages(){ return chunkHtml(rowsArr, 'sheet', PER_PAGE); }
+    function keyPages(){ return chunkHtml(keyArr, 'key', 60); }
     var css = '@page{size:A4;margin:14mm}*{box-sizing:border-box}'
       + 'body{font-family:"Malgun Gothic","Apple SD Gothic Neo",sans-serif;color:#1a1d23;margin:0;padding:16px 18px 46px}'
       + '.printbar{position:sticky;top:0;background:#1F62E0;color:#fff;padding:10px 14px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;font-size:13px;font-weight:700}'
@@ -2056,14 +2074,18 @@
       + '.wm-info .u.short{min-width:44px}'
       + '.wm-tip{font-size:12.5px;color:#697079;margin:13px 2px 17px;font-weight:600}'
       + '.wm-tip::before{content:"✎ ";color:#1F62E0}'
-      + 'ol.sheet{columns:2;column-gap:42px;list-style:none;margin:0;padding:0;counter-reset:q}'
-      + 'ol.sheet li{break-inside:avoid;counter-increment:q;display:flex;align-items:flex-end;gap:10px;margin:0 0 18px;font-size:16px}'
-      + 'ol.sheet li::before{content:counter(q);flex:none;width:23px;height:23px;background:#eaf1fe;color:#1F62E0;border-radius:7px;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center}'
+      // 🚨 columns 로 2단을 만들면 아이패드(사파리)에서 PDF 로 저장할 때 1단으로 떨어지고
+      //    한 장에 17개만 담겨 5장으로 늘어난다(원장 신고 2026-08-17). Grid 로 바꾸고
+      //    행 수를 명시해 열을 확정한다. 번호도 counter 대신 직접 넣는다(페이지를 나눠도 이어지게).
+      + 'ol.sheet{display:grid;grid-auto-flow:column;column-gap:42px;list-style:none;margin:0;padding:0}'
+      + 'ol.sheet li{break-inside:avoid;display:flex;align-items:flex-end;gap:10px;margin:0 0 16px;font-size:16px}'
+      + 'ol.sheet .qn{flex:none;width:23px;height:23px;background:#eaf1fe;color:#1F62E0;border-radius:7px;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center}'
+      + '.pgbreak{break-before:page;page-break-before:always;height:0}'
       + '.qw{font-weight:700;font-size:16px;color:#15181E;line-height:1.2}'
       + '.sheet .bl{flex:1;border-bottom:1.4px dotted #c2c8d2;height:20px;margin-left:4px}'
       + '.keywrap{break-before:page;page-break-before:always}'
       + '.wm-ans-badge{display:inline-block;background:#1F62E0;color:#fff;font-size:12px;font-weight:800;padding:6px 15px;border-radius:999px;margin:15px 0 15px;letter-spacing:.03em}'
-      + 'ol.key{columns:2;column-gap:38px;list-style:none;margin:0;padding:0}'
+      + 'ol.key{display:grid;grid-auto-flow:column;column-gap:38px;list-style:none;margin:0;padding:0}'
       + 'ol.key li{break-inside:avoid;font-size:13.5px;margin:0 0 12px;line-height:1.5}'
       + 'ol.key .kn{color:#9aa1ab;font-weight:700;margin-right:5px}'
       + 'ol.key b{color:#1F62E0;margin-right:5px}'
@@ -2096,8 +2118,8 @@
       + head()
       + '<div class="wm-info"><span>이름<span class="u"></span></span><span>점수<span class="u short"></span> / '+n+'</span><span>날짜<span class="u"></span></span></div>'
       + '<div class="wm-tip">'+(e2k?'각 단어의 우리말 뜻을 쓰세요.':'각 뜻에 해당하는 영어 단어를 쓰세요.')+'</div>'
-      + '<ol class="sheet">'+rows+'</ol>'
-      + '<div class="keywrap">'+head()+'<span class="wm-ans-badge">정답 · ANSWER KEY</span><ol class="key">'+key+'</ol></div>'
+      + sheetPages()
+      + '<div class="keywrap">'+head()+'<span class="wm-ans-badge">정답 · ANSWER KEY</span>'+keyPages()+'</div>'
       + '<div class="wm-foot"><span>완벽한토익 · PERFECT TOEIC</span><span>매일 10:00 – 22:00 · Kakao CH_ PERFECT_TOEIC</span></div>'
       + '</body></html>';
     var w = window.open('', '_blank');
