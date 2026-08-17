@@ -355,6 +355,25 @@
   .map-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
   .map-pinlabel{position:absolute;left:14px;top:14px;z-index:3;background:var(--accent);color:#fff;
     padding:8px 13px;border-radius:10px;font-size:13px;font-weight:800;box-shadow:var(--shadow);letter-spacing:-.01em}
+  /* 자료실 */
+  .lib-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .lib-tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;
+    padding:9px 16px;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;transition:.15s}
+  .lib-tab:hover{border-color:var(--accent);color:var(--accent)}
+  .lib-tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:12px}
+  .lib-card{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);
+    padding:18px 18px 16px;display:flex;flex-direction:column;gap:9px}
+  .lib-card .lt{font-size:14.5px;font-weight:800;letter-spacing:-.01em}
+  .lib-card .ld{font-size:12.5px;color:var(--muted);line-height:1.55;flex:1}
+  .lib-meta{display:flex;gap:7px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+  .lib-kind{background:#eef3fd;color:#1F62E0;border-radius:6px;padding:3px 8px;font-weight:800}
+  .lib-dl{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;
+    padding:10px 14px;font-size:13px;font-weight:800;background:var(--accent);color:#fff;text-decoration:none}
+  .lib-dl.off{background:var(--line);color:var(--muted);pointer-events:none}
+  .lib-empty{border:1px dashed var(--line);border-radius:var(--r-lg);padding:34px 20px;text-align:center;
+    color:var(--muted);font-size:13px;line-height:1.7}
+
   .map-open{position:absolute;right:14px;bottom:14px;z-index:3;background:var(--surface);color:var(--ink);
     border:1px solid var(--line-strong);padding:10px 15px;border-radius:10px;font-size:13px;font-weight:800;
     box-shadow:var(--shadow);transition:.16s}
@@ -636,6 +655,7 @@
       </div>
       <div class="navitem"><a href="#offline">대면 수업</a></div>
       <div class="navitem"><a href="#online">비대면 수업</a></div>
+      <div class="navitem"><a href="#library">자료실</a></div>
       <div class="navitem"><a href="#reviews">수강후기</a></div>
       <div class="navitem">
         <a href="#contact">문의 &amp; 제휴</a>
@@ -666,6 +686,7 @@
       <a href="#course-toeic" data-close>토익</a><a href="#course-speaking" data-close>토익스피킹</a><a href="#course-opic" data-close>오픽</a><a href="#course-conversation" data-close>영어회화</a></div></div>
     <div class="dgroup"><a class="dtop" href="#offline" data-close>대면 수업</a></div>
     <div class="dgroup"><a class="dtop" href="#online" data-close>비대면 수업</a></div>
+    <div class="dgroup"><a class="dtop" href="#library" data-close>자료실</a></div>
     <div class="dgroup"><a class="dtop" href="#leveltest" data-close>완토 진단 테스트</a></div>
     <div class="dgroup"><a class="dtop" href="#voca" data-close>VOCA 단어테스트</a></div>
     <div class="dgroup"><a class="dtop" href="#reviews" data-close>수강후기</a></div>
@@ -2595,6 +2616,25 @@
     </div>
   </div>
 </section>
+<!-- 자료실 (원장 지시 2026-08-17). 자료 추가는 아래 window.LIB 한 줄만 넣으면 된다.
+     ⚠️ 시중 출판사 교재 스캔은 여기 올리지 않는다 — 저작권 문제. 완벽한토익 자체 제작 자료만.
+     ⚠️ PAGE_OF 에 library 를 등록해 두었다. 빼면 모든 페이지에 이 섹션이 계속 보인다. -->
+<section class="sec" id="library">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">자료실 <b>· LIBRARY</b></span>
+      <h2>수업 자료 내려받기</h2>
+      <p>완벽한토익에서 직접 만든 문제집과 학습 자료를 과목별로 모아 두었습니다. 눌러서 받으신 뒤 인쇄하거나 패드에 넣어 쓰세요.</p>
+    </div>
+    <div class="lib-tabs reveal" id="libTabs"></div>
+    <div id="libList" class="reveal"></div>
+    <p class="reveal" style="margin-top:16px;font-size:12.5px;color:var(--muted);line-height:1.6">
+      찾는 자료가 없으면 <a href="https://pf.kakao.com/_JCLYG" target="_blank" rel="noopener" style="color:var(--accent);font-weight:700">카카오톡 채널</a>로 말씀해 주세요.
+      수업에서 쓰는 시중 교재는 저작권 때문에 올리지 않습니다.
+    </p>
+  </div>
+</section>
+
 
 <!-- ================= STRENGTHS ================= -->
 <section class="sec strengths" id="strengths" style="background:var(--surface);border-block:1px solid var(--line)">
@@ -10918,7 +10958,8 @@
     leveltest:'leveltest', voca:'voca',
     'apply-form':'apply', 'enroll-info':'apply',
     contact:'contact', faq:'contact', recruit:'contact',
-    location:'location'
+    location:'location',
+    library:'library'
   };
   var SUB={ top:'home', rules:'intro', 'course-toeic':'curriculum','course-speaking':'curriculum','course-opic':'curriculum','course-conversation':'curriculum', books:'apply', payment:'apply', outreach:'contact' };
   var hero=document.querySelector('.hero'); if(hero && !hero.id) hero.id='hero';
@@ -10951,5 +10992,45 @@
   window.addEventListener('hashchange', route);
   route();
 })();
+
+  /* ── 자료실 ────────────────────────────────────────────────────────────
+     자료 추가하는 방법: 해당 과목 배열에 한 줄 넣으면 된다.
+       {t:'제목', d:'설명', kind:'PDF', size:'12MB', f:'files/파일이름.pdf'}
+     f 를 비워 두면 '준비 중' 으로 표시되고 버튼이 눌리지 않는다. */
+  window.LIB = {
+    toeic:      { name:'토익',       items:[] },
+    speaking:   { name:'토익스피킹', items:[] },
+    opic:       { name:'오픽',       items:[] },
+    conversation:{name:'영어회화',   items:[] }
+  };
+  (function(){
+    var tabsEl=document.getElementById('libTabs'), listEl=document.getElementById('libList');
+    if(!tabsEl||!listEl) return;
+    var keys=Object.keys(window.LIB), cur=keys[0];
+    function card(it){
+      var on=!!it.f;
+      return '<div class="lib-card">'
+        +'<div class="lib-meta"><span class="lib-kind">'+(it.kind||'PDF')+'</span>'
+        +(it.size?'<span>'+it.size+'</span>':'')+(on?'':'<span>준비 중</span>')+'</div>'
+        +'<div class="lt">'+it.t+'</div>'
+        +'<div class="ld">'+(it.d||'')+'</div>'
+        +(on?'<a class="lib-dl" href="'+it.f+'" download>내려받기</a>'
+            :'<span class="lib-dl off">준비 중</span>')
+        +'</div>';
+    }
+    function draw(){
+      tabsEl.innerHTML=keys.map(function(k){
+        return '<button type="button" class="lib-tab'+(k===cur?' on':'')+'" data-k="'+k+'">'
+               +window.LIB[k].name+'</button>';}).join('');
+      var its=window.LIB[cur].items;
+      listEl.innerHTML = its.length
+        ? '<div class="lib-grid">'+its.map(card).join('')+'</div>'
+        : '<div class="lib-empty">아직 올라간 '+window.LIB[cur].name+' 자료가 없습니다.<br>준비되면 여기에 올라갑니다.</div>';
+    }
+    tabsEl.addEventListener('click',function(e){
+      var b=e.target.closest('.lib-tab'); if(!b) return; cur=b.dataset.k; draw();
+    });
+    draw();
+  })();
 </script>
 </body></html>
