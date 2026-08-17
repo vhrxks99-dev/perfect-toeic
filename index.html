@@ -6043,16 +6043,21 @@
   // 이 사이트에서 같은 유형의 버그가 벌써 네 번째다: 결과를 화면 밖에 조용히 적으면
   // 원장님·선생님 눈에는 '눌러도 아무 일이 안 일어난다'로 보인다.
   // 그래서 ①알림창으로 확실히 알리고 ②사유 칸을 화면 안으로 끌어오고 ③빨갛게 표시한다.
+  // 🚨 아이패드에서 알림창과 사유 목록이 겹치던 문제(2026-08-17 원장 신고).
+  //    iPadOS 는 select 에 focus() 를 걸면 네이티브 선택 팝업을 스스로 연다.
+  //    그 팝업이 alert 와 동시에 떠서 둘 다 조작이 안 됐다(알림창이 목록을 덮었다).
+  //    → ①알림을 먼저 띄우고 ②닫힌 뒤에 표시만 하며 ③마우스 있는 기기에서만 focus 한다.
   function seNeedReason(msg){
     var err=$('waSeErr'); if(err) err.textContent=msg;
+    alert(msg);
     var sel=$('waSeReason');
     if(sel){
       try{ sel.scrollIntoView({block:'center'}); }catch(e){}
       sel.style.outline='2px solid #c0342b';
-      sel.focus();
       setTimeout(function(){ sel.style.outline=''; }, 2500);
+      var touch = !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
+      if(!touch) sel.focus();
     }
-    alert(msg);
   }
   // 사유 코드를 사람 말로. 학생 화면·원장님 목록에서 같이 쓴다.
   function chgReasonLabel(r){
