@@ -4114,11 +4114,12 @@
       <div class="dash-form" id="pyAddForm">
         <div class="dash-row">
           <!-- '사전 OT' 를 따로 둔다(원장 지적 2026-08-13 "OT 받을 때 1회로 한 줄이 어딨어?").
-               수업 횟수권은 8회부터라 1회짜리 OT 선결제를 넣을 수가 없었다. -->
+               그때는 수업 횟수권이 8회부터라 1회짜리 OT 선결제를 넣을 수가 없었다.
+               (2026-08-17 최소 횟수 제한 자체를 없앴다 — 4회만 끊는 학생도 있다.) -->
           <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="refund">환불</option></select></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
-          <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="횟수권이면 8+"><span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span></label>
+          <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"><span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span></label>
           <label>정산 월<input type="month" id="pyMonth"></label>
         </div>
         <div class="dash-row">
@@ -4449,7 +4450,7 @@
         <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
-        <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="8+"><span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span></label>
+        <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"><span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span></label>
       </div>
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
@@ -8275,8 +8276,8 @@
     var kind=(kv==='refund')?'refund':((kv==='ot')?'ot':'payment');
     // 환불은 되돌려 주는 돈이라 횟수권을 함께 파는 일이 없다. 실수로 남아 있으면 무시한다.
     if(kind==='refund') sessions=0;
-    // 사전 OT 는 1회짜리 선결제라 '8회부터' 규칙에서 빼 준다(원장 지적 2026-08-13).
-    if(kind!=='ot' && sessions>0 && sessions<8){ err.textContent='수업 횟수권은 최소 8회부터 구매 가능합니다.'; return; }
+    // 최소 횟수 제한은 없앴다(원장 지시 2026-08-17 "최소 몇회부터 구매가능한거는 없애줘,
+    // 4회만 결제하는 경우도있어"). 8회 미만으로 끊는 학생이 실제로 있다.
     if(kind==='refund' && !confirm(student.name+' 학생에게 '+won(amount)+'을 환불한 것으로 등록할까요?\n\n총 매출액에서 이 금액이 빠집니다.')) return;
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
@@ -8369,7 +8370,7 @@
     var ekv=$('pyeKind')?$('pyeKind').value:'payment';
     var ekind=(ekv==='refund')?'refund':((ekv==='ot')?'ot':'payment');
     if(ekind==='refund') sessions=0;
-    if(ekind!=='ot' && sessions>0 && sessions<8){ $('pyeErr').textContent='수업 횟수권은 최소 8회부터입니다.'; return; }
+    // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
