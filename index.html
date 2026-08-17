@@ -3468,6 +3468,10 @@
 .hw-chk{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border:1.5px solid var(--line-strong);border-radius:9px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap}
 .hw-chk input{margin:0;transform:scale(1.15);cursor:pointer}
 .hw-chk.on{border-color:#16a34a;color:#16a34a;background:rgba(22,163,74,.08)}
+/* 선생님 확인이 찍힌 숙제는 항목 체크를 잠근다(2026-08-17) */
+.hw-item.locked{opacity:.72;cursor:default}
+.hw-item.locked input{cursor:not-allowed}
+.hw-lock-note{margin-top:5px;font-size:11.5px;font-weight:700;color:var(--muted)}
 #hwTable .hw-item{display:block;padding:4px 0;cursor:pointer}
 #hwTable .hw-item input{margin-right:7px;transform:scale(1.15);cursor:pointer}
 /* 칸이 늘어나 숙제 내용이 눌리지 않게 PC에서는 숙제 칸에 폭을 몰아준다 */
@@ -9439,8 +9443,11 @@
     rows.forEach(function(x){
       var items=hwItems(x.content), d=hwDoneArr(x);
       // 선생님도 직접 체크를 고칠 수 있다 — 학생이 안 하고 눌러놨을 수 있기 때문(원장 지시 2026-08-11).
+      // 단 '선생님 확인'을 찍은 뒤에는 잠긴다(원장 지시 2026-08-17). 고치려면 확인을 먼저 뺀다.
+      var hwLock = !!x.teacher_checked;
       var itemHtml = items.length
-        ? items.map(function(it,i){ return '<label class="hw-item"><input type="checkbox" data-thw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('')
+        ? (items.map(function(it,i){ return '<label class="hw-item'+(hwLock?' locked':'')+'"><input type="checkbox" data-thw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+(hwLock?' disabled':'')+'> '+esc(it)+'</label>'; }).join('')
+          + (hwLock?'<div class="hw-lock-note">확인 완료 — 고치려면 \'선생님 확인\'을 먼저 빼세요</div>':''))
         : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
       h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
@@ -9504,6 +9511,13 @@
     var hwId=cb.getAttribute('data-thw'), chkId=cb.getAttribute('data-tchk');
     var id=hwId||chkId; if(!id) return;
     var x=(window.__wtHw||[]).filter(function(y){ return y.id===id; })[0]; if(!x) return;
+    // 확인 도장이 찍힌 숙제는 항목 체크를 못 바꾼다(2026-08-17 원장 지시).
+    // 화면에서 disabled 로 막지만, 목록이 오래됐을 때를 대비해 여기서 한 번 더 거른다.
+    if(hwId && x.teacher_checked){
+      cb.checked=!cb.checked;
+      alert('선생님 확인이 찍힌 숙제입니다.\n고치려면 \'선생님 확인\'을 먼저 빼주세요.');
+      return;
+    }
     cb.disabled=true;
     var patch, undo;
     if(hwId){
@@ -10008,7 +10022,11 @@
       if(!hw.length){ $('myHwTable').innerHTML='<tr><td class="wa-empty">아직 등록된 숙제가 없습니다.</td></tr>'; }
       else { var hwh='<tr class="hw-head"><th>등록일</th><th>숙제 (완료 체크)</th><th>선생님</th><th>진행</th><th>선생님 확인</th></tr>'; hw.forEach(function(x){
         var items=hwItems(x.content), d=hwDoneArr(x);
-        var itemHtml = items.length ? items.map(function(it,i){ return '<label class="hw-item"><input type="checkbox" data-hw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+'> '+esc(it)+'</label>'; }).join('') : esc(x.content||'').replace(/\n/g,'<br>');
+        // 선생님이 확인 도장을 찍으면 학생은 더 못 고친다(원장 지시 2026-08-17).
+        // 확인을 빼면 다시 체크할 수 있다 — 잠금 근거는 teacher_checked 하나뿐이라 저절로 풀린다.
+        var mLock = !!x.teacher_checked;
+        var itemHtml = items.length ? (items.map(function(it,i){ return '<label class="hw-item'+(mLock?' locked':'')+'"><input type="checkbox" data-hw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+(mLock?' disabled':'')+'> '+esc(it)+'</label>'; }).join('')
+          + (mLock?'<div class="hw-lock-note">선생님이 확인을 마친 숙제예요. 고칠 수 없습니다.</div>':'')) : esc(x.content||'').replace(/\n/g,'<br>');
         hwh+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="선생님" style="white-space:nowrap">'+esc(x.teacher_name||'-')+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+(x.teacher_checked?'<span class="my-hw-chk on">확인됨</span>':'<span class="my-hw-chk off">확인 전</span>')+'</td></tr>'; }); $('myHwTable').innerHTML=hwh; }
     }
   }
@@ -10139,6 +10157,12 @@
     if(!sb) return;
     var id=cb.getAttribute('data-hw'), idx=parseInt(cb.getAttribute('data-i'),10);
     var x=(window.__myHw||[]).filter(function(y){return y.id===id;})[0]; if(!x) return;
+    // 선생님이 확인을 마쳤으면 학생은 못 고친다(2026-08-17 원장 지시).
+    if(x.teacher_checked){
+      cb.checked=!cb.checked;
+      alert('선생님이 확인을 마친 숙제라 고칠 수 없어요.');
+      return;
+    }
     var arr=hwDoneArr(x); while(arr.length<=idx) arr.push(false); arr[idx]=cb.checked; x.items_done=JSON.stringify(arr);
     var r=await sb.from('homeworks').update({items_done:x.items_done}).eq('id',id);
     if(r&&r.error){ alert('저장 실패: '+r.error.message); cb.checked=!cb.checked; arr[idx]=!cb.checked; x.items_done=JSON.stringify(arr); return; }
