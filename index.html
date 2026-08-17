@@ -4267,12 +4267,39 @@
       <button class="dash-tab" data-dtab="work">출퇴근</button>
       <button class="dash-tab" data-dtab="oplog">운영일지</button>
       <button class="dash-tab" data-dtab="diag">진단결과</button>
-      <button class="dash-tab" data-dtab="hw">숙제</button>
+      <button class="dash-tab" data-dtab="hw">숙제</button><button class="dash-tab" data-dtab="lib">자료실</button>
       <button class="dash-tab" data-dtab="consult">상담</button>
       <button class="dash-tab" data-dtab="eval">선생님 평가</button>
     </div>
 
     <div id="waAlerts" class="wa-alerts" style="display:none"></div>
+      <!-- 자료실 관리 (원장 지시 2026-08-17). 올린 직후는 '닫힘' — 아무도 못 받는다. -->
+      <div class="dash-pane" data-dpane="lib">
+        <div class="dash-list-head" style="margin-top:6px">📂 자료실
+          <button class="btn btn-ghost" id="libReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+        <div class="dash-note" style="margin-top:0">홈페이지 <b>자료실</b> 메뉴에 올라가는 파일입니다.
+          올린 직후에는 <b>닫힘</b>이라 아무도 못 받습니다. <b>열기</b>를 누른 뒤 <b>받을 사람</b>을 지정하면 그 사람만 받을 수 있어요.
+          시중 교재 스캔은 저작권 때문에 올리지 않는 것이 안전합니다.</div>
+        <div style="display:grid;gap:9px;margin:12px 0;padding:14px 15px;border:1px solid var(--line);border-radius:11px;background:var(--surface)">
+          <div style="font-size:13px;font-weight:800">새 자료 올리기</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="libCat" style="padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px">
+              <option value="toeic">토익</option><option value="speaking">토익스피킹</option>
+              <option value="opic">오픽</option><option value="conversation">영어회화</option>
+            </select>
+            <input id="libFile" type="file" style="font-size:13px">
+          </div>
+          <input id="libTitle" type="text" placeholder="제목 (비우면 파일 이름을 씁니다)" style="padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px">
+          <input id="libDesc" type="text" placeholder="설명 (선택) — 예: TEST 1 문제 + 해설" style="padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+            <button class="btn btn-primary" id="libUp" type="button">올리기</button>
+            <span id="libMsg" style="font-size:12.5px;color:var(--muted)"></span>
+          </div>
+        </div>
+        <div id="libGrantBox" style="display:none;margin:12px 0"></div>
+        <div class="wa-table-wrap"><table class="wa-table" id="libTable"></table></div>
+      </div>
+
 
     <div class="dash-pane on" data-dpane="members">
       <div class="wa-sub">전체 회원 <span id="waCount" style="color:var(--muted);font-weight:700"></span> · 모든 기기에서 실시간 공유</div>
@@ -5838,8 +5865,194 @@
     if(name==='study' && typeof loadStudy==='function'){ try{ loadStudy(); }catch(e){} }
     // 변경기록도 열 때마다 새로 읽는다. 방금 고친 것이 바로 보여야 확인 용도로 쓸 수 있다.
     if(name==='chglog' && typeof loadChgLog==='function'){ try{ loadChgLog(); }catch(e){} }
+    // 자료실도 열 때마다 새로 읽는다(다른 기기에서 열고 닫은 것이 바로 보이게).
+    if(name==='lib' && typeof loadLib==='function'){ try{ loadLib(); }catch(e){} }
   }
   (function(){ var c=$('waAdmin'); if(c) c.querySelectorAll('.dash-tab').forEach(function(b){ b.onclick=function(){ dashTab(b.getAttribute('data-dtab')); }; }); })();
+  // ================= 자료실 (원장 지시 2026-08-17) =================
+  // 파일은 비공개 버킷 'library'. 목록·권한은 library_items / library_grants.
+  // 규칙: 올린 직후 닫힘 → 원장이 열고, 받을 사람을 지정해야 그 사람만 받는다.
+  var _lib=[], _libGrants={}, _libEdit=null;
+  var LIB_CATS={toeic:'토익', speaking:'토익스피킹', opic:'오픽', conversation:'영어회화'};
+  function libSize(n){
+    if(n==null) return '';
+    if(n<1024) return n+'B';
+    if(n<1024*1024) return Math.round(n/1024)+'KB';
+    return (n/1024/1024).toFixed(n<10*1024*1024?1:0)+'MB';
+  }
+  function libKind(name){
+    var e=(String(name).split('.').pop()||'').toLowerCase();
+    if(e==='pdf') return 'PDF';
+    if(e==='mp3'||e==='m4a'||e==='wav') return '음원';
+    if(e==='zip') return 'ZIP';
+    if(e==='hwp'||e==='hwpx') return '한글';
+    if(e==='doc'||e==='docx') return 'DOC';
+    if(e==='xls'||e==='xlsx') return 'XLS';
+    if(e==='png'||e==='jpg'||e==='jpeg') return '이미지';
+    return e ? e.toUpperCase() : '파일';
+  }
+  async function loadLib(){
+    var t=$('libTable'); if(!t||!sb) return;
+    t.innerHTML='<tbody><tr><td class="wa-empty">불러오는 중…</td></tr></tbody>';
+    var r=await sb.from('library_items').select('*')
+            .order('category',{ascending:true}).order('sort_no',{ascending:true}).order('created_at',{ascending:false});
+    if(r.error){
+      t.innerHTML='<tbody><tr><td class="wa-empty">불러오지 못했습니다: '+esc(r.error.message)+'</td></tr></tbody>';
+      return;
+    }
+    _lib=r.data||[];
+    var g=await sb.from('library_grants').select('*');
+    _libGrants={};
+    (g.data||[]).forEach(function(x){ (_libGrants[x.item_id]=_libGrants[x.item_id]||[]).push(x.profile_id); });
+    renderLib();
+  }
+  function libWho(it){
+    if(it.audience==='all') return '전체 수강생';
+    var n=(_libGrants[it.id]||[]).length;
+    return n ? n+'명 지정' : '아직 없음';
+  }
+  function renderLib(){
+    var t=$('libTable'); if(!t) return;
+    if(!_lib.length){
+      t.innerHTML='<tbody><tr><td class="wa-empty">아직 올린 자료가 없습니다. 위에서 파일을 올려주세요.</td></tr></tbody>';
+      return;
+    }
+    var h='<thead><tr><th>과목</th><th>제목</th><th>크기</th><th>상태</th><th>받는 사람</th><th></th></tr></thead><tbody>';
+    _lib.forEach(function(it){
+      var open=!!it.is_open;
+      h+='<tr>'
+        +'<td>'+esc(LIB_CATS[it.category]||it.category)+'</td>'
+        +'<td><b>'+esc(it.title)+'</b>'+(it.descr?'<div style="font-size:11.5px;color:var(--muted);margin-top:2px">'+esc(it.descr)+'</div>':'')+'</td>'
+        +'<td>'+esc(it.size_text||'')+'</td>'
+        +'<td><button type="button" class="btn '+(open?'btn-primary':'btn-ghost')+'" data-libopen="'+esc(it.id)+'" style="padding:5px 11px;font-size:12px">'+(open?'열림':'닫힘')+'</button></td>'
+        +'<td>'+esc(libWho(it))+' <a href="#" data-libwho="'+esc(it.id)+'" style="color:var(--accent);font-weight:700;font-size:12px">지정</a></td>'
+        +'<td><a href="#" data-libdel="'+esc(it.id)+'" style="color:#c0392b;font-weight:700;font-size:12px">삭제</a></td>'
+        +'</tr>';
+    });
+    t.innerHTML=h+'</tbody>';
+  }
+  function libTargets(){
+    // 받을 수 있는 사람: 학생과 선생님 (매니저·원장은 어차피 다 받는다)
+    return (_members||[]).filter(function(m){ return m.role==='student'||m.role==='admin'; })
+      .sort(function(a,b){
+        var ra=(a.role==='admin'?0:1), rb=(b.role==='admin'?0:1);
+        if(ra!==rb) return ra-rb;
+        return String(a.name||'').localeCompare(String(b.name||''),'ko');
+      });
+  }
+  function libGrantOpen(id){
+    var it=_lib.filter(function(x){ return String(x.id)===String(id); })[0];
+    var box=$('libGrantBox'); if(!it||!box) return;
+    _libEdit=it.id;
+    var picked=(_libGrants[it.id]||[]);
+    var all=it.audience==='all';
+    var list=libTargets().map(function(m){
+      var on=picked.indexOf(m.id)>=0;
+      return '<label style="display:flex;align-items:center;gap:7px;padding:4px 2px;font-size:12.5px">'
+        +'<input type="checkbox" data-libg="'+esc(m.id)+'"'+(on?' checked':'')+(all?' disabled':'')+'>'
+        +'<span>'+esc(m.name||'(이름 없음)')+(m.role==='admin'?' <span style="color:var(--muted)">선생님</span>':'')+'</span></label>';
+    }).join('');
+    box.style.display='';
+    box.innerHTML='<div style="padding:14px 15px;border:1px solid var(--line);border-radius:11px;background:var(--surface)">'
+      +'<div style="font-size:13px;font-weight:800;margin-bottom:8px">「'+esc(it.title)+'」 받을 사람</div>'
+      +'<label style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:8px">'
+      +'<input type="checkbox" id="libAll"'+(all?' checked':'')+'> <b>로그인한 수강생 전체에게 열기</b></label>'
+      +'<div id="libPickWrap" style="max-height:240px;overflow:auto;border-top:1px solid var(--line);padding-top:8px'+(all?';opacity:.45':'')+'">'
+      +(list||'<div class="wa-empty">회원 목록을 먼저 불러와야 합니다. 회원 탭을 한 번 열어주세요.</div>')+'</div>'
+      +'<div style="display:flex;gap:8px;margin-top:11px;align-items:center">'
+      +'<button class="btn btn-primary" id="libGrantSave" type="button" style="padding:7px 13px;font-size:12.5px">저장</button>'
+      +'<button class="btn btn-ghost" id="libGrantCancel" type="button" style="padding:7px 13px;font-size:12.5px">닫기</button>'
+      +'<span id="libGrantMsg" style="font-size:12px;color:var(--muted)"></span></div></div>';
+    $('libAll').onchange=function(){
+      var w=$('libPickWrap'); if(!w) return;
+      w.style.opacity=this.checked?'.45':'';
+      w.querySelectorAll('input[data-libg]').forEach(function(c){ c.disabled=this.checked; }, this);
+    };
+    $('libGrantCancel').onclick=function(){ box.style.display='none'; box.innerHTML=''; _libEdit=null; };
+    $('libGrantSave').onclick=libGrantSave;
+    box.scrollIntoView({block:'nearest'});
+  }
+  async function libGrantSave(){
+    if(!_libEdit||!sb) return;
+    var msg=$('libGrantMsg'); if(msg) msg.textContent='저장 중…';
+    var all=$('libAll') && $('libAll').checked;
+    var ids=[];
+    document.querySelectorAll('#libPickWrap input[data-libg]').forEach(function(c){
+      if(c.checked) ids.push(c.getAttribute('data-libg'));
+    });
+    var u=await sb.from('library_items').update({audience: all?'all':'selected'}).eq('id',_libEdit);
+    if(u.error){ if(msg) msg.textContent='실패: '+u.error.message; return; }
+    var d=await sb.from('library_grants').delete().eq('item_id',_libEdit);
+    if(d.error){ if(msg) msg.textContent='실패: '+d.error.message; return; }
+    if(!all && ids.length){
+      var ins=await sb.from('library_grants').insert(ids.map(function(pid){ return {item_id:_libEdit, profile_id:pid}; }));
+      if(ins.error){ if(msg) msg.textContent='실패: '+ins.error.message; return; }
+    }
+    if(msg) msg.textContent='저장했습니다';
+    var box=$('libGrantBox'); if(box){ box.style.display='none'; box.innerHTML=''; }
+    _libEdit=null;
+    await loadLib();
+  }
+  async function libUpload(){
+    var msg=$('libMsg'), fi=$('libFile');
+    function say(t){ if(msg) msg.textContent=t; }
+    if(!sb){ say('서버에 연결되지 않았습니다'); return; }
+    var f=fi && fi.files && fi.files[0];
+    if(!f){ say('파일을 먼저 골라주세요'); return; }
+    if(f.size > 200*1024*1024){ say('200MB 를 넘는 파일은 올릴 수 없습니다'); return; }
+    var cat=$('libCat').value;
+    var safe=String(f.name).replace(/[^\w.\-가-힣()]+/g,'_');
+    var path=cat+'/'+Date.now()+'_'+safe;
+    say('올리는 중… (파일이 크면 시간이 걸립니다)');
+    var up=await sb.storage.from('library').upload(path, f, {upsert:false, contentType:f.type||undefined});
+    if(up.error){ say('올리기 실패: '+up.error.message); return; }
+    var ins=await sb.from('library_items').insert({
+      category:cat,
+      title:(($('libTitle').value||'').trim()||f.name),
+      descr:(($('libDesc').value||'').trim()||null),
+      kind:libKind(f.name), size_text:libSize(f.size), path:path,
+      is_open:false, audience:'selected',
+      created_by:(profile&&profile.id)||null
+    });
+    if(ins.error){
+      // 목록에 못 들어갔으면 올린 파일도 지운다(주인 없는 파일이 남지 않게)
+      try{ await sb.storage.from('library').remove([path]); }catch(e){}
+      say('목록 저장 실패: '+ins.error.message); return;
+    }
+    say('올렸습니다. 아직 닫힘 상태예요 — 열기를 누르고 받을 사람을 지정해주세요.');
+    fi.value=''; $('libTitle').value=''; $('libDesc').value='';
+    await loadLib();
+  }
+  (function(){
+    var up=$('libUp'); if(up) up.onclick=libUpload;
+    var rl=$('libReload'); if(rl) rl.onclick=function(){ loadLib(); };
+    var t=$('libTable');
+    if(t) t.addEventListener('click', async function(e){
+      var o=e.target.closest('[data-libopen]'), w=e.target.closest('[data-libwho]'), d=e.target.closest('[data-libdel]');
+      if(w){ e.preventDefault(); libGrantOpen(w.getAttribute('data-libwho')); return; }
+      if(o){
+        var it=_lib.filter(function(x){ return String(x.id)===o.getAttribute('data-libopen'); })[0];
+        if(!it||!sb) return;
+        o.disabled=true;
+        var r=await sb.from('library_items').update({is_open:!it.is_open}).eq('id',it.id);
+        o.disabled=false;
+        if(r.error){ alert('바꾸지 못했습니다: '+r.error.message); return; }
+        await loadLib();
+        return;
+      }
+      if(d){
+        e.preventDefault();
+        var it2=_lib.filter(function(x){ return String(x.id)===d.getAttribute('data-libdel'); })[0];
+        if(!it2||!sb) return;
+        if(!confirm('「'+it2.title+'」 을 자료실에서 지울까요? 파일도 함께 지워집니다.')) return;
+        var dr=await sb.from('library_items').delete().eq('id',it2.id);
+        if(dr.error){ alert('삭제 실패: '+dr.error.message); return; }
+        try{ await sb.storage.from('library').remove([it2.path]); }catch(err){}
+        await loadLib();
+      }
+    });
+  })();
+
 
   function pad(n){ return (n<10?'0':'')+n; }
   function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -9957,6 +10170,8 @@
     // 수납(학생이 낸 돈 등록·조회)은 원장님·매니저 업무다.
     // 선생님은 '정산' 탭에서 본인 급여만 본다.
     c.querySelectorAll('.dash-tab[data-dtab="pay"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
+    // 자료실 관리(올리기·열기/닫기·대상 지정)는 원장님·매니저만 (원장 지시 2026-08-17).
+    c.querySelectorAll('.dash-tab[data-dtab="lib"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
     // 변경기록은 원장님·매니저만 본다(원장 지시 2026-08-14).
     // 서로 확인하려고 만든 자리라 선생님에게 열면 취지가 달라진다.
     c.querySelectorAll('.dash-tab[data-dtab="chglog"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
@@ -10993,44 +11208,78 @@
   route();
 })();
 
-  /* ── 자료실 ────────────────────────────────────────────────────────────
-     자료 추가하는 방법: 해당 과목 배열에 한 줄 넣으면 된다.
-       {t:'제목', d:'설명', kind:'PDF', size:'12MB', f:'files/파일이름.pdf'}
-     f 를 비워 두면 '준비 중' 으로 표시되고 버튼이 눌리지 않는다. */
-  window.LIB = {
-    toeic:      { name:'토익',       items:[] },
-    speaking:   { name:'토익스피킹', items:[] },
-    opic:       { name:'오픽',       items:[] },
-    conversation:{name:'영어회화',   items:[] }
-  };
+  /* ── 자료실 (원장 지시 2026-08-17) ───────────────────────────────────
+     자료는 Supabase library_items 에서 읽는다. 파일은 비공개 버킷 'library'.
+     · 로그인 안 하면 목록도 안 보여준다(원장 지시: 로그인한 사람만 다운로드).
+     · 학생·선생님에게는 '열려 있고 + 나에게 열어준' 자료만 내려온다(DB 규칙이 걸러준다).
+     · 다운로드는 그때그때 60초짜리 임시 주소를 만들어 받는다. 주소를 남에게 넘겨도 곧 막힌다. */
   (function(){
     var tabsEl=document.getElementById('libTabs'), listEl=document.getElementById('libList');
     if(!tabsEl||!listEl) return;
-    var keys=Object.keys(window.LIB), cur=keys[0];
+    var CATS=[['toeic','토익'],['speaking','토익스피킹'],['opic','오픽'],['conversation','영어회화']];
+    var cur='toeic', rows=null, logged=false, failed='';
+    function esc(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
     function card(it){
-      var on=!!it.f;
       return '<div class="lib-card">'
-        +'<div class="lib-meta"><span class="lib-kind">'+(it.kind||'PDF')+'</span>'
-        +(it.size?'<span>'+it.size+'</span>':'')+(on?'':'<span>준비 중</span>')+'</div>'
-        +'<div class="lt">'+it.t+'</div>'
-        +'<div class="ld">'+(it.d||'')+'</div>'
-        +(on?'<a class="lib-dl" href="'+it.f+'" download>내려받기</a>'
-            :'<span class="lib-dl off">준비 중</span>')
+        +'<div class="lib-meta"><span class="lib-kind">'+esc(it.kind||'PDF')+'</span>'
+        +(it.size_text?'<span>'+esc(it.size_text)+'</span>':'')+'</div>'
+        +'<div class="lt">'+esc(it.title)+'</div>'
+        +'<div class="ld">'+esc(it.descr||'')+'</div>'
+        +'<button type="button" class="lib-dl" data-libget="'+esc(it.id)+'">내려받기</button>'
         +'</div>';
     }
     function draw(){
-      tabsEl.innerHTML=keys.map(function(k){
-        return '<button type="button" class="lib-tab'+(k===cur?' on':'')+'" data-k="'+k+'">'
-               +window.LIB[k].name+'</button>';}).join('');
-      var its=window.LIB[cur].items;
-      listEl.innerHTML = its.length
-        ? '<div class="lib-grid">'+its.map(card).join('')+'</div>'
-        : '<div class="lib-empty">아직 올라간 '+window.LIB[cur].name+' 자료가 없습니다.<br>준비되면 여기에 올라갑니다.</div>';
+      tabsEl.innerHTML=CATS.map(function(c){
+        return '<button type="button" class="lib-tab'+(c[0]===cur?' on':'')+'" data-k="'+c[0]+'">'+c[1]+'</button>';
+      }).join('');
+      var name=(CATS.filter(function(c){return c[0]===cur;})[0]||['','' ])[1];
+      if(!logged){
+        listEl.innerHTML='<div class="lib-empty">🔒 자료는 <b>로그인</b>한 수강생·선생님만 받을 수 있어요.<br>'
+          +'<button type="button" class="lib-dl" id="libLogin" style="margin-top:12px">로그인 / 회원가입</button></div>';
+        var b=document.getElementById('libLogin');
+        if(b) b.onclick=function(){ if(window.waOpenLogin) window.waOpenLogin();
+          else { var o=document.getElementById('waOpen'); if(o) o.click(); } };
+        return;
+      }
+      if(failed){ listEl.innerHTML='<div class="lib-empty">자료를 불러오지 못했어요.<br>'+esc(failed)+'</div>'; return; }
+      if(rows===null){ listEl.innerHTML='<div class="lib-empty">불러오는 중…</div>'; return; }
+      var mine=rows.filter(function(r){ return r.category===cur; });
+      listEl.innerHTML = mine.length
+        ? '<div class="lib-grid">'+mine.map(card).join('')+'</div>'
+        : '<div class="lib-empty">아직 받을 수 있는 '+esc(name)+' 자료가 없습니다.<br>'
+          +'선생님이 자료를 열어주면 여기에 나타납니다.</div>';
+    }
+    async function load(){
+      var sb=window.sb;
+      if(!sb){ logged=false; draw(); return; }
+      var ses=await sb.auth.getSession();
+      logged=!!(ses.data&&ses.data.session);
+      if(!logged){ rows=null; draw(); return; }
+      rows=null; failed=''; draw();
+      var r=await sb.from('library_items').select('*')
+              .order('sort_no',{ascending:true}).order('created_at',{ascending:false});
+      if(r.error){ failed=r.error.message; rows=[]; } else { rows=r.data||[]; }
+      draw();
     }
     tabsEl.addEventListener('click',function(e){
       var b=e.target.closest('.lib-tab'); if(!b) return; cur=b.dataset.k; draw();
     });
-    draw();
+    listEl.addEventListener('click',async function(e){
+      var b=e.target.closest('[data-libget]'); if(!b) return;
+      var it=(rows||[]).filter(function(r){ return String(r.id)===b.getAttribute('data-libget'); })[0];
+      if(!it) return;
+      var was=b.textContent; b.textContent='준비 중…'; b.disabled=true;
+      try{
+        var r=await window.sb.storage.from('library').createSignedUrl(it.path, 60, {download: it.title||true});
+        if(r.error||!r.data){ alert('내려받기에 실패했어요. 선생님께 말씀해주세요.\n('+((r.error&&r.error.message)||'권한 없음')+')'); }
+        else { window.location.href=r.data.signedUrl; }
+      }catch(err){ alert('내려받기에 실패했어요: '+err.message); }
+      b.textContent=was; b.disabled=false;
+    });
+    window.addEventListener('wt-auth', load);
+    window.WT_LIB_RELOAD = load;
+    draw(); load();
   })();
 </script>
 </body></html>
