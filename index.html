@@ -8888,11 +8888,17 @@
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
     var kv=$('pyKind')?$('pyKind').value:'payment';
     var kind=(kv==='refund')?'refund':((kv==='ot')?'ot':'payment');
-    // 환불은 되돌려 주는 돈이라 횟수권을 함께 파는 일이 없다. 실수로 남아 있으면 무시한다.
-    if(kind==='refund') sessions=0;
+    // 환불은 돌려준 횟수만큼 남은 횟수에서 빼야 한다(원장 지시 2026-08-18).
+    // 전에는 0으로 지웠는데, 그러면 결제 때 더한 횟수가 그대로 남는다.
+    // 2026-08-18 김지영 건 — 오티 1회를 환불했는데 횟수가 안 빠져서, 나중에 정규 등록을
+    // 하면 그 1회가 되살아나 9회가 될 뻔했다. 그래서 음수로 넣어 상쇄한다.
+    // 서버(sessions_left)도 환불 행을 오티와 같은 규칙으로 세도록 함께 고쳤다.
+    if(kind==='refund') sessions=-Math.abs(sessions);
     // 최소 횟수 제한은 없앴다(원장 지시 2026-08-17 "최소 몇회부터 구매가능한거는 없애줘,
     // 4회만 결제하는 경우도있어"). 8회 미만으로 끊는 학생이 실제로 있다.
-    if(kind==='refund' && !confirm(student.name+' 학생에게 '+won(amount)+'을 환불한 것으로 등록할까요?\n\n총 매출액에서 이 금액이 빠집니다.')) return;
+    if(kind==='refund' && !confirm(student.name+' 학생에게 '+won(amount)+'을 환불한 것으로 등록할까요?\n\n총 매출액에서 이 금액이 빠집니다.'
+        + (sessions ? '\n남은 횟수도 '+Math.abs(sessions)+'회 줄어듭니다.'
+                    : '\n\n※ 횟수 칸이 비어 있어 남은 횟수는 그대로입니다.\n수업 횟수까지 돌려주는 환불이면 횟수를 적어주세요.'))) return;
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
@@ -8983,7 +8989,7 @@
     var sessions=parseInt($('pyeSessions').value,10)||0;
     var ekv=$('pyeKind')?$('pyeKind').value:'payment';
     var ekind=(ekv==='refund')?'refund':((ekv==='ot')?'ot':'payment');
-    if(ekind==='refund') sessions=0;
+    if(ekind==='refund') sessions=-Math.abs(sessions);   // 등록 폼과 같은 규칙(2026-08-18)
     // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
