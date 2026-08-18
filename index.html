@@ -4183,7 +4183,13 @@
 .cal-rhead{height:22px;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 3px;box-sizing:border-box;border-bottom:1px solid var(--line);font-size:10.5px;font-weight:800;color:var(--ink-soft);background:var(--surface-2);white-space:nowrap;overflow:hidden}
 .cal-rhead.none{color:#e8892b}
 .cal-search{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 8px}
-.cal-search input{flex:0 0 240px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;font-family:inherit}
+/* 🚨 type 을 안 적으면 '휴강·결석도 보기' 체크박스까지 이 규칙을 먹는다(원장 2026-08-18
+   "체크박스 위치가 이상해"). 체크박스가 240px 짜리 네모가 되면서 글자와 떨어져 버렸다.
+   .wa-check input 으로 되돌리려 해도 특이성이 같고 이 줄이 뒤에 있어 이쪽이 이긴다. */
+.cal-search input[type="text"]{flex:0 0 240px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;font-family:inherit}
+/* 체크박스와 글자는 항상 붙어 다니고, 건수는 줄이 좁아지면 다음 줄로 내려가게 둔다. */
+.cal-search .wa-check{flex:0 0 auto;align-items:center}
+.cal-search .wa-check input[type="checkbox"]{margin:0!important;width:15px!important;height:15px;flex:none}
 /* 선생님별 보기 (2026-08-13). 고르면 파랗게 표시해 지금 걸려 있다는 걸 알린다. */
 .cal-search select{padding:8px 10px;border:1px solid var(--line-strong);border-radius:8px;font-size:13px;
                    font-family:inherit;background:var(--surface);color:var(--ink);font-weight:700;max-width:180px}
