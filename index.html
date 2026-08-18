@@ -6720,7 +6720,9 @@
          : r==='teacher' ? '강사 일정 조정'
          : r==='academy' ? '학원 사정'
          : r==='holiday' ? '공휴일 · 휴원'
-         : r==='mistake' ? '잘못 잡은 수업'
+         // 학생 화면에도 그대로 나가는 말이라 '잘못 잡은 수업'은 학원이 실수한 것처럼 읽힌다(원장 2026-08-18, C안).
+         // 고르는 칸의 문구는 그대로 두고(원장님은 무엇을 고르는지 알아야 한다) 보이는 말만 바꾼다.
+         : r==='mistake' ? '학원 일정 정정'
          : '사유 미기재';
   }
   function closeSchedEdit(){ if($('waSchedEdit')) $('waSchedEdit').classList.remove('on'); _seId=null; }
