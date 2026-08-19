@@ -4329,6 +4329,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           </div>
         </div>
         <div id="libGrantBox" style="display:none;margin:12px 0"></div>
+        <!-- 자료가 100개를 넘으면서 눈으로 찾기가 어려워졌다(원장 지적 2026-08-19).
+             검색 + 출판사별 접기 + 열린 것만 보기 세 가지로 좁힌다. -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 8px">
+          <input id="libSearch" type="search" placeholder="교재 이름으로 찾기 (예: 해커스 1000제)"
+                 style="flex:1;min-width:200px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap">
+            <input type="checkbox" id="libOnlyOpen"> 열린 것만
+          </label>
+          <span id="libCount" style="font-size:12.5px;color:var(--muted);white-space:nowrap"></span>
+        </div>
         <div class="wa-table-wrap"><table class="wa-table" id="libTable"></table></div>
       </div>
 
@@ -5977,23 +5987,63 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var n=(_libGrants[it.id]||[]).length;
     return n ? n+'명 지정' : '아직 없음';
   }
+  // 자료를 묶는 기준 = 출판사. 설명칸이 "ETS · 실전" 꼴이라 앞부분을 쓴다.
+  // 단계(기초/중급/실전)로 묶지 않는 이유: 실전이 87/100 이라 한 곳에 다 몰려 나누는 뜻이 없다.
+  function libGroupOf(it){
+    var d=String(it.descr||'').split(' · ')[0].trim();
+    return d || (LIB_CATS[it.category]||it.category||'기타');
+  }
+  var _libOpenGroups={};      // 펼쳐 둔 출판사
   function renderLib(){
     var t=$('libTable'); if(!t) return;
     if(!_lib.length){
       t.innerHTML='<tbody><tr><td class="wa-empty">아직 올린 자료가 없습니다. 위에서 파일을 올려주세요.</td></tr></tbody>';
+      if($('libCount')) $('libCount').textContent='';
       return;
     }
+    var q=(($('libSearch')&&$('libSearch').value)||'').trim().toLowerCase();
+    var onlyOpen=!!($('libOnlyOpen')&&$('libOnlyOpen').checked);
+    var shown=_lib.filter(function(it){
+      if(onlyOpen && !it.is_open) return false;
+      if(!q) return true;
+      return (String(it.title||'')+' '+String(it.descr||'')).toLowerCase().indexOf(q)>-1;
+    });
+    if($('libCount')) $('libCount').textContent =
+      (q||onlyOpen) ? (shown.length+'개 / 전체 '+_lib.length+'개') : ('전체 '+_lib.length+'개');
+    if(!shown.length){
+      t.innerHTML='<thead><tr><th>과목</th><th>제목</th><th>크기</th><th>상태</th><th>받는 사람</th><th></th></tr></thead>'
+        +'<tbody><tr><td class="wa-empty" colspan="6">찾는 자료가 없습니다.</td></tr></tbody>';
+      return;
+    }
+    // 출판사별로 묶는다. 검색 중이거나 자료가 적으면 다 펼친다.
+    var groups={}, order=[];
+    shown.forEach(function(it){
+      var g=libGroupOf(it);
+      if(!groups[g]){ groups[g]=[]; order.push(g); }
+      groups[g].push(it);
+    });
+    var expandAll = !!q || onlyOpen || shown.length<=25;
     var h='<thead><tr><th>과목</th><th>제목</th><th>크기</th><th>상태</th><th>받는 사람</th><th></th></tr></thead><tbody>';
-    _lib.forEach(function(it){
-      var open=!!it.is_open;
-      h+='<tr>'
-        +'<td>'+esc(LIB_CATS[it.category]||it.category)+'</td>'
-        +'<td><b>'+esc(it.title)+'</b>'+(it.descr?'<div style="font-size:11.5px;color:var(--muted);margin-top:2px">'+esc(it.descr)+'</div>':'')+'</td>'
-        +'<td>'+esc(it.size_text||'')+'</td>'
-        +'<td><button type="button" class="btn '+(open?'btn-primary':'btn-ghost')+'" data-libopen="'+esc(it.id)+'" style="padding:5px 11px;font-size:12px">'+(open?'열림':'닫힘')+'</button></td>'
-        +'<td>'+esc(libWho(it))+' <a href="#" data-libwho="'+esc(it.id)+'" style="color:var(--accent);font-weight:700;font-size:12px">지정</a></td>'
-        +'<td><a href="#" data-libdel="'+esc(it.id)+'" style="color:#c0392b;font-weight:700;font-size:12px">삭제</a></td>'
-        +'</tr>';
+    order.forEach(function(g){
+      var list=groups[g];
+      var openN=list.filter(function(x){ return x.is_open; }).length;
+      var on = expandAll || !!_libOpenGroups[g];
+      h+='<tr data-libgrp="'+esc(g)+'" style="cursor:pointer;background:var(--surface-2,#f6f8fa)">'
+        +'<td colspan="6" style="font-weight:800;font-size:12.5px;padding:8px 10px">'
+        +(on?'▾':'▸')+' '+esc(g)+' <span style="color:var(--muted);font-weight:700">'+list.length+'개'
+        +(openN?' · 열림 '+openN:'')+'</span></td></tr>';
+      if(!on) return;
+      list.forEach(function(it){
+        var open=!!it.is_open;
+        h+='<tr>'
+          +'<td>'+esc(LIB_CATS[it.category]||it.category)+'</td>'
+          +'<td><b>'+esc(it.title)+'</b>'+(it.descr?'<div style="font-size:11.5px;color:var(--muted);margin-top:2px">'+esc(it.descr)+'</div>':'')+'</td>'
+          +'<td>'+esc(it.size_text||'')+'</td>'
+          +'<td><button type="button" class="btn '+(open?'btn-primary':'btn-ghost')+'" data-libopen="'+esc(it.id)+'" style="padding:5px 11px;font-size:12px">'+(open?'열림':'닫힘')+'</button></td>'
+          +'<td>'+esc(libWho(it))+' <a href="#" data-libwho="'+esc(it.id)+'" style="color:var(--accent);font-weight:700;font-size:12px">지정</a></td>'
+          +'<td><a href="#" data-libdel="'+esc(it.id)+'" style="color:#c0392b;font-weight:700;font-size:12px">삭제</a></td>'
+          +'</tr>';
+      });
     });
     t.innerHTML=h+'</tbody>';
   }
@@ -6093,9 +6143,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   (function(){
     var up=$('libUp'); if(up) up.onclick=libUpload;
     var rl=$('libReload'); if(rl) rl.onclick=function(){ loadLib(); };
+    // 검색은 서버를 다시 안 부르고 이미 받아둔 목록에서 걸러낸다(즉시 반응)
+    var sq=$('libSearch'); if(sq) sq.addEventListener('input', function(){ renderLib(); });
+    var oo=$('libOnlyOpen'); if(oo) oo.addEventListener('change', function(){ renderLib(); });
     var t=$('libTable');
     if(t) t.addEventListener('click', async function(e){
       var o=e.target.closest('[data-libopen]'), w=e.target.closest('[data-libwho]'), d=e.target.closest('[data-libdel]');
+      var grp=e.target.closest('[data-libgrp]');
+      // 출판사 줄을 누르면 그 묶음만 펼치거나 접는다
+      if(grp && !o && !w && !d){
+        var gn=grp.getAttribute('data-libgrp');
+        _libOpenGroups[gn]=!_libOpenGroups[gn];
+        renderLib();
+        return;
+      }
       if(w){ e.preventDefault(); libGrantOpen(w.getAttribute('data-libwho')); return; }
       if(o){
         var it=_lib.filter(function(x){ return String(x.id)===o.getAttribute('data-libopen'); })[0];
