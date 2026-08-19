@@ -2638,6 +2638,11 @@
     </div>
   </div>
 </section>
+<script>
+/* 자료실 R2 중계기 주소. R2(시중교재)에 있는 파일은 여기를 거쳐야 받는다.
+   로그인·열림·권한을 이 중계기가 확인한다. 소스: ~/.claude/r2/worker.js */
+var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
+</script>
 <!-- 자료실 (원장 지시 2026-08-17). 자료는 Supabase library_items 에서 읽는다.
      추가는 관리 페이지 → 자료실 탭에서 원장·매니저가 직접 올린다(DB 는 2_DB 설정 SQL/library.sql).
      ⚠️ PAGE_OF 에 library 를 등록해 두었다. 빼면 모든 페이지에 이 섹션이 계속 보인다. -->
@@ -11331,9 +11336,30 @@
       if(!it) return;
       var was=b.textContent; b.textContent='준비 중…'; b.disabled=true;
       try{
-        var r=await window.sb.storage.from('library').createSignedUrl(it.path, 60, {download: it.title||true});
-        if(r.error||!r.data){ alert('내려받기에 실패했어요. 선생님께 말씀해주세요.\n('+((r.error&&r.error.message)||'권한 없음')+')'); }
-        else { window.location.href=r.data.signedUrl; }
+        // path 가 'r2:' 로 시작하면 R2(시중교재 11GB)에 있는 파일이다.
+        // R2 는 비밀키가 있어야 열리므로 브라우저가 직접 못 가져온다 →
+        // 중계기(Worker)가 로그인·권한을 확인한 뒤 내려준다. 자세한 건 jaryosil-storage 기억파일.
+        if(String(it.path||'').indexOf('r2:')===0){
+          var key=it.path.slice(3);
+          var ses=await window.sb.auth.getSession();
+          var at=ses&&ses.data&&ses.data.session&&ses.data.session.access_token;
+          if(!at){ alert('로그인이 풀렸어요. 다시 로그인해주세요.'); }
+          else{
+            var w=await fetch(WT_LIB_R2+'/?key='+encodeURIComponent(key),
+                              {headers:{Authorization:'Bearer '+at}});
+            if(!w.ok){ alert('내려받기에 실패했어요. 선생님께 말씀해주세요.\n('+(await w.text())+')'); }
+            else{
+              // 큰 파일이라 blob 으로 받아 저장한다(주소창으로 넘기면 토큰을 못 싣는다)
+              var blob=await w.blob(), u=URL.createObjectURL(blob), a=document.createElement('a');
+              a.href=u; a.download=it.title||key.split('/').pop(); document.body.appendChild(a);
+              a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(u);},2000);
+            }
+          }
+        } else {
+          var r=await window.sb.storage.from('library').createSignedUrl(it.path, 60, {download: it.title||true});
+          if(r.error||!r.data){ alert('내려받기에 실패했어요. 선생님께 말씀해주세요.\n('+((r.error&&r.error.message)||'권한 없음')+')'); }
+          else { window.location.href=r.data.signedUrl; }
+        }
       }catch(err){ alert('내려받기에 실패했어요: '+err.message); }
       b.textContent=was; b.disabled=false;
     });
