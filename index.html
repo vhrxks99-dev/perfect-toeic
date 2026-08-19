@@ -10348,6 +10348,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!ops && c.querySelector('.dash-pane[data-dpane="pay"].on')) dashTab('payroll');
     if(!ops && c.querySelector('.dash-pane[data-dpane="eval"].on')) dashTab('members');
     if(!ops && c.querySelector('.dash-pane[data-dpane="chglog"].on')) dashTab('members');
+    // 자료실만 이 줄이 빠져 있었다(2026-08-19). 탭은 숨겨도, 열어 둔 채로 권한이
+    // 바뀌면 화면이 그대로 남는다. 서버(RLS)가 막고 있어 실제로 손대지는 못하지만
+    // 보이지 않아야 할 화면이 보이는 것 자체가 혼란이라 다른 탭과 똑같이 맞춘다.
+    if(!ops && c.querySelector('.dash-pane[data-dpane="lib"].on')) dashTab('members');
   }
 
 
