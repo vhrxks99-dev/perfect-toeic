@@ -5949,11 +5949,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   async function loadLib(){
     var t=$('libTable'); if(!t||!sb) return;
+    // 표를 갈아끼우는 동안 페이지가 짧아져 화면이 위로 튀는 걸 막는다(원장 지적 2026-08-19).
+    // 자료가 100개 넘어가면 표가 길어서 튐이 눈에 크게 띈다.
+    var _keepY = window.scrollY, _keepH = t.offsetHeight;
+    if(_keepH) t.style.minHeight = _keepH + 'px';
     t.innerHTML='<tbody><tr><td class="wa-empty">불러오는 중…</td></tr></tbody>';
+    var _restore = function(){
+      t.style.minHeight='';
+      if(Math.abs(window.scrollY - _keepY) > 4) window.scrollTo(0, _keepY);
+    };
     var r=await sb.from('library_items').select('*')
             .order('category',{ascending:true}).order('sort_no',{ascending:true}).order('created_at',{ascending:false});
     if(r.error){
       t.innerHTML='<tbody><tr><td class="wa-empty">불러오지 못했습니다: '+esc(r.error.message)+'</td></tr></tbody>';
+      _restore();
       return;
     }
     _lib=r.data||[];
@@ -5961,6 +5970,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     _libGrants={};
     (g.data||[]).forEach(function(x){ (_libGrants[x.item_id]=_libGrants[x.item_id]||[]).push(x.profile_id); });
     renderLib();
+    _restore();
   }
   function libWho(it){
     if(it.audience==='all') return '전체 수강생';
@@ -6094,7 +6104,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         var r=await sb.from('library_items').update({is_open:!it.is_open}).eq('id',it.id);
         o.disabled=false;
         if(r.error){ alert('바꾸지 못했습니다: '+r.error.message); return; }
-        await loadLib();
+        // 목록을 다시 그리면 표가 잠깐 한 줄로 줄었다가 돌아오면서 화면이 맨 위로 튄다
+        // (원장 지적 2026-08-19). 버튼 하나만 그 자리에서 바꾼다.
+        it.is_open=!it.is_open;
+        o.textContent = it.is_open ? '열림' : '닫힘';
+        o.className = 'btn ' + (it.is_open ? 'btn-primary' : 'btn-ghost')
+                    + (o.className.indexOf('btn-sm')>-1 ? ' btn-sm' : '');
         return;
       }
       if(d){
