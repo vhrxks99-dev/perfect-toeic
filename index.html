@@ -4319,6 +4319,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
               <option value="toeic">토익</option><option value="speaking">토익스피킹</option>
               <option value="opic">오픽</option><option value="conversation">영어회화</option>
             </select>
+            <!-- 출판사를 골라야 목록에서 그 폴더로 들어간다(원장 지적 2026-08-19).
+                 설명칸에 직접 쓰던 방식은 오타 한 글자로 폴더가 갈라져서 select 로 바꿨다. -->
+            <select id="libPub" style="padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px">
+              <option value="완벽한토익">완벽한토익 (자체 교재)</option>
+              <option value="ETS">ETS</option><option value="YBM">YBM</option>
+              <option value="해커스">해커스</option><option value="시나공">시나공</option>
+              <option value="시원스쿨">시원스쿨</option><option value="영단기">영단기</option>
+              <option value="산타토익">산타토익</option><option value="기타">기타</option>
+            </select>
+            <select id="libLevel" style="padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px">
+              <option value="">단계 (선택)</option>
+              <option value="기초">기초</option><option value="중급">중급</option>
+              <option value="실전">실전</option><option value="단어">단어</option>
+            </select>
             <input id="libFile" type="file" style="font-size:13px">
           </div>
           <input id="libTitle" type="text" placeholder="제목 (비우면 파일 이름을 씁니다)" style="padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);color:var(--ink);font-size:13px">
@@ -6022,6 +6036,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!groups[g]){ groups[g]=[]; order.push(g); }
       groups[g].push(it);
     });
+    // 자체 교재를 맨 위로, 그 다음은 자료가 많은 순서로 보여준다.
+    order.sort(function(a,b){
+      if(a==='완벽한토익') return -1;
+      if(b==='완벽한토익') return 1;
+      var d=groups[b].length-groups[a].length;
+      return d || String(a).localeCompare(String(b),'ko');
+    });
     var expandAll = !!q || onlyOpen || shown.length<=25;
     var h='<thead><tr><th>과목</th><th>제목</th><th>크기</th><th>상태</th><th>받는 사람</th><th></th></tr></thead><tbody>';
     order.forEach(function(g){
@@ -6123,10 +6144,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     say('올리는 중… (파일이 크면 시간이 걸립니다)');
     var up=await sb.storage.from('library').upload(path, f, {upsert:false, contentType:f.type||undefined});
     if(up.error){ say('올리기 실패: '+up.error.message); return; }
+    // 설명칸은 "출판사 · 단계 · 내가 쓴 말" 순서로 만든다.
+    // 맨 앞이 출판사여야 목록에서 그 폴더로 묶인다(libGroupOf 가 앞부분을 본다).
+    var pub=(($('libPub')&&$('libPub').value)||'기타');
+    var lvl=(($('libLevel')&&$('libLevel').value)||'');
+    var free=(($('libDesc')&&$('libDesc').value)||'').trim();
+    var descr=[pub, lvl, free].filter(function(x){ return x; }).join(' · ');
     var ins=await sb.from('library_items').insert({
       category:cat,
       title:(($('libTitle').value||'').trim()||f.name),
-      descr:(($('libDesc').value||'').trim()||null),
+      descr:descr,
       kind:libKind(f.name), size_text:libSize(f.size), path:path,
       is_open:false, audience:'selected',
       created_by:(profile&&profile.id)||null
