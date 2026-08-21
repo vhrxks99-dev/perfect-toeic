@@ -10283,13 +10283,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var r;
     // 마감일 칸은 2026-08-11에 없앴다(원장 지시). 목록은 '그날 수업 있는 학생'으로 거르므로 쓸 일이 없다.
     // homeworks.due_date 컬럼과 옛 데이터는 그대로 두고 화면에서만 뺐다.
-    if(hwEditId){ r=await sb.from('homeworks').update({content:content}).eq('id',hwEditId); }
+    if(hwEditId){ r=await sb.from('homeworks').update({content:content}).eq('id',hwEditId).select(); }
     else {
       var sid=$('hwStudent')?$('hwStudent').value:'';
       if(!sid){ if(err) err.textContent='학생을 선택하세요.'; return; }
       if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
       var st=_members.filter(function(m){return m.id===sid;})[0];
-      r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content});
+      r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content}).select();
     }
     if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
     if(r.error){
@@ -10298,7 +10298,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       alert(msg);      // 빨간 글씨만 두면 화면 밖일 때 그냥 안 눌린 줄 안다
       return;
     }
-    hwReset(); await loadHomework();
+    // 저장된 행을 그대로 돌려받아 목록에 끼워 넣는다. 예전에는 여기서 숙제 전체(수백 건)를
+    // 다시 받아왔는데, 폰에서는 그 왕복이 몇 초라 "눌렀는데 안 올라간다"로 느껴졌다.
+    // (원장 신고 2026-08-21 "숙제올려줄때 렉먹어") 되받은 게 없으면 예전 방식으로 물러난다.
+    var savedHw=(r.data&&r.data[0])||null, hwList=window.__wtHw;
+    if(savedHw && Array.isArray(hwList)){
+      var hwAt=-1;
+      for(var hwI=0; hwI<hwList.length; hwI++){ if(String(hwList[hwI].id)===String(savedHw.id)){ hwAt=hwI; break; } }
+      if(hwAt>=0) hwList[hwAt]=savedHw; else hwList.unshift(savedHw);
+      hwReset(); drawHw();
+    } else {
+      hwReset(); await loadHomework();
+    }
   };
   // 선생님이 숙제 목록에서 직접 체크 — 항목 체크(data-thw)와 선생님 확인(data-tchk)
   if($('hwTable')) $('hwTable').addEventListener('change', async function(e){
