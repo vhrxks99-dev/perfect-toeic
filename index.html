@@ -1693,9 +1693,9 @@
       +'.ft{margin-top:6mm;border-top:.5pt solid #d8dfe7;padding-top:2mm;font-size:8.6pt;color:#9aa5b1;display:flex;justify-content:space-between}'
       +'.printbar{position:fixed;top:0;left:0;right:0;background:#1d5c96;color:#fff;padding:9px 14px;font-size:13px;display:flex;justify-content:space-between;align-items:center;z-index:9}'
       +'.printbar button{font-size:13px;font-weight:700;padding:7px 14px;border:none;border-radius:7px;background:#fff;color:#1d5c96;cursor:pointer}'
-      +'body{padding-top:46px}@media print{.printbar{display:none}body{padding-top:0}}';
+      +'body{padding-top:46px}.printbar{gap:8px}.printbar button{white-space:nowrap;border:1px solid transparent}.printbar>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.printbar button:first-of-type{margin-left:auto}.printbar .pb-close{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.6)}@media print{.printbar{display:none}body{padding-top:0}}';
     var doc='<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>완벽한토익 진단 맞춤 커리큘럼</title><style>'+css+'</style></head><body>'
-      +'<div class="printbar"><span>완벽한토익 · 진단 결과 맞춤 커리큘럼</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>'
+      +'<div class="printbar"><span>완벽한토익 · 진단 결과 맞춤 커리큘럼</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button><button class="pb-close" onclick="closeSheet()">&#10005; 닫기</button></div>'
       +'<div class="hd"><div class="l"><div class="k">D I A G N O S I S</div><div class="t">'
         +(nm?esc2(nm)+' 학생 ':'')+(o.abils?'진단 리포트':'맞춤 커리큘럼')+'</div></div>'
       +'<div class="r"><div class="g">'+(o.lc!=null&&o.rc!=null?'성적표 총점':'진단 예상 (읽기 RC)')+'</div><div class="n">'+esc2(score)+'점</div>'
@@ -1722,7 +1722,7 @@
         : '<div class="tip"><b>이 표는 진단 30문항으로 뽑은 요약본입니다.</b> 능력별 상세 성적표와 4주 단위 상세 계획은 '
           +'<b>무료 상담</b> 때 담당 선생님이 직접 분석해 드립니다.</div>')
       +'<div class="ft"><span>완벽한토익 · perfect-toeic.com</span><span>'+(o.abils?'진단 리포트 (선생님용)':'진단 맞춤 커리큘럼')+'</span></div>'
-      +'</body></html>';
+      +'<script>var BACK='+JSON.stringify(location.href)+';function closeSheet(){window.close();setTimeout(function(){location.replace(BACK)},260)}<\/script></body></html>';
     var w=window.open('','_blank');
     if(!w){ alert('팝업이 차단되었습니다. 팝업 허용 후 다시 눌러주세요.'); return; }
     w.document.open(); w.document.write(doc); w.document.close();
@@ -2133,7 +2133,7 @@
       + 'ol.key .kn{color:#9aa1ab;font-weight:700;margin-right:5px}'
       + 'ol.key b{color:#1F62E0;margin-right:5px}'
       + '.wm-foot{position:fixed;bottom:5mm;left:14mm;right:14mm;display:flex;justify-content:space-between;font-size:9.5px;color:#aab0ba;border-top:1px solid #e8ebf0;padding-top:5px}'
-      + '@media print{.printbar{display:none}body{padding:0}}'
+      + '.printbar{gap:8px}.printbar button{white-space:nowrap;border:1px solid transparent}.printbar>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.printbar button:first-of-type{margin-left:auto}.printbar .pb-close{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.6)}@media print{.printbar{display:none}body{padding:0}}'
       // 폰에서도 2단을 유지한다(원장 요청 2026-08-11). viewport 를 안 주면 브라우저가 980px 로 그린 뒤
       // 화면에 맞춰 축소해버려서, 2단이긴 한데 글씨가 깨알만 해지고 확대하면 한 단만 보인다.
       // viewport 를 실제 폭으로 주는 대신 화면에서만 글씨·여백을 줄인다. 인쇄(A4)는 건드리지 않는다.
@@ -2157,14 +2157,14 @@
       +   '.wm-foot{font-size:8px;left:9px;right:9px}'
       + '}';
     var doc = '<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>완벽한토익 VOCA 단어시험</title><style>'+css+'</style></head><body>'
-      + '<div class="printbar"><span>완벽한토익 VOCA 단어시험지</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button></div>'
+      + '<div class="printbar"><span>완벽한토익 VOCA 단어시험지</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button><button class="pb-close" onclick="closeSheet()">&#10005; 닫기</button></div>'
       + head()
       + '<div class="wm-info"><span>이름<span class="u"></span></span><span>점수<span class="u short"></span> / '+n+'</span><span>날짜<span class="u"></span></span></div>'
       + '<div class="wm-tip">'+(e2k?'각 단어의 우리말 뜻을 쓰세요.':'각 뜻에 해당하는 영어 단어를 쓰세요.')+'</div>'
       + sheetPages()
       + '<div class="keywrap">'+head()+'<span class="wm-ans-badge">정답 · ANSWER KEY</span>'+keyPages()+'</div>'
       + '<div class="wm-foot"><span>완벽한토익 · PERFECT TOEIC</span><span>매일 10:00 – 22:00 · Kakao CH_ PERFECT_TOEIC</span></div>'
-      + '</body></html>';
+      + '<script>var BACK='+JSON.stringify(location.href)+';function closeSheet(){window.close();setTimeout(function(){location.replace(BACK)},260)}<\/script></body></html>';
     var w = window.open('', '_blank');
     if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도해주세요.'); return; }
     w.document.open(); w.document.write(doc); w.document.close();
