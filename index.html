@@ -11470,6 +11470,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     tabsEl.addEventListener('click',function(e){
       var b=e.target.closest('.lib-tab'); if(!b) return; cur=b.dataset.k; draw();
     });
+    // 내려받는 파일 이름에 확장자를 붙인다. 자료실 제목(title)에는 .pdf 를 안 적는데
+    // 폰은 이름 끝의 확장자로 파일 종류를 판단한다 → 확장자가 없으면 PDF 로 안 보여서
+    // 굿노트·노트플러스로 옮길 수 없다(원장 신고 2026-08-21 박성아 건).
+    // 저장된 경로(path)에는 .pdf 가 제대로 들어 있으므로 거기서 떼어 붙인다.
+    function libDownName(path, title){
+      var base=String(path||'').split('/').pop();
+      var m=base.match(/\.[A-Za-z0-9]{1,5}$/);
+      var name=String(title||'').trim() || base;
+      if(m && name.slice(-m[0].length).toLowerCase()!==m[0].toLowerCase()) name+=m[0];
+      return name;
+    }
     listEl.addEventListener('click',async function(e){
       var b=e.target.closest('[data-libget]'); if(!b) return;
       var it=(rows||[]).filter(function(r){ return String(r.id)===b.getAttribute('data-libget'); })[0];
@@ -11491,12 +11502,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             else{
               // 큰 파일이라 blob 으로 받아 저장한다(주소창으로 넘기면 토큰을 못 싣는다)
               var blob=await w.blob(), u=URL.createObjectURL(blob), a=document.createElement('a');
-              a.href=u; a.download=it.title||key.split('/').pop(); document.body.appendChild(a);
+              a.href=u; a.download=libDownName(key, it.title); document.body.appendChild(a);
               a.click(); document.body.removeChild(a); setTimeout(function(){URL.revokeObjectURL(u);},2000);
             }
           }
         } else {
-          var r=await window.sb.storage.from('library').createSignedUrl(it.path, 60, {download: it.title||true});
+          var r=await window.sb.storage.from('library').createSignedUrl(it.path, 60, {download: libDownName(it.path, it.title)});
           if(r.error||!r.data){ alert('내려받기에 실패했어요. 선생님께 말씀해주세요.\n('+((r.error&&r.error.message)||'권한 없음')+')'); }
           else { window.location.href=r.data.signedUrl; }
         }
