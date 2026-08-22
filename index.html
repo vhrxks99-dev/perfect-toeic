@@ -4980,6 +4980,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function session(){try{return JSON.parse(localStorage.getItem(SS)||'null');}catch(e){return null;}}
   function setSession(s){ if(s) localStorage.setItem(SS,JSON.stringify(s)); else localStorage.removeItem(SS); renderAuth(); try{window.dispatchEvent(new Event("wt-auth"));}catch(e){} }
   window.waOpenLogin=function(){ openModal("login"); };
+  window.waOpenSignupModal=function(){ openModal("signup"); };
   function salt(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   function hashPw(pw,s){ return sha256(unescape(encodeURIComponent(s+'::'+pw))); }
   function today(){ var d=new Date(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
@@ -5074,7 +5075,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function socialSoon(n){ alert(n+' 간편가입은 준비 중입니다. 지금은 이메일 회원가입을 이용해주세요.'); }
   if($('waKakao')) $('waKakao').onclick=async function(){
     if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
-    var r=await sb.auth.signInWithOAuth({ provider:'kakao', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    // 카카오에 '닉네임과 이메일을 달라'고 명시해서 부른다.
+    // 2026-08-22 카카오 개발자센터에서 이메일을 '필수 동의'로 바꿔놨으므로,
+    // 학생이 거부할 수 없고 카카오계정에 이메일이 없으면 그 자리에서 등록하게 된다.
+    // (이름·전화번호는 아직 '권한 없음' — 카카오 심사가 끝나면 여기 scopes 에 name, phone_number 를 더한다)
+    var r=await sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email', redirectTo: window.location.origin + window.location.pathname } });
     if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
   };
   renderAuth();
@@ -5090,6 +5095,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   var profile = null;
 
   function openModal(tab){ $('waModal').classList.add('on'); setTab(tab||'login'); loadSignupTeachers(); }
+  // #signup 으로 들어온 사람에게 가입 창을 열어주는 스위치.
+  // 위쪽 옛 블록에도 같은 이름이 있지만, 실제로 쓰는 건 이쪽(수파베이스 로그인)이라 여기서 덮어쓴다.
+  window.waOpenSignupModal=function(){ openModal('signup'); };
   function closeModal(){ $('waModal').classList.remove('on'); }
   function setTab(t){ var ms=$('waModal'); ms.querySelectorAll('.wa-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===t);}); ms.querySelectorAll('.wa-form').forEach(function(f){f.classList.toggle('on',f.getAttribute('data-form')===t);}); }
   // 가입 화면의 담당 선생님 목록. 비로그인이라 profiles 를 직접 못 읽으므로
@@ -5138,10 +5146,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var birth=$('waSuBirth').value.trim()||null, gender=$('waSuGender').value||null, interest=$('waSuInterest').value||null;
     var route=$('waSuRoute').value||null, marketing=$('waSuMarketing').checked;
     if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·휴대폰 번호·비밀번호는 필수입니다.'; return; }
+    var badv = badName(name)||badEmail(email)||badPhone(phone);
+    if(badv){ err.textContent=badv; return; }
+    phone = fmtPhone(phone);
     if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
     if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
     if(!$('waSuAgree').checked){ err.textContent='개인정보 수집·이용에 동의해주세요.'; return; }
     if(!sb){ err.textContent='서버 연결 중입니다. 잠시 후 다시 시도해주세요.'; return; }
+    // 2026-08-22 원장 지시 — 중복 가입 막기.
+    // 이메일 중복은 수파베이스가 알아서 막지만, 같은 사람이 이메일만 바꿔
+    // 두 번 가입하는 건 번호로만 잡을 수 있다. 계정을 만들기 '전에' 본다.
+    // (phone_taken 은 하이픈·공백을 무시하고 숫자만 비교한다 — 실측 확인함)
+    try{
+      var dup=await sb.rpc('phone_taken',{p_phone:phone});
+      if(!dup.error && dup.data===true){
+        err.innerHTML='이 번호로 <b>이미 가입된 계정</b>이 있습니다. 원래 쓰시던 계정으로 로그인해 주세요.'
+          +'<br>어느 계정인지 모르시면 완벽한토익 카카오 채널로 문의해 주세요.';
+        return;
+      }
+    }catch(e){}   // 함수가 없으면 막지 않고 그냥 진행한다
     var su=await sb.auth.signUp({email:email,password:pw});
     if(su.error){ err.textContent=authErr(su.error.message); return; }
     var user=su.data.user;
@@ -5211,30 +5234,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         var pr=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
         if(pr.data){ profile = pr.data; }
         else {
+          // 2026-08-22 — 여기서 profiles 행을 만들지 않는다.
+          // 카카오로 들어오면 이름이 카카오 닉네임(하트 같은 것)이고 번호가 없어서,
+          // 행부터 만들면 반쪽짜리 회원이 목록에 남는다. 실제로 그렇게 들어온 계정이 있었다.
+          // '필수 정보 입력' 창을 다 채워야 그때 행을 만든다.
           var meta=user.user_metadata||{};
-          var nm=meta.name||meta.full_name||meta.nickname||meta.user_name||(user.email||'').split('@')[0]||'회원';
-          // role 은 넣지 않는다. 표의 기본값(student)이 들어가고,
-          // authenticated 에게는 role 칸 쓰기 권한이 없어 같이 보내면 통째로 거부된다.
-          var np={ id:user.id, email:(user.email||null), name:nm };
-          var ins2=await sb.from('profiles').insert(np);
-          var pr2=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
-          // 저장이 실패했는데 그냥 넘어가면, 본인은 가입된 줄 알지만
-          // 회원 목록에는 안 뜬다(2026-08-06 카카오 가입자에게 실제로 생긴 일).
-          // 조용히 넘기지 말고 알린다.
-          if(!pr2.data){
-            console.error('[회원정보 저장 실패]', ins2 && ins2.error);
-            alert('가입은 되었지만 회원 정보 저장에 실패했습니다.\n\n'
-                + '원장님께 알려주세요. 아래 내용을 함께 전해주시면 빠릅니다.\n'
-                + ((ins2 && ins2.error && ins2.error.message) ? ins2.error.message : '알 수 없는 오류'));
-          }
-          profile = pr2.data ? pr2.data : np;
+          var nm=meta.name||meta.full_name||meta.nickname||meta.user_name||'';
+          // 카카오가 준 값이 있으면 미리 채워 넣는다. 학생이 다시 칠 필요가 없다.
+          // 전화번호는 +82 10-1234-5678 로 오므로 010-1234-5678 로 바꾼다.
+          var kph=meta.phone_number||meta.phone||'';
+          if(kph) kph=fmtPhone(String(kph).replace(/^\+82\s*/,'0').replace(/^0?10/,'010'));
+          window.WT_PENDING = { id:user.id, email:(user.email||meta.email||''), name:(badName(nm)?'':nm), phone:(badPhone(kph)?'':kph) };
+          profile = null;
         }
       }
     }
     window.WT_LOGGED_IN = !!profile;
     window.WT_PROFILE = profile;
     renderAuth();
-    if(needsInfo(profile)) openNeedInfo(profile);
+    if(window.WT_PENDING) openNeedInfo(window.WT_PENDING);
+    else if(needsInfo(profile)) openNeedInfo(profile);
     try{ window.dispatchEvent(new Event('wt-auth')); }catch(e){}
   }
 
@@ -5242,12 +5261,39 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 카카오 로그인은 계정이 먼저 만들어져서 가입 자체를 막을 수 없다.
   // 그래서 들어온 뒤에 받아낸다. 번호가 없으면 결제 안내 알림톡이 안 나간다.
   // 선생님·원장님은 검사하지 않는다(관리 화면에서 잠기면 손쓸 방법이 없어진다).
+  // 2026-08-22 원장 지시 — "하트로 회원가입한 사람이 있다. 이메일·이름·번호를
+  // 넣어야만 가입되게 바꿔라". 빈칸이 아닌지만 보면 ♡ 한 글자도 통과한다.
+  // 그래서 아래처럼 값의 모양까지 본다.
+  function badName(nm){
+    nm=String(nm||'').trim();
+    if(nm.length<2) return '이름을 두 글자 이상 입력해주세요.';
+    if(nm.length>20) return '이름이 너무 깁니다.';
+    // 한글(완성형)이나 영문 두 글자로 시작하고, 뒤로도 한글·영문·공백·점·하이픈만.
+    // ㅇㅇ 같은 자모나 하트·이모지는 여기서 걸린다.
+    if(!/^[가-힣a-zA-Z][가-힣a-zA-Z][가-힣a-zA-Z .-]*$/.test(nm)) return '이름은 한글 또는 영문 실명으로 입력해주세요.';
+    if(/^(회원|테스트|test|tester|asdf|qwer)$/i.test(nm)) return '실명을 입력해주세요.';
+    return '';
+  }
+  function badPhone(ph){
+    var d=String(ph||'').replace(/[^0-9]/g,'');
+    if(!/^01[016789][0-9]{7,8}$/.test(d)) return '휴대폰 번호를 010-1234-5678 형식으로 입력해주세요.';
+    return '';
+  }
+  function badEmail(em){
+    em=String(em||'').trim();
+    if(!/^[^@ ]+@[^@ ]+\.[a-zA-Z]{2,}$/.test(em)) return '올바른 이메일 형식이 아닙니다.';
+    return '';
+  }
+  // 010-1234-5678 모양으로 통일해 저장한다(번호로 찾을 때 어긋나지 않게).
+  function fmtPhone(ph){
+    var d=String(ph||'').replace(/[^0-9]/g,'');
+    if(d.length===11) return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
+    if(d.length===10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
+    return d;
+  }
   function needsInfo(p){
     if(!p || p.role!=='student') return false;
-    var nm=String(p.name||'').trim();
-    var em=String(p.email||'').trim();
-    var ph=String(p.phone||'').replace(/[^0-9]/g,'');
-    return (!nm || nm==='회원' || !em || ph.length<10);
+    return !!(badName(p.name) || badEmail(p.email) || badPhone(p.phone));
   }
   function openNeedInfo(p){
     if(!$('waNeedInfo')) return;
@@ -5264,9 +5310,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var em=$('waNiEmail').value.trim().toLowerCase();
     var ph=$('waNiPhone').value.trim();
     if(!nm||!em||!ph){ err.textContent='세 칸 모두 입력해주세요.'; return; }
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ err.textContent='올바른 이메일 형식이 아닙니다.'; return; }
-    if(ph.replace(/[^0-9]/g,'').length<10){ err.textContent='휴대폰 번호를 정확히 입력해주세요.'; return; }
-    if(!sb||!profile){ err.textContent='서버 연결 중입니다. 잠시 후 다시 시도해주세요.'; return; }
+    var bad = badName(nm)||badEmail(em)||badPhone(ph);
+    if(bad){ err.textContent=bad; return; }
+    ph = fmtPhone(ph);
+    var target = profile || window.WT_PENDING;
+    if(!sb||!target){ err.textContent='서버 연결 중입니다. 잠시 후 다시 시도해주세요.'; return; }
     // 카카오로 들어오면 계정이 이미 만들어진 뒤라 가입을 막을 수 없다.
     // 대신 여기서 번호가 겹치는지 보고, 겹치면 두 번째 계정을 못 쓰게 한다.
     // (이름·이메일은 카카오 닉네임이 들어오거나 비어 있어 열쇠로 못 쓴다 — 번호만 믿는다)
@@ -5278,17 +5326,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         return;
       }
     }catch(e){}   // 함수가 아직 없으면(SQL 미실행) 막지 않고 그냥 진행한다
-    var u=await sb.from('profiles').update({name:nm,email:em,phone:ph}).eq('id',profile.id);
+    // 행이 아직 없으면(카카오로 막 들어온 사람) 여기서 처음 만든다.
+    // role 은 넣지 않는다 — 표의 기본값(student)이 들어가고, 같이 보내면 통째로 거부된다.
+    var u = profile
+      ? await sb.from('profiles').update({name:nm,email:em,phone:ph}).eq('id',profile.id)
+      : await sb.from('profiles').insert({ id:target.id, name:nm, email:em, phone:ph });
     if(u.error){
       err.textContent = /duplicate|unique/i.test(u.error.message||'')
         ? '이미 사용 중인 이메일입니다. 다른 이메일을 넣어주세요.'
         : ('저장 실패: '+u.error.message);
       return;
     }
+    window.WT_PENDING = null;
     $('waNeedInfo').classList.remove('on');
     await refresh();
   });
   if($('waNiLogout')) $('waNiLogout').addEventListener('click', async function(){
+    window.WT_PENDING = null;
     if(sb) await sb.auth.signOut();
     if($('waNeedInfo')) $('waNeedInfo').classList.remove('on');
     await refresh();
@@ -5925,7 +5979,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 카카오 간편로그인 (활성 인증 블록)
   if($('waKakao')) $('waKakao').onclick=async function(){
     if(!window.sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
-    var r=await window.sb.auth.signInWithOAuth({ provider:'kakao', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    var r=await window.sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email', redirectTo: window.location.origin + window.location.pathname } });
     if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
   };
 
@@ -11397,7 +11451,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(t && SUB[anchor]===p){ window.scrollTo(0, Math.max(0, t.getBoundingClientRect().top+window.pageYOffset-88)); }
     else { window.scrollTo(0,0); }
   }
-  function route(){ var hash=(location.hash||'').replace(/^#/,''); showPage(pageOf(hash)||'home', hash); }
+  function route(){
+    var hash=(location.hash||'').replace(/^#/,'');
+    // #signup 은 페이지가 아니라 '가입 창을 열어라'는 신호다.
+    // 카카오 로그인 심사에 낼 회원가입 주소가 필요해서 만들었다(2026-08-22).
+    if(hash==='signup'){
+      showPage('home','');
+      var tries=0;
+      (function open(){
+        if(window.waOpenSignupModal){ window.waOpenSignupModal(); return; }
+        if(tries++ < 40) setTimeout(open,150);   // 로그인 모듈이 준비될 때까지 기다린다
+      })();
+      return;
+    }
+    showPage(pageOf(hash)||'home', hash);
+  }
   document.addEventListener('click', function(e){
     var a=e.target.closest ? e.target.closest('a[href^="#"]') : null;
     if(!a) return;
