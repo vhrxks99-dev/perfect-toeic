@@ -5233,6 +5233,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(user){
         var pr=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
         if(pr.data){ profile = pr.data; }
+        else if(pr.error){
+          // 🚨 2026-08-22 — 조회 자체가 실패한 경우다(네트워크·JWT 만료 등).
+          //    '회원 정보가 없는 신규 가입자'와 전혀 다른 상황인데, 이걸 구분하지 않으면
+          //    멀쩡히 로그인한 사람에게 '필수 정보 입력' 창이 뜨거나 로그아웃된 것처럼 보인다.
+          //    한 번 새로고침해서 다시 시도하고, 그래도 안 되면 그대로 알린다.
+          console.error('profile 조회 실패:', pr.error);
+          window.WT_PENDING = null;
+          profile = null;
+          if(/JWT|expired|token/i.test(pr.error.message||'')){
+            try{ await sb.auth.refreshSession(); }catch(e){}
+            var pr3=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+            if(pr3.data) profile = pr3.data;
+          }
+          if(!profile){
+            alert('회원 정보를 불러오지 못했습니다. 잠시 후 새로고침해 주세요. (' + (pr.error.message||'') + ')');
+          }
+        }
         else {
           // 2026-08-22 — 여기서 profiles 행을 만들지 않는다.
           // 카카오로 들어오면 이름이 카카오 닉네임(하트 같은 것)이고 번호가 없어서,
