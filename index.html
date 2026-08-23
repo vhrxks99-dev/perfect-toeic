@@ -7208,7 +7208,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       });
       return best;
     }
+    // 🚨 2026-08-23 (2차) — 숙제 알림이 계속 뜬다는 재신고.
+    // 여기서 window.__wtHw(숙제 목록 캐시)를 그냥 믿고 있었다. 그런데 이 함수는
+    // 로그인 직후·예약 승인·출결 저장 등 열 군데 넘는 곳에서 불린다. 그중
+    // 숙제 목록을 아직 한 번도 안 읽은 상태로 불리면 캐시가 비어 있고,
+    // 그러면 '모든 수업에 숙제가 안 나갔다'고 잘못 판단한다.
+    // → 비어 있으면 여기서 직접 읽어 온다.
     var hw=window.__wtHw||[];
+    if(!hw.length){
+      try{
+        var _hr=await sb.from('homeworks').select('*').order('created_at',{ascending:false}).limit(500);
+        if(!_hr.error && _hr.data){ hw=_hr.data; window.__wtHw=_hr.data; }
+      }catch(e){}
+    }
     // 끝난 사전 OT 중 상담 기록이 아직 없는 것 (2026-08-12 원장 지시 — 선생님이 누락할까 걱정).
     // 이 알림에는 '확인함' 버튼을 달지 않는다. 상담을 넣어야만 사라진다.
     var otNeed={};
