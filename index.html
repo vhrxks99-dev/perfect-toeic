@@ -9088,6 +9088,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyVat')) $('pyVat').value=Math.round(amt*0.1);
     drawPayPreview();
   };
+  // 🚨 2026-08-23 원장 요청 — 부가세 가르는 걸 깜빡하는 걸 막는다.
+  // 수업료를 64만원(부가세 포함가)으로 올린 뒤로, '포함가에서 빼기' 를 안 누르고
+  // 640,000 을 그대로 저장하면 부가세까지 강사와 나눠 갖게 된다. 경고도 없었다.
+  // 그래서 큰 금액인데 부가세 칸이 비어 있으면 저장 직전에 한 번 물어본다.
+  // ⚠️ 기존 48만원 학생(부가세 별도·현금은 안 받음)까지 매번 묻지 않도록 기준선을 둔다.
+  //    수업료가 또 바뀌면 이 숫자만 고치면 된다.
+  var VAT_ASK_MIN = 500000;
+  function vatGuardOK(amount, vat){
+    if(vat > 0) return true;                 // 이미 넣었으면 그냥 통과
+    if(!(amount >= VAT_ASK_MIN)) return true;  // 소액은 안 묻는다
+    return confirm('부가세 칸이 비어 있습니다.'
+      + ' / 받은 돈 ' + amount.toLocaleString() + '원 안에 부가세가 들어 있다면'
+      + " '포함가에서 빼기' 를 먼저 눌러주세요."
+      + ' / (같은 학생의 사전 OT 6만원도 있으면 그것도 같이 갈라야 합니다)'
+      + ' / 부가세 없이 이대로 저장할까요?');
+  }
   // '포함가에서 빼기' — 받은 돈 안에 부가세가 들어 있는 경우(64만원처럼).
   // 640,000 → 금액 581,818 · 부가세 58,182 로 갈라 넣는다. 두 칸을 더하면 원래 금액이다.
   // ⚠️ 640,000 의 10%(64,000)가 아니다. 1.1 로 나눠야 한다.
@@ -9179,6 +9195,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(kind==='ot' && !sessions){ err.textContent='사전 OT 는 횟수를 1회로 넣어주세요.'; return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
+    if(!vatGuardOK(amount, vat)){ if($('pyVat')) $('pyVat').focus(); return; }
     var mth=payMethodVal('pyMethod','pyCard');
     var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:mth, paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
       vat:(vat>0?vat:null),
@@ -9280,6 +9297,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var evat=parseInt($('pyeVat')?$('pyeVat').value:'',10)||0;
+    if(!vatGuardOK(amount, evat)){ if($('pyeVat')) $('pyeVat').focus(); return; }
     var emth=payMethodVal('pyeMethod','pyeCard');
     var patch={ amount:amount, month:$('pyeMonth').value, method:emth, paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
       vat:(evat>0?evat:null),
