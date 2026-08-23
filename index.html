@@ -4561,7 +4561,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <div class="dash-row">
           <!-- 부가세는 매출이 아니라 나라에 내는 돈이라 금액과 따로 적는다(원장 요청 2026-08-13).
                금액에 합치면 강사 배분까지 부가세를 나눠 갖는 계산이 된다. -->
-          <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"><span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a></span></label>
+          <!-- 2026-08-23 수업료를 64만원(부가세 포함가)으로 올리면서 버튼을 하나 더 뒀다.
+               · 10% 넣기      = 금액과 '따로' 부가세를 받은 경우 (기존 48만원 카드 건)
+               · 포함가에서 빼기 = 받은 돈 안에 부가세가 들어 있는 경우 (64만원 건)
+               두 번째를 안 쓰고 640,000 을 그대로 넣으면 부가세까지 강사와 나누게 된다. -->
+          <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"><span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a> · <a class="wa-link" id="pyVatIncl">포함가에서 빼기</a></span></label>
           <label>담당 강사<select id="pyTeacher"></select></label>
           <label>배분율(%)<input type="number" id="pyRate" min="0" max="100" step="0.1" placeholder="50"><span class="wa-hint" id="pyRateNote" style="display:none;color:#b26a00">원장님만 변경</span></label>
           <label>원천징수(%)<input type="number" id="pyWithhold" min="0" max="100" step="0.1" value="3.3"></label>
@@ -4891,7 +4895,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
         <label>결제일<input type="date" id="pyePaid"></label>
-        <label>부가세(원) <span class="wa-hint">따로 받은 경우만</span><input type="number" id="pyeVat" min="0" step="100"></label>
+        <label>부가세(원) <span class="wa-hint">따로 받은 경우만 · <a class="wa-link" id="pyeVatIncl">포함가에서 빼기</a></span><input type="number" id="pyeVat" min="0" step="100"></label>
       </div>
       <div class="wa-row">
         <label>담당 강사<select id="pyeTeacher"></select></label>
@@ -9076,12 +9080,29 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value='사전 OT 선결제';
     drawPayPreview();
   });
-  // '10% 넣기' — 금액의 10%를 부가세 칸에 채워 준다(원 단위 반올림).
+  // '10% 넣기' — 금액과 따로 부가세를 받은 경우. 금액의 10%를 부가세 칸에 채운다.
   if($('pyVatAuto')) $('pyVatAuto').onclick=function(e){
     e.preventDefault();
     var amt=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
     if(!amt){ alert('금액을 먼저 넣어주세요.'); return; }
     if($('pyVat')) $('pyVat').value=Math.round(amt*0.1);
+    drawPayPreview();
+  };
+  // '포함가에서 빼기' — 받은 돈 안에 부가세가 들어 있는 경우(64만원처럼).
+  // 640,000 → 금액 581,818 · 부가세 58,182 로 갈라 넣는다. 두 칸을 더하면 원래 금액이다.
+  // ⚠️ 640,000 의 10%(64,000)가 아니다. 1.1 로 나눠야 한다.
+  if($('pyVatIncl')) $('pyVatIncl').onclick=function(e){
+    e.preventDefault();
+    var total=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
+    if(!total){ alert('받은 금액을 먼저 넣어주세요.'); return; }
+    var supply=Math.round(total/1.1), vat=total-supply;
+    if(!confirm('받은 돈 '+total.toLocaleString()+'원 안에 부가세가 들어 있는 것으로 봅니다.'
+      + ' / 금액(강사 배분 기준) '+supply.toLocaleString()+'원'
+      + ' / 부가세 '+vat.toLocaleString()+'원'
+      + ' — 이렇게 나눠 넣을까요?')) return;
+    $('pyAmount').value=supply;
+    if($('pyVat')) $('pyVat').value=vat;
+    drawPayPreview();
   };
   // 수업 1회 단가 — 대면 6만원 / 비대면 5만원. 학생의 '수업형태'로 자동 선택한다.
   // ※ 단가가 바뀌면 이 두 숫자만 고치면 된다.
@@ -9227,6 +9248,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   if($('pyeTeacher')) $('pyeTeacher').onchange=function(){ if($('pyeRate')) $('pyeRate').value=this.value?teacherRate(this.value):''; drawPayEditPreview(); };
   ['pyeAmount','pyeRate','pyeWithhold'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayEditPreview); });
+  // 고칠 때도 '포함가에서 빼기' 를 쓸 수 있게 한다(입력창과 같은 계산).
+  if($('pyeVatIncl')) $('pyeVatIncl').onclick=function(e){
+    e.preventDefault();
+    var total=parseInt($('pyeAmount')?$('pyeAmount').value:'',10)||0;
+    if(!total){ alert('금액을 먼저 넣어주세요.'); return; }
+    var supply=Math.round(total/1.1), vat=total-supply;
+    if(!confirm('금액 '+total.toLocaleString()+'원 안에 부가세가 들어 있는 것으로 봅니다.'
+      + ' / 금액(강사 배분 기준) '+supply.toLocaleString()+'원'
+      + ' / 부가세 '+vat.toLocaleString()+'원'
+      + ' — 이렇게 나눠 넣을까요?')) return;
+    $('pyeAmount').value=supply;
+    if($('pyeVat')) $('pyeVat').value=vat;
+    drawPayEditPreview();
+  };
   if($('waPayEditClose')) $('waPayEditClose').onclick=function(){ $('waPayEdit').classList.remove('on'); };
   if($('waPayEdit')) $('waPayEdit').addEventListener('click',function(e){ if(e.target===$('waPayEdit')) $('waPayEdit').classList.remove('on'); });
   if($('pyeSave')) $('pyeSave').onclick=async function(){
