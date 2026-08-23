@@ -7194,9 +7194,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var mine=recent.filter(function(s){ return s.teacher_id===meId && isStudentEntry(s) && new Date(s.ends_at)<now && !ended[stuKey(s.student_id,s.student_name)]; });
     if(!mine.length) return [];
     // 내 학생들의 예정 수업 (미래)
-    var hasFuture={};
+    var hasFuture={}, futureRows=[];
     var fr=await sb.from('schedules').select('student_id,student_name,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString());
-    if(!fr.error && fr.data) fr.data.forEach(function(s){ if(!isStudentEntry(s)) return; stuKeys(s.student_id,s.student_name).forEach(function(k){ hasFuture[k]=true; }); });
+    if(!fr.error && fr.data){ futureRows=fr.data; fr.data.forEach(function(s){ if(!isStudentEntry(s)) return; stuKeys(s.student_id,s.student_name).forEach(function(k){ hasFuture[k]=true; }); }); }
+    // 그 학생의 '다음 수업' 이 언제인지 — 숙제가 어느 수업 것인지 가르는 기준이다.
+    function nextLessonAfter(sid, afterISO){
+      if(!sid) return null;
+      var t=new Date(afterISO).getTime(), best=null;
+      recent.concat(futureRows).forEach(function(o){
+        if(o.student_id!==sid || !o.starts_at) return;
+        var ot=new Date(o.starts_at).getTime();
+        if(ot>t && (best===null || ot<best)) best=ot;
+      });
+      return best;
+    }
     var hw=window.__wtHw||[];
     // 끝난 사전 OT 중 상담 기록이 아직 없는 것 (2026-08-12 원장 지시 — 선생님이 누락할까 걱정).
     // 이 알림에는 '확인함' 버튼을 달지 않는다. 상담을 넣어야만 사라진다.
@@ -7240,7 +7251,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 숙제 알림은 회원으로 등록된 학생만. 구글에서 온 수업은 이름만 있어 숙제와 짝짓기가
       // 불확실하고, 잘못 켜면 다음수업 알림이 숙제 알림에 파묻힌다.
       if(!sid) return;
-      var hwIssued=hw.some(function(x){ return x.student_id===sid && x.created_at && ymd(new Date(x.created_at))===day; });
+      // 🚨 2026-08-23 — 예전에는 '수업과 같은 날짜에 등록된 숙제' 만 인정했다.
+      // 그래서 수업 다음 날 숙제를 내주면 알림이 영영 안 사라졌다(원장 신고).
+      // 이제는 '이 수업이 끝난 뒤 ~ 그 학생의 다음 수업 전' 에 등록한 숙제도 이 수업 것으로 본다.
+      // (다음 수업 뒤에 낸 숙제는 그 다음 수업 몫이라 여기서 걸리지 않는다)
+      var lessonStart=new Date(s.starts_at).getTime();
+      var nextStart=nextLessonAfter(sid, s.starts_at);
+      var hwIssued=hw.some(function(x){
+        if(x.student_id!==sid || !x.created_at) return false;
+        if(ymd(new Date(x.created_at))===day) return true;      // 수업 당일에 낸 것
+        var c=new Date(x.created_at).getTime();
+        if(c<lessonStart) return false;                         // 수업 전에 낸 건 지난 수업 몫
+        return nextStart===null || c<nextStart;                 // 다음 수업 전이면 이 수업 몫
+      });
       if(!hwIssued && !_alertChecks[ackKey('hw',key,day)]){ var k2='h:'+sid+':'+day; if(!seen[k2]){ seen[k2]=1; alerts.push({type:'hw',student:sname,sid:sid,day:day,skey:key}); } }
     });
     // OT 상담 → 다음수업 → 숙제 순. 그 안에서는 최신 날짜순.
@@ -10381,6 +10404,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     } else {
       hwReset(); await loadHomework();
     }
+    // 🚨 2026-08-23 원장 신고 — "마승우 숙제 내줬는데 확인하라고 알림이 뜬다".
+    // 숙제를 저장해도 위쪽 '🔔 확인이 필요해요' 배너를 다시 그리지 않아,
+    // 새로고침하기 전까지 '숙제가 안 나갔어요' 가 그대로 남아 있었다.
+    try{ await loadTeacherAlerts(); }catch(e){}
   };
   // 선생님이 숙제 목록에서 직접 체크 — 항목 체크(data-thw)와 선생님 확인(data-tchk)
   if($('hwTable')) $('hwTable').addEventListener('change', async function(e){
