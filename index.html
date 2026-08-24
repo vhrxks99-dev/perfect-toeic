@@ -6117,7 +6117,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // ══════════════════════════════════════════════════════════════
   var _sdCache = null;          // 마지막으로 그린 학생 id
   function sdWon(n){ return (n||0).toLocaleString()+'원'; }
-  function sdYmd(v){ return String(v||'').slice(0,10); }
+  // ⚠️ ISO 문자열을 slice 로 자르면 UTC 가 나온다. 반드시 Date 로 바꿔 한국 시간으로 찍는다.
+  function sdYmd(v){ if(!v) return '-'; var d=new Date(v); return isNaN(d)?String(v).slice(0,10):ymd(d); }
+  function sdHm(v){ return v?hm(v):''; }
   function sdInitial(nm){ return String(nm||'?').trim().slice(0,1); }
 
   // 학생 고르는 칸 채우기 — 이름 일부로 걸러진다
@@ -6170,7 +6172,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     sched.forEach(function(x){
       var st=x.status||'confirmed';
       if(st==='canceled'||st==='pending') return;      // 휴강·미승인은 안 센다
-      var k=String(x.starts_at||'').slice(0,7);
+      var dt=new Date(x.starts_at); if(isNaN(dt)) return;
+      var k=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
       if(map[k]!==undefined) map[k]++;
     });
     var max=Math.max.apply(null,keys.map(function(k){return map[k];}).concat([1]));
@@ -6222,7 +6225,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +'</div></div>';
 
       // 숫자 카드
-      var nextTxt = next ? (sdYmd(next.starts_at).slice(5).replace('-','/')+' '+String(next.starts_at).slice(11,16)) : '없음';
+      var nextTxt = next ? fmtDT(next.starts_at) : '없음';
       h+='<div class="sd-cards">'
         +'<div class="sd-c'+((remain!==null&&remain<=1)?' warn':'')+'"><div class="lab">남은 횟수</div><b>'
           +(remain===null?'-':remain+'회')+'</b><div class="sub">'+(remain!==null&&remain<=1?'결제 안내 필요':'&nbsp;')+'</div></div>'
@@ -6251,7 +6254,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       h+='<div class="sd-box"><div class="bh"><b>수업 이력</b><span>최근 12회</span></div><div class="bb pad0 sd-scroll">'
         +'<table class="sd-tbl"><thead><tr><th>날짜</th><th>시간</th><th>강사</th><th>결과</th></tr></thead><tbody>'
         +(d.sched.length?d.sched.slice(0,12).map(function(x){
-            return '<tr><td>'+sdYmd(x.starts_at)+'</td><td>'+String(x.starts_at).slice(11,16)+'</td>'
+            return '<tr><td style="white-space:nowrap">'+sdYmd(x.starts_at)+'</td><td>'+sdHm(x.starts_at)+'</td>'
               +'<td>'+esc(x.teacher_name||'-')+'</td><td>'+sdLessonPill(x.status||'confirmed')+'</td></tr>'; }).join('')
           :'<tr><td class="none" colspan="4">수업 기록이 없습니다.</td></tr>')
         +'</tbody></table></div></div>';
