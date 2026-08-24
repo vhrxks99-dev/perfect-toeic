@@ -3746,6 +3746,75 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .dash-tab.on{color:var(--accent);border-color:var(--accent)}
 .dash-pane{display:none}
 .dash-pane.on{display:block}
+
+/* ══════════════════════════════════════════════════════════════
+   학생별 화면 (2026-08-24 원장 요청)
+   지금까지 관리자 화면은 '항목별 목록' 뿐이라, 한 학생을 통째로 보려면
+   숙제 탭·수납 탭·스케줄 탭을 오가야 했다. 한 화면에 모은다.
+   그래프는 라이브러리 없이 CSS·SVG 로 그린다.
+   ══════════════════════════════════════════════════════════════ */
+.sd-pick{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px}
+.sd-pick label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+.sd-pick input,.sd-pick select{height:40px;padding:9px 11px;border:1.5px solid var(--line-strong);
+  border-radius:9px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
+.sd-pick .grow{flex:1;min-width:180px}
+
+.sd-empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:14px;
+  background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:14px}
+
+/* 맨 위 이름줄 */
+.sd-top{display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px}
+.sd-top .av{width:46px;height:46px;border-radius:50%;background:var(--accent-wash);color:var(--accent);
+  display:grid;place-items:center;font-size:17px;font-weight:800;flex:none}
+.sd-top h3{margin:0;font-size:19px;letter-spacing:-.03em}
+.sd-top .sub{font-size:12.5px;color:var(--muted);margin-top:3px}
+.sd-top .tags{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.sd-tag{font-size:11.5px;font-weight:800;padding:5px 11px;border-radius:999px;
+  background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line)}
+.sd-tag.on{background:var(--accent-wash);color:var(--accent);border-color:transparent}
+.sd-tag.end{background:#FDECEA;color:#B3261E;border-color:transparent}
+
+/* 숫자 카드 */
+.sd-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+@media (max-width:900px){ .sd-cards{grid-template-columns:1fr 1fr} }
+.sd-c{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.sd-c .lab{font-size:12px;color:var(--muted)}
+.sd-c b{display:block;font-size:25px;letter-spacing:-.045em;margin-top:5px;line-height:1.15}
+.sd-c .sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+.sd-c.warn b{color:#B3261E}
+
+/* 칸 */
+.sd-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;margin-bottom:12px}
+@media (max-width:1000px){ .sd-grid{grid-template-columns:1fr} }
+.sd-box{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sd-box .bh{display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line)}
+.sd-box .bh b{font-size:14px}
+.sd-box .bh span{margin-left:auto;font-size:12px;color:var(--muted)}
+.sd-box .bb{padding:14px 16px}
+.sd-box .bb.pad0{padding:0}
+
+/* 월별 막대 */
+.sd-bars{display:flex;align-items:flex-end;gap:10px;height:130px}
+.sd-bars .b{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%}
+.sd-bars .v{font-size:11.5px;font-weight:800;color:var(--ink-soft)}
+.sd-bars .bar{width:100%;max-width:30px;border-radius:6px 6px 3px 3px;background:var(--accent);min-height:3px}
+.sd-bars .b.z .bar{background:var(--line-strong)}
+.sd-bars .d{font-size:11px;color:var(--muted)}
+
+/* 표 */
+.sd-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.sd-tbl th,.sd-tbl td{padding:10px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.sd-tbl th{font-size:11px;font-weight:800;color:var(--muted);background:var(--surface-2);white-space:nowrap}
+.sd-tbl tr:last-child td{border-bottom:0}
+.sd-tbl .none{color:var(--muted);text-align:center;padding:22px}
+.sd-pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.sd-pill.ok{background:#E7F7EE;color:#12704A}
+.sd-pill.no{background:#FDECEA;color:#B3261E}
+.sd-pill.off{background:var(--surface-2);color:var(--muted)}
+.sd-pill.wait{background:#FFF6E0;color:#8A5A00}
+.sd-scroll{max-height:330px;overflow:auto}
+
 .dash-form{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
 /* 🚨 칸 높이·위치 맞추기 (원장 지적 2026-08-13 "박스 위치 서로 다르고 정산월은 뒤에 회색박스가 튀어나온다")
    원인 둘 — ① 안내 문구(.wa-hint)가 라벨과 입력칸 사이에 있어서, 문구가 있는 칸만 입력칸이 아래로 밀렸다.
@@ -4289,6 +4358,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-head">관리 페이지 <span id="waRoleBadge" class="dash-badge"></span></div>
     <div class="dash-tabs">
       <button class="dash-tab on" data-dtab="members">회원</button>
+      <button class="dash-tab" data-dtab="student">학생별</button>
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
       <button class="dash-tab" data-dtab="off">휴무</button>
       <button class="dash-tab" data-dtab="chglog">변경기록</button>
@@ -4356,6 +4426,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <div class="wa-table-wrap"><table class="wa-table" id="libTable"></table></div>
       </div>
 
+
+    <!-- 학생 한 명을 통째로 보는 화면 (2026-08-24 원장 요청).
+         숙제·수납·수업·상담이 탭마다 흩어져 있어 한 학생을 보려면 네 곳을 돌아야 했다. -->
+    <div class="dash-pane" data-dpane="student">
+      <div class="dash-note" style="margin-bottom:12px">학생을 고르면 그 학생의 <b>수업·숙제·수납·상담</b>을 한 화면에 모아 보여줍니다. 상담이나 학부모 연락 전에 여기부터 보세요.</div>
+      <div class="sd-pick">
+        <label class="grow">학생 찾기<input type="text" id="sdSearch" placeholder="이름 일부만 쳐도 됩니다"></label>
+        <label class="grow">학생<select id="sdStudent"></select></label>
+        <label>&nbsp;<button class="btn btn-ghost" type="button" id="sdReload">새로고침</button></label>
+      </div>
+      <div id="sdBody"><div class="sd-empty">위에서 학생을 골라주세요.</div></div>
+    </div>
 
     <div class="dash-pane on" data-dpane="members">
       <div class="wa-sub">전체 회원 <span id="waCount" style="color:var(--muted);font-weight:700"></span> · 모든 기기에서 실시간 공유</div>
@@ -6016,6 +6098,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     // 달력은 탭이 숨어 있는 동안 폭이 0이라 스크롤 계산이 안 먹는다. 열릴 때 다시 맞춘다.
     if(name==='sched' && typeof centerToday==='function') setTimeout(centerToday, 0);
+    // 학생별 화면 — 열 때 학생 목록을 채운다(회원 목록이 이미 읽혀 있어야 한다).
+    if(name==='student' && typeof sdFillStudents==='function') sdFillStudents();
     // 스터디는 학생들이 수시로 참/불을 바꾸므로 탭을 열 때마다 새로 읽는다.
     if(name==='study' && typeof loadStudy==='function'){ try{ loadStudy(); }catch(e){} }
     // 변경기록도 열 때마다 새로 읽는다. 방금 고친 것이 바로 보여야 확인 용도로 쓸 수 있다.
@@ -6024,6 +6108,193 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(name==='lib' && typeof loadLib==='function'){ try{ loadLib(); }catch(e){} }
   }
   (function(){ var c=$('waAdmin'); if(c) c.querySelectorAll('.dash-tab').forEach(function(b){ b.onclick=function(){ dashTab(b.getAttribute('data-dtab')); }; }); })();
+
+  // ══════════════════════════════════════════════════════════════
+  // 학생별 화면 (2026-08-24 원장 요청)
+  // 한 학생의 수업·숙제·수납·상담을 한 화면에 모은다.
+  // 탭마다 흩어져 있던 걸 학생 기준으로 다시 묶은 것뿐이라, 계산식은
+  // 기존 함수(remainOf·hwRate 등)를 그대로 쓴다. 숫자가 어긋나면 안 된다.
+  // ══════════════════════════════════════════════════════════════
+  var _sdCache = null;          // 마지막으로 그린 학생 id
+  function sdWon(n){ return (n||0).toLocaleString()+'원'; }
+  function sdYmd(v){ return String(v||'').slice(0,10); }
+  function sdInitial(nm){ return String(nm||'?').trim().slice(0,1); }
+
+  // 학생 고르는 칸 채우기 — 이름 일부로 걸러진다
+  function sdFillStudents(){
+    var sel=$('sdStudent'); if(!sel) return;
+    var q=($('sdSearch')?$('sdSearch').value:'').trim().toLowerCase();
+    var keep=sel.value;
+    var list=(window.__wtMembers||[]).filter(function(u){ return u.role==='student'; });
+    if(q) list=list.filter(function(u){
+      return String(u.name||'').toLowerCase().indexOf(q)>=0
+          || String(u.phone||'').replace(/-/g,'').indexOf(q.replace(/-/g,''))>=0; });
+    list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+    sel.innerHTML='<option value="">— 고르세요 —</option>'+list.map(function(u){
+      return '<option value="'+esc(u.id)+'">'+esc(u.name||'(이름없음)')
+        +(isEnded(u)?' · 종료':'')+'</option>'; }).join('');
+    if(keep && list.some(function(u){return String(u.id)===String(keep);})) sel.value=keep;
+  }
+
+  // 한 학생 자료를 한꺼번에 읽어 온다
+  async function sdLoad(sid){
+    var out={ sched:[], hw:[], pay:[], consult:[] };
+    if(!sb||!sid) return out;
+    var qs=[
+      sb.from('schedules').select('*').eq('student_id',sid).order('starts_at',{ascending:false}).limit(400),
+      sb.from('homeworks').select('*').eq('student_id',sid).order('created_at',{ascending:false}).limit(100),
+      sb.from('payments').select('*').eq('student_id',sid).order('paid_at',{ascending:false}).limit(100)
+    ];
+    var r=await Promise.all(qs.map(function(q){ return q.then(function(x){return x;},function(e){return {error:e};}); }));
+    if(r[0]&&!r[0].error&&r[0].data) out.sched=r[0].data;
+    if(r[1]&&!r[1].error&&r[1].data) out.hw=r[1].data;
+    if(r[2]&&!r[2].error&&r[2].data) out.pay=r[2].data;
+    // 상담은 student_id 로 찾는다. 옛 기록은 student_id 가 비어 있을 수 있어 이름으로 한 번 더 본다.
+    var st=(window.__wtMembers||[]).filter(function(u){return String(u.id)===String(sid);})[0];
+    try{
+      var c=await sb.from('consults').select('*').eq('student_id',sid).order('consulted_on',{ascending:false}).limit(20);
+      if(!c.error&&c.data) out.consult=c.data;
+      if(!out.consult.length && st && st.name){
+        var c2=await sb.from('consults').select('*').eq('name',st.name).order('consulted_on',{ascending:false}).limit(20);
+        if(!c2.error&&c2.data) out.consult=c2.data;
+      }
+    }catch(e){}
+    return out;
+  }
+
+  // 최근 6개월 수업 횟수 막대
+  function sdMonthBars(sched){
+    var now=new Date(), keys=[], map={};
+    for(var i=5;i>=0;i--){ var d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); keys.push(k); map[k]=0; }
+    sched.forEach(function(x){
+      var st=x.status||'confirmed';
+      if(st==='canceled'||st==='pending') return;      // 휴강·미승인은 안 센다
+      var k=String(x.starts_at||'').slice(0,7);
+      if(map[k]!==undefined) map[k]++;
+    });
+    var max=Math.max.apply(null,keys.map(function(k){return map[k];}).concat([1]));
+    return '<div class="sd-bars">'+keys.map(function(k){
+      var v=map[k], h=Math.round(v/max*100);
+      return '<div class="b'+(v?'':' z')+'"><span class="v">'+v+'</span>'
+        +'<span class="bar" style="height:'+(v?Math.max(h,6):3)+'%"></span>'
+        +'<span class="d">'+parseInt(k.slice(5),10)+'월</span></div>';
+    }).join('')+'</div>';
+  }
+
+  function sdLessonPill(st){
+    if(st==='canceled') return '<span class="sd-pill off">휴강</span>';
+    if(st==='noshow')   return '<span class="sd-pill no">결석</span>';
+    if(st==='pending')  return '<span class="sd-pill wait">승인 대기</span>';
+    return '<span class="sd-pill ok">출석</span>';
+  }
+
+  function sdRender(sid){
+    var box=$('sdBody'); if(!box) return;
+    var st=(window.__wtMembers||[]).filter(function(u){return String(u.id)===String(sid);})[0];
+    if(!st){ box.innerHTML='<div class="sd-empty">학생을 고르면 여기에 나옵니다.</div>'; return; }
+    box.innerHTML='<div class="sd-empty">불러오는 중…</div>';
+    sdLoad(sid).then(function(d){
+      if(String($('sdStudent').value)!==String(sid)) return;   // 그새 다른 학생을 골랐으면 버린다
+      var now=new Date();
+      var done=d.sched.filter(function(x){ var s2=x.status||'confirmed';
+        return s2!=='canceled' && s2!=='pending' && new Date(x.ends_at||x.starts_at)<now; });
+      var future=d.sched.filter(function(x){ return new Date(x.starts_at)>now && (x.status||'confirmed')!=='canceled'; });
+      var next=future.length?future[future.length-1]:null;     // starts_at 내림차순이라 마지막이 가장 가까움
+      var tt=(window.__wtMembers||[]).filter(function(u){return String(u.id)===String(st.teacher_id);})[0];
+      var tname=tt?tt.name:'';
+      var rate=_hwRateMap[stuKey(st.id, st.name)];
+      var remain=(typeof remainOf==='function')?remainOf(st.id):null;
+      var paySum=d.pay.reduce(function(a,x){ return a+(x.amount||0); },0);
+      var vatSum=d.pay.reduce(function(a,x){ return a+(x.vat||0); },0);
+
+      var h='';
+      // 이름줄
+      h+='<div class="sd-top"><span class="av">'+esc(sdInitial(st.name))+'</span>'
+        +'<div><h3>'+esc(st.name||'')+'</h3><div class="sub">'
+        + esc(st.phone||'연락처 없음')
+        + (tname?(' · 담당 '+esc(tname)):'')
+        + (st.lesson_mode?(' · '+esc(st.lesson_mode==='online'?'비대면':'대면')):'')
+        + (st.goal_score?(' · 목표 '+esc(st.goal_score)+'점'):'')
+        +'</div></div><div class="tags">'
+        + (isEnded(st)?'<span class="sd-tag end">수강 종료</span>':'<span class="sd-tag on">수강 중</span>')
+        + (st.interest?('<span class="sd-tag">'+esc(st.interest)+'</span>'):'')
+        +'</div></div>';
+
+      // 숫자 카드
+      var nextTxt = next ? (sdYmd(next.starts_at).slice(5).replace('-','/')+' '+String(next.starts_at).slice(11,16)) : '없음';
+      h+='<div class="sd-cards">'
+        +'<div class="sd-c'+((remain!==null&&remain<=1)?' warn':'')+'"><div class="lab">남은 횟수</div><b>'
+          +(remain===null?'-':remain+'회')+'</b><div class="sub">'+(remain!==null&&remain<=1?'결제 안내 필요':'&nbsp;')+'</div></div>'
+        +'<div class="sd-c"><div class="lab">다음 수업</div><b style="font-size:19px">'+esc(nextTxt)+'</b>'
+          +'<div class="sub">'+(next?esc(next.teacher_name||''):'아직 안 잡힘')+'</div></div>'
+        +'<div class="sd-c"><div class="lab">숙제율 (최근 8건)</div><b>'
+          +((rate&&rate.recent.pct!==null)?(rate.recent.pct+'%'):'-')+'</b>'
+          +'<div class="sub">'+((rate&&rate.all.pct!==null)?('전체 '+rate.all.pct+'% · '+rate.all.n+'건'):'선생님 확인 전')+'</div></div>'
+        +'<div class="sd-c"><div class="lab">지금까지 수업</div><b>'+done.length+'회</b>'
+          +'<div class="sub">결석 '+d.sched.filter(function(x){return x.status==='noshow';}).length
+          +' · 휴강 '+d.sched.filter(function(x){return x.status==='canceled';}).length+'</div></div>'
+        +'</div>';
+
+      // 월별 막대 + 수납 요약
+      h+='<div class="sd-grid">'
+        +'<div class="sd-box"><div class="bh"><b>월별 수업 횟수</b><span>최근 6개월</span></div>'
+          +'<div class="bb">'+sdMonthBars(d.sched)+'</div></div>'
+        +'<div class="sd-box"><div class="bh"><b>수납 합계</b><span>'+d.pay.length+'건</span></div>'
+          +'<div class="bb"><div style="font-size:26px;font-weight:800;letter-spacing:-.04em">'+sdWon(paySum)+'</div>'
+          +'<div style="font-size:12.5px;color:var(--muted);margin-top:6px">부가세 '+sdWon(vatSum)
+          +' · 실제 받은 돈 '+sdWon(paySum+vatSum)+'</div></div></div>'
+        +'</div>';
+
+      // 수업 이력 + 숙제
+      h+='<div class="sd-grid">';
+      h+='<div class="sd-box"><div class="bh"><b>수업 이력</b><span>최근 12회</span></div><div class="bb pad0 sd-scroll">'
+        +'<table class="sd-tbl"><thead><tr><th>날짜</th><th>시간</th><th>강사</th><th>결과</th></tr></thead><tbody>'
+        +(d.sched.length?d.sched.slice(0,12).map(function(x){
+            return '<tr><td>'+sdYmd(x.starts_at)+'</td><td>'+String(x.starts_at).slice(11,16)+'</td>'
+              +'<td>'+esc(x.teacher_name||'-')+'</td><td>'+sdLessonPill(x.status||'confirmed')+'</td></tr>'; }).join('')
+          :'<tr><td class="none" colspan="4">수업 기록이 없습니다.</td></tr>')
+        +'</tbody></table></div></div>';
+      h+='<div class="sd-box"><div class="bh"><b>숙제</b><span>최근 8건</span></div><div class="bb pad0 sd-scroll">'
+        +'<table class="sd-tbl"><thead><tr><th>등록일</th><th>내용</th><th>확인</th></tr></thead><tbody>'
+        +(d.hw.length?d.hw.slice(0,8).map(function(x){
+            var t=String(x.content||'').replace(/\n/g,' ').slice(0,38);
+            return '<tr><td style="white-space:nowrap">'+sdYmd(x.created_at)+'</td><td>'+esc(t)+'</td>'
+              +'<td>'+(x.teacher_checked?'<span class="sd-pill ok">확인</span>':'<span class="sd-pill wait">전</span>')+'</td></tr>'; }).join('')
+          :'<tr><td class="none" colspan="3">숙제 기록이 없습니다.</td></tr>')
+        +'</tbody></table></div></div>';
+      h+='</div>';
+
+      // 수납 내역 + 상담
+      h+='<div class="sd-grid">';
+      h+='<div class="sd-box"><div class="bh"><b>수납 내역</b><span>최근 10건</span></div><div class="bb pad0 sd-scroll">'
+        +'<table class="sd-tbl"><thead><tr><th>결제일</th><th>금액</th><th>부가세</th><th>수단</th><th>횟수</th></tr></thead><tbody>'
+        +(d.pay.length?d.pay.slice(0,10).map(function(x){
+            return '<tr><td style="white-space:nowrap">'+sdYmd(x.paid_at)+'</td><td>'+sdWon(x.amount)+'</td>'
+              +'<td>'+(x.vat?sdWon(x.vat):'-')+'</td><td>'+esc(x.method||'-')+'</td>'
+              +'<td>'+(x.sessions?(x.sessions+'회'):'-')+'</td></tr>'; }).join('')
+          :'<tr><td class="none" colspan="5">수납 기록이 없습니다.</td></tr>')
+        +'</tbody></table></div></div>';
+      h+='<div class="sd-box"><div class="bh"><b>상담 기록</b><span>'+d.consult.length+'건</span></div><div class="bb pad0 sd-scroll">'
+        +'<table class="sd-tbl"><thead><tr><th>날짜</th><th>내용</th></tr></thead><tbody>'
+        +(d.consult.length?d.consult.slice(0,10).map(function(x){
+            var t=String(x.memo||x.content||'').replace(/\n/g,' ').slice(0,60);
+            return '<tr><td style="white-space:nowrap">'+sdYmd(x.consulted_on)+'</td><td>'+esc(t||'-')+'</td></tr>'; }).join('')
+          :'<tr><td class="none" colspan="2">상담 기록이 없습니다.</td></tr>')
+        +'</tbody></table></div></div>';
+      h+='</div>';
+
+      box.innerHTML=h;
+      _sdCache=sid;
+    }).catch(function(e){
+      box.innerHTML='<div class="sd-empty">불러오지 못했습니다. '+esc(String(e&&e.message||e))+'</div>';
+    });
+  }
+
+  if($('sdSearch')) $('sdSearch').addEventListener('input', sdFillStudents);
+  if($('sdStudent')) $('sdStudent').addEventListener('change', function(){ sdRender(this.value); });
+  if($('sdReload')) $('sdReload').onclick=function(){ if($('sdStudent')&&$('sdStudent').value) sdRender($('sdStudent').value); };
+
   // ================= 자료실 (원장 지시 2026-08-17) =================
   // 파일은 비공개 버킷 'library'. 목록·권한은 library_items / library_grants.
   // 규칙: 올린 직후 닫힘 → 원장이 열고, 받을 사람을 지정해야 그 사람만 받는다.
