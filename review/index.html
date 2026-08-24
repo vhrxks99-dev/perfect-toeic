@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>네이버 후기 남기기 · 완벽한토익</title>
+<meta name="robots" content="noindex,nofollow">
+<meta property="og:title" content="완벽한토익 후기 남기기">
+<meta property="og:description" content="후기 남겨주신 분께 완벽한토익 문법노트를 드립니다.">
+<!--
+  아크릴 QR 이 가리키는 주소다. 여기만 고치면 아크릴을 다시 안 만들어도 된다.
+  목적지를 바꾸려면 아래 NAVER_URL 한 줄만 고칠 것. (2026-08-24 만듦)
+-->
+<style>
+  :root{
+    --ink:#16181d; --soft:#4b5160; --muted:#8b90a0;
+    --line:#e6e8ee; --paper:#fff; --wash:#f6f7fa;
+    --naver:#03c75a;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --ink:#f2f3f6; --soft:#b9bfcd; --muted:#8b90a0;
+           --line:#2a2e38; --paper:#14161b; --wash:#1b1e25; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    -webkit-text-size-adjust:100%;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100svh; padding:28px 20px 40px;
+  }
+  .wrap{width:100%;max-width:400px;text-align:center}
+  .mark{font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--muted);margin-bottom:22px}
+  h1{font-size:26px;line-height:1.35;font-weight:800;margin:0 0 10px;letter-spacing:-.02em}
+  h1 b{color:var(--naver)}
+  .sub{font-size:15px;line-height:1.6;color:var(--soft);margin:0 0 26px}
+  .go{
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    width:100%;padding:17px 18px;border-radius:14px;border:0;
+    background:var(--naver);color:#fff;font-size:17px;font-weight:800;
+    text-decoration:none;cursor:pointer;
+    font-family:inherit;letter-spacing:-.01em;
+  }
+  .go:active{transform:translateY(1px)}
+  .go .n{
+    width:22px;height:22px;border-radius:5px;background:#fff;color:var(--naver);
+    font-size:14px;font-weight:900;line-height:22px;flex:none;
+  }
+  .gift{
+    margin-top:16px;padding:14px 16px;border-radius:12px;
+    background:var(--wash);border:1px solid var(--line);
+    font-size:14px;line-height:1.6;color:var(--soft);text-align:left;
+  }
+  .gift b{color:var(--ink)}
+  .steps{margin:24px 0 0;padding:0;list-style:none;text-align:left}
+  .steps li{
+    display:flex;gap:10px;font-size:13.5px;line-height:1.6;color:var(--soft);
+    padding:8px 0;border-top:1px solid var(--line);
+  }
+  .steps li:first-child{border-top:0}
+  .steps .n2{
+    flex:none;width:19px;height:19px;border-radius:50%;margin-top:2px;
+    background:var(--ink);color:var(--paper);
+    font-size:11px;font-weight:800;line-height:19px;text-align:center;
+  }
+  .foot{margin-top:26px;font-size:12px;line-height:1.7;color:var(--muted)}
+  .foot a{color:var(--muted)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="mark">완벽한토익</div>
+
+    <h1>후기 한 줄,<br><b>문법노트</b> 한 권</h1>
+    <p class="sub">네이버에 후기를 남겨주시면<br>완벽한토익 문법노트를 드립니다.</p>
+
+    <a class="go" id="go" href="#" rel="noopener"><span class="n">N</span>네이버 후기 남기러 가기</a>
+
+    <div class="gift">
+      후기를 남기신 뒤 <b>데스크나 담당 선생님께 화면을 보여주시면</b> 문법노트를 바로 드립니다.
+    </div>
+
+    <ul class="steps">
+      <li><span class="n2">1</span><span>위 버튼을 누르면 완벽한토익 네이버 플레이스가 열립니다.</span></li>
+      <li><span class="n2">2</span><span><b>리뷰</b> 탭에서 <b>리뷰 쓰기</b>를 누릅니다.</span></li>
+      <li><span class="n2">3</span><span>버튼이 안 보이면 네이버 앱에서 <b>영수증을 등록</b>하거나, <b>네이버 예약</b>으로 수업하신 이력이 있어야 합니다. 잘 안 되면 데스크에 말씀해 주세요.</span></li>
+    </ul>
+
+    <p class="foot">
+      솔직하게 느낀 그대로 남겨주시면 됩니다. 좋은 점만 써 달라고 부탁드리지 않습니다.<br>
+      <a href="https://perfect-toeic.com">perfect-toeic.com</a>
+    </p>
+  </div>
+
+<script>
+  // 목적지를 바꾸려면 이 한 줄만 고치면 된다. 아크릴 QR 은 그대로 둬도 된다.
+  var NAVER_URL = 'https://m.place.naver.com/place/11757028/review/visitor';
+  document.getElementById('go').href = NAVER_URL;
+</script>
+</body>
+</html>
