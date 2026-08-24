@@ -27,10 +27,10 @@
     background:var(--paper); color:var(--ink);
     font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
     -webkit-text-size-adjust:100%;
-    display:flex; align-items:center; justify-content:center;
-    min-height:100svh; padding:28px 20px 40px;
+    /* flex 로 가운데 정렬하면 좁은 폰에서 칸이 안 줄어 글자가 잘린다. 그냥 margin auto 로 둔다 */
+    min-height:100svh; padding:34px 18px 44px;
   }
-  .wrap{width:100%;max-width:400px;text-align:center}
+  .wrap{width:100%;max-width:390px;margin:0 auto;text-align:center}
   .mark{font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--muted);margin-bottom:22px}
   h1{font-size:26px;line-height:1.35;font-weight:800;margin:0 0 10px;letter-spacing:-.02em}
   h1 b{color:var(--naver)}
