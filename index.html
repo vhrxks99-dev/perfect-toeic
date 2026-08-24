@@ -4443,7 +4443,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <!-- 학생 한 명을 통째로 보는 화면 (2026-08-24 원장 요청).
          숙제·수납·수업·상담이 탭마다 흩어져 있어 한 학생을 보려면 네 곳을 돌아야 했다. -->
     <div class="dash-pane" data-dpane="student">
-      <div class="dash-note" style="margin-bottom:12px">학생을 고르면 그 학생의 <b>수업·숙제·수납·상담</b>을 한 화면에 모아 보여줍니다. 상담이나 학부모 연락 전에 여기부터 보세요.</div>
+      <div class="dash-note" style="margin-bottom:12px">학생을 고르면 그 학생의 <b>수업·숙제·수납·상담</b>을 한 화면에 모아 보여줍니다. 상담이나 학부모 연락 전에 여기부터 보세요.<span id="sdScopeNote"></span></div>
       <div class="sd-pick">
         <label class="grow">학생 찾기<input type="text" id="sdSearch" placeholder="이름 일부만 쳐도 됩니다"></label>
         <label class="grow">학생<select id="sdStudent"></select></label>
@@ -6136,11 +6136,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function sdInitial(nm){ return String(nm||'?').trim().slice(0,1); }
 
   // 학생 고르는 칸 채우기 — 이름 일부로 걸러진다
+  // 원장 지시(2026-08-24): 선생님은 자기 담당 학생만, 원장님·매니저는 전부 본다.
+  // 담당은 profiles.teacher_id 다. 원장님도 담당쌤이 될 수 있지만 master 라 어차피 전부 본다.
+  function sdCanSee(u){
+    var r=(profile&&profile.role)||'';
+    if(r==='master'||r==='manager') return true;
+    if(r==='admin') return !!(profile&&u&&String(u.teacher_id||'')===String(profile.id));
+    return false;
+  }
+
   function sdFillStudents(){
     var sel=$('sdStudent'); if(!sel) return;
     var q=($('sdSearch')?$('sdSearch').value:'').trim().toLowerCase();
     var keep=sel.value;
-    var list=(window.__wtMembers||[]).filter(function(u){ return u.role==='student'; });
+    var list=(window.__wtMembers||[]).filter(function(u){ return u.role==='student' && sdCanSee(u); });
+    var note=$('sdScopeNote');
+    if(note) note.innerHTML=((profile&&profile.role)==='admin')
+      ? ' <b style="color:var(--accent)">내 담당 학생만 보입니다.</b>' : '';
     if(q) list=list.filter(function(u){
       return String(u.name||'').toLowerCase().indexOf(q)>=0
           || String(u.phone||'').replace(/-/g,'').indexOf(q.replace(/-/g,''))>=0; });
@@ -6267,6 +6279,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var box=$('sdBody'); if(!box) return;
     var st=(window.__wtMembers||[]).filter(function(u){return String(u.id)===String(sid);})[0];
     if(!st){ box.innerHTML='<div class="sd-empty">학생을 고르면 여기에 나옵니다.</div>'; return; }
+    if(!sdCanSee(st)){ box.innerHTML='<div class="sd-empty">담당 학생만 볼 수 있습니다.</div>'; return; }
     box.innerHTML='<div class="sd-empty">불러오는 중…</div>';
     sdLoad(sid).then(function(d){
       if(String($('sdStudent').value)!==String(sid)) return;   // 그새 다른 학생을 골랐으면 버린다
