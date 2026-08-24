@@ -6185,10 +6185,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }).join('')+'</div>';
   }
 
-  function sdLessonPill(st){
+  // ⚠️ 아직 안 한 수업을 '출석' 으로 보여주면 안 된다.
+  //    이 사이트는 '잡힌 수업 = 출석' 규칙이라 status 만 보면 미래 수업도 출석으로 나온다.
+  function sdLessonPill(x){
+    var st=x.status||'confirmed';
     if(st==='canceled') return '<span class="sd-pill off">휴강</span>';
     if(st==='noshow')   return '<span class="sd-pill no">결석</span>';
     if(st==='pending')  return '<span class="sd-pill wait">승인 대기</span>';
+    if(new Date(x.ends_at||x.starts_at) > new Date()) return '<span class="sd-pill wait">예정</span>';
     return '<span class="sd-pill ok">출석</span>';
   }
 
@@ -6255,7 +6259,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +'<table class="sd-tbl"><thead><tr><th>날짜</th><th>시간</th><th>강사</th><th>결과</th></tr></thead><tbody>'
         +(d.sched.length?d.sched.slice(0,12).map(function(x){
             return '<tr><td style="white-space:nowrap">'+sdYmd(x.starts_at)+'</td><td>'+sdHm(x.starts_at)+'</td>'
-              +'<td>'+esc(x.teacher_name||'-')+'</td><td>'+sdLessonPill(x.status||'confirmed')+'</td></tr>'; }).join('')
+              +'<td>'+esc(x.teacher_name||'-')+'</td><td>'+sdLessonPill(x)+'</td></tr>'; }).join('')
           :'<tr><td class="none" colspan="4">수업 기록이 없습니다.</td></tr>')
         +'</tbody></table></div></div>';
       h+='<div class="sd-box"><div class="bh"><b>숙제</b><span>최근 8건</span></div><div class="bb pad0 sd-scroll">'
