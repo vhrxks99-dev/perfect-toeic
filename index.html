@@ -10332,7 +10332,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       await loadWork(); return;
     }
     if(ed){
-      var w=(window.__wtWork||[]).filter(function(x){return x.id===ed.getAttribute('data-workedit');})[0]; if(!w) return;
+      // 운영일지와 똑같은 이유로 여기도 안 눌렸다(work_logs.id 도 숫자다). 2026-08-24 같이 고침.
+      var w=(window.__wtWork||[]).filter(function(x){return String(x.id)===String(ed.getAttribute('data-workedit'));})[0]; if(!w) return;
       var ci=prompt('출근 시간 (HH:MM, 비우면 기록 없음)', hmT(w.clock_in)==='-'?'':hmT(w.clock_in)); if(ci===null) return;
       var co=prompt('퇴근 시간 (HH:MM, 비우면 기록 없음)', hmT(w.clock_out)==='-'?'':hmT(w.clock_out)); if(co===null) return;
       function toISO(hm){ hm=(hm||'').trim(); if(!hm) return null; var m=hm.match(/^(\d{1,2}):(\d{2})$/); if(!m) return undefined; var d=new Date(w.work_date+'T00:00:00'); d.setHours(+m[1], +m[2], 0, 0); return d.toISOString(); }
@@ -10403,11 +10404,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(del){
       if(!confirm('이 운영일지를 삭제할까요?')) return;
       var r=await sb.from('op_logs').delete().eq('id',del.getAttribute('data-opdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; }
-      if(opEditId===del.getAttribute('data-opdel')) opResetForm();
+      if(String(opEditId)===String(del.getAttribute('data-opdel'))) opResetForm();
       await loadOplog(); return;
     }
     if(ed){
-      var o=(window.__wtOplog||[]).filter(function(x){return x.id===ed.getAttribute('data-opedit');})[0]; if(!o) return;
+      // 🐛 2026-08-24: 여기서 '수정'이 아무 반응이 없었다.
+      // op_logs.id 는 숫자(bigint)인데 화면에서 꺼낸 값은 글자다. 7 === '7' 은 거짓이라
+      // 늘 못 찾고 조용히 빠져나갔다. 삭제는 값을 그대로 서버에 넘겨서 멀쩡했다.
+      var o=(window.__wtOplog||[]).filter(function(x){return String(x.id)===String(ed.getAttribute('data-opedit'));})[0]; if(!o) return;
       opEditId=o.id; $('opDate').value=o.log_date||''; $('opContent').value=o.content||'';
       fillOpAuthors(o.author_id||'');
       if($('opAdd')) $('opAdd').textContent='✏️ 수정 저장';
