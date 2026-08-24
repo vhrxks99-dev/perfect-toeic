@@ -3822,7 +3822,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .sd-days{display:flex;flex-wrap:wrap;gap:6px}
 .sd-day{font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px;
   background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft)}
-.sd-day.next{background:var(--accent-wash);border-color:transparent;color:var(--accent)}
+.sd-day.go{background:var(--accent-wash);border-color:transparent;color:var(--accent)}
+.sd-day.no{background:#FDECEA;border-color:transparent;color:#B3261E}
+.sd-day.todo{background:transparent;border-style:dashed;color:var(--muted)}
+.sd-lab{font-size:11.5px;font-weight:800;color:var(--muted);margin:0 0 7px}
+.sd-lab.mt{margin-top:14px}
 
 .dash-form{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
 /* 🚨 칸 높이·위치 맞추기 (원장 지적 2026-08-13 "박스 위치 서로 다르고 정산월은 뒤에 회색박스가 튀어나온다")
@@ -6149,7 +6153,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // 한 학생 자료를 한꺼번에 읽어 온다
   async function sdLoad(sid){
-    var out={ sched:[], hw:[], pay:[], consult:[], study:[] };
+    var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[] };
     if(!sb||!sid) return out;
     var qs=[
       sb.from('schedules').select('*').eq('student_id',sid).order('starts_at',{ascending:false}).limit(400),
@@ -6173,8 +6177,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 스터디 참석 (표가 없을 수도 있어 조용히 넘어간다)
     try{
       var sg=await sb.from('study_signups').select('*').eq('student_id',sid)
-              .order('study_date',{ascending:false}).limit(20);
+              .order('study_date',{ascending:false}).limit(40);
       if(!sg.error&&sg.data) out.study=sg.data;
+      var so=await sb.from('study_off').select('off_date');
+      if(!so.error&&so.data) out.studyOff=so.data.map(function(x){ return String(x.off_date); });
     }catch(e){}
     return out;
   }
@@ -6202,21 +6208,48 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // ⚠️ 아직 안 한 수업을 '출석' 으로 보여주면 안 된다.
   //    이 사이트는 '잡힌 수업 = 출석' 규칙이라 status 만 보면 미래 수업도 출석으로 나온다.
-  // 스터디 참석 — 앞으로 올 날은 파랗게, 지난 날은 회색으로
-  function sdStudyBox(rows){
+  // 스터디 — 다가오는 주말마다 참석·불참·미정을 보여준다.
+  // 규칙(달력 칸과 같다): going=true 참석 / going=false 불참 / 찍은 게 없으면 미정.
+  // 스터디 자격(profiles.study)이 꺼진 학생은 애초에 대상이 아니다.
+  function sdStudyBox(rows, offs, st){
     var today=ymd(new Date());
-    var up=rows.filter(function(x){ return String(x.study_date)>=today; })
-               .sort(function(a,b){ return String(a.study_date)<String(b.study_date)?-1:1; });
-    var past=rows.filter(function(x){ return String(x.study_date)<today; });
+    offs=offs||[];
+    var byDate={}; rows.forEach(function(x){ byDate[String(x.study_date)]=x; });
+    var elig = !!(st && st.study) && String(st.status||'')!=='ended';
+
+    // 다가오는 주말 중 쉬는 날은 뺀다
+    var up=weekendDays(STUDY_WEEKS).filter(function(d){ return offs.indexOf(d)<0; }).slice(0,6);
+    var past=rows.filter(function(x){ return String(x.study_date)<today; })
+                 .sort(function(a,b){ return String(a.study_date)<String(b.study_date)?1:-1; });
+    var went=past.filter(function(x){ return x.going!==false; });
+
     var h='<div class="sd-box"><div class="bh"><b>스터디</b><span>'
-      + (rows.length ? ('참석 '+past.length+'회'+(up.length?(' · 신청 '+up.length+'건'):'')) : '신청 없음')
+      + (elig ? ('참석 '+went.length+'회') : '대상 아님')
       + '</span></div><div class="bb">';
-    if(!rows.length){
-      h+='<div style="font-size:13px;color:var(--muted)">스터디를 신청한 적이 없습니다.</div>';
-    } else {
-      h+='<div class="sd-days">'
-        + up.slice(0,4).map(function(x){ return '<span class="sd-day next">'+esc(String(x.study_date).slice(5))+' 예정</span>'; }).join('')
-        + past.slice(0,8).map(function(x){ return '<span class="sd-day">'+esc(String(x.study_date).slice(5))+'</span>'; }).join('')
+
+    if(!elig){
+      h+='<div style="font-size:13px;color:var(--muted)">스터디 대상 학생이 아닙니다.'
+        + (past.length?(' 지난 참석 '+went.length+'회.'):'') + '</div>';
+      return h+'</div></div>';
+    }
+
+    h+='<p class="sd-lab">다가오는 주말</p><div class="sd-days">'
+      + up.map(function(d){
+          var r=byDate[d], lab=String(d).slice(5);
+          if(!r)                return '<span class="sd-day todo">'+esc(lab)+' 미정</span>';
+          if(r.going===false)   return '<span class="sd-day no">'+esc(lab)+' 불참</span>';
+          return '<span class="sd-day go">'+esc(lab)+' 참석</span>';
+        }).join('')
+      + '</div>';
+
+    if(past.length){
+      h+='<p class="sd-lab mt">지난 기록</p><div class="sd-days">'
+        + past.slice(0,8).map(function(x){
+            var lab=String(x.study_date).slice(5);
+            return x.going===false
+              ? '<span class="sd-day no">'+esc(lab)+' 불참</span>'
+              : '<span class="sd-day">'+esc(lab)+'</span>';
+          }).join('')
         + '</div>';
     }
     return h+'</div></div>';
@@ -6286,7 +6319,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             +'<div class="bb"><div style="font-size:26px;font-weight:800;letter-spacing:-.04em">'+sdWon(paySum)+'</div>'
             +'<div style="font-size:12.5px;color:var(--muted);margin-top:6px">부가세 '+sdWon(vatSum)
             +' · 실제 받은 돈 '+sdWon(paySum+vatSum)+'</div></div></div>'
-          + sdStudyBox(d.study)
+          + sdStudyBox(d.study, d.studyOff, st)
         +'</div>'
         +'</div>';
 
