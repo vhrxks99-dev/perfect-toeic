@@ -3814,6 +3814,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .sd-pill.off{background:var(--surface-2);color:var(--muted)}
 .sd-pill.wait{background:#FFF6E0;color:#8A5A00}
 .sd-scroll{max-height:330px;overflow:auto}
+/* 숙제·상담은 글이 길다. 자르지 말고 줄바꿈해서 다 보여준다. */
+.sd-tbl td.sd-wrap{white-space:normal;line-height:1.7;word-break:break-word;min-width:0}
+.sd-grid.narrow-left{grid-template-columns:1fr 1.45fr}
+@media (max-width:1000px){ .sd-grid.narrow-left{grid-template-columns:1fr} }
+.sd-stack{display:grid;gap:12px;align-content:start}
+.sd-days{display:flex;flex-wrap:wrap;gap:6px}
+.sd-day{font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px;
+  background:var(--surface-2);border:1px solid var(--line);color:var(--ink-soft)}
+.sd-day.next{background:var(--accent-wash);border-color:transparent;color:var(--accent)}
 
 .dash-form{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
 /* 🚨 칸 높이·위치 맞추기 (원장 지적 2026-08-13 "박스 위치 서로 다르고 정산월은 뒤에 회색박스가 튀어나온다")
@@ -4358,7 +4367,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-head">관리 페이지 <span id="waRoleBadge" class="dash-badge"></span></div>
     <div class="dash-tabs">
       <button class="dash-tab on" data-dtab="members">회원</button>
-      <button class="dash-tab" data-dtab="student">학생별</button>
+      <button class="dash-tab" data-dtab="student">학생 카드</button>
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
       <button class="dash-tab" data-dtab="off">휴무</button>
       <button class="dash-tab" data-dtab="chglog">변경기록</button>
@@ -6140,7 +6149,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // 한 학생 자료를 한꺼번에 읽어 온다
   async function sdLoad(sid){
-    var out={ sched:[], hw:[], pay:[], consult:[] };
+    var out={ sched:[], hw:[], pay:[], consult:[], study:[] };
     if(!sb||!sid) return out;
     var qs=[
       sb.from('schedules').select('*').eq('student_id',sid).order('starts_at',{ascending:false}).limit(400),
@@ -6160,6 +6169,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         var c2=await sb.from('consults').select('*').eq('name',st.name).order('consulted_on',{ascending:false}).limit(20);
         if(!c2.error&&c2.data) out.consult=c2.data;
       }
+    }catch(e){}
+    // 스터디 참석 (표가 없을 수도 있어 조용히 넘어간다)
+    try{
+      var sg=await sb.from('study_signups').select('*').eq('student_id',sid)
+              .order('study_date',{ascending:false}).limit(20);
+      if(!sg.error&&sg.data) out.study=sg.data;
     }catch(e){}
     return out;
   }
@@ -6187,6 +6202,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // ⚠️ 아직 안 한 수업을 '출석' 으로 보여주면 안 된다.
   //    이 사이트는 '잡힌 수업 = 출석' 규칙이라 status 만 보면 미래 수업도 출석으로 나온다.
+  // 스터디 참석 — 앞으로 올 날은 파랗게, 지난 날은 회색으로
+  function sdStudyBox(rows){
+    var today=ymd(new Date());
+    var up=rows.filter(function(x){ return String(x.study_date)>=today; })
+               .sort(function(a,b){ return String(a.study_date)<String(b.study_date)?-1:1; });
+    var past=rows.filter(function(x){ return String(x.study_date)<today; });
+    var h='<div class="sd-box"><div class="bh"><b>스터디</b><span>'
+      + (rows.length ? ('참석 '+past.length+'회'+(up.length?(' · 신청 '+up.length+'건'):'')) : '신청 없음')
+      + '</span></div><div class="bb">';
+    if(!rows.length){
+      h+='<div style="font-size:13px;color:var(--muted)">스터디를 신청한 적이 없습니다.</div>';
+    } else {
+      h+='<div class="sd-days">'
+        + up.slice(0,4).map(function(x){ return '<span class="sd-day next">'+esc(String(x.study_date).slice(5))+' 예정</span>'; }).join('')
+        + past.slice(0,8).map(function(x){ return '<span class="sd-day">'+esc(String(x.study_date).slice(5))+'</span>'; }).join('')
+        + '</div>';
+    }
+    return h+'</div></div>';
+  }
   function sdLessonPill(x){
     var st=x.status||'confirmed';
     if(st==='canceled') return '<span class="sd-pill off">휴강</span>';
@@ -6247,14 +6281,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       h+='<div class="sd-grid">'
         +'<div class="sd-box"><div class="bh"><b>월별 수업 횟수</b><span>최근 6개월</span></div>'
           +'<div class="bb">'+sdMonthBars(d.sched)+'</div></div>'
-        +'<div class="sd-box"><div class="bh"><b>수납 합계</b><span>'+d.pay.length+'건</span></div>'
-          +'<div class="bb"><div style="font-size:26px;font-weight:800;letter-spacing:-.04em">'+sdWon(paySum)+'</div>'
-          +'<div style="font-size:12.5px;color:var(--muted);margin-top:6px">부가세 '+sdWon(vatSum)
-          +' · 실제 받은 돈 '+sdWon(paySum+vatSum)+'</div></div></div>'
+        +'<div class="sd-stack">'
+          +'<div class="sd-box"><div class="bh"><b>수납 합계</b><span>'+d.pay.length+'건</span></div>'
+            +'<div class="bb"><div style="font-size:26px;font-weight:800;letter-spacing:-.04em">'+sdWon(paySum)+'</div>'
+            +'<div style="font-size:12.5px;color:var(--muted);margin-top:6px">부가세 '+sdWon(vatSum)
+            +' · 실제 받은 돈 '+sdWon(paySum+vatSum)+'</div></div></div>'
+          + sdStudyBox(d.study)
+        +'</div>'
         +'</div>';
 
-      // 수업 이력 + 숙제
-      h+='<div class="sd-grid">';
+      // 수업 이력 + 숙제 — 숙제는 글이 길어서 넓은 쪽에 둔다
+      h+='<div class="sd-grid narrow-left">';
       h+='<div class="sd-box"><div class="bh"><b>수업 이력</b><span>최근 12회</span></div><div class="bb pad0 sd-scroll">'
         +'<table class="sd-tbl"><thead><tr><th>날짜</th><th>시간</th><th>강사</th><th>결과</th></tr></thead><tbody>'
         +(d.sched.length?d.sched.slice(0,12).map(function(x){
@@ -6265,8 +6302,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       h+='<div class="sd-box"><div class="bh"><b>숙제</b><span>최근 8건</span></div><div class="bb pad0 sd-scroll">'
         +'<table class="sd-tbl"><thead><tr><th>등록일</th><th>내용</th><th>확인</th></tr></thead><tbody>'
         +(d.hw.length?d.hw.slice(0,8).map(function(x){
-            var t=String(x.content||'').replace(/\n/g,' ').slice(0,38);
-            return '<tr><td style="white-space:nowrap">'+sdYmd(x.created_at)+'</td><td>'+esc(t)+'</td>'
+            // 숙제는 여러 줄로 적히므로 자르지 않고 줄바꿈까지 살려서 다 보여준다.
+            var t=esc(String(x.content||'')).replace(/\n/g,'<br>');
+            return '<tr><td style="white-space:nowrap">'+sdYmd(x.created_at)+'</td><td class="sd-wrap">'+(t||'-')+'</td>'
               +'<td>'+(x.teacher_checked?'<span class="sd-pill ok">확인</span>':'<span class="sd-pill wait">전</span>')+'</td></tr>'; }).join('')
           :'<tr><td class="none" colspan="3">숙제 기록이 없습니다.</td></tr>')
         +'</tbody></table></div></div>';
@@ -6285,8 +6323,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       h+='<div class="sd-box"><div class="bh"><b>상담 기록</b><span>'+d.consult.length+'건</span></div><div class="bb pad0 sd-scroll">'
         +'<table class="sd-tbl"><thead><tr><th>날짜</th><th>내용</th></tr></thead><tbody>'
         +(d.consult.length?d.consult.slice(0,10).map(function(x){
-            var t=String(x.memo||x.content||'').replace(/\n/g,' ').slice(0,60);
-            return '<tr><td style="white-space:nowrap">'+sdYmd(x.consulted_on)+'</td><td>'+esc(t||'-')+'</td></tr>'; }).join('')
+            var t=esc(String(x.memo||x.result||'')).replace(/\n/g,'<br>');
+            return '<tr><td style="white-space:nowrap">'+sdYmd(x.consulted_on)+'</td><td class="sd-wrap">'+(t||'-')+'</td></tr>'; }).join('')
           :'<tr><td class="none" colspan="2">상담 기록이 없습니다.</td></tr>')
         +'</tbody></table></div></div>';
       h+='</div>';
