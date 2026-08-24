@@ -3829,6 +3829,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 /* 숙제·상담은 글이 길다. 자르지 말고 줄바꿈해서 다 보여준다. */
 .sd-tbl td.sd-wrap{white-space:normal;line-height:1.7;word-break:break-word;min-width:0}
 .sd-grid.narrow-left{grid-template-columns:1fr 1.45fr}
+/* 학생 메모 (2026-08-24) — 학생 카드 맨 아래. 선생님끼리 보는 기록 */
+.sd-note .sd-note-new{display:flex;gap:8px;align-items:flex-start;margin-bottom:12px}
+.sd-note .sd-note-new textarea{flex:1;min-height:52px;resize:vertical;padding:10px 12px;
+  border:1px solid var(--line);border-radius:10px;font-family:inherit;font-size:14px;
+  line-height:1.7;background:#fff;color:var(--ink)}
+.sd-note .sd-note-new button{flex:none;white-space:nowrap}
+.sd-note .sd-note-list{max-height:340px;overflow:auto}
+.sd-note .sd-note-row{padding:11px 0;border-top:1px solid var(--line)}
+.sd-note .sd-note-row:first-child{border-top:0}
+.sd-note .sd-note-row .m{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:4px}
+.sd-note .sd-note-row .m b{color:var(--ink);font-size:12.5px}
+.sd-note .sd-note-row .t{font-size:14px;line-height:1.75;white-space:normal;word-break:break-word}
+.sd-note .sd-note-list .none{color:var(--muted);text-align:center;padding:18px;font-size:13.5px}
+@media(max-width:640px){ .sd-note .sd-note-new{flex-direction:column} .sd-note .sd-note-new button{width:100%} }
 @media (max-width:1000px){ .sd-grid.narrow-left{grid-template-columns:1fr} }
 .sd-stack{display:grid;gap:12px;align-content:start}
 .sd-days{display:flex;flex-wrap:wrap;gap:6px}
@@ -6177,17 +6191,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // 한 학생 자료를 한꺼번에 읽어 온다
   async function sdLoad(sid){
-    var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[] };
+    var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[], notes:[] };
     if(!sb||!sid) return out;
     var qs=[
       sb.from('schedules').select('*').eq('student_id',sid).order('starts_at',{ascending:false}).limit(400),
       sb.from('homeworks').select('*').eq('student_id',sid).order('created_at',{ascending:false}).limit(100),
-      sb.from('payments').select('*').eq('student_id',sid).order('paid_at',{ascending:false}).limit(100)
+      sb.from('payments').select('*').eq('student_id',sid).order('paid_at',{ascending:false}).limit(100),
+      // 학생 메모 — 선생님끼리 남기는 기록(2026-08-24). 표가 아직 없는 DB 에서도 죽지 않게 뒤에서 걸러낸다.
+      sb.from('student_notes').select('*').eq('student_id',sid).order('created_at',{ascending:false}).limit(100)
     ];
     var r=await Promise.all(qs.map(function(q){ return q.then(function(x){return x;},function(e){return {error:e};}); }));
     if(r[0]&&!r[0].error&&r[0].data) out.sched=r[0].data;
     if(r[1]&&!r[1].error&&r[1].data) out.hw=r[1].data;
     if(r[2]&&!r[2].error&&r[2].data) out.pay=r[2].data;
+    if(r[3]&&!r[3].error&&r[3].data) out.notes=r[3].data;
     // 상담은 student_id 로 찾는다. 옛 기록은 student_id 가 비어 있을 수 있어 이름으로 한 번 더 본다.
     var st=(window.__wtMembers||[]).filter(function(u){return String(u.id)===String(sid);})[0];
     try{
@@ -6387,12 +6404,78 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +'</tbody></table></div></div>';
       h+='</div>';
 
+      // 메모 — 이 학생에 대해 선생님끼리 남기는 기록 (원장 지시 2026-08-24)
+      // 전에는 학생 이야기를 적을 데가 없어 운영일지에 섞여 들어갔다.
+      // 운영일지처럼 한 줄씩 쌓는다. 한 칸짜리 자유 메모면 서로 덮어쓴다.
+      h+='<div class="sd-box sd-note"><div class="bh"><b>메모</b>'
+        +'<span>선생님끼리 보는 기록 · 학생에게는 보이지 않습니다</span></div><div class="bb">'
+        +'<div class="sd-note-new">'
+        +'<textarea id="sdNoteNew" rows="2" placeholder="이 학생에 대해 남길 내용을 적어주세요. 예) 어머니 전화, 다음 주 시간 조정 원하심"></textarea>'
+        +'<button class="btn btn-primary" type="button" data-sdnote-add="'+esc(sid)+'">메모 저장</button>'
+        +'</div>'
+        +'<p class="wa-err" id="sdNoteErr"></p>'
+        +'<div class="sd-note-list">'
+        +(d.notes.length? d.notes.map(function(n){
+            return '<div class="sd-note-row"><div class="m">'
+              + '<b>'+esc(n.author_name||'-')+'</b> <span>'+esc(sdNoteWhen(n.created_at))+'</span>'
+              + (sdNoteCanDel(n)?(' <a class="wa-link del" data-sdnote-del="'+esc(n.id)+'">삭제</a>'):'')
+              + '</div><div class="t">'+esc(String(n.note||'')).replace(/\n/g,'<br>')+'</div></div>';
+          }).join('')
+         :'<div class="none">아직 메모가 없습니다.</div>')
+        +'</div></div></div>';
+
       box.innerHTML=h;
       _sdCache=sid;
     }).catch(function(e){
       box.innerHTML='<div class="sd-empty">불러오지 못했습니다. '+esc(String(e&&e.message||e))+'</div>';
     });
   }
+
+  // ── 학생 메모 (2026-08-24) ──────────────────────────────────────
+  function sdNoteWhen(iso){
+    var dt=new Date(iso); if(isNaN(dt.getTime())) return '';
+    var p=function(n){ return (n<10?'0':'')+n; };
+    return dt.getFullYear()+'.'+p(dt.getMonth()+1)+'.'+p(dt.getDate())+' '+p(dt.getHours())+':'+p(dt.getMinutes());
+  }
+  // 지우는 건 쓴 사람 본인이나 원장·매니저만(서버 규칙과 같게 맞춘다)
+  function sdNoteCanDel(n){
+    var r=(profile&&profile.role)||'';
+    if(r==='master'||r==='manager') return true;
+    return !!(profile && n && String(n.author_id||'')===String(profile.id));
+  }
+  if($('sdBody')) $('sdBody').addEventListener('click', async function(e){
+    var t=e.target; if(!t||!t.closest) return;
+    var add=t.closest('[data-sdnote-add]'), del=t.closest('[data-sdnote-del]');
+    var err=$('sdNoteErr'); if(err) err.textContent='';
+    if(add){
+      // 빈 내용부터 걸러낸다 — 로그인 검사보다 먼저 해야 왜 안 되는지 바로 보인다
+      var sid=add.getAttribute('data-sdnote-add');
+      var box=$('sdNoteNew'), note=(box&&box.value||'').trim();
+      if(!note){ if(err) err.textContent='내용을 적어주세요.'; if(box) box.focus(); return; }
+      if(!sb||!profile){ if(err) err.textContent='로그인이 풀렸습니다. 새로고침해 주세요.'; return; }
+      add.disabled=true;
+      var r=await sb.from('student_notes').insert({ student_id:sid, author_id:profile.id,
+        author_name:(profile.name||''), note:note });
+      add.disabled=false;
+      if(r.error){
+        if(err) err.textContent = /student_notes/.test(String(r.error.message||''))
+          ? '메모 기능이 아직 없습니다. student_notes.sql 을 먼저 실행해주세요.'
+          : ('저장 실패: '+r.error.message);
+        return;
+      }
+      if(box) box.value='';
+      _sdCache=null; sdRender(sid);
+      return;
+    }
+    if(del){
+      if(!confirm('이 메모를 지울까요?')) return;
+      var r2=await sb.from('student_notes').delete().eq('id', del.getAttribute('data-sdnote-del'));
+      if(r2.error){ if(err) err.textContent='삭제 실패: '+r2.error.message; return; }
+      var cur=$('sdStudent')?$('sdStudent').value:'';
+      _sdCache=null; if(cur) sdRender(cur);
+      return;
+    }
+  });
 
   if($('sdSearch')) $('sdSearch').addEventListener('input', sdFillStudents);
   if($('sdStudent')) $('sdStudent').addEventListener('change', function(){ sdRender(this.value); });
