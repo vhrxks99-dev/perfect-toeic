@@ -3701,6 +3701,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-book-mine .bm .bm-st{margin-left:auto;font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 10px}
 .wa-book-mine .bm .st-pending{background:#fff3df;color:#b26a00}
 .wa-book-mine .bm .st-confirmed{background:#e5f6ec;color:#0a8f3c}
+/* 휴강·결석 — 학생 화면에서 '확정'으로 보이던 것을 갈라냈다(2026-08-24 원장 신고) */
+.wa-book-mine .bm .st-canceled{background:#f1efe9;color:#8a5a00}
+.wa-book-mine .bm .st-noshow{background:#fbeae8;color:#c0342b}
+.wa-book-mine .bm.bm-off .bm-t,.wa-book-mine .bm.bm-off span{color:var(--muted)}
+.wa-book-mine .bm.bm-off .bm-t{text-decoration:line-through}
+/* 내 수업 일정 표의 상태 딱지 */
+#myschedTable .ms-tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;
+  border-radius:999px;padding:1px 8px;vertical-align:middle}
+#myschedTable .ms-canceled{background:#f1efe9;color:#8a5a00}
+#myschedTable .ms-noshow{background:#fbeae8;color:#c0342b}
+#myschedTable .ms-pending{background:#fff3df;color:#b26a00}
+#myschedTable tr.ms-off td{color:var(--muted)}
 .wa-book-mine .bm .bm-cancel{margin-left:8px;color:#c0342b;font-size:12px;font-weight:700;cursor:pointer;text-decoration:underline}
 .wa-al-approve,.wa-al-reject{flex:none;font-size:12px;font-weight:800;border-radius:8px;padding:3px 11px;cursor:pointer;border:0}
 .wa-al-approve{background:#0a8f3c;color:#fff}
@@ -7561,7 +7573,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!mine.length) return [];
     // 내 학생들의 예정 수업 (미래)
     var hasFuture={}, futureRows=[];
-    var fr=await sb.from('schedules').select('student_id,student_name,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString());
+    // 휴강·결석은 '다음 수업'이 아니다(2026-08-24). 안 빼면 휴강해 둔 수업 때문에
+    // '다음 수업이 잡혀 있다'고 잘못 보고 숙제 알림이 계속 뜬다.
+    var fr=await sb.from('schedules').select('student_id,student_name,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString()).neq('status','canceled').neq('status','noshow');
     if(!fr.error && fr.data){ futureRows=fr.data; fr.data.forEach(function(s){ if(!isStudentEntry(s)) return; stuKeys(s.student_id,s.student_name).forEach(function(k){ hasFuture[k]=true; }); }); }
     // 그 학생의 '다음 수업' 이 언제인지 — 숙제가 어느 수업 것인지 가르는 기준이다.
     function nextLessonAfter(sid, afterISO){
@@ -11268,7 +11282,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!rows.length){ $('myschedTable').innerHTML='<tr><td class="wa-empty">예정된 수업이 없습니다.</td></tr>'; }
       else { var h='<tr class="hw-head"><th>일시</th><th>과목</th><th>선생님</th><th>강의장</th><th>변경</th></tr>';
         rows.forEach(function(s){
-          var rn = s.room_id ? (roomMap[String(s.room_id)]||'배정됨')
+          // 휴강·결석은 흐리게 + 딱지를 붙인다(2026-08-24). 숨기지는 않는다 —
+          // 갑자기 사라지면 학생이 '내 수업 어디 갔지' 하고 더 헷갈린다.
+          var off=(s.status==='canceled'||s.status==='noshow');
+          var tag = s.status==='canceled' ? '<span class="ms-tag ms-canceled">휴강</span>'
+                  : s.status==='noshow'   ? '<span class="ms-tag ms-noshow">결석</span>'
+                  : s.status==='pending'  ? '<span class="ms-tag ms-pending">승인대기</span>' : '';
+          // 휴강하면 강의장을 놓으므로 방을 적어 두면 아직 잡혀 있는 것처럼 읽힌다.
+          var rn = off ? '—'
+                 : s.room_id ? (roomMap[String(s.room_id)]||'배정됨')
                              : (String(profile.lesson_mode||'')==='online' ? '비대면' : '미배정');
           var c=chgMap[String(s.id)], ch='';
           if(c){
@@ -11277,7 +11299,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
              + (c.n>1 ? ' · '+c.n+'번 변경' : '') + '</span>'
              + (c.last.note ? '<br><span style="font-size:12.5px;color:var(--muted)">'+esc(c.last.note)+'</span>' : '');
           }
-          h+='<tr><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="강의장">'+esc(rn)+'</td><td data-l="변경">'+ch+'</td></tr>';
+          h+='<tr'+(off?' class="ms-off"':'')+'><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+tag+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="강의장">'+esc(rn)+'</td><td data-l="변경">'+ch+'</td></tr>';
         });
         $('myschedTable').innerHTML=h; }
     }
@@ -11721,10 +11743,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!rows.length){ box.innerHTML='<div class="wa-book-empty">예약 내역이 없어요.</div>'; return; }
     // 학생은 취소·변경을 할 수 없다(원장 지시).
     // 선생님마다 사정이 달라 사람이 확인해야 하므로, 문의로만 안내한다.
+    // 🚨 2026-08-24 원장 신고: 8/25 방예린·김다은을 휴강해 뒀는데 학생 화면에는
+    // 그대로 수업이 있는 것으로 보였다. 여기서 status 를 'pending 이냐 아니냐'로만
+    // 갈라서 휴강·결석까지 전부 「확정」 딱지를 달고 있었다.
     box.innerHTML=rows.map(function(s){
-      var st=(s.status==='pending')?'<span class="bm-st st-pending">승인대기</span>':'<span class="bm-st st-confirmed">확정</span>';
-      return '<div class="bm"><span class="bm-t">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</span> <span style="color:var(--muted)">'+esc(s.subject||'')+'</span>'+st
-        + '<span style="font-size:11.5px;color:var(--muted);margin-left:8px">변경·취소는 선생님께 문의</span></div>';
+      var off=(s.status==='canceled'||s.status==='noshow');
+      var st;
+      if(s.status==='pending')       st='<span class="bm-st st-pending">승인대기</span>';
+      else if(s.status==='canceled') st='<span class="bm-st st-canceled">휴강</span>';
+      else if(s.status==='noshow')   st='<span class="bm-st st-noshow">결석</span>';
+      else                           st='<span class="bm-st st-confirmed">확정</span>';
+      return '<div class="bm'+(off?' bm-off':'')+'"><span class="bm-t">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</span> <span style="color:var(--muted)">'+esc(s.subject||'')+'</span>'+st
+        + (off ? '' : '<span style="font-size:11.5px;color:var(--muted);margin-left:8px">변경·취소는 선생님께 문의</span>')+'</div>';
     }).join('');
   }
 
