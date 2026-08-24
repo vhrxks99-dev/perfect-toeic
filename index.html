@@ -4680,7 +4680,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         </div>
         <div class="dash-row">
           <label>결제수단<select id="pyMethod"></select></label>
-          <label id="pyCardWrap" style="display:none">카드사<select id="pyCard"></select></label>
+          <label id="pyCardWrap" style="display:none">카드사 <span class="wa-hint">선택</span><select id="pyCard"></select></label>
           <label>결제일<input type="date" id="pyPaid"></label>
           <label style="flex:2">메모<input type="text" id="pyMemo" placeholder="선택"></label>
         </div>
@@ -5001,6 +5001,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       </div>
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
+        <label id="pyeCardWrap" style="display:none">카드사 <span class="wa-hint">선택</span><select id="pyeCard"></select></label>
         <label>결제일<input type="date" id="pyePaid"></label>
         <label>부가세(원) <span class="wa-hint">따로 받은 경우만 · <a class="wa-link" id="pyeVatIncl">포함가에서 빼기</a></span><input type="number" id="pyeVat" min="0" step="100"></label>
       </div>
@@ -5010,7 +5011,6 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <label>원천징수(%)<input type="number" id="pyeWithhold" min="0" max="100" step="0.1"></label>
       </div>
       <div id="pyePreview" class="dash-note" style="margin-top:0"></div>
-      <label id="pyeCardWrap" style="display:none">카드사<select id="pyeCard"></select></label>
       <label>메모<input type="text" id="pyeMemo" placeholder="선택"></label>
       <p class="wa-err" id="pyeErr"></p>
       <button class="btn btn-primary" id="pyeSave" type="button">저장</button>
@@ -6374,7 +6374,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +'<table class="sd-tbl"><thead><tr><th>결제일</th><th>금액</th><th>부가세</th><th>수단</th><th>횟수</th></tr></thead><tbody>'
         +(d.pay.length?d.pay.slice(0,10).map(function(x){
             return '<tr><td style="white-space:nowrap">'+sdYmd(x.paid_at)+'</td><td>'+sdWon(x.amount)+'</td>'
-              +'<td>'+(x.vat?sdWon(x.vat):'-')+'</td><td>'+esc(x.method||'-')+'</td>'
+              +'<td>'+(x.vat?sdWon(x.vat):'-')+'</td><td>'+esc(methodLabel(x))+'</td>'
               +'<td>'+(x.sessions?(x.sessions+'회'):'-')+'</td></tr>'; }).join('')
           :'<tr><td class="none" colspan="5">수납 기록이 없습니다.</td></tr>')
         +'</tbody></table></div></div>';
@@ -9189,15 +9189,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   //   · 학원 토스 포스기 · 결제선생        → 1.5%  (직접 긁는 것)
   //   · 네이버페이 · 카카오페이 · 그 밖 PG → 2.5%  (온라인 PG)
   //   · 현금 · 계좌이체                    → 없음
-  // 카드사 이름(삼성카드 등)으로 저장된 건은 **학원 포스기로 긁은 것**이라 1.5% 로 본다.
-  // (수단 고를 때 '카드'를 고르면 저장은 카드사 이름으로 된다 — payMethodVal 참고)
+  // 🔄 2026-08-24 (2차) 원장 지시로 **카드사와 결제 통로를 칸으로 갈랐다.**
+  //   전에는 method 하나에 '삼성카드' 처럼 카드사 이름이 들어가 어느 통로인지 몰랐다.
+  //   이제 method = 통로(카드결제·결제선생·네이버페이…), card_issuer = 카드사.
+  //   옛 자료는 SQL 로 옮겨 뒀다(method='카드결제', card_issuer='삼성카드').
   var CARD_FEE_PG=2.5;     // 네이버·카카오·그 밖의 PG
-  var CARD_FEE_POS=1.5;    // 학원 토스 포스기 · 결제선생
+  var CARD_FEE_POS=1.5;    // 학원 토스 포스기(카드결제) · 결제선생
   var DEFAULT_CARD_FEE=CARD_FEE_PG;
   var FEE_BY_METHOD={
-    '카드':CARD_FEE_POS, '토스 포스기':CARD_FEE_POS, '결제선생':CARD_FEE_POS,
-    '네이버페이':CARD_FEE_PG, '카카오페이':CARD_FEE_PG, '기타 PG':CARD_FEE_PG
+    '카드결제':CARD_FEE_POS, '결제선생':CARD_FEE_POS,
+    '네이버페이':CARD_FEE_PG, '카카오페이':CARD_FEE_PG, '기타 PG':CARD_FEE_PG,
+    // 아래 둘은 옛 이름. 혹시 남아 있어도 요율이 맞도록 남겨 둔다
+    '카드':CARD_FEE_POS, '토스 포스기':CARD_FEE_POS
   };
+  // 카드사를 같이 적는 통로. 여기서만 카드사 칸이 보인다.
+  function methodHasIssuer(m){ return m==='카드결제' || m==='결제선생'; }
+  // 화면에 적을 때: 카드결제 (삼성카드)
+  function methodLabel(p){
+    var m=(p&&p.method)||'-';
+    return (p&&p.card_issuer) ? (m+' ('+p.card_issuer+')') : m;
+  }
   // 이 수단은 수수료가 몇 %인가. 0 이면 수수료가 없는 수단이다(현금·계좌이체).
   function cardFeeRate(method){
     var m=method||'';
@@ -9285,7 +9296,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           + '<td>'+(k?(it.s.rate+'%'):'-')+'</td>'
           + '<td style="white-space:nowrap">'+(k?won(it.s.gross):'-')+'</td>'
           + '<td style="white-space:nowrap">'+(k&&it.s.fee?('−'+won(it.s.fee)):'-')+'</td>'
-          + '<td>'+esc(it.p.paid_at||'-')+'</td><td>'+esc(it.p.method||'-')+'</td></tr>';
+          + '<td>'+esc(it.p.paid_at||'-')+'</td><td>'+esc(methodLabel(it.p))+'</td></tr>';
       });
       h+='</table></div></div>';
     });
@@ -9348,14 +9359,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     var byMethod={}, cardDetail={}, inSum=0, inCnt=0, reSum=0, reCnt=0;
     rows.forEach(function(p){
+      // 통로는 method 칸 그대로 센다. 옛 자료(method 에 카드사 이름이 들어 있던 것)만 묶어 준다.
       var m=p.method||'(미기재)';
-      var isCard=CARD_ISSUERS.indexOf(m)>=0 || m==='카드';
-      var key=isCard?'카드':m;
+      var oldStyle=(CARD_ISSUERS.indexOf(m)>=0 || m==='카드' || m==='토스 포스기');
+      var key=oldStyle?'카드결제':m;
       if(!byMethod[key]) byMethod[key]={ inAmt:0, inCnt:0, reAmt:0, reCnt:0 };
       var g=byMethod[key];
       if(isRefund(p)){ g.reAmt+=(p.amount||0); g.reCnt++; reSum+=(p.amount||0); reCnt++; }
       else { g.inAmt+=(p.amount||0); g.inCnt++; inSum+=(p.amount||0); inCnt++; }
-      if(isCard){ var cn=(m==='카드')?'카드사 미기재':m; cardDetail[cn]=(cardDetail[cn]||0)+((isRefund(p)?-1:1)*(p.amount||0)); }
+      // 카드사별 내역 — 이제 card_issuer 칸을 본다(옛 자료는 method 에 들어 있다)
+      var issuer=p.card_issuer || (CARD_ISSUERS.indexOf(m)>=0 ? m : '');
+      if(issuer || key==='카드결제'){
+        var cn=issuer||'카드사 미기재';
+        cardDetail[cn]=(cardDetail[cn]||0)+((isRefund(p)?-1:1)*(p.amount||0));
+      }
     });
 
     var order=PAY_CATS.filter(function(c){ return byMethod[c]; })
@@ -9423,7 +9440,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var net = p.teacher_id ? (won(s.net)+' <span style="color:var(--muted);font-size:11.5px">('+s.rate+'%)</span>') : '-';
       var vat = p.vat ? '<span style="color:var(--muted)">'+won(p.vat)+'</span>' : '-';
       var otTag = (p.kind==='ot') ? ' <span style="font-size:11px;font-weight:800;color:#8a5a00;background:#fff6e5;border-radius:5px;padding:2px 5px">사전 OT</span>' : '';
-      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(p.method||'-')+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
@@ -9596,8 +9613,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
     if(!vatGuardOK(amount, vat)){ if($('pyVat')) $('pyVat').focus(); return; }
-    var mth=payMethodVal('pyMethod','pyCard');
-    var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:mth, paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
+    var mth=payMethodVal('pyMethod');
+    var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:mth, card_issuer:payIssuerVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
       vat:(vat>0?vat:null),
       // 카드면 그때의 수수료율을 박아 둔다(나중에 요율을 바꿔도 지난 정산은 안 흔들리게)
       card_fee_rate:(cardFeeRate(mth)||null),
@@ -9616,17 +9633,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   };
   if($('pyFilter')) $('pyFilter').onchange=function(){ loadPayments($('pyFilter').value); };
   // 수수료는 '어느 통로로 받았나'로 갈린다(원장 2026-08-24). 그래서 통로를 고르게 한다.
-  // '카드'를 고르면 아래 카드사 칸에서 고른 이름으로 저장된다(payMethodVal).
-  var PAY_CATS=['카드','계좌이체','현금','결제선생','카카오페이','네이버페이','기타 PG'];
+  // 카드사는 옆의 별도 칸(card_issuer)에 따로 담는다.
+  var PAY_CATS=['카드결제','계좌이체','현금','결제선생','카카오페이','네이버페이','기타 PG'];
   var CARD_ISSUERS=['삼성카드','현대카드','신한카드','KB국민카드','롯데카드','BC카드','하나카드','우리카드','NH농협카드','기타 카드'];
   function fillMethods(){
     var cats=PAY_CATS.map(function(m){return '<option>'+m+'</option>';}).join('');
-    var cards=CARD_ISSUERS.map(function(m){return '<option>'+m+'</option>';}).join('');
+    // 카드사는 몰라도 저장할 수 있어야 한다(결제선생처럼 카드사가 안 찍히는 경우)
+    var cards='<option value="">선택 안 함</option>'
+            + CARD_ISSUERS.map(function(m){return '<option>'+m+'</option>';}).join('');
     if($('pyMethod'))$('pyMethod').innerHTML=cats; if($('pyeMethod'))$('pyeMethod').innerHTML=cats;
     if($('pyCard'))$('pyCard').innerHTML=cards; if($('pyeCard'))$('pyeCard').innerHTML=cards;
   }
-  function toggleCard(sel,wrap){ if($(wrap)) $(wrap).style.display=($(sel)&&$(sel).value==='카드')?'':'none'; }
-  function payMethodVal(sel,card){ return ($(sel)&&$(sel).value==='카드') ? ($(card)?$(card).value:'카드') : ($(sel)?$(sel).value:''); }
+  // 카드사 칸은 카드로 받은 통로에서만 보인다.
+  function toggleCard(sel,wrap){ if($(wrap)) $(wrap).style.display=methodHasIssuer($(sel)&&$(sel).value)?'':'none'; }
+  function payMethodVal(sel){ return $(sel)?$(sel).value:''; }
+  // 카드사는 따로 저장한다. 카드가 아닌 통로면 비운다.
+  function payIssuerVal(sel,card){
+    if(!methodHasIssuer($(sel)&&$(sel).value)) return null;
+    var v=$(card)?($(card).value||''):'';
+    return v || null;
+  }
   if($('pyMethod')) $('pyMethod').onchange=function(){ toggleCard('pyMethod','pyCardWrap'); };
   if($('pyeMethod')) $('pyeMethod').onchange=function(){ toggleCard('pyeMethod','pyeCardWrap'); };
   var editingPayId=null;
@@ -9636,9 +9662,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyeKind')) $('pyeKind').value=(p.kind==='refund')?'refund':((p.kind==='ot')?'ot':'payment');
     if($('pyeAmount')) $('pyeAmount').value=p.amount||'';
     if($('pyeMonth')) $('pyeMonth').value=p.month||'';
-    var _m=p.method||PAY_CATS[0], _isCard=CARD_ISSUERS.indexOf(_m)>=0;
-    if($('pyeMethod')) $('pyeMethod').value=_isCard?'카드':(PAY_CATS.indexOf(_m)>=0?_m:'카드');
-    if($('pyeCard')) $('pyeCard').value=_isCard?_m:CARD_ISSUERS[0];
+    // 옛 자료는 method 칸에 카드사 이름이 들어 있을 수 있다 → 통로/카드사로 갈라서 채운다
+    var _m=p.method||PAY_CATS[0], _issuer=p.card_issuer||'';
+    if(CARD_ISSUERS.indexOf(_m)>=0){ _issuer=_m; _m='카드결제'; }
+    else if(_m==='카드'||_m==='토스 포스기'){ _m='카드결제'; }
+    if(PAY_CATS.indexOf(_m)<0) _m=PAY_CATS[0];
+    if($('pyeMethod')) $('pyeMethod').value=_m;
+    if($('pyeCard')) $('pyeCard').value=_issuer;
     toggleCard('pyeMethod','pyeCardWrap');
     if($('pyePaid')) $('pyePaid').value=p.paid_at||'';
     if($('pyeVat')) $('pyeVat').value=p.vat||'';
@@ -9700,8 +9730,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var evat=parseInt($('pyeVat')?$('pyeVat').value:'',10)||0;
     if(!vatGuardOK(amount, evat)){ if($('pyeVat')) $('pyeVat').focus(); return; }
-    var emth=payMethodVal('pyeMethod','pyeCard');
-    var patch={ amount:amount, month:$('pyeMonth').value, method:emth, paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
+    var emth=payMethodVal('pyeMethod');
+    var patch={ amount:amount, month:$('pyeMonth').value, method:emth, card_issuer:payIssuerVal('pyeMethod','pyeCard'), paid_at:($('pyePaid').value||null), memo:($('pyeMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
       vat:(evat>0?evat:null),
       card_fee_rate:(cardFeeRate(emth)||null),
       teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:ekind };
@@ -11333,7 +11363,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var pr=[];
       if(sb){ var r2=await sb.from('payments').select('*').eq('student_id',profile.id).order('month',{ascending:false}); if(!r2.error&&r2.data) pr=r2.data; }
       if(!pr.length){ $('mypayTable').innerHTML='<tr><td class="wa-empty">결제 내역이 없습니다.</td></tr>'; }
-      else { var h2='<tr class="hw-head"><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td data-l="월">'+esc(p.month)+'</td><td data-l="금액" style="white-space:nowrap">'+won(p.amount)+'</td><td data-l="수단">'+esc(p.method||'-')+'</td><td data-l="결제일">'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
+      else { var h2='<tr class="hw-head"><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td data-l="월">'+esc(p.month)+'</td><td data-l="금액" style="white-space:nowrap">'+won(p.amount)+'</td><td data-l="수단">'+esc(methodLabel(p))+'</td><td data-l="결제일">'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
     }
     if($('myPass')){
       // 차감 기준은 '수업이 잡혔는지'다(2026-08-08). 출석은 참고로만 보여준다.
