@@ -4879,7 +4879,6 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="dash-form">
         <div class="dash-row">
           <label>학생<input type="text" id="hwStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="hwStudent"></select></label>
-          <label>숙제 마감일<input type="date" id="hwDueDate" required></label>
         </div>
         <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">숙제 내용 <span class="wa-hint">(한 줄에 하나씩 — 학생이 항목별로 완료 체크)</span><textarea id="hwContent" rows="4" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)" placeholder="예)&#10;1. 완벽한토익 단어장 day1~3 외우기&#10;2. 직독직해 오답해오기"></textarea></label>
         <p class="wa-err" id="hwErr"></p>
@@ -10985,7 +10984,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                  : scopeMsg));
       $('hwTable').innerHTML='<tr><td class="wa-empty">'+msg+'</td></tr>'; return;
     }
-    var h='<tr class="hw-head"><th>등록일</th><th>마감일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>선생님 확인</th><th>숙제율</th><th>관리</th></tr>';
+    var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>선생님 확인</th><th>숙제율</th><th>관리</th></tr>';
     rows.forEach(function(x){
       var items=hwItems(x.content), d=hwDoneArr(x);
       // 선생님도 직접 체크를 고칠 수 있다 — 학생이 안 하고 눌러놨을 수 있기 때문(원장 지시 2026-08-11).
@@ -10996,12 +10995,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           + (hwLock?'<div class="hw-lock-note">확인 완료 — 고치려면 \'선생님 확인\'을 먼저 빼세요</div>':''))
         : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
-      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="마감일" style="white-space:nowrap">'+(x.due_date?esc(fmtDue(x.due_date)):'<span style="color:var(--muted)">미설정</span>')+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
   var hwEditId=null;
-  function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwDueDate')) $('hwDueDate').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
+  function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
   // 새로고침은 수업 일정 캐시도 같이 버린다(그 사이 스케줄이 바뀌었을 수 있다).
   if($('hwReload')) $('hwReload').onclick=function(){ _hwDayCache={}; return loadHomework(); };
   if($('hwListSearch')) $('hwListSearch').addEventListener('input', drawHw);
@@ -11031,16 +11030,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!sb||!profile) return;
     var err=$('hwErr'); if(err) err.textContent='';
     var content=$('hwContent').value.trim();
-    var due=($('hwDueDate')&&$('hwDueDate').value)||'';
     var r;
-    if(!due){ if(err) err.textContent='숙제 마감일을 선택하세요.'; if($('hwDueDate')) $('hwDueDate').focus(); return; }
+    // 마감일 칸은 2026-08-11에 없앴다(원장 지시). 목록을 '그날 수업 있는 학생'으로 거르므로 쓸 일이 없다.
+    // homeworks.due_date 컬럼과 옛 데이터는 그대로 두고 화면에서만 뺀다. (2026-08-25 다시 뺌)
     if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
-    if(hwEditId){ r=await sb.from('homeworks').update({content:content,due_date:due}).eq('id',hwEditId).select(); }
+    if(hwEditId){ r=await sb.from('homeworks').update({content:content}).eq('id',hwEditId).select(); }
     else {
       var sid=$('hwStudent')?$('hwStudent').value:'';
       if(!sid){ if(err) err.textContent='학생을 선택하세요.'; return; }
       var st=_members.filter(function(m){return m.id===sid;})[0];
-      r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content, due_date:due}).select();
+      r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content}).select();
     }
     if(r.error){
       var msg=await saveErrMsg(r.error);
@@ -11113,7 +11112,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var t=e.target; if(!t||!t.closest) return;
     var del=t.closest('a[data-hwdel]'), ed=t.closest('a[data-hwedit]');
     if(del){ if(!confirm('이 숙제를 삭제할까요?')) return; var r=await sb.from('homeworks').delete().eq('id',del.getAttribute('data-hwdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } if(hwEditId===del.getAttribute('data-hwdel')) hwReset(); await loadHomework(); return; }
-    if(ed){ var x=(window.__wtHw||[]).filter(function(y){return y.id===ed.getAttribute('data-hwedit');})[0]; if(!x) return; hwEditId=x.id; if($('hwContent')) $('hwContent').value=x.content||''; if($('hwDueDate')) $('hwDueDate').value=x.due_date||''; if($('hwStudentSearch')) $('hwStudentSearch').value=x.student_name||''; if($('hwStudent')){ $('hwStudent').innerHTML='<option value="'+esc(x.student_id)+'">'+esc(x.student_name||'')+'</option>'; $('hwStudent').value=x.student_id; } if($('hwAdd')) $('hwAdd').textContent='✏️ 수정 저장'; if($('hwContent')) $('hwContent').focus(); return; }
+    if(ed){ var x=(window.__wtHw||[]).filter(function(y){return y.id===ed.getAttribute('data-hwedit');})[0]; if(!x) return; hwEditId=x.id; if($('hwContent')) $('hwContent').value=x.content||''; if($('hwStudentSearch')) $('hwStudentSearch').value=x.student_name||''; if($('hwStudent')){ $('hwStudent').innerHTML='<option value="'+esc(x.student_id)+'">'+esc(x.student_name||'')+'</option>'; $('hwStudent').value=x.student_id; } if($('hwAdd')) $('hwAdd').textContent='✏️ 수정 저장'; if($('hwContent')) $('hwContent').focus(); return; }
   });
 
   function applyTabRoles(){
