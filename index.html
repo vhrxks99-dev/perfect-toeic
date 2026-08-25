@@ -9462,6 +9462,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   var _rfRows = null;   // 이 학생의 수납·OT 줄
   var _rfCalc = null;   // 마지막으로 계산해 둔 값
+  var _rfFuture = [];   // 앞으로 잡혀 있는 수업
+
+  // 앞으로 잡혀 있는 수업. 환불하면 이건 다 없애야 한다.
+  // 안 없애면 '쓴 횟수'로 계속 잡혀서 남은 횟수가 음수로 내려간다.
+  async function rfFutureLessons(sid){
+    var r = await sb.from('schedules').select('id,starts_at,teacher_name,gcal_event_id,status').eq('student_id', sid);
+    if(r.error || !r.data) return [];
+    var now = new Date().toISOString();
+    return r.data.filter(function(x){
+      var st = x.status || 'confirmed';
+      return (x.starts_at||'') > now && st !== 'canceled';
+    });
+  }
 
   // 들은 회차 = 이미 지난 확정 수업 + 노쇼. 노쇼도 횟수는 차감되므로 들은 것으로 센다.
   async function rfCountDone(sid){
@@ -9494,6 +9507,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('rfDone') && !$('rfDone').value){
       $('rfDone').value = await rfCountDone(sid);
     }
+    _rfFuture = await rfFutureLessons(sid);
     if($('rfMonth') && !$('rfMonth').value){
       $('rfMonth').value = ($('pyMonth') && $('pyMonth').value) || new Date().toISOString().slice(0,7);
     }
@@ -9548,6 +9562,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + (tname? esc(tname)+' 선생님 ' : '강사 ')+won(teachGross)+' ('+done+'회 × '+won(Math.round(per))+' × '+rate+'%)'
       + ' + 학원 '+won(academy)+'<br>'
     + '<span style="color:var(--muted);font-size:12.5px">선생님 실지급은 원천징수 '+wh+'% 떼고 '+won(teachNet)+'입니다.</span>'
+    + ((_rfFuture && _rfFuture.length)
+        ? '<div style="margin-top:8px">앞으로 잡혀 있는 수업 <b>'+_rfFuture.length+'회</b> — 등록하면 <b>휴강으로 바꿔 강의장을 비웁니다.</b></div>'
+        : '<div style="margin-top:8px;color:var(--muted)">앞으로 잡혀 있는 수업은 없습니다.</div>')
     + warn;
 
     if(go) go.disabled = !(refund>0);
@@ -9568,7 +9585,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!confirm(sname+' 학생 환불을 등록합니다.\n\n'
       + '환불 '+won(c.refund)+' · 남은 횟수 '+c.left+'회 차감\n'
       + (c.tname? c.tname+' 선생님 ':'강사 ')+won(c.teachGross)+' · 학원 '+won(c.academy)+'\n\n'
-      + '안 한 수업 '+c.left+'회분은 담당 강사에서 떼어냅니다.')) return;
+      + '안 한 수업 '+c.left+'회분은 담당 강사에서 떼어냅니다.'
+      + ((_rfFuture && _rfFuture.length) ? '\n앞으로 잡힌 수업 '+_rfFuture.length+'회도 휴강 처리합니다.' : ''))) return;
 
     var go=$('rfGo'); if(go){ go.disabled=true; go.textContent='등록 중…'; }
     try{
@@ -9617,10 +9635,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       });
       if(rr.error) throw new Error('환불 줄 추가 실패: '+rr.error.message);
 
+      // (3) 앞으로 잡힌 수업은 휴강으로 바꾼다(원장 지시 2026-08-25).
+      // 지우지 않고 휴강으로 두는 이유 — 기록이 남고, 잘못 눌렀을 때 되살릴 수 있고,
+      // 휴강이면 그 시간 강의장이 다시 열린다(결석과 달리 횟수도 안 깎는다).
+      var offN = 0, gcalN = 0;
+      if(_rfFuture && _rfFuture.length){
+        for(var k=0;k<_rfFuture.length;k++){
+          var lz = _rfFuture[k];
+          var uz = await sb.from('schedules').update({ status:'canceled' }).eq('id', lz.id);
+          if(uz.error) throw new Error('수업 휴강 처리 실패: '+uz.error.message);
+          offN++;
+          if(lz.gcal_event_id) gcalN++;
+        }
+      }
+
       if($('rfDone')) $('rfDone').value='';
       if($('rfStudent')) $('rfStudent').value='';
-      if($('rfCalc')) $('rfCalc').textContent='등록했습니다.';
-      _rfRows=null; _rfCalc=null;
+      if($('rfCalc')) $('rfCalc').innerHTML='등록했습니다.'
+        + (offN ? ' 앞으로 잡힌 수업 <b>'+offN+'회</b>도 휴강으로 바꿨습니다.' : '')
+        + (gcalN ? '<br><span style="color:#b26a00;font-weight:700">그중 '+gcalN+'회는 구글 캘린더에서 온 수업입니다. 구글 쪽 일정은 직접 지워주세요.</span>' : '');
+      _rfRows=null; _rfCalc=null; _rfFuture=[];
       await loadPayments(($('pyFilter')&&$('pyFilter').value)||month);
       await loadSummary();
     }catch(e){
