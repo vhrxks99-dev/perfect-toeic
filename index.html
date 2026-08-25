@@ -9576,7 +9576,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var err=$('rfErr'); if(err) err.textContent='';
     if(!_rfCalc || !_rfRows){ if(err) err.textContent='먼저 학생을 골라주세요.'; return; }
     var sel=$('rfStudent'); var sid=sel?sel.value:''; if(!sid){ if(err) err.textContent='학생을 골라주세요.'; return; }
-    var sname = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    // 목록 글자에는 전화번호가 붙어 있다('최유빈 · 010…'). 그대로 쓰면 환불 줄 이름이 지저분해진다.
+    // 결제 줄에 적혀 있는 이름을 그대로 쓰는 게 맞다.
+    var sname = (_rfRows[0] && _rfRows[0].student_name)
+      || (sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent.split(' · ')[0].trim() : '');
     var month = ($('rfMonth')&&$('rfMonth').value)||'';
     if(!month){ if(err) err.textContent='정산 월을 골라주세요.'; return; }
     var paid = ($('rfPaid')&&$('rfPaid').value)||null;
