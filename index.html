@@ -4773,7 +4773,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           <!-- '사전 OT' 를 따로 둔다(원장 지적 2026-08-13 "OT 받을 때 1회로 한 줄이 어딨어?").
                그때는 수업 횟수권이 8회부터라 1회짜리 OT 선결제를 넣을 수가 없었다.
                (2026-08-17 최소 횟수 제한 자체를 없앴다 — 4회만 끊는 학생도 있다.) -->
-          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="refund">환불</option></select></label>
+          <!-- 2026-08-25 「환불」을 뺐다(원장 지시). 아래 「🧾 환불 계산기」가 회차·강사 몫까지
+               한 번에 처리하는데, 여기서 금액만 손으로 넣으면 그 계산을 건너뛰게 된다. -->
+          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"><span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span></label>
@@ -10106,7 +10108,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function openPayEdit(p){
     editingPayId=p.id;
     if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
-    if($('pyeKind')) $('pyeKind').value=(p.kind==='refund')?'refund':((p.kind==='ot')?'ot':'payment');
+    if($('pyeKind')){
+      $('pyeKind').value=(p.kind==='refund')?'refund':((p.kind==='ot')?'ot':'payment');
+      // 이미 환불인 줄은 그대로 고칠 수 있어야 하지만, 멀쩡한 수납을 여기서 환불로
+      // 바꾸는 길은 막는다. 새 환불은 환불 계산기로만 만든다(2026-08-25 원장 지시).
+      var _ro=$('pyeKind').querySelector('option[value="refund"]');
+      if(_ro) _ro.disabled = (p.kind!=='refund');
+    }
     if($('pyeAmount')) $('pyeAmount').value=p.amount||'';
     if($('pyeMonth')) $('pyeMonth').value=p.month||'';
     // 옛 자료는 method 칸에 카드사 이름이 들어 있을 수 있다 → 통로/카드사로 갈라서 채운다
