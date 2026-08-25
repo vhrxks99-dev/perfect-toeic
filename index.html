@@ -3402,6 +3402,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function radio(name){ var el=af.querySelector('input[name="'+name+'"]:checked'); return el?el.value:""; }
   function checks(name){ return Array.prototype.slice.call(af.querySelectorAll('input[name="'+name+'"]:checked')).map(function(c){return c.value;}).join(", "); }
   var KKO = "https://pf.kakao.com/_JCLYG/chat";
+
+  /* 브라우저 기본 검사를 끈다. 켜 두면 못 채운 칸이 있을 때 제출을 막는데,
+     그 안내 말풍선이 화면 밖 위쪽 칸에 붙어서 버튼을 누른 사람 눈에는
+     "아무 반응이 없다"로 보인다. (2026-08-25 원장 신고) */
+  af.setAttribute("novalidate", "");
+
+  function apEsc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;"); }
+
+  /* 못 채운 칸을 찾아 이름과 함께 돌려준다. 다 채웠으면 null. */
+  function apFirstMissing(){
+    var list = Array.prototype.slice.call(af.querySelectorAll("input,select,textarea"));
+    for(var i=0;i<list.length;i++){
+      if(list[i].checkValidity()) continue;
+      var box = list[i].closest ? list[i].closest(".af-field") : null;
+      var lab = box ? box.querySelector("label,.af-label") : null;
+      var name = lab ? lab.textContent.replace(/[*\s]+$/,"").trim() : "";
+      return { el: list[i], box: box, name: name };
+    }
+    return null;
+  }
   function apCompose(){
     if(!radio("tablet")){ alert("6번 태블릿 사용 여부를 선택해주세요."); return; }
     if(!checks("prev")){ alert("7번 기존 학습 방식을 선택해주세요."); return; }
@@ -3456,9 +3476,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   af.addEventListener("submit", function(e){
     e.preventDefault();
+
+    var miss = apFirstMissing();
+    if(miss){
+      apSay("아직 못 채운 칸이 있습니다 \u2014 <b>" + apEsc(miss.name || "필수 항목") + "</b>");
+      try{ (miss.box || miss.el).scrollIntoView({behavior:"smooth", block:"center"}); }catch(err){}
+      try{ miss.el.focus({preventScroll:true}); }catch(err){ miss.el.focus(); }
+      return;
+    }
+
     var d = apCompose(); if(!d) return;
     var copied = apCopy(d.body);
-    window.open(KKO, "_blank", "noopener");
+    var win = window.open(KKO, "_blank", "noopener");
+    if(!win){
+      // 팝업이 막힌 경우. 그냥 두면 또 "아무 반응 없다"가 된다.
+      apSay((copied ? "내용을 <b>복사</b>했습니다. " : "") +
+        "브라우저가 새 창을 막았습니다. " +
+        "<a href=\"" + KKO + "\" target=\"_blank\" rel=\"noopener\"><b>여기를 눌러 카카오톡 채널 상담창</b></a>을 열고 붙여넣어 주세요.");
+      return;
+    }
     if(copied){
       apSay("작성하신 내용을 <b>복사</b>했습니다. 열린 <b>카카오톡 채널 상담창</b>에 붙여넣어 보내주시면 접수됩니다.<br>(휴대폰은 입력칸을 길게 눌러 <b>붙여넣기</b>)");
     }else{
