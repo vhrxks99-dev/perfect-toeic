@@ -93,6 +93,10 @@
   .btn-primary{background:var(--accent);color:var(--on-accent);box-shadow:var(--shadow-sm)}
   .btn-primary:hover{background:var(--accent-deep);box-shadow:0 10px 26px -12px var(--accent);transform:translateY(-2px)}
   .btn-ghost{background:transparent;color:var(--ink);border-color:var(--line-strong)}
+  /* 카카오 브랜드 노랑 — 「카카오톡으로 상담 보내기」 전용 */
+  .btn-kakao{background:#FEE500;color:#191600;border-color:#F0D000;box-shadow:var(--shadow-sm)}
+  .btn-kakao:hover{background:#F9DC00}
+  .btn-kakao svg{width:19px;height:19px;flex:0 0 19px}
   .btn-ghost:hover{border-color:var(--ink);background:var(--surface)}
   .arrow{transition:transform .18s ease}
   .btn:hover .arrow{transform:translateX(3px)}
@@ -147,6 +151,8 @@
   .navitem:hover .submenu,.navitem:focus-within .submenu{opacity:1;visibility:visible;transform:none}
   .submenu a{padding:9px 12px;font-size:14px;font-weight:600;color:var(--ink-soft);border-radius:8px;white-space:nowrap}
   .submenu a:hover{color:var(--accent);background:var(--accent-wash)}
+  /* 드롭다운 안 구분선. '수업 안내'에서 과목(토익·토스…)과 형태(대면·비대면)를 갈라 준다. */
+  .submenu .msep{display:block;height:1px;margin:6px 8px;background:var(--line)}
   .head-cta{margin-left:auto;display:flex;align-items:center;gap:7px}
   .head-cta .btn{padding:10px 14px;font-size:14px}
   .hamburger{display:none;width:44px;height:44px;border:1px solid var(--line);background:var(--surface);border-radius:10px;cursor:pointer;flex-direction:column;gap:5px;align-items:center;justify-content:center}
@@ -409,23 +415,28 @@
   .foot-sns a.kko:hover{color:#3A1D1D;background:#FEE500;border-color:#FEE500}
   .foot-sns a.soomgo:hover{color:#fff;background:#693BF2;border-color:#693BF2}
   .foot-sns a.insta:hover{color:#fff;background:#E1306C;border-color:#E1306C}
-  .foot-cols{display:flex;gap:56px;flex-wrap:wrap}
+  .foot-cols{display:flex;gap:44px;flex-wrap:wrap}
   .foot-cols .col h5{margin:0 0 14px;font-size:12.5px;font-family:var(--font-mono);letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
   .foot-cols .col a{display:block;padding:6px 0;color:var(--ink-soft);font-size:14.5px;font-weight:600}
   .foot-cols .col a:hover{color:var(--accent)}
   .foot-legal{padding-top:26px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:12.5px;line-height:1.9}
   .foot-legal .mono{font-family:var(--font-mono)}
 
-  /* floating */
-  .floaty{position:fixed;right:20px;bottom:22px;z-index:50;display:flex;flex-direction:column;gap:10px}
-  .floaty a{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;box-shadow:var(--shadow);font-weight:800;font-size:12px;
-    border:1px solid var(--line);transition:transform .18s}
-  .floaty a:hover{transform:translateY(-3px) scale(1.03)}
-  .floaty .f-naver{background:#03C75A;color:#fff}
-  .floaty .f-kko{background:#FEE500;color:#3A1D1D}
-  .floaty .f-apply{background:var(--accent);color:#fff;width:auto;padding:0 18px;height:54px;letter-spacing:-.02em;font-size:14px}
+  /* floating
+     2026-08-25 정돈(원장 지시). 전에는 초록(네이버)·노랑(카카오) 말풍선이 이름표 없이 겹쳐 떠 있어
+     무슨 버튼인지 알 수 없었다. 이름표를 붙여 카드 하나로 묶고, 수강신청만 아래 따로 뺐다.
+     ⚠️ 항목을 추가할 땐 모바일 규칙(.f-card .m-hide)도 같이 볼 것 — 좁은 화면에선 4개가 안 들어간다. */
+  .floaty{position:fixed;right:20px;bottom:22px;z-index:50;display:flex;flex-direction:column;gap:10px;align-items:stretch}
+  .f-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;width:118px}
+  .f-card a{display:flex;align-items:center;gap:8px;padding:11px 12px;font-size:12.5px;font-weight:700;color:var(--ink-soft);
+    border-bottom:1px solid var(--line);transition:background .15s,color .15s}
+  .f-card a:last-child{border-bottom:0}
+  .f-card a:hover{background:var(--accent-wash);color:var(--accent)}
+  .f-card svg{width:16px;height:16px;flex:0 0 16px}
+  .floaty .f-apply{background:var(--accent);color:#fff;border-radius:16px;height:46px;display:grid;place-items:center;
+    font-weight:800;font-size:13.5px;letter-spacing:-.02em;box-shadow:var(--shadow);transition:transform .18s}
+  .floaty .f-apply:hover{transform:translateY(-3px)}
   .floaty .f-apply .f-apply-ico{display:none}
-  .floaty svg{width:22px;height:22px}
 
   /* ---- mobile drawer groups ---- */
   .dgroup{border-bottom:1px solid var(--line);padding:4px 0}
@@ -554,6 +565,7 @@
   .af-agree-check span{font-weight:500;color:var(--muted);font-size:12.5px}
   .af-submit{display:flex;justify-content:flex-end;align-items:center;gap:16px;flex-wrap:wrap;margin-top:4px}
   .af-submit .af-hint{margin-right:auto;font-size:12.5px;color:var(--muted)}
+  .af-msg{margin:12px 0 0;padding:12px 14px;border-radius:10px;font-size:14px;line-height:1.6;background:#FEF3C7;border:1px solid #FCD34D;color:#78350F}
   @media(max-width:560px){ .af-submit{flex-direction:column;align-items:stretch} .af-submit .btn{width:100%} .af-submit .af-hint{margin:0 0 4px} }
   /* ---- 공지: 과외 규칙 ---- */
   .ntag-must{background:var(--ink)!important;color:#fff!important}
@@ -641,9 +653,15 @@
     .cta-in{flex-direction:column;align-items:flex-start}
     .foot-top{flex-direction:column}
     .foot-brand p{white-space:normal;max-width:36ch}
+    /* 좁은 화면에선 카드를 아이콘만 남기고, 자주 안 쓰는 두 개(톡톡·오시는길)는 감춘다.
+       오시는 길은 모바일 메뉴(서랍)에 그대로 있으니 길을 잃지 않는다. */
+    .f-card{width:52px}
+    .f-card a{justify-content:center;padding:12px 0}
+    .f-card a span{display:none}
+    .f-card .m-hide{display:none}
     .floaty .f-apply span{display:none}
-    .floaty .f-apply{width:54px;padding:0}
-    .floaty .f-apply .f-apply-ico{display:block}
+    .floaty .f-apply{height:52px}
+    .floaty .f-apply .f-apply-ico{display:block;width:20px;height:20px}
   }
 
   /* teacher photo gradients */
@@ -660,30 +678,28 @@
     <a class="brand" href="#top" aria-label="완벽한토익 홈">
       <img class="logo" src="data:image/png;base64,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" alt="완벽한토익">
     </a>
+    <!-- 2026-08-25 상단 메뉴 9개 → 5개로 정리(원장 지시: "메뉴가 너무 많아서 헷갈려").
+         링크는 하나도 없애지 않았다. 상단에서 뺀 것(오시는 길·출강문의·채용공고)은 푸터에 있다.
+         ⚠️ 메뉴를 다시 늘릴 땐 아래 모바일 서랍(.drawer)도 같이 고칠 것. 둘이 따로 논다. -->
     <nav class="main" aria-label="주 메뉴">
       <div class="navitem">
-        <a href="#diagnose">완벽한토익 소개</a>
+        <a href="#diagnose">학원 소개</a>
         <!-- 강사진(#teachers)은 섹션이 있는데 메뉴에서 빠져 있었다(원장 지적 2026-08-08).
              푸터에는 있었지만 상단 메뉴에서만 없어서 아무도 못 찾았다. -->
         <div class="submenu"><a href="#diagnose">브랜드소개</a><a href="#strengths">완토의 강점</a><a href="#teachers">강사진 소개</a><a href="#notice">공지사항</a></div>
       </div>
       <div class="navitem">
-        <a href="#apply-form">수강신청</a>
-        <div class="submenu"><a href="#apply-form">수강신청문의</a><a href="#books">교재</a><a href="#payment">결제</a></div>
+        <a href="#curriculum">수업 안내</a>
+        <!-- 과목별(옛 '수강안내')과 형태별(옛 '대면 수업'/'비대면 수업')이 따로 놀아서
+             "토익 대면수업"을 어디서 찾을지 알 수 없었다. 한 메뉴에 과목 → 형태 순으로 합쳤다. -->
+        <div class="submenu"><a href="#course-toeic">토익</a><a href="#course-speaking">토익스피킹</a><a href="#course-opic">오픽</a><a href="#course-conversation">영어회화</a><i class="msep"></i><a href="#offline">대면 수업</a><a href="#online">비대면 수업</a></div>
       </div>
       <div class="navitem">
-        <a href="#curriculum">수강안내</a>
-        <div class="submenu"><a href="#course-toeic">토익</a><a href="#course-speaking">토익스피킹</a><a href="#course-opic">오픽</a><a href="#course-conversation">영어회화</a></div>
+        <a href="#apply-form">수강 신청</a>
+        <div class="submenu"><a href="#apply-form">수강신청 문의</a><a href="#books">교재</a><a href="#payment">결제</a><a href="#faq">자주 묻는 질문</a></div>
       </div>
-      <div class="navitem"><a href="#offline">대면 수업</a></div>
-      <div class="navitem"><a href="#online">비대면 수업</a></div>
+      <div class="navitem"><a href="#reviews">수강 후기</a></div>
       <div class="navitem"><a href="#library">자료실</a></div>
-      <div class="navitem"><a href="#reviews">수강후기</a></div>
-      <div class="navitem">
-        <a href="#contact">문의 &amp; 제휴</a>
-        <div class="submenu"><a href="#faq">FAQ</a><a href="#outreach">출강문의</a><a href="#recruit">채용공고</a></div>
-      </div>
-      <div class="navitem"><a href="#location">오시는 길</a></div>
     </nav>
     <div class="head-cta">
       <span id="waAuth"></span>
@@ -700,20 +716,18 @@
   <div class="drawer-panel" role="dialog" aria-label="모바일 메뉴">
     <button class="drawer-close" data-close aria-label="닫기">×</button>
     <div id="waAuthM"></div>
-    <div class="dgroup"><span>완벽한토익 소개</span><div class="dsub">
+    <!-- 2026-08-25 상단 메뉴와 같은 5개 구조로 맞췄다. 위 nav 를 고치면 여기도 같이 고칠 것.
+         모바일은 옆 플로팅 버튼이 좁아서 '오시는 길'을 여기 남겨 둔다. -->
+    <div class="dgroup"><span>학원 소개</span><div class="dsub">
       <a href="#diagnose" data-close>브랜드소개</a><a href="#strengths" data-close>완토의 강점</a><a href="#teachers" data-close>강사진 소개</a><a href="#notice" data-close>공지사항</a></div></div>
-    <div class="dgroup"><span>수강신청</span><div class="dsub">
-      <a href="#apply-form" data-close>수강신청문의</a><a href="#books" data-close>교재</a><a href="#payment" data-close>결제</a></div></div>
-    <div class="dgroup"><span>수강안내</span><div class="dsub">
-      <a href="#course-toeic" data-close>토익</a><a href="#course-speaking" data-close>토익스피킹</a><a href="#course-opic" data-close>오픽</a><a href="#course-conversation" data-close>영어회화</a></div></div>
-    <div class="dgroup"><a class="dtop" href="#offline" data-close>대면 수업</a></div>
-    <div class="dgroup"><a class="dtop" href="#online" data-close>비대면 수업</a></div>
+    <div class="dgroup"><span>수업 안내</span><div class="dsub">
+      <a href="#course-toeic" data-close>토익</a><a href="#course-speaking" data-close>토익스피킹</a><a href="#course-opic" data-close>오픽</a><a href="#course-conversation" data-close>영어회화</a><a href="#offline" data-close>대면 수업</a><a href="#online" data-close>비대면 수업</a></div></div>
+    <div class="dgroup"><span>수강 신청</span><div class="dsub">
+      <a href="#apply-form" data-close>수강신청 문의</a><a href="#books" data-close>교재</a><a href="#payment" data-close>결제</a><a href="#faq" data-close>자주 묻는 질문</a></div></div>
+    <div class="dgroup"><a class="dtop" href="#reviews" data-close>수강 후기</a></div>
     <div class="dgroup"><a class="dtop" href="#library" data-close>자료실</a></div>
     <div class="dgroup"><a class="dtop" href="#leveltest" data-close>완토 진단 테스트</a></div>
     <div class="dgroup"><a class="dtop" href="#voca" data-close>VOCA 단어테스트</a></div>
-    <div class="dgroup"><a class="dtop" href="#reviews" data-close>수강후기</a></div>
-    <div class="dgroup"><span>문의 &amp; 제휴</span><div class="dsub">
-      <a href="#faq" data-close>FAQ</a><a href="#outreach" data-close>출강문의</a><a href="#recruit" data-close>채용공고</a></div></div>
     <div class="dgroup"><a class="dtop" href="#location" data-close>오시는 길</a></div>
     <a href="#apply-form" class="btn btn-primary" data-close>수강신청 문의 →</a>
   </div>
@@ -2905,7 +2919,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         </details>
         <label class="af-agree-check"><input type="checkbox" id="apAgree" required> 개인정보 수집 및 이용에 동의합니다. <span>(동의를 거부하실 수 있으나 신청이 불가합니다)</span></label>
       </div>
-      <div class="af-submit"><span class="af-hint">제출하면 작성 내용이 담긴 메일 창이 열리며, 메일을 보내면 접수됩니다.</span><button type="submit" class="btn btn-primary">제출하기 →</button></div>
+      <div class="af-submit"><span class="af-hint">보내기를 누르면 작성 내용이 <b>자동으로 복사</b>되고 카카오톡 채널 상담창이 열립니다. 붙여넣어 보내주시면 접수됩니다.</span><button type="submit" class="btn btn-kakao"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3.2c-5 0-9.1 3.2-9.1 7.1 0 2.5 1.7 4.7 4.2 6l-1 3.6c-.1.3.2.6.5.4l4.3-2.8c.4 0 .7.1 1.1.1 5 0 9.1-3.2 9.1-7.2S17 3.2 12 3.2z"/></svg>카카오톡으로 상담 보내기</button></div>
+      <p class="af-msg" id="apMsg" role="status" hidden></p>
     </form>
   </div>
 </section>
@@ -3153,8 +3168,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           <a href="#diagnose">소개</a><a href="#teachers">강사진</a>
           <a href="#reviews">수강 후기</a><a href="#location">오시는 길</a></div>
         <div class="col"><h5>신청</h5>
-          <a href="#apply-form">수강신청 문의</a><a href="#apply-form">수강 신청</a>
-          <a href="#apply-form">상담 문의</a></div>
+          <a href="#apply-form">수강신청 문의</a><a href="#books">교재</a>
+          <a href="#payment">결제</a></div>
+        <!-- 2026-08-25 상단 메뉴를 5개로 줄이면서 여기로 내린 항목들.
+             상단에서 뺐다고 링크까지 없애면 안 되므로 반드시 남겨 둘 것. -->
+        <div class="col"><h5>안내</h5>
+          <a href="#faq">자주 묻는 질문</a><a href="#notice">공지사항</a>
+          <a href="#library">자료실</a><a href="#outreach">출강문의</a>
+          <a href="#recruit">채용공고</a></div>
       </div>
     </div>
     <div class="foot-legal">
@@ -3168,13 +3189,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 </footer>
 
 <!-- ================= FLOATING ================= -->
+<!-- 2026-08-25 정돈. 이름표 없는 말풍선 2개 → 이름표 붙인 카드 1개 + 수강신청 버튼.
+     전화번호를 바꾸면 여기 tel: 과 푸터 TEL 두 곳을 같이 고쳐야 한다. -->
 <div class="floaty">
-  <a class="f-naver" href="https://talk.naver.com/ct/wmqldig?frm=pnmb&amp;frm=nmb_detail#nafullscreen" target="_blank" rel="noopener" aria-label="네이버 톡톡 상담">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5c-4.7 0-8.5 3-8.5 6.8 0 2.4 1.6 4.6 4.1 5.9L6.9 20l4.3-2.3c.3 0 .6.1.8.1 4.7 0 8.5-3 8.5-6.8S16.7 3.5 12 3.5z"/></svg>
-  </a>
-  <a class="f-kko" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" aria-label="카카오톡 채널 상담">
-    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.6-2.5.7.1 1.4.2 2.1.2 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
-  </a>
+  <!-- 2026-08-25 원장 지시로 전화·네이버톡톡 뺐다. 라벨은 '카톡'이 아니라 '카카오톡'.
+       전화번호는 푸터에만 두고 여기서는 안 건다. -->
+  <div class="f-card">
+    <a class="f-kko" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" aria-label="카카오톡 채널 상담">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.8 1.9 5.3 4.7 6.7-.2.7-.7 2.6-.8 3-.1.5.2.5.4.4.2-.1 2.6-1.8 3.6-2.5.7.1 1.4.2 2.1.2 5.5 0 10-3.6 10-8S17.5 3 12 3z"/></svg>
+      <span>카카오톡</span>
+    </a>
+    <a href="#location" aria-label="오시는 길">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      <span>오시는길</span>
+    </a>
+  </div>
   <a class="f-apply" href="#apply-form" aria-label="수강신청"><svg class="f-apply-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg><span>수강신청</span></a>
 </div>
 
@@ -3369,12 +3398,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 (function(){
   var af = document.getElementById("applyForm");
   if(!af) return;
-  var MAIL = "perfect-toeic@naver.com";
   var v = function(id){ var el=document.getElementById(id); return el?(el.value||"").trim():""; };
   function radio(name){ var el=af.querySelector('input[name="'+name+'"]:checked'); return el?el.value:""; }
   function checks(name){ return Array.prototype.slice.call(af.querySelectorAll('input[name="'+name+'"]:checked')).map(function(c){return c.value;}).join(", "); }
-  af.addEventListener("submit", function(e){
-    e.preventDefault();
+  var KKO = "https://pf.kakao.com/_JCLYG/chat";
+  function apCompose(){
     if(!radio("tablet")){ alert("6번 태블릿 사용 여부를 선택해주세요."); return; }
     if(!checks("prev")){ alert("7번 기존 학습 방식을 선택해주세요."); return; }
     if(!checks("mode")){ alert("8번 희망 수업 방식을 선택해주세요."); return; }
@@ -3396,10 +3424,48 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       "12. 개인정보 수집·이용 동의: 동의함", "",
       "(완벽한토익 홈페이지 수업신청서)"
     ];
-    var subject = encodeURIComponent("[수업신청] " + v("apName") + " · 목표 " + v("apGoal"));
-    var body = encodeURIComponent(lines.join("\n"));
-    window.location.href = "mailto:" + MAIL + "?subject=" + subject + "&body=" + body;
+    return { title: "[수업신청] " + v("apName") + " · 목표 " + v("apGoal"), body: lines.join("\n") };
+  }
+
+  /* 적은 내용을 클립보드에 복사한다. 카카오는 외부에서 채널 대화방에
+     글을 대신 써 넣는 길을 열어두지 않았다. 그래서 복사해 드리고
+     상담창을 열어 붙여넣기만 하시게 하는 방식이 최선이다. */
+  function apCopy(text){
+    try{
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly","");
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.select(); ta.setSelectionRange(0, text.length);
+      var ok = false;
+      try{ ok = document.execCommand("copy"); }catch(err){}
+      document.body.removeChild(ta);
+      if(ok) return true;
+    }catch(err){}
+    try{ if(navigator.clipboard){ navigator.clipboard.writeText(text); return true; } }catch(err){}
+    return false;
+  }
+
+  function apSay(html){
+    var m = document.getElementById("apMsg");
+    if(!m) return;
+    m.innerHTML = html; m.hidden = false;
+    m.scrollIntoView({block:"nearest", behavior:"smooth"});
+  }
+
+  af.addEventListener("submit", function(e){
+    e.preventDefault();
+    var d = apCompose(); if(!d) return;
+    var copied = apCopy(d.body);
+    window.open(KKO, "_blank", "noopener");
+    if(copied){
+      apSay("작성하신 내용을 <b>복사</b>했습니다. 열린 <b>카카오톡 채널 상담창</b>에 붙여넣어 보내주시면 접수됩니다.<br>(휴대폰은 입력칸을 길게 눌러 <b>붙여넣기</b>)");
+    }else{
+      apSay("카카오톡 채널 상담창을 열었습니다. 복사가 안 되는 브라우저라 아래 내용을 직접 옮겨 보내주세요.<br><br><textarea readonly rows=\"8\" style=\"width:100%;font:inherit\">" + d.body.replace(/</g,"&lt;") + "</textarea>");
+    }
   });
+
 })();
 </script>
 <style>
@@ -4813,6 +4879,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="dash-form">
         <div class="dash-row">
           <label>학생<input type="text" id="hwStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="hwStudent"></select></label>
+          <label>숙제 마감일<input type="date" id="hwDueDate" required></label>
         </div>
         <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">숙제 내용 <span class="wa-hint">(한 줄에 하나씩 — 학생이 항목별로 완료 체크)</span><textarea id="hwContent" rows="4" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)" placeholder="예)&#10;1. 완벽한토익 단어장 day1~3 외우기&#10;2. 직독직해 오답해오기"></textarea></label>
         <p class="wa-err" id="hwErr"></p>
@@ -10918,7 +10985,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                  : scopeMsg));
       $('hwTable').innerHTML='<tr><td class="wa-empty">'+msg+'</td></tr>'; return;
     }
-    var h='<tr class="hw-head"><th>등록일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>선생님 확인</th><th>숙제율</th><th>관리</th></tr>';
+    var h='<tr class="hw-head"><th>등록일</th><th>마감일</th><th>학생</th><th>숙제 (항목별)</th><th>진행</th><th>선생님 확인</th><th>숙제율</th><th>관리</th></tr>';
     rows.forEach(function(x){
       var items=hwItems(x.content), d=hwDoneArr(x);
       // 선생님도 직접 체크를 고칠 수 있다 — 학생이 안 하고 눌러놨을 수 있기 때문(원장 지시 2026-08-11).
@@ -10929,12 +10996,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           + (hwLock?'<div class="hw-lock-note">확인 완료 — 고치려면 \'선생님 확인\'을 먼저 빼세요</div>':''))
         : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
-      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="마감일" style="white-space:nowrap">'+(x.due_date?esc(fmtDue(x.due_date)):'<span style="color:var(--muted)">미설정</span>')+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
   var hwEditId=null;
-  function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
+  function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwDueDate')) $('hwDueDate').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
   // 새로고침은 수업 일정 캐시도 같이 버린다(그 사이 스케줄이 바뀌었을 수 있다).
   if($('hwReload')) $('hwReload').onclick=function(){ _hwDayCache={}; return loadHomework(); };
   if($('hwListSearch')) $('hwListSearch').addEventListener('input', drawHw);
@@ -10964,18 +11031,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!sb||!profile) return;
     var err=$('hwErr'); if(err) err.textContent='';
     var content=$('hwContent').value.trim();
+    var due=($('hwDueDate')&&$('hwDueDate').value)||'';
     var r;
-    // 마감일 칸은 2026-08-11에 없앴다(원장 지시). 목록은 '그날 수업 있는 학생'으로 거르므로 쓸 일이 없다.
-    // homeworks.due_date 컬럼과 옛 데이터는 그대로 두고 화면에서만 뺐다.
-    if(hwEditId){ r=await sb.from('homeworks').update({content:content}).eq('id',hwEditId).select(); }
+    if(!due){ if(err) err.textContent='숙제 마감일을 선택하세요.'; if($('hwDueDate')) $('hwDueDate').focus(); return; }
+    if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
+    if(hwEditId){ r=await sb.from('homeworks').update({content:content,due_date:due}).eq('id',hwEditId).select(); }
     else {
       var sid=$('hwStudent')?$('hwStudent').value:'';
       if(!sid){ if(err) err.textContent='학생을 선택하세요.'; return; }
-      if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
       var st=_members.filter(function(m){return m.id===sid;})[0];
-      r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content}).select();
+      r=await sb.from('homeworks').insert({student_id:sid, student_name:(st?st.name:''), teacher_id:profile.id, teacher_name:profile.name, content:content, due_date:due}).select();
     }
-    if(!content){ if(err) err.textContent='숙제 내용을 입력하세요.'; return; }
     if(r.error){
       var msg=await saveErrMsg(r.error);
       if(err){ err.textContent=msg; try{ err.scrollIntoView({block:'center'}); }catch(_){ } }
@@ -11047,7 +11113,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var t=e.target; if(!t||!t.closest) return;
     var del=t.closest('a[data-hwdel]'), ed=t.closest('a[data-hwedit]');
     if(del){ if(!confirm('이 숙제를 삭제할까요?')) return; var r=await sb.from('homeworks').delete().eq('id',del.getAttribute('data-hwdel')); if(r.error){ alert('삭제 실패: '+r.error.message); return; } if(hwEditId===del.getAttribute('data-hwdel')) hwReset(); await loadHomework(); return; }
-    if(ed){ var x=(window.__wtHw||[]).filter(function(y){return y.id===ed.getAttribute('data-hwedit');})[0]; if(!x) return; hwEditId=x.id; if($('hwContent')) $('hwContent').value=x.content||''; if($('hwStudentSearch')) $('hwStudentSearch').value=x.student_name||''; if($('hwStudent')){ $('hwStudent').innerHTML='<option value="'+esc(x.student_id)+'">'+esc(x.student_name||'')+'</option>'; $('hwStudent').value=x.student_id; } if($('hwAdd')) $('hwAdd').textContent='✏️ 수정 저장'; if($('hwContent')) $('hwContent').focus(); return; }
+    if(ed){ var x=(window.__wtHw||[]).filter(function(y){return y.id===ed.getAttribute('data-hwedit');})[0]; if(!x) return; hwEditId=x.id; if($('hwContent')) $('hwContent').value=x.content||''; if($('hwDueDate')) $('hwDueDate').value=x.due_date||''; if($('hwStudentSearch')) $('hwStudentSearch').value=x.student_name||''; if($('hwStudent')){ $('hwStudent').innerHTML='<option value="'+esc(x.student_id)+'">'+esc(x.student_name||'')+'</option>'; $('hwStudent').value=x.student_id; } if($('hwAdd')) $('hwAdd').textContent='✏️ 수정 저장'; if($('hwContent')) $('hwContent').focus(); return; }
   });
 
   function applyTabRoles(){
