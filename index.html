@@ -5834,7 +5834,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(dupKeys[ids]) return; dupKeys[ids]=1;
       dups.push({why:why, list:list});
     }
-    Object.keys(byName).forEach(function(k){ if(byName[k].length>1) addGroup(byName[k],'이름이 같음'); });
+    // 🚨 이름이 같아도 **번호가 모두 있고 서로 다르면 동명이인**이다 — 경고에서 뺀다.
+    //    (원장 지적 2026-08-26 "이정우 중복가입이 아니라 동명이인이야" — 실제로 번호가 완전히 달랐다)
+    //    원래 잡으려던 카카오 중복은 번호가 비어 있거나 같으므로 그건 아래 조건에 안 걸려 그대로 뜬다.
+    //    한 명이라도 번호가 없으면 같은 사람인지 알 길이 없으므로 예전처럼 경고한다.
+    function looksLikeNamesake(list){
+      var ds = list.map(function(u){ return digits(u.phone); });
+      if(ds.some(function(d){ return d.length < 10; })) return false;
+      var uniq = {}; ds.forEach(function(d){ uniq[d] = 1; });
+      return Object.keys(uniq).length === ds.length;
+    }
+    Object.keys(byName).forEach(function(k){
+      if(byName[k].length>1 && !looksLikeNamesake(byName[k])) addGroup(byName[k],'이름이 같음');
+    });
     Object.keys(byPhone).forEach(function(k){ if(byPhone[k].length>1) addGroup(byPhone[k],'번호가 같음'); });
     // 카카오로 들어와 아직 아무 정보도 안 남긴 계정. '채채'처럼 이름이 달라
     // 중복으로 안 잡히는 건들이 여기 걸린다.
