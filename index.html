@@ -4763,6 +4763,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <p class="wa-err" id="offErr"></p>
         <div class="wa-ok" id="offOk"></div>
         <button class="btn btn-primary" id="offAdd" type="button">＋ 휴무 추가</button>
+        <button class="btn btn-ghost" id="offEditCancel" type="button" style="display:none;margin-left:8px">수정 취소</button>
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="offTable"></table></div>
     </div>
@@ -8692,6 +8693,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // ---- 휴무 (선생님별 · 학원 전체) ----
   // 휴무를 수업 일정으로 넣으면 스케줄표·강의장 배정·정산에 수업인 척 섞인다. 그래서 따로 둔다.
   var _offs=null;   // null = teacher_off.sql 을 아직 안 돌린 상태
+  // 2026-08-27 원장 지시로 수정 기능을 붙였다(그전엔 지우고 다시 넣어야 했다).
+  // 표는 '하루 한 행'이라 며칠짜리 휴가는 여러 행이다 → 그룹의 id 를 통째로 들고 있다가
+  // 저장할 때 옛 행을 지우고 새로 넣는다. 날짜 범위가 늘거나 줄어도 이 방식이면 맞는다.
+  var _offEdit=null;   // {ids:['1','2'], rows:[...]}
   async function loadOffs(){
     if(!$('offTable')) return;
     if(sb){
@@ -8756,7 +8761,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                       : esc(g.from);
       h+='<tr><td style="white-space:nowrap">'+day+'</td><td>'+who+'</td>'
        + '<td style="white-space:nowrap">'+when+'</td><td>'+esc(o.reason||'')+'</td>'
-       + '<td><a class="wa-link del" data-offdel="'+esc(g.ids.join(','))+'" data-offn="'+g.n+'">삭제</a></td></tr>';
+       + '<td style="white-space:nowrap"><a class="wa-link" data-offedit="'+esc(g.ids.join(','))+'">수정</a>'
+       + ' <span style="color:var(--line-strong)">|</span> '
+       + '<a class="wa-link del" data-offdel="'+esc(g.ids.join(','))+'" data-offn="'+g.n+'">삭제</a></td></tr>';
     });
     $('offTable').innerHTML=h;
   }
@@ -9346,6 +9353,47 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(o){ o.innerHTML = ok ? msg : ''; o.classList.toggle('on', !!ok); }
     if(ok){ clearTimeout(window.__offOkT); window.__offOkT=setTimeout(function(){ if(o) o.classList.remove('on'); }, 8000); }
   }
+  // ── 휴무 수정 (2026-08-27) ─────────────────────────────────────────
+  function offEditStart(ids){
+    var rows=(_offs||[]).filter(function(o){ return ids.indexOf(String(o.id))>=0; });
+    if(!rows.length){ offSay(false,'그 휴무를 찾지 못했어요. 새로고침 후 다시 눌러주세요.'); return; }
+    rows.sort(function(a,b){ return String(a.off_date).localeCompare(String(b.off_date)); });
+    var f=rows[0];
+    _offEdit={ ids:ids, rows:rows };
+    if($('offTeacher')) $('offTeacher').value = (f.teacher_id==null ? '__all__' : f.teacher_id);
+    if($('offDate')) $('offDate').value=f.off_date;
+    if($('offDateTo')) $('offDateTo').value = (rows.length>1 ? rows[rows.length-1].off_date : '');
+    if($('offAllDay')){
+      $('offAllDay').checked=!!f.all_day;
+      if($('offAllDay').onchange) $('offAllDay').onchange();
+    }
+    if(f.all_day){ if($('offReasonAll')) $('offReasonAll').value=f.reason||''; }
+    else {
+      if($('offStart')) $('offStart').value=pad(f.start_hour)+':00';
+      if($('offEnd')) $('offEnd').value=pad(f.end_hour)+':00';
+      if($('offReason')) $('offReason').value=f.reason||'';
+    }
+    if($('offAdd')) $('offAdd').textContent='수정 저장';
+    if($('offEditCancel')) $('offEditCancel').style.display='';
+    if($('offErr')) $('offErr').textContent='';
+    offSay(true,'✏️ <b>고치는 중입니다.</b> 위 칸을 바꾸고 <b>수정 저장</b>을 눌러주세요.');
+    var form=$('offAdd') && $('offAdd').closest ? $('offAdd').closest('.dash-form') : null;
+    if(form && form.scrollIntoView) form.scrollIntoView({block:'center', behavior:'smooth'});
+  }
+  function offEditEnd(){
+    _offEdit=null;
+    if($('offAdd')) $('offAdd').textContent='＋ 휴무 추가';
+    if($('offEditCancel')) $('offEditCancel').style.display='none';
+    if($('offDateTo')) $('offDateTo').value='';
+    if($('offReason')) $('offReason').value='';
+    if($('offReasonAll')) $('offReasonAll').value='';
+  }
+  if($('offEditCancel')) $('offEditCancel').onclick=function(){
+    offEditEnd();
+    if($('offErr')) $('offErr').textContent='';
+    if($('offOk')) $('offOk').classList.remove('on');
+  };
+
   if($('offAdd')) $('offAdd').onclick=async function(){
     var btn=this;
     $('offErr').textContent=''; if($('offOk')) $('offOk').classList.remove('on');
@@ -9373,16 +9421,39 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       base.start_hour=s; base.end_hour=e;
     }
     // 이미 같은 대상·같은 날로 들어가 있는 날은 건너뛴다(두 번 눌러도 안 겹치게).
+    // 편집 중이면 자기 자신은 '이미 있는 날'로 세지 않는다 — 그러면 아무것도 못 고친다.
+    var editing=_offEdit, mineIds=(editing?editing.ids:[]);
     var already={};
-    (_offs||[]).forEach(function(o){ if(String(o.teacher_id||'')===String(base.teacher_id||'')) already[o.off_date]=1; });
+    (_offs||[]).forEach(function(o){
+      if(mineIds.indexOf(String(o.id))>=0) return;
+      if(String(o.teacher_id||'')===String(base.teacher_id||'')) already[o.off_date]=1;
+    });
     var fresh=days.filter(function(d){ return !already[d]; });
     var skipped=days.length-fresh.length;
     if(!fresh.length){ offSay(false,'고르신 날짜는 이미 전부 휴무로 들어가 있어요.'); return; }
-    var old=btn.textContent; btn.disabled=true; btn.textContent='등록하는 중...';
+    btn.disabled=true; btn.textContent = editing ? '고치는 중...' : '등록하는 중...';
     try{
       var rows=fresh.map(function(d){ var x={}; for(var k in base) x[k]=base[k]; x.off_date=d; return x; });
+      // 옛 행을 먼저 지운다 — 날짜가 겹치게 고치는 경우(8/20~22 → 8/21~23) 먼저 넣으면 겹친다.
+      if(editing){
+        var dr=await sb.from('teacher_off').delete().in('id', editing.ids);
+        if(dr.error){ offSay(false,'수정 실패(옛 휴무를 지우지 못했어요): '+dr.error.message); return; }
+      }
       var r=await sb.from('teacher_off').insert(rows);
       if(r.error){
+        if(editing){
+          // 지워만 놓고 못 넣으면 휴무가 통째로 사라진다 → 원래대로 되돌린다.
+          var back=editing.rows.map(function(o){
+            var x={ teacher_id:o.teacher_id, off_date:o.off_date, all_day:o.all_day,
+                    reason:o.reason, created_by:o.created_by };
+            if(!o.all_day){ x.start_hour=o.start_hour; x.end_hour=o.end_hour; }
+            return x;
+          });
+          try{ await sb.from('teacher_off').insert(back); }catch(e2){}
+          offSay(false,'수정 실패: '+r.error.message+' — 원래 휴무는 되돌려 놨습니다.');
+          await loadOffs();
+          return;
+        }
         offSay(false, (r.error.message.indexOf('teacher_off')>=0 && r.error.code==='42P01')
           ? '휴무 표가 아직 없습니다. teacher_off.sql 을 먼저 실행해주세요.'
           : '등록 실패: '+r.error.message);
@@ -9390,17 +9461,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       }
       var whoTxt = who==='__all__' ? '학원 전체'
                  : ((_members.filter(function(m){return m.id===who;})[0]||{}).name || '선생님');
-      offSay(true, '✅ <b>휴무를 넣었습니다.</b><br>'+esc(whoTxt)+' · '
+      offSay(true, (editing ? '✅ <b>휴무를 고쳤습니다.</b><br>' : '✅ <b>휴무를 넣었습니다.</b><br>')+esc(whoTxt)+' · '
         + esc(fresh[0]) + (fresh.length>1 ? (' ~ ' + esc(fresh[fresh.length-1]) + ' (' + fresh.length + '일)') : '')
         + ' · ' + (all ? '종일' : (pad(base.start_hour)+':00~'+pad(base.end_hour)+':00'))
         + (skipped ? ('<br><span style="font-weight:600">이미 들어가 있던 '+skipped+'일은 건너뛰었습니다.</span>') : ''));
       if($('offReason')) $('offReason').value='';
       if($('offReasonAll')) $('offReasonAll').value='';
       if($('offDateTo')) $('offDateTo').value='';
+      if(editing) offEditEnd();
       await loadOffs();
-    } finally { btn.disabled=false; btn.textContent=old; }
+    } finally { btn.disabled=false; btn.textContent=(_offEdit ? '수정 저장' : '＋ 휴무 추가'); }
   };
   if($('offTable')) $('offTable').addEventListener('click', async function(e){
+    var ed=(e.target&&e.target.closest)?e.target.closest('a[data-offedit]'):null;
+    if(ed){
+      e.preventDefault();
+      offEditStart(String(ed.getAttribute('data-offedit')||'').split(',').filter(Boolean));
+      return;
+    }
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-offdel]'):null; if(!a) return;
     e.preventDefault();
     var ids=String(a.getAttribute('data-offdel')||'').split(',').filter(Boolean);
@@ -9410,6 +9488,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                 + '\n\n지우면 그 시간에 학생이 다시 예약할 수 있습니다.')) return;
     var r=await sb.from('teacher_off').delete().in('id',ids);
     if(r.error){ alert('삭제 실패: '+r.error.message); return; }
+    // 고치는 중이던 휴무를 지웠으면 편집 상태를 풀어야 한다(안 그러면 없는 걸 저장하려 든다).
+    if(_offEdit && _offEdit.ids.some(function(x){ return ids.indexOf(String(x))>=0; })) offEditEnd();
     await loadOffs();
   });
 
