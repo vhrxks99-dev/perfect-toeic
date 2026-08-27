@@ -4558,6 +4558,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-alerts li .wa-al-approve+.wa-al-reject{margin-left:6px}
 .wa-alerts li b{font-weight:800}
 .wa-alerts li .wa-al-go{margin-left:auto;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+/* ═══════════ 2026-08-27 UX 개선 (A안: 1~4번) ═══════════ */
+/* 1) 모바일에서 입력칸 글씨 16px — iOS 에서 칸을 누를 때 화면이 확대되는 것 방지 */
+@media (max-width:820px){
+  input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px !important}
+}
+/* 3) 관리페이지 입력 폼이 모니터 폭 끝까지 늘어나지 않게 */
+.dash-form{max-width:960px}
+/* 4) 좁은 화면에서 관리 탭이 여러 줄로 쌓이지 않게 — 한 줄 가로 스크롤 */
+@media (max-width:900px){
+  .dash-tabs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;scroll-snap-type:x proximity}
+  .dash-tab{flex:0 0 auto;scroll-snap-align:start;padding:10px 13px}
+}
+/* 2) alert 대신 쓰는 토스트 */
+#ptToast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:calc(100% - 32px);max-width:440px}
+.pt-toast{background:#1F2430;color:#fff;font-size:14.5px;font-weight:600;line-height:1.6;padding:13px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.24);opacity:0;transform:translateY(10px);transition:opacity .18s ease,transform .18s ease;white-space:pre-wrap;text-align:center;pointer-events:auto;max-width:100%;word-break:break-word}
+.pt-toast.show{opacity:1;transform:translateY(0)}
+@media (prefers-reduced-motion:reduce){.pt-toast{transition:none}}
 </style>
 <div class="wa-overlay" id="waAdmin" aria-hidden="true">
   <div class="wa-card wa-admin wa-dash">
@@ -11818,7 +11835,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(r.error){ alert('탈퇴 실패: '+r.error.message); return; }
     try{ await sb.auth.signOut(); }catch(e2){}
     alert('탈퇴 처리되었습니다. 그동안 이용해 주셔서 감사합니다.');
-    location.reload();
+    setTimeout(function(){ location.reload(); }, 1500);
   };
   // 내 학습 — 수강권·숙제·일정·결제·출석. '내 정보'와 분리된 별도 창.
   async function renderLearn(){
@@ -12687,5 +12704,52 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     window.WT_LIB_RELOAD = load;
     draw(); load();
   })();
+</script>
+<script>
+/* ═══ 2026-08-27 UX ═══ */
+(function(){
+  /* alert() 를 화면을 멈추지 않는 토스트로 */
+  var box=null;
+  function ensure(){
+    if(!box || !document.body.contains(box)){
+      box=document.createElement('div'); box.id='ptToast';
+      box.setAttribute('role','status'); box.setAttribute('aria-live','polite');
+      document.body.appendChild(box);
+    }
+    return box;
+  }
+  function toast(msg){
+    var s=String(msg==null?'':msg);
+    var b=ensure(), el=document.createElement('div');
+    el.className='pt-toast'; el.textContent=s;
+    b.appendChild(el);
+    setTimeout(function(){ el.classList.add('show'); }, 20);   /* 백그라운드 탭에선 rAF 가 멈추므로 타이머로 */
+    var ms=Math.min(8000, Math.max(2800, s.length*95));
+    var t1=setTimeout(hide, ms);
+    function hide(){ clearTimeout(t1); el.classList.remove('show'); setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 240); }
+    el.addEventListener('click', hide);
+  }
+  window.ptToast = toast;
+  window.alert = function(m){ toast(m); };
+
+  /* 좁은 화면에서 관리 탭은 한 줄 가로 스크롤이 되므로, 고른 탭이 항상 보이게 한다 */
+  var soft = !(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches);
+  function reveal(){
+    var on = document.querySelector('.dash-tabs .dash-tab.on');
+    if(!on) return;
+    var bar = on.parentElement;
+    if(bar.scrollWidth <= bar.clientWidth + 2) return;
+    var l = on.offsetLeft, r = l + on.offsetWidth;
+    if(l < bar.scrollLeft || r > bar.scrollLeft + bar.clientWidth){
+      var to = Math.max(0, l - 16);
+      if(bar.scrollTo) bar.scrollTo({left:to, behavior: soft ? 'smooth' : 'auto'});
+      else bar.scrollLeft = to;
+    }
+  }
+  document.addEventListener('click', function(e){
+    if(e.target && e.target.closest && e.target.closest('.dash-tab')) setTimeout(reveal, 60);
+  }, true);
+  window.addEventListener('load', function(){ setTimeout(reveal, 300); });
+})();
 </script>
 </body></html>
