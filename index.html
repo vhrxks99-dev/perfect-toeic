@@ -12388,6 +12388,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 </script>
 <style>
   .navitem>a.nav-active{color:var(--accent);background:var(--surface-2)}
+/* ── 2026-08-27 관리페이지 입력칸 키우기 (원장 요청: 아이패드·컴퓨터에서 작아 보임) ── */
+/* 폰(820px 이하)은 위 규칙이 16px !important 로 이미 이기므로 여기서는 높이만 함께 커진다 */
+.dash-row input:not([type=checkbox]):not([type=radio]),
+.dash-row select,
+.dash-form input:not([type=checkbox]):not([type=radio]),
+.dash-form select,
+.dash-form textarea,
+.wa-book-row input,.wa-book-row select,
+.hw-duefilter input[type=date],
+.mem-filters input[type=search]{font-size:15.5px}
+.dash-row input:not([type=checkbox]):not([type=radio]),
+.dash-row select,
+.dash-form input:not([type=checkbox]):not([type=radio]),
+.dash-form select{height:44px;padding-top:0;padding-bottom:0}
+.dash-form textarea{padding:11px 12px}
+.dash-row>label,.dash-form>label{font-size:13.5px}
+.cal-search input[type="text"],.cal-search select{font-size:14.5px;padding:10px 12px}
+.wa-table select.sc-room{font-size:13.5px;padding:7px 9px}
 </style>
 <script>
 /* 시험일정 카드 — 토익 / 토익스피킹 / 오픽 (2026-08-13)
