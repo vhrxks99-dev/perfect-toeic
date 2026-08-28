@@ -3939,6 +3939,39 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   border-radius:9px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
 .sd-pick .grow{flex:1;min-width:180px}
 
+/* 강사 이름 박스 줄 (원장 지시 2026-08-28) — 누르면 그 강사의 학생만 남는다. */
+.sd-tbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.sd-tcard{cursor:pointer;padding:9px 15px;border:1.5px solid var(--line-strong);border-radius:999px;
+  background:var(--surface);color:var(--ink);font-family:var(--font-sans);font-size:13.5px;
+  font-weight:800;line-height:1.2;min-height:40px;display:flex;align-items:center;gap:6px}
+.sd-tcard:hover{border-color:var(--accent)}
+.sd-tcard.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.sd-tcard .sd-tn{font-size:12px;font-weight:800;color:var(--muted)}
+.sd-tcard.on .sd-tn{color:rgba(255,255,255,.85)}
+
+/* 학생 이름 카드 (원장 지시 2026-08-28) — 드롭다운 대신 한 화면에 펼친다.
+   "스크롤이 필요 없게 4열이나 5열로. 한 명당 최대 40명 정도밖에 안 된다"(2026-08-28)
+   → 열 수를 고정하고 안쪽 스크롤을 없앴다. 40명이면 5열 × 8줄로 한눈에 들어온다. */
+.sd-namegrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;
+  margin-bottom:16px;padding:2px}
+@media (max-width:1180px){ .sd-namegrid{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@media (max-width:860px){  .sd-namegrid{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:560px){  .sd-namegrid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.sd-namegrid:empty{display:none}
+.sd-gcard{display:flex;flex-direction:column;gap:1px;text-align:left;cursor:pointer;
+  padding:8px 10px;border:1.5px solid var(--line-strong);border-radius:10px;
+  background:var(--surface);color:var(--ink);font-family:var(--font-sans);
+  font-size:13.5px;font-weight:800;line-height:1.25;min-height:40px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sd-gcard:hover{border-color:var(--accent);background:var(--surface-2)}
+.sd-gcard.on{border-color:var(--accent);background:var(--accent);color:#fff}
+.sd-gcard .sd-gsub{font-size:11px;font-weight:700;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sd-gcard.on .sd-gsub{color:rgba(255,255,255,.82)}
+.sd-ghead{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;
+  color:var(--muted);grid-column:1/-1;margin-top:2px}
+.sd-gnone{grid-column:1/-1;padding:14px;text-align:center;color:var(--muted);font-size:13px}
+
 .sd-empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:14px;
   background:var(--surface-2);border:1px dashed var(--line-strong);border-radius:14px}
 
@@ -4638,11 +4671,27 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
          숙제·수납·수업·상담이 탭마다 흩어져 있어 한 학생을 보려면 네 곳을 돌아야 했다. -->
     <div class="dash-pane" data-dpane="student">
       <div class="dash-note" style="margin-bottom:12px">학생을 고르면 그 학생의 <b>수업·숙제·수납·상담</b>을 한 화면에 모아 보여줍니다. 상담이나 학부모 연락 전에 여기부터 보세요.<span id="sdScopeNote"></span></div>
+      <!-- 원장 지시 2026-08-28: "원장이름과 담당강사분들 이름이 상단에 위치하고
+           해당 강사나 원장 이름 박스를 누르면 해당하는 학생들 카드가 보이도록".
+           선생님 계정에서는 어차피 본인 학생만 내려오므로 이 줄을 통째로 숨긴다. -->
+      <div id="sdTeacherBar" class="sd-tbar" style="display:none"></div>
+      <!-- 원장 지시 2026-08-28: "종료된 학생은 종료된 학생 보기 칸으로 따로 (…)
+           현재 수강중인 학생 이런 식으로". 기본은 수강중만 본다. -->
+      <div id="sdStatusBar" class="sd-tbar"></div>
       <div class="sd-pick">
         <label class="grow">학생 찾기<input type="text" id="sdSearch" placeholder="이름 일부만 쳐도 됩니다"></label>
+        <!-- 원장 지시 2026-08-28: "등록순, 이름순, 마지막 수강일 순 이런 식으로 고르면 그에 맞게" -->
+        <label>차례<select id="sdSort">
+          <option value="reg">등록순</option>
+          <option value="name">이름순</option>
+          <option value="last">마지막 수강일순</option>
+        </select></label>
         <label class="grow">학생<select id="sdStudent"></select></label>
         <label>&nbsp;<button class="btn btn-ghost" type="button" id="sdReload">새로고침</button></label>
       </div>
+      <!-- 원장 지시 2026-08-28: "학생 누르면 스크롤을 계속해야 하잖아 (…) 이름별 카드박스로".
+           드롭다운은 한 번에 몇 명밖에 안 보인다. 이름을 한 화면에 펼쳐 놓고 바로 누른다. -->
+      <div id="sdGrid" class="sd-namegrid"></div>
       <div id="sdBody"><div class="sd-empty">위에서 학생을 골라주세요.</div></div>
     </div>
 
@@ -6372,22 +6421,147 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     return false;
   }
 
-  function sdFillStudents(){
-    var sel=$('sdStudent'); if(!sel) return;
+  // 지금 고른 강사(빈값=전체, '__none'=담당 미지정). 화면을 다시 그려도 유지된다.
+  var _sdTeacher='';
+  // 수강중 / 수강종료 / 전체. 기본은 수강중 — 종료한 학생이 섞이면 찾기 어렵다.
+  var _sdStatus='active';
+  // 학생별 마지막 수업 날짜. '마지막 수강일순'을 고를 때만 한 번 읽어 둔다.
+  var _sdLastSeen=null;
+  async function sdLoadLastSeen(){
+    if(_sdLastSeen) return _sdLastSeen;
+    var m={};
+    if(sb){
+      // 이미 지난 수업만 본다(앞으로 잡힌 건 '수강일'이 아니다).
+      var r=await sb.from('schedules').select('student_id,starts_at')
+        .lte('starts_at', new Date().toISOString())
+        .order('starts_at',{ascending:false}).limit(5000);
+      if(!r.error && r.data) r.data.forEach(function(s){
+        var k=String(s.student_id||''); if(!k) return;
+        if(!m[k]) m[k]=s.starts_at;   // 내림차순이라 처음 만난 게 가장 최근
+      });
+    }
+    _sdLastSeen=m; return m;
+  }
+
+  // 강사 박스에 붙는 숫자도 지금 보고 있는 상태(수강중·종료)만 센다.
+  function sdStatusOk(u){
+    if(_sdStatus==='active') return !isEnded(u);
+    if(_sdStatus==='ended')  return  isEnded(u);
+    return true;
+  }
+
+  function sdFillStatus(){
+    var bar=$('sdStatusBar'); if(!bar) return;
+    var all=(window.__wtMembers||[]).filter(function(u){ return u.role==='student' && sdCanSee(u); });
+    var nAct=0, nEnd=0;
+    all.forEach(function(u){ if(isEnded(u)) nEnd++; else nAct++; });
+    var tabs=[['active','수강중',nAct],['ended','수강종료',nEnd],['all','전체',all.length]];
+    bar.innerHTML=tabs.map(function(t){
+      return '<button type="button" class="sd-tcard'+(_sdStatus===t[0]?' on':'')+'" data-sdstatus="'+t[0]+'">'
+        +t[1]+' <span class="sd-tn">'+t[2]+'</span></button>';
+    }).join('');
+  }
+
+  // 강사 이름 박스 줄. 원장·매니저만 쓴다(선생님은 어차피 본인 학생만 내려온다).
+  function sdFillTeachers(){
+    var bar=$('sdTeacherBar'); if(!bar) return;
+    var r=(profile&&profile.role)||'';
+    if(r!=='master' && r!=='manager'){ bar.style.display='none'; _sdTeacher=''; return; }
+    bar.style.display='';
+    var mem=(window.__wtMembers||[]);
+    var stus=mem.filter(function(u){ return u.role==='student' && sdCanSee(u) && sdStatusOk(u); });
+    var cnt={}, none=0;
+    stus.forEach(function(u){
+      var t=String(u.teacher_id||'');
+      if(!t) none++; else cnt[t]=(cnt[t]||0)+1;
+    });
+    // 원장님을 앞에 두고 그다음 선생님들. 같은 등급끼리는 등록순.
+    var ts=mem.filter(function(u){ return u.role==='admin'||u.role==='master'; });
+    ts.sort(function(a,b){
+      var ra=(a.role==='master')?0:1, rb=(b.role==='master')?0:1;
+      if(ra!==rb) return ra-rb;
+      return String(a.created_at||'').localeCompare(String(b.created_at||''));
+    });
+    var html='<button type="button" class="sd-tcard'+(_sdTeacher===''?' on':'')+'" data-sdteach="">전체 <span class="sd-tn">'+stus.length+'</span></button>';
+    html+=ts.map(function(t){
+      var n=cnt[String(t.id)]||0;
+      return '<button type="button" class="sd-tcard'+(_sdTeacher===String(t.id)?' on':'')+'" data-sdteach="'+esc(t.id)+'">'
+        +esc(t.name||'(이름없음)')+' <span class="sd-tn">'+n+'</span></button>';
+    }).join('');
+    if(none) html+='<button type="button" class="sd-tcard'+(_sdTeacher==='__none'?' on':'')+'" data-sdteach="__none">담당 미지정 <span class="sd-tn">'+none+'</span></button>';
+    bar.innerHTML=html;
+  }
+
+  // 화면에 보일 학생 목록 — 검색어·고른 강사를 모두 반영한다.
+  // 차례는 웹사이트 등록순(원장 지시 2026-08-28). 가나다순이 아니다.
+  function sdVisibleStudents(){
     var q=($('sdSearch')?$('sdSearch').value:'').trim().toLowerCase();
-    var keep=sel.value;
-    var list=(window.__wtMembers||[]).filter(function(u){ return u.role==='student' && sdCanSee(u); });
-    var note=$('sdScopeNote');
-    if(note) note.innerHTML=((profile&&profile.role)==='admin')
-      ? ' <b style="color:var(--accent)">내 담당 학생만 보입니다.</b>' : '';
+    var tf=_sdTeacher;
+    var list=(window.__wtMembers||[]).filter(function(u){ return u.role==='student' && sdCanSee(u) && sdStatusOk(u); });
+    if(tf==='__none') list=list.filter(function(u){ return !u.teacher_id; });
+    else if(tf) list=list.filter(function(u){ return String(u.teacher_id||'')===String(tf); });
     if(q) list=list.filter(function(u){
       return String(u.name||'').toLowerCase().indexOf(q)>=0
           || String(u.phone||'').replace(/-/g,'').indexOf(q.replace(/-/g,''))>=0; });
-    list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+    var by=$('sdSort')?$('sdSort').value:'reg';
+    if(by==='name'){
+      list.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+    }else if(by==='last'){
+      // 최근에 수업한 학생이 위. 수업 기록이 없는 학생은 맨 아래로 보낸다.
+      var ls=_sdLastSeen||{};
+      list.sort(function(a,b){
+        var x=ls[String(a.id)]||'', y=ls[String(b.id)]||'';
+        if(!x && !y) return String(a.name||'').localeCompare(String(b.name||''),'ko');
+        if(!x) return 1;
+        if(!y) return -1;
+        return y.localeCompare(x);
+      });
+    }else{
+      list.sort(function(a,b){ return String(a.created_at||'').localeCompare(String(b.created_at||'')); });
+    }
+    return list;
+  }
+
+  // 이름 카드. 지금 고른 학생은 색을 채워 어디를 보고 있는지 잃지 않게 한다.
+  function sdFillGrid(list){
+    var box=$('sdGrid'); if(!box) return;
+    var cur=$('sdStudent')?String($('sdStudent').value||''):'';
+    if(!list.length){ box.innerHTML='<div class="sd-gnone">보여드릴 학생이 없어요.</div>'; return; }
+    var tname={};
+    (window.__wtMembers||[]).forEach(function(m){ if(m.role==='admin'||m.role==='master') tname[String(m.id)]=m.name||''; });
+    // 특정 강사를 골라 놓은 상태면 카드마다 같은 이름을 또 적을 필요가 없다.
+    var showT=(!_sdTeacher) && (((profile&&profile.role)==='master')||((profile&&profile.role)==='manager'));
+    var byLast=($('sdSort')?$('sdSort').value:'')==='last';
+    box.innerHTML=list.map(function(u){
+      var sub=[];
+      if(showT) sub.push(tname[String(u.teacher_id||'')]||'담당 미지정');
+      if(isEnded(u) && _sdStatus!=='ended') sub.push('종료');
+      // '마지막 수강일순'으로 볼 때는 그 날짜를 카드에 같이 적는다. 안 적으면 왜 이 차례인지 알 수 없다.
+      if(byLast){
+        var lv=(_sdLastSeen||{})[String(u.id)];
+        sub.push(lv ? (function(d){ return (d.getMonth()+1)+'/'+d.getDate(); })(new Date(lv)) : '수업기록 없음');
+      }
+      return '<button type="button" class="sd-gcard'+(String(u.id)===cur?' on':'')+'" data-sdpick="'+esc(u.id)+'">'
+        +esc(u.name||'(이름없음)')
+        +(sub.length?'<span class="sd-gsub">'+esc(sub.join(' · '))+'</span>':'')
+        +'</button>';
+    }).join('');
+  }
+
+  function sdFillStudents(){
+    var sel=$('sdStudent'); if(!sel) return;
+    var keep=sel.value;
+    var note=$('sdScopeNote');
+    if(note) note.innerHTML=((profile&&profile.role)==='admin')
+      ? ' <b style="color:var(--accent)">내 담당 학생만 보입니다.</b>' : '';
+    sdFillStatus();
+    sdFillTeachers();
+    var list=sdVisibleStudents();
     sel.innerHTML='<option value="">— 고르세요 —</option>'+list.map(function(u){
       return '<option value="'+esc(u.id)+'">'+esc(u.name||'(이름없음)')
         +(isEnded(u)?' · 종료':'')+'</option>'; }).join('');
     if(keep && list.some(function(u){return String(u.id)===String(keep);})) sel.value=keep;
+    sdFillGrid(list);
   }
 
   // 한 학생 자료를 한꺼번에 읽어 온다
@@ -6679,7 +6853,36 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   });
 
   if($('sdSearch')) $('sdSearch').addEventListener('input', sdFillStudents);
-  if($('sdStudent')) $('sdStudent').addEventListener('change', function(){ sdRender(this.value); });
+  // 마지막 수강일순은 수업 기록을 읽어야 한다. 한 번만 읽고 그다음부터는 바로 정렬한다.
+  if($('sdSort')) $('sdSort').addEventListener('change', async function(){
+    if(this.value==='last' && !_sdLastSeen){
+      var g=$('sdGrid'); if(g) g.innerHTML='<div class="sd-gnone">수업 기록을 읽는 중…</div>';
+      await sdLoadLastSeen();
+    }
+    sdFillStudents();
+  });
+  if($('sdTeacherBar')) $('sdTeacherBar').addEventListener('click', function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-sdteach]'):null;
+    if(!b) return;
+    _sdTeacher=b.getAttribute('data-sdteach')||'';
+    sdFillStudents();
+  });
+  if($('sdStatusBar')) $('sdStatusBar').addEventListener('click', function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-sdstatus]'):null;
+    if(!b) return;
+    _sdStatus=b.getAttribute('data-sdstatus')||'active';
+    sdFillStudents();
+  });
+  if($('sdStudent')) $('sdStudent').addEventListener('change', function(){ sdFillGrid(sdVisibleStudents()); sdRender(this.value); });
+  // 이름 카드를 눌러도 드롭다운과 똑같이 동작해야 한다(둘이 어긋나면 새로고침이 엉뚱한 학생을 연다).
+  if($('sdGrid')) $('sdGrid').addEventListener('click', function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-sdpick]'):null;
+    if(!b) return;
+    var sid=b.getAttribute('data-sdpick');
+    if($('sdStudent')) $('sdStudent').value=sid;
+    sdFillGrid(sdVisibleStudents());
+    sdRender(sid);
+  });
   if($('sdReload')) $('sdReload').onclick=function(){ if($('sdStudent')&&$('sdStudent').value) sdRender($('sdStudent').value); };
 
   // ================= 자료실 (원장 지시 2026-08-17) =================
@@ -7997,7 +8200,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var ack='<button class="wa-al-ack" data-ack="'+esc(a.type+'|'+a.skey+'|'+a.day)+'" data-ackname="'+esc(a.student)+'" title="이 알림을 지웁니다">✓ 확인함</button>';
       // OT 상담은 '확인함'으로 지울 수 없다 — 기록을 남겨야 사라진다(원장 지시 2026-08-12).
       if(a.type==='ot') return '<li><span class="wa-al-tag t-ot">OT상담</span><b>'+esc(a.student)+'</b> — '+mdLabel(a.day)+' 사전 OT 상담 기록을 아직 안 남기셨어요 <span class="wa-al-go" data-goto="cs" data-csname="'+esc(a.student)+'" data-csscid="'+esc(String(a.scid))+'" data-csday="'+esc(a.day)+'">상담 입력 →</span></li>';
-      if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched">스케줄로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
+      if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched" data-scname="'+esc(a.student)+'" data-scsid="'+esc(String(a.sid||''))+'">스케줄로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
       return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(a.student)+'</b> 학생 — '+mdLabel(a.day)+' 수업 숙제가 안 나갔어요 <span class="wa-al-go" data-goto="hw">숙제로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
     }).join('');
     box.innerHTML='<div class="wa-al-head">🔔 확인이 필요해요 <span class="wa-al-badge">'+(alerts.length+pend.length)+'</span></div><ul>'+pendItems+items+'</ul>'+undoH;
@@ -8286,6 +8489,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         if($('csChannel')) $('csChannel').value=$('csChannel').value||'사전 OT';
         drawCsLink();
         if($('csName')) $('csName').focus();
+      }
+      // '다음 수업 안 잡힘' 알림에서 넘어온 경우 스케줄 폼의 학생을 미리 골라 준다.
+      // 이름을 다시 손으로 찾게 하면 알림을 눌러 온 뜻이 없다(원장 지시 2026-08-28).
+      if(to==='sched'){
+        var scn=g.getAttribute('data-scname')||'', scs=g.getAttribute('data-scsid')||'';
+        if($('scStudentSearch')){
+          $('scStudentSearch').value=normName(scn);
+          fillScStudent();
+          // 담당강사 필터에 걸려 그 학생이 목록에서 빠졌으면 필터를 풀고 다시 채운다.
+          if(scs && $('scStudent')){
+            $('scStudent').value=scs;
+            if($('scStudent').value!==scs && $('scTeacher')){ $('scTeacher').value=''; fillScStudent(); $('scStudent').value=scs; }
+          }
+        }
+        // 날짜는 건드리지 않는다 — 언제로 잡을지는 원장님이 정한다(지시 2026-08-28).
+        if($('scStudent')) $('scStudent').focus();
       }
     }
   }
