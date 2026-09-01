@@ -1126,6 +1126,44 @@
   </div>
 </section>
 <script>
+/* ── 시간대 고정: 항상 서울(KST, UTC+9) (2026-09-01) ─────────────────────────
+   기기가 해외에 있어도 화면에 보이는 시간과 저장되는 시간은 서울 기준이어야 한다.
+   원장님이 동남아에서 스케줄을 보니 시간이 통째로 밀려 있던 문제를 막는 장치다.
+
+   kwall(v)   인스턴트(ISO 문자열·Date) → '서울 벽시계' Date.
+              getHours()·getDate() 같은 읽기 전용으로만 쓴다.
+              ⚠️ 이 결과에 toISOString() 을 부르거나 진짜 시각과 크기 비교를 하면 안 된다.
+              (되돌리려면 kBack 을 쓴다)
+   kwallNow() 지금을 서울 벽시계로. '오늘'을 구할 때.
+   kymd(v)    서울 기준 'YYYY-MM-DD'. 인자를 안 주면 오늘.
+   kISO(d,t)  서울 날짜·시각('2026-09-03','19:00') → 저장·조회용 진짜 ISO 문자열.
+              t 가 '24:00' 이면 다음 날 0시로 본다.
+   kBack(w)   서울 벽시계 Date → 진짜 Date. 범위 조회 경계를 만들 때.
+   ────────────────────────────────────────────────────────────────────────── */
+var KST_MIN = 540;                       // UTC+9 (한국은 서머타임이 없다)
+function kwall(v){
+  var d = (v===undefined||v===null) ? new Date()
+        : (v instanceof Date ? new Date(v.getTime()) : new Date(v));
+  if(isNaN(d.getTime())) return d;
+  return new Date(d.getTime() + (d.getTimezoneOffset()+KST_MIN)*60000);
+}
+function kwallNow(){ return kwall(); }
+function kp2(n){ return (n<10?'0':'')+n; }
+function kymd(v){ var w=kwall(v); if(isNaN(w.getTime())) return ''; return w.getFullYear()+'-'+kp2(w.getMonth()+1)+'-'+kp2(w.getDate()); }
+function kISO(dstr, t){
+  t = t || '00:00';
+  if(t === '24:00'){ var n = new Date(dstr+'T00:00:00+09:00'); n.setUTCDate(n.getUTCDate()+1); return n.toISOString(); }
+  if(t.length === 5) t = t + ':00';
+  return new Date(dstr+'T'+t+'+09:00').toISOString();
+}
+function kBack(w){
+  return new Date(w.getFullYear()+'-'+kp2(w.getMonth()+1)+'-'+kp2(w.getDate())
+    +'T'+kp2(w.getHours())+':'+kp2(w.getMinutes())+':'+kp2(w.getSeconds())+'+09:00');
+}
+window.kwall=kwall; window.kwallNow=kwallNow; window.kymd=kymd;
+window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
+</script>
+<script>
 (function(){
   var LETT=["A","B","C","D"];
   var SINGLES=[
@@ -4586,6 +4624,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-alerts li .t-hw{background:#fdeaea;color:#c0342b}
 .wa-alerts li .t-ot{background:#fff5e9;color:#b26a00}
 .wa-alerts li .t-req{background:#e8f6ec;color:#0a8f3c}
+/* 마지막 회차 결제 알림 (원장 지시 2026-08-28) — 돈 문제라 가장 눈에 띄는 색으로 둔다 */
+.wa-alerts li .t-pay{background:#f3e8ff;color:#6b21a8}
 .wa-alerts li .wa-al-sp{margin-left:auto}
 .wa-alerts li .wa-al-approve+.wa-al-reject{margin-left:6px}
 .wa-alerts li b{font-weight:800}
@@ -5345,8 +5385,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   window.waOpenSignupModal=function(){ openModal("signup"); };
   function salt(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36); }
   function hashPw(pw,s){ return sha256(unescape(encodeURIComponent(s+'::'+pw))); }
-  function today(){ var d=new Date(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
-  function iso(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function today(){ var d=kwallNow(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+  function iso(){ var d=kwallNow(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
 
   function openModal(tab){ $('waModal').classList.add('on'); setTab(tab||'login'); }
   function closeModal(){ $('waModal').classList.remove('on'); }
@@ -5453,7 +5493,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   var sb = window.sb;
   var $ = function(id){ return document.getElementById(id); };
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
-  function today(){ var d=new Date(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+  function today(){ var d=kwallNow(); return d.getFullYear()+''+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
   var profile = null;
 
   function openModal(tab){ $('waModal').classList.add('on'); setTab(tab||'login'); loadSignupTeachers(); }
@@ -6381,7 +6421,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     card.querySelectorAll('.dash-pane').forEach(function(p){ p.classList.toggle('on', p.getAttribute('data-dpane')===name); });
     // 정산(급여)은 열 때 그린다. 월이 비어 있으면 이번 달로 채운다.
     if(name==='payroll'){
-      if($('prMonth') && !$('prMonth').value) $('prMonth').value=ym(new Date());
+      if($('prMonth') && !$('prMonth').value) $('prMonth').value=kymd().slice(0,7);
       loadPayroll();
     }
     // 달력은 탭이 숨어 있는 동안 폭이 0이라 스크롤 계산이 안 먹는다. 열릴 때 다시 맞춘다.
@@ -6538,7 +6578,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // '마지막 수강일순'으로 볼 때는 그 날짜를 카드에 같이 적는다. 안 적으면 왜 이 차례인지 알 수 없다.
       if(byLast){
         var lv=(_sdLastSeen||{})[String(u.id)];
-        sub.push(lv ? (function(d){ return (d.getMonth()+1)+'/'+d.getDate(); })(new Date(lv)) : '수업기록 없음');
+        sub.push(lv ? (function(d){ return (d.getMonth()+1)+'/'+d.getDate(); })(kwall(lv)) : '수업기록 없음');
       }
       return '<button type="button" class="sd-gcard'+(String(u.id)===cur?' on':'')+'" data-sdpick="'+esc(u.id)+'">'
         +esc(u.name||'(이름없음)')
@@ -6602,13 +6642,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // 최근 6개월 수업 횟수 막대
   function sdMonthBars(sched){
-    var now=new Date(), keys=[], map={};
+    var now=kwallNow(), keys=[], map={};
     for(var i=5;i>=0;i--){ var d=new Date(now.getFullYear(),now.getMonth()-i,1);
       var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); keys.push(k); map[k]=0; }
     sched.forEach(function(x){
       var st=x.status||'confirmed';
       if(st==='canceled'||st==='pending') return;      // 휴강·미승인은 안 센다
-      var dt=new Date(x.starts_at); if(isNaN(dt)) return;
+      var dt=kwall(x.starts_at); if(isNaN(dt)) return;
       var k=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
       if(map[k]!==undefined) map[k]++;
     });
@@ -6627,7 +6667,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 규칙(달력 칸과 같다): going=true 참석 / going=false 불참 / 찍은 게 없으면 미정.
   // 스터디 자격(profiles.study)이 꺼진 학생은 애초에 대상이 아니다.
   function sdStudyBox(rows, offs, st){
-    var today=ymd(new Date());
+    var today=kymd();
     offs=offs||[];
     var byDate={}; rows.forEach(function(x){ byDate[String(x.study_date)]=x; });
     var elig = !!(st && st.study) && String(st.status||'')!=='ended';
@@ -6807,7 +6847,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // ── 학생 메모 (2026-08-24) ──────────────────────────────────────
   function sdNoteWhen(iso){
-    var dt=new Date(iso); if(isNaN(dt.getTime())) return '';
+    var dt=kwall(iso); if(isNaN(dt.getTime())) return '';
     var p=function(n){ return (n<10?'0':'')+n; };
     return dt.getFullYear()+'.'+p(dt.getMonth()+1)+'.'+p(dt.getDate())+' '+p(dt.getHours())+':'+p(dt.getMinutes());
   }
@@ -7152,8 +7192,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function pad(n){ return (n<10?'0':'')+n; }
   function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function ym(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1); }
-  function fmtDT(iso){ if(!iso) return '-'; var d=new Date(iso); return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
-  function hm(iso){ if(!iso) return ''; var d=new Date(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function fmtDT(iso){ if(!iso) return '-'; var d=kwall(iso); return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function hm(iso){ if(!iso) return ''; var d=kwall(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
   function won(n){ n=parseInt(n,10)||0; return n.toLocaleString('ko-KR')+'원'; }
   function fillTimeSelects(){
     var opts='<option value="">선택</option>';
@@ -7187,7 +7227,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     fillSelects();
     computeStudentPool(); fillStudentSelects();
     syncAddPrice(false);   // 처음 고른 학생에 맞춰 단가 안내를 띄운다(금액은 건드리지 않음)
-    var now=new Date();
+    var now=kwallNow();
     if($('scDate')&&!$('scDate').value) $('scDate').value=ymd(now);
     if($('offDate')&&!$('offDate').value) $('offDate').value=ymd(now);
     if($('pyMonth')&&!$('pyMonth').value) $('pyMonth').value=ym(now);
@@ -7357,8 +7397,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!$('asTable')) return;
     var from=($('asFrom')&&$('asFrom').value)||'', to=($('asTo')&&$('asTo').value)||'';
     if(!from||!to||!sb) return;
-    var a=new Date(from+'T00:00'), b=new Date(to+'T00:00'); b.setDate(b.getDate()+1);
-    var r=await sb.from('schedules').select('*').gte('starts_at',a.toISOString()).lt('starts_at',b.toISOString()).order('starts_at');
+    var aISO=kISO(from,'00:00'), bISO=kISO(to,'24:00');   // to 날짜까지 포함(서울 기준)
+    var r=await sb.from('schedules').select('*').gte('starts_at',aISO).lt('starts_at',bISO).order('starts_at');
     // 휴강·결석한 수업은 그 방을 놓은 것이다. 배정표에서 빼야 그 시간 강의장이 비어 보인다.
     _asRows=(!r.error&&r.data)?r.data.filter(function(x){
       var st=x.status||'confirmed';
@@ -7704,7 +7744,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var s=pool.filter(function(x){ return String(x.id)===String(id); })[0];
     if(!s){ alert('수업 정보를 찾지 못했습니다. 새로고침 후 다시 시도해주세요.'); return; }
     _seId=id;
-    var st=new Date(s.starts_at), en=new Date(s.ends_at);
+    var st=kwall(s.starts_at), en=kwall(s.ends_at);
     fillTimeSelects();
     $('waSeWho').textContent=(s.student_name||'학생 미지정')+' · '+(s.teacher_name||'선생님 미지정')
       + (s.status==='pending'?' · 승인대기':'');
@@ -8042,7 +8082,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   async function loadAlertChecks(){
     _alertChecks={}; _alertCheckRows=[];
     if(!sb || !profile) return;
-    var from=new Date(); from.setDate(from.getDate()-60);
+    var from=kwallNow(); from.setDate(from.getDate()-60);
     var r=await sb.from('alert_checks').select('*').eq('teacher_id',profile.id)
                   .gte('day', ymd(from)).order('created_at',{ascending:false});
     if(r.error || !r.data) return;                  // 표가 아직 없으면 조용히 넘어간다
@@ -8053,8 +8093,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!sb || !profile) return [];
     var ended=endedStudentKeys();
     var meId=profile.id, now=new Date();
-    var start=new Date(now); start.setDate(start.getDate()-2); start.setHours(0,0,0,0); // 오늘 포함 최근 3일
-    var end=new Date(now); end.setDate(end.getDate()+1); end.setHours(0,0,0,0);
+    var nowW=kwallNow();                                   // 날짜 경계는 서울 기준
+    var start=new Date(nowW); start.setDate(start.getDate()-2); start.setHours(0,0,0,0); // 오늘 포함 최근 3일
+    var end=new Date(nowW); end.setDate(end.getDate()+1); end.setHours(0,0,0,0);
     var recent=await fetchRange(start,end);
     var mine=recent.filter(function(s){ return s.teacher_id===meId && isStudentEntry(s) && new Date(s.ends_at)<now && !ended[stuKey(s.student_id,s.student_name)]; });
     if(!mine.length) return [];
@@ -8110,7 +8151,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         });
         otRows.forEach(function(s){
           if(doneId[String(s.id)]) return;
-          var k=otNorm(s.student_name||''), day=ymd(new Date(s.starts_at));
+          var k=otNorm(s.student_name||''), day=kymd(s.starts_at);
           var hit=(byName[k]||[]).some(function(d){ return d && d>=day; });
           if(!hit) otNeed[String(s.id)]=1;
         });
@@ -8120,7 +8161,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var alerts=[], seen={};
     mine.forEach(function(s){
       var key=stuKey(s.student_id,s.student_name);
-      var sid=s.student_id, sname=s.student_name||'학생', day=ymd(new Date(s.starts_at));
+      var sid=s.student_id, sname=s.student_name||'학생', day=kymd(s.starts_at);
       if(otNeed[String(s.id)]){
         alerts.push({type:'ot',student:sname,sid:sid,day:day,skey:key,scid:s.id});
         return;   // OT 는 다음수업·숙제 알림 대상이 아니다(아직 등록 전이다)
@@ -8144,15 +8185,49 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var nextStart=nextLessonAfter(sid, s.starts_at);
       var hwIssued=hw.some(function(x){
         if(x.student_id!==sid || !x.created_at) return false;
-        if(ymd(new Date(x.created_at))===day) return true;      // 수업 당일에 낸 것
+        if(kymd(x.created_at)===day) return true;      // 수업 당일에 낸 것
         var c=new Date(x.created_at).getTime();
         if(c<lessonStart) return false;                         // 수업 전에 낸 건 지난 수업 몫
         return nextStart===null || c<nextStart;                 // 다음 수업 전이면 이 수업 몫
       });
       if(!hwIssued && !_alertChecks[ackKey('hw',key,day)]){ var k2='h:'+sid+':'+day; if(!seen[k2]){ seen[k2]=1; alerts.push({type:'hw',student:sname,sid:sid,day:day,skey:key}); } }
     });
-    // OT 상담 → 다음수업 → 숙제 순. 그 안에서는 최신 날짜순.
-    var ORD={ot:0,next:1,hw:2};
+    // 마지막 회차(8회권이면 8회차) 수업이 **오늘**인 학생 — 그날 수강료를 받아야 한다.
+    // (원장 지시 2026-08-28 "8회차때 수업이 잡혀있는날에는 수납이 되어야하는데 결제 확인 필요해요")
+    // 판정: 그 수업까지 쓴 횟수 == 산 횟수(구매+조정) 이면 그 수업이 마지막 자리다.
+    // 결제가 들어오면 산 횟수가 늘어 마지막 자리가 뒤로 밀리므로 알림은 저절로 사라진다.
+    try{
+      var lessons=window.__wtLessons||{};
+      // 수납 자료를 아직 한 번도 안 읽었으면 여기서 읽는다(숙제 캐시와 같은 이유).
+      if(!Object.keys(lessons).length){ await loadAttendance(); lessons=window.__wtLessons||{}; }
+      var buys=window.__wtAttP||{}, adjSum=window.__wtAdjSum||{};
+      var _dk=kymd();                                    // 서울 기준 오늘
+      var d0ISO=kISO(_dk,'00:00'), d1ISO=kISO(_dk,'24:00');
+      // 결제는 원장님이 받으므로 운영진은 다른 선생님 담당까지 본다(예약요청 알림과 같은 이유).
+      var tq=sb.from('schedules').select('*')
+               .gte('starts_at', d0ISO).lt('starts_at', d1ISO)
+               .not('student_id','is',null);
+      if(!isOps()) tq=tq.eq('teacher_id', meId);
+      var tr=await tq;
+      (tr.error?[]:(tr.data||[])).forEach(function(s){
+        if(!countsAsUsed(s)) return;                       // 휴강·OT·승인 전 예약은 회차가 아니다
+        var sid=s.student_id, key=stuKey(sid, s.student_name);
+        if(ended[key]) return;                             // 수강 종료한 학생은 뺀다
+        var quota=(buys[sid]||0)+(adjSum[sid]||0);
+        if(quota<=0) return;                               // 산 횟수를 모르면 판단할 수 없다
+        var t=Date.parse(s.starts_at);
+        var upto=(lessons[sid]||[]).filter(function(x){ return x.t<=t; }).length;
+        if(upto!==quota) return;                           // 마지막 자리가 아니다
+        var day=kymd(s.starts_at);
+        if(_alertChecks[ackKey('pay',key,day)]) return;    // 원장님이 이미 확인함으로 지웠다
+        var k3='p:'+sid+':'+day;
+        if(seen[k3]) return; seen[k3]=1;
+        alerts.push({ type:'pay', student:s.student_name||'학생', sid:sid, day:day, skey:key,
+                      n:quota, tname:(isOps()?(s.teacher_name||''):'') });
+      });
+    }catch(e){}
+    // 결제 → OT 상담 → 다음수업 → 숙제 순. 그 안에서는 최신 날짜순.
+    var ORD={pay:0,ot:1,next:2,hw:3};
     alerts.sort(function(a,b){ if(a.type!==b.type) return ORD[a.type]-ORD[b.type]; return b.day<a.day?-1:1; });
     return alerts;
   }
@@ -8199,6 +8274,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var ack='<button class="wa-al-ack" data-ack="'+esc(a.type+'|'+a.skey+'|'+a.day)+'" data-ackname="'+esc(a.student)+'" title="이 알림을 지웁니다">✓ 확인함</button>';
       // OT 상담은 '확인함'으로 지울 수 없다 — 기록을 남겨야 사라진다(원장 지시 2026-08-12).
       if(a.type==='ot') return '<li><span class="wa-al-tag t-ot">OT상담</span><b>'+esc(a.student)+'</b> — '+mdLabel(a.day)+' 사전 OT 상담 기록을 아직 안 남기셨어요 <span class="wa-al-go" data-goto="cs" data-csname="'+esc(a.student)+'" data-csscid="'+esc(String(a.scid))+'" data-csday="'+esc(a.day)+'">상담 입력 →</span></li>';
+      if(a.type==='pay'){
+        var ptn = a.tname ? ' <span style="color:var(--muted);font-weight:700">('+esc(a.tname)+' 담당)</span>' : '';
+        // '확인함' 버튼을 달지 않는다 — 수납을 넣으면 산 횟수가 늘어 저절로 사라진다.
+        // 손으로 지울 수 있게 하면 돈 받는 걸 놓친 채 알림만 없앨 수 있다(OT 상담 알림과 같은 이유).
+        return '<li><span class="wa-al-tag t-pay">결제</span><b>'+esc(a.student)+'</b> 학생'+ptn+' — 오늘이 <b>'+esc(String(a.n))+'회차(마지막)</b> 수업이에요. 결제 확인 필요해요 <span class="wa-al-go" data-goto="pay" data-pyname="'+esc(a.student)+'" data-pysid="'+esc(String(a.sid||''))+'">수납으로 →</span></li>';
+      }
       if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched" data-scname="'+esc(a.student)+'" data-scsid="'+esc(String(a.sid||''))+'">스케줄로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
       return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(a.student)+'</b> 학생 — '+mdLabel(a.day)+' 수업 숙제가 안 나갔어요 <span class="wa-al-go" data-goto="hw">숙제로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
     }).join('');
@@ -8427,7 +8508,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // (실제로 김서영 8/3, 이인혁 8/5 건이 열흘 넘게 남아 있었다.)
   function ackUndoHtml(){
     if(!_alertCheckRows.length) return '';
-    var from=new Date(); from.setDate(from.getDate()-2); from.setHours(0,0,0,0);
+    var from=kwallNow(); from.setDate(from.getDate()-2); from.setHours(0,0,0,0);
     var fromDay=ymd(from);
     var recent=_alertCheckRows.filter(function(x){ return String(x.day||'') >= fromDay; });
     if(!recent.length) return '';
@@ -8484,7 +8565,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(to==='cs'){
         _csScheduleId=g.getAttribute('data-csscid')||null;
         if($('csName'))    $('csName').value=normName(g.getAttribute('data-csname')||'');
-        if($('csDate'))    $('csDate').value=g.getAttribute('data-csday')||ymd(new Date());
+        if($('csDate'))    $('csDate').value=g.getAttribute('data-csday')||kymd();
         if($('csChannel')) $('csChannel').value=$('csChannel').value||'사전 OT';
         drawCsLink();
         if($('csName')) $('csName').focus();
@@ -8505,6 +8586,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         // 날짜는 건드리지 않는다 — 언제로 잡을지는 원장님이 정한다(지시 2026-08-28).
         if($('scStudent')) $('scStudent').focus();
       }
+      // 마지막 회차 결제 알림에서 넘어온 경우 수납 폼의 학생을 미리 골라 준다.
+      if(to==='pay'){
+        var pyn=g.getAttribute('data-pyname')||'', pys=g.getAttribute('data-pysid')||'';
+        if($('pyStudentSearch')){
+          $('pyStudentSearch').value=normName(pyn);
+          if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts($('pyStudentSearch').value);
+        }
+        if(pys && $('pyStudent')) $('pyStudent').value=pys;
+        if($('pyStudent')) $('pyStudent').focus();
+      }
     }
   }
 
@@ -8517,9 +8608,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 폰·작은 태블릿에서는 주 뷰가 7일 × 강의장 4칸이라 계속 옆으로 밀어야 한다.
   // 그래서 처음에는 일 뷰로 연다(원장 지시 2026-08-08). '주'를 누르면 그대로 유지된다.
   var calMode=(window.innerWidth<=820)?'day':'week';
-  var calCur=new Date(); calCur.setHours(0,0,0,0);
+  var calCur=kwallNow(); calCur.setHours(0,0,0,0);
   function startOfWeek(d){ var x=new Date(d); var day=(x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
-  async function fetchRange(start,end){ var rows=[]; if(sb){ var r=await sb.from('schedules').select('*').gte('starts_at',start.toISOString()).lt('starts_at',end.toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; } return rows; }
+  async function fetchRange(start,end){ var rows=[]; if(sb){ var r=await sb.from('schedules').select('*').gte('starts_at',kBack(start).toISOString()).lt('starts_at',kBack(end).toISOString()).order('starts_at'); if(!r.error&&r.data) rows=r.data; } return rows; }
   function updateModeButtons(){ [['calDay','day'],['calWeekBtn','week'],['calMonth','month']].forEach(function(m){ var el=$(m[0]); if(el) el.classList.toggle('on', calMode===m[1]); }); }
   // ---- 선생님별 보기 (원장 요청 2026-08-13) ------------------------------------
   // '' = 전체. 일·주·월 어느 뷰든 같은 값을 쓴다.
@@ -8555,8 +8646,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     sel.classList.toggle('on', !!_calTeacher);
   }
   if($('calTeacher')) $('calTeacher').onchange=function(){ _calTeacher=this.value||''; renderCalendar(); };
-  function minsFromStart(iso){ var d=new Date(iso); return (d.getHours()-DAY_START)*60 + d.getMinutes(); }
-  function slotISO(dstr, t){ if(t==='24:00'){ var x=new Date(dstr+'T00:00'); x.setDate(x.getDate()+1); return x.toISOString(); } return new Date(dstr+'T'+t).toISOString(); }
+  function minsFromStart(iso){ var d=kwall(iso); return (d.getHours()-DAY_START)*60 + d.getMinutes(); }
+  // 폼에 적은 시각은 언제나 서울 기준이다. 기기 시간대를 따라가면 해외에서 수업이 밀린다.
+  function slotISO(dstr, t){ return kISO(dstr, t); }
   function layoutDay(evs){
     evs.sort(function(a,b){ return a.__st-b.__st || a.__en-b.__en; });
     var cluster=[], curEnd=-1;
@@ -8608,7 +8700,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     var rows=calFilterRows(await fetchRange(start,end));
     window.__wtCalRows=rows;   // 달력 블록을 눌러 수정할 때 여기서 찾는다
-    var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
+    var byDay={}; rows.forEach(function(s){ var key=kymd(s.starts_at); (byDay[key]=byDay[key]||[]).push(s); });
     // 주말 스터디는 schedules 가 아니라 별도 표에 있다(수업 횟수가 깎이면 안 되므로).
     // 그래서 달력에서도 따로 읽어 얹는다. 표가 없으면(study.sql 미실행) 조용히 건너뛴다.
     var studyByRoom=await fetchStudyRange(start,end);
@@ -8620,7 +8712,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       HOUR_H=38;
       var mn=null, mx=null;
       rows.forEach(function(s){
-        var a=new Date(s.starts_at), b=new Date(s.ends_at);
+        var a=kwall(s.starts_at), b=kwall(s.ends_at);
         var sh=a.getHours(), eh=b.getHours()+(b.getMinutes()?1:0);
         mn=(mn==null)?sh:Math.min(mn,sh);
         mx=(mx==null)?eh:Math.max(mx,eh);
@@ -8648,7 +8740,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       axis+='<div class="cal-hr'+(hh===DAY_START?' first':'')+'" style="top:'+((hh-DAY_START)*HOUR_H)+'px">'+hh+':00</div>';
     }
     axis+='</div></div>';
-    var todayKey=ymd(new Date()), cols='';
+    var todayKey=kymd(), cols='';
     // 날짜 밑에 강의장 칸을 만들고 그 칸에 수업을 넣는다(원장 지시 2026-08-08).
     // 마지막 '미배정' 칸이 없으면 비대면 수업과 아직 방을 안 정한 수업이 달력에서 사라진다.
     // 폰에서 한때 강의장 칸을 하나로 합쳤으나(2026-08-09), 원장이 2026-08-10에
@@ -8776,8 +8868,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var first=new Date(y,mo,1), gs=startOfWeek(first);
     var end=new Date(gs); end.setDate(end.getDate()+42);
     var rows=calFilterRows(await fetchRange(gs,end));
-    var byDay={}; rows.forEach(function(s){ var key=ymd(new Date(s.starts_at)); (byDay[key]=byDay[key]||[]).push(s); });
-    var todayKey=ymd(new Date()), html='';
+    var byDay={}; rows.forEach(function(s){ var key=kymd(s.starts_at); (byDay[key]=byDay[key]||[]).push(s); });
+    var todayKey=kymd(), html='';
     DOW.forEach(function(n,idx){ html+='<div class="cal-mh '+(idx===5?'cal-sat':(idx===6?'cal-sun':''))+'">'+n+'</div>'; });
     for(var i=0;i<42;i++){
       var day=new Date(gs); day.setDate(day.getDate()+i); var key=ymd(day);
@@ -8839,7 +8931,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!q || !sb){ box.style.display='none'; box.innerHTML=''; return; }
     box.style.display='';
     box.innerHTML='<div class="sf-head">찾는 중…</div>';
-    var since=new Date(); since.setDate(since.getDate()-30); since.setHours(0,0,0,0);
+    var since=kwallNow(); since.setDate(since.getDate()-30); since.setHours(0,0,0,0);   // 서울 기준 30일 전 자정
     // 이름이 안 적힌(회원으로만 연결된) 수업도 잡히게 회원 id 로도 찾는다.
     var lo=q.toLowerCase();
     var ids=(_members||[]).filter(function(m){ return m.role==='student' && String(m.name||'').toLowerCase().indexOf(lo)>=0; })
@@ -8851,7 +8943,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!filt){ box.innerHTML='<div class="sf-empty">이름을 조금 더 적어주세요.</div>'; return; }
     var r=await sb.from('schedules')
           .select('id,starts_at,ends_at,student_name,teacher_name,room_id,status,source,is_ot')
-          .gte('starts_at', since.toISOString()).or(filt).order('starts_at').limit(60);
+          .gte('starts_at', kBack(since).toISOString()).or(filt).order('starts_at').limit(60);
     if(_scFindQ!==q) return;          // 그 사이 검색어가 바뀌었으면 옛 결과로 덮지 않는다
     if(r.error){ box.innerHTML='<div class="sf-empty">찾지 못했어요: '+esc(r.error.message)+'</div>'; return; }
     var rows=(r.data||[]).filter(function(s){ return (s.status||'confirmed')!=='pending'; });
@@ -8860,7 +8952,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var future=rows.filter(function(s){ return new Date(s.starts_at)>=now; }).length;
     var h='<div class="sf-head">'+esc(q)+' · 수업 '+rows.length+'건 <span style="font-weight:700;color:var(--muted)">(앞으로 '+future+'건 · 날짜를 누르면 그날 달력으로 갑니다)</span></div><div class="sf-list">';
     rows.forEach(function(s){
-      var d=new Date(s.starts_at), past=d<now, st=s.status||'confirmed';
+      var d=kwall(s.starts_at), past=d<kwallNow(), st=s.status||'confirmed';
       var tag = st==='noshow' ? '<span class="sf-x">결석</span>'
               : st==='canceled' ? '<span class="sf-m">휴강</span>'
               : (isOtLesson(s) ? '<span class="sf-m">OT</span>' : '');
@@ -8886,7 +8978,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function calShift(dir){ if(calMode==='day') calCur.setDate(calCur.getDate()+dir); else if(calMode==='week') calCur.setDate(calCur.getDate()+dir*7); else calCur.setMonth(calCur.getMonth()+dir); renderCalendar(); }
   if($('calPrev')) $('calPrev').onclick=function(){ calShift(-1); };
   if($('calNext')) $('calNext').onclick=function(){ calShift(1); };
-  if($('calToday')) $('calToday').onclick=function(){ calCur=new Date(); calCur.setHours(0,0,0,0); renderCalendar(); };
+  if($('calToday')) $('calToday').onclick=function(){ calCur=kwallNow(); calCur.setHours(0,0,0,0); renderCalendar(); };
   if($('calDay')) $('calDay').onclick=function(){ calMode='day'; renderCalendar(); };
   if($('calWeekBtn')) $('calWeekBtn').onclick=function(){ calMode='week'; renderCalendar(); };
   if($('calMonth')) $('calMonth').onclick=function(){ calMode='month'; renderCalendar(); };
@@ -9042,7 +9134,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     return '<span class="std-r'+(r.n===STUDY_CYCLE?' last':'')+'">'+r.n+'회차</span>';
   }
   function weekendDays(n){
-    var out=[], d=new Date(); d.setHours(0,0,0,0);
+    var out=[], d=kwallNow(); d.setHours(0,0,0,0);
     for(var i=0;i<n*7+7 && out.length<n*2;i++){
       var x=new Date(d); x.setDate(x.getDate()+i);
       var w=x.getDay();                  // 0=일 6=토
@@ -9379,7 +9471,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('studyCount')) $('studyCount').textContent='(앞으로 '+STUDY_WEEKS+'주 · 신청 '+total+'명)';
     // 쉬는 날 목록
     if($('studyOffTable')){
-      var today=ymd(new Date());
+      var today=kymd();
       var future=_studyOff.filter(function(o){ return o.off_date>=today; });
       if($('studyOffCount')) $('studyOffCount').textContent='(앞으로 '+future.length+'일)';
       $('studyOffTable').innerHTML = future.length
@@ -9889,10 +9981,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     _rfFuture = await rfFutureLessons(sid);
     if($('rfMonth') && !$('rfMonth').value){
-      $('rfMonth').value = ($('pyMonth') && $('pyMonth').value) || new Date().toISOString().slice(0,7);
+      $('rfMonth').value = ($('pyMonth') && $('pyMonth').value) || kymd().slice(0,7);
     }
     if($('rfPaid') && !$('rfPaid').value){
-      $('rfPaid').value = new Date().toISOString().slice(0,10);
+      $('rfPaid').value = kymd();
     }
     rfDraw(prev);
   }
@@ -10163,7 +10255,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // ---- 기간별 수납 집계 (결제일 기준) ----
   function ymdLocal(d){ return ymd(d); }
   function setSumRange(kind){
-    var now=new Date(), a, b;
+    var now=kwallNow(), a, b;
     if(kind==='thismonth'){ a=new Date(now.getFullYear(),now.getMonth(),1); b=new Date(now.getFullYear(),now.getMonth()+1,0); }
     else if(kind==='lastmonth'){ a=new Date(now.getFullYear(),now.getMonth()-1,1); b=new Date(now.getFullYear(),now.getMonth(),0); }
     else { a=new Date(now.getFullYear(),0,1); b=new Date(now.getFullYear(),11,31); }
@@ -10783,9 +10875,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 그래서 '없습니다'라고 적고, 오늘 나간 것을 같이 보여준다.
     var nameById={};
     (_members||[]).forEach(function(m){ nameById[String(m.id)]=m.name; });
-    var todayStr=ymd(new Date());
+    var todayStr=kymd();
     var sentToday=(notif||[]).filter(function(n){
-      return n.sent_at && ymd(new Date(n.sent_at))===todayStr;
+      return n.sent_at && kymd(n.sent_at)===todayStr;
     });
     var sentLine = sentToday.length
       ? '<div style="margin-top:8px"><b style="color:#0f7a52">✅ 오늘 나간 안내 · '+sentToday.length+'명</b>'
@@ -11016,7 +11108,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     $('waAdjWho').textContent=st.name+' · 현재 남은 횟수 '+remainOf(sid)+'회';
     $('waAdjSign').value=String(sign);
     $('waAdjQty').value='1';
-    $('waAdjDate').value=ymd(new Date());
+    $('waAdjDate').value=kymd();
     $('waAdjReason').value='';
     $('waAdjErr').textContent='';
     $('waAdj').classList.add('on');
@@ -11063,7 +11155,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + (st.rem==null?'':'<span>남은 횟수 <b>'+st.rem+'회</b></span>');
     var h='';
     les.forEach(function(x,i){
-      var d=new Date(x.t);
+      var d=kwall(x.t);
       var cls=x.d?'fut-done':(i===nextIdx?'fut-next':'fut-soon');
       h+='<div class="fut-row '+cls+'">'
        + '<div class="fut-mark">'+(x.d?'✓':'·')+'</div>'
@@ -11110,7 +11202,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 확정된 수업이 곧 출석이고, 결석·휴강은 달력에서 그 수업을 눌러 표시한다.
 
   // ---- 출퇴근 (직원 본인 기록, 원장·매니저 전체 조회) ----
-  function hmT(iso){ if(!iso) return '-'; var d=new Date(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function hmT(iso){ if(!iso) return '-'; var d=kwall(iso); return pad(d.getHours())+':'+pad(d.getMinutes()); }
   function durHM(a,b){ if(!a||!b) return '-'; var ms=new Date(b)-new Date(a); if(ms<0) return '-'; var m=Math.round(ms/60000); return Math.floor(m/60)+'시간 '+(m%60)+'분'; }
   async function loadWork(){
     if(!$('workTable')) return;
@@ -11118,7 +11210,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(sb){ var r=await sb.from('work_logs').select('*').order('work_date',{ascending:false}).order('clock_in',{ascending:false}).limit(300); if(!r.error&&r.data) rows=r.data; }
     window.__wtWork=rows;
     renderWorkCal();
-    var td=ymd(new Date());
+    var td=kymd();
     var mine=rows.filter(function(x){return x.staff_id===(profile&&profile.id) && x.work_date===td;})[0];
     if($('workWho')) $('workWho').textContent=profile?('· '+profile.name):'';
     if($('workToday')) $('workToday').innerHTML = mine ? ('오늘 · 출근 <b>'+hmT(mine.clock_in)+'</b> · 퇴근 <b>'+hmT(mine.clock_out)+'</b>') : '오늘 출근 기록이 없습니다. "출근"을 눌러 기록하세요.';
@@ -11129,7 +11221,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     $('workTable').innerHTML=h;
   }
   if($('workReload')) $('workReload').onclick=loadWork;
-  var workCalCur=new Date(); workCalCur.setHours(0,0,0,0);
+  var workCalCur=kwallNow(); workCalCur.setHours(0,0,0,0);
   function renderWorkCal(){
     if(!$('workCalGrid')) return;
     var y=workCalCur.getFullYear(), mo=workCalCur.getMonth();
@@ -11137,7 +11229,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var first=new Date(y,mo,1), gs=startOfWeek(first);
     var rows=window.__wtWork||[];
     var byDay={}; rows.forEach(function(w){ if(w.work_date){ (byDay[w.work_date]=byDay[w.work_date]||[]).push(w); } });
-    var todayKey=ymd(new Date()), html='';
+    var todayKey=kymd(), html='';
     DOW.forEach(function(n,idx){ html+='<div class="cal-mh '+(idx===5?'cal-sat':(idx===6?'cal-sun':''))+'">'+n+'</div>'; });
     for(var i=0;i<42;i++){
       var day=new Date(gs); day.setDate(day.getDate()+i); var key=ymd(day);
@@ -11155,7 +11247,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   if($('workCalPrev')) $('workCalPrev').onclick=function(){ workCalCur.setMonth(workCalCur.getMonth()-1); renderWorkCal(); };
   if($('workCalNext')) $('workCalNext').onclick=function(){ workCalCur.setMonth(workCalCur.getMonth()+1); renderWorkCal(); };
-  if($('workCalToday')) $('workCalToday').onclick=function(){ workCalCur=new Date(); workCalCur.setHours(0,0,0,0); renderWorkCal(); };
+  if($('workCalToday')) $('workCalToday').onclick=function(){ workCalCur=kwallNow(); workCalCur.setHours(0,0,0,0); renderWorkCal(); };
   if($('workTable')) $('workTable').addEventListener('click', async function(e){
     var t=e.target; if(!t||!t.closest) return;
     var del=t.closest('a[data-workdel]'), ed=t.closest('a[data-workedit]');
@@ -11169,7 +11261,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var w=(window.__wtWork||[]).filter(function(x){return String(x.id)===String(ed.getAttribute('data-workedit'));})[0]; if(!w) return;
       var ci=prompt('출근 시간 (HH:MM, 비우면 기록 없음)', hmT(w.clock_in)==='-'?'':hmT(w.clock_in)); if(ci===null) return;
       var co=prompt('퇴근 시간 (HH:MM, 비우면 기록 없음)', hmT(w.clock_out)==='-'?'':hmT(w.clock_out)); if(co===null) return;
-      function toISO(hm){ hm=(hm||'').trim(); if(!hm) return null; var m=hm.match(/^(\d{1,2}):(\d{2})$/); if(!m) return undefined; var d=new Date(w.work_date+'T00:00:00'); d.setHours(+m[1], +m[2], 0, 0); return d.toISOString(); }
+      function toISO(hm){ hm=(hm||'').trim(); if(!hm) return null; var m=hm.match(/^(\d{1,2}):(\d{2})$/); if(!m) return undefined; return kISO(w.work_date, kp2(+m[1])+':'+m[2]); }
       var ciISO=toISO(ci), coISO=toISO(co);
       if(ciISO===undefined||coISO===undefined){ alert('시간 형식이 올바르지 않습니다. 예: 09:30'); return; }
       var r=await sb.from('work_logs').update({clock_in:ciISO, clock_out:coISO}).eq('id',w.id); if(r.error){ alert('수정 실패: '+r.error.message); return; }
@@ -11178,7 +11270,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   });
   if($('workIn')) $('workIn').onclick=async function(){
     if(!sb||!profile) return;
-    var td=ymd(new Date());
+    var td=kymd();
     var ex=(window.__wtWork||[]).filter(function(x){return x.staff_id===profile.id && x.work_date===td;})[0];
     if(ex && ex.clock_in && !confirm('오늘 이미 출근 기록이 있습니다. 출근 시간을 새로 기록할까요?')) return;
     var r = ex ? await sb.from('work_logs').update({clock_in:new Date().toISOString()}).eq('id',ex.id)
@@ -11188,7 +11280,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   };
   if($('workOut')) $('workOut').onclick=async function(){
     if(!sb||!profile) return;
-    var td=ymd(new Date());
+    var td=kymd();
     var ex=(window.__wtWork||[]).filter(function(x){return x.staff_id===profile.id && x.work_date===td;})[0];
     var r = ex ? await sb.from('work_logs').update({clock_out:new Date().toISOString()}).eq('id',ex.id)
                : await sb.from('work_logs').insert({staff_id:profile.id, staff_name:profile.name, work_date:td, clock_out:new Date().toISOString()});
@@ -11221,7 +11313,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('opAdd')) $('opAdd').onclick=async function(){
     if(!sb||!profile) return;
     var err=$('opErr'); if(err) err.textContent='';
-    var content=$('opContent').value.trim(); var date=$('opDate').value||ymd(new Date());
+    var content=$('opContent').value.trim(); var date=$('opDate').value||kymd();
     if(!content){ if(err) err.textContent='내용을 입력하세요.'; return; }
     var authId=($('opAuthor')&&$('opAuthor').value)||profile.id;
     var authM=(_members||[]).filter(function(m){return m.id===authId;})[0];
@@ -11460,7 +11552,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function hwSetDue(v){ var e=$('hwDueFilter'); if(e) e.value=v; hwDayMode='date'; drawHw(); }
   function hwShiftDue(days){
     var v=hwDueVal(); var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
-    var d = m ? new Date(+m[1],+m[2]-1,+m[3]) : new Date();
+    var d = m ? new Date(+m[1],+m[2]-1,+m[3]) : kwallNow();
     if(m) d.setDate(d.getDate()+days);          // 날짜가 비어 있으면 오늘로 되돌린다
     hwSetDue(hwYmd(d));
   }
@@ -11471,9 +11563,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     _hwDayCache[day]='loading';
     var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
     if(!m || !sb){ _hwDayCache[day]={ids:{},names:{},stu:0}; return; }
-    var a=new Date(+m[1],+m[2]-1,+m[3],0,0,0), b=new Date(+m[1],+m[2]-1,+m[3]+1,0,0,0);
     var r=await sb.from('schedules').select('student_id,student_name,starts_at')
-                  .gte('starts_at', a.toISOString()).lt('starts_at', b.toISOString());
+                  .gte('starts_at', kISO(day,'00:00')).lt('starts_at', kISO(day,'24:00'));
     if(r.error||!r.data){ _hwDayCache[day]=null; return; }   // 캐시에 남기지 않아 다음에 다시 시도한다
     var ids={}, names={}, seen={};
     r.data.forEach(function(s){
@@ -11486,7 +11577,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function hwDueBtnState(){
     var on=function(id,v){ var b=$(id); if(b) b.classList.toggle('on', !!v); };
     on('hwDueAll', hwDayMode==='all');
-    on('hwDueToday', hwDayMode==='date' && hwDueVal()===hwYmd(new Date()));
+    on('hwDueToday', hwDayMode==='date' && hwDueVal()===kymd());
     var f=$('hwDueFilter'); if(f) f.style.opacity = (hwDayMode==='date') ? '' : '.45';
   }
   // ---- 학생별 숙제율 ----
@@ -11614,7 +11705,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 숙제율은 날짜와 무관한 '전체 기간' 지표라 날짜를 걸기 전 목록으로 계산한다.
     drawHwRate(rows);
     var nAll=rows.length;
-    if($('hwDueFilter') && !hwDueVal()) $('hwDueFilter').value=hwYmd(new Date());
+    if($('hwDueFilter') && !hwDueVal()) $('hwDueFilter').value=kymd();
     var dsel=hwDueVal();
     var day=null, dayLoading=false;
     if(hwDayMode==='date'){
@@ -11692,7 +11783,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('hwDueFilter')) $('hwDueFilter').addEventListener('change', function(){ hwDayMode='date'; drawHw(); });
   if($('hwDuePrev'))  $('hwDuePrev').onclick  = function(){ hwShiftDue(-1); };
   if($('hwDueNext'))  $('hwDueNext').onclick  = function(){ hwShiftDue(1); };
-  if($('hwDueToday')) $('hwDueToday').onclick = function(){ hwSetDue(hwYmd(new Date())); };
+  if($('hwDueToday')) $('hwDueToday').onclick = function(){ hwSetDue(kymd()); };
   if($('hwDueAll'))   $('hwDueAll').onclick   = function(){ hwDayMode = (hwDayMode==='all' ? 'date' : 'all'); drawHw(); };
   // 저장이 막혔을 때 사람이 읽을 수 있는 말로 바꿔 준다 (2026-08-16 원장 "숙제 등록 안돼 버그생겼어").
   // 그때 화면에 뜬 건 new row violates row-level security policy for table "homeworks" 였다.
@@ -11879,7 +11970,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!name){ $('csErr').textContent='이름은 필수입니다.'; return; }
     var tid=$('csTeacher')?$('csTeacher').value:'';
     var tname=(_members||[]).filter(function(m){return m.id===tid;})[0];
-    var row={ consulted_on:($('csDate').value||ymd(new Date())), name:name,
+    var row={ consulted_on:($('csDate').value||kymd()), name:name,
               phone:(($('csPhone').value||'').trim()||null), channel:(($('csChannel').value||'').trim()||null),
               teacher_id:(tid||null), teacher_name:(tname?tname.name:null),
               memo:(($('csMemo').value||'').trim()||null), result:'pending' };
@@ -11901,7 +11992,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var sel=e.target; if(!sel||!sel.getAttribute||!sel.getAttribute('data-cs-result')) return;
     if(!sb) return;
     var id=sel.getAttribute('data-cs-result'), v=sel.value;
-    var patch={ result:v, decided_on:(v==='pending'?null:ymd(new Date())) };
+    var patch={ result:v, decided_on:(v==='pending'?null:kymd()) };
     var r=await sb.from('consults').update(patch).eq('id',id);
     if(r.error){ alert('결과 저장 실패: '+r.error.message); await loadConsults(); return; }
     var c=(_consults||[]).filter(function(x){return String(x.id)===String(id);})[0];
@@ -11960,7 +12051,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       memo:(($('cseMemo').value||'').trim()||null),
       result:v,
       // 결과를 바꿨을 때만 결정일을 새로 찍는다. 안 그러면 메모만 고쳐도 날짜가 밀린다.
-      decided_on:(v==='pending' ? null : (old.result===v ? (old.decided_on||ymd(new Date())) : ymd(new Date())))
+      decided_on:(v==='pending' ? null : (old.result===v ? (old.decided_on||kymd()) : kymd()))
     };
     $('cseSave').disabled=true;
     var r=await sb.from('consults').update(patch).eq('id',_csEditId);
@@ -11983,10 +12074,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!$('evTable')) return;
     if(!sb){ $('evTable').innerHTML='<tr><td class="wa-empty">연결이 필요합니다.</td></tr>'; return; }
     var scope=$('evScope')?$('evScope').value:'month';
-    var mv=($('evMonth')&&$('evMonth').value)||ym(new Date());
+    var mv=($('evMonth')&&$('evMonth').value)||kymd().slice(0,7);
     var from=null, to=null;
     if(scope==='month'){
-      var p=mv.split('-'); from=new Date(parseInt(p[0],10), parseInt(p[1],10)-1, 1);
+      var p=mv.split('-'); from=kwall(kISO(mv+'-01','00:00'));   // 서울 기준 그 달 1일
       to=new Date(from); to.setMonth(to.getMonth()+1);
     }
     var now=new Date();
@@ -12007,7 +12098,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source')
                .not('student_id','is',null).order('starts_at',{ascending:true})
                .range(_page*1000, _page*1000+999);
-      if(from){ sq=sq.gte('starts_at',from.toISOString()).lt('starts_at',to.toISOString()); }
+      if(from){ sq=sq.gte('starts_at',kBack(from).toISOString()).lt('starts_at',kBack(to).toISOString()); }
       var sr=await sq;
       if(sr.error||!sr.data||!sr.data.length) break;
       scheds=scheds.concat(sr.data);
@@ -12062,7 +12153,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         if(m.status!=='ended'||m.end_reason!=='quit') return false;
         if(!from) return true;
         if(!m.ended_at) return false;
-        var d=new Date(m.ended_at); return d>=from && d<to;
+        var d=kwall(m.ended_at); return d>=from && d<to;
       });
       var active=myStu.filter(function(m){ return m.status!=='ended'; }).length;
 
@@ -12297,7 +12388,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!sb || !profile || !profile.study || String(profile.status||'')==='ended'){ wrap.style.display='none'; return; }
     box.innerHTML='<div class="wa-book-empty">불러오는 중…</div>';
     wrap.style.display='';
-    var weeks=[], base=new Date(); base.setHours(0,0,0,0);
+    var weeks=[], base=kwallNow(); base.setHours(0,0,0,0);
     for(var w=0; w<2; w++){ var d=new Date(base); d.setDate(d.getDate()+w*7); weeks.push(ymd(d)); }
     var days=[];
     for(var i=0;i<weeks.length;i++){
@@ -12308,7 +12399,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       }
       (r.data||[]).forEach(function(x){ if(!days.some(function(y){return y.day===x.day;})) days.push(x); });
     }
-    var today=ymd(new Date());
+    var today=kymd();
     days=days.filter(function(x){ return x.day>=today; }).sort(function(a,b){ return String(a.day).localeCompare(String(b.day)); });
     if(!days.length){ box.innerHTML='<div class="wa-book-empty">다가오는 스터디가 없어요.</div>'; return; }
     // 회차를 세려면 기준일부터의 쉬는 날이 다 필요하다(study_weekend 는 그 날짜 것만 알려준다).
@@ -12556,7 +12647,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function openBooking(){
     var m=$('waBooking'); if(!m) return;
     m.classList.add('on');
-    if($('waBookDate')){ var t=new Date(); $('waBookDate').min=ymd(t); if(!$('waBookDate').value) $('waBookDate').value=ymd(t); }
+    if($('waBookDate')){ var t=kwallNow(); $('waBookDate').min=ymd(t); if(!$('waBookDate').value) $('waBookDate').value=ymd(t); }
     loadBookSlots(); loadMyBookings();
   }
   function closeBooking(){ if($('waBooking')) $('waBooking').classList.remove('on'); }
@@ -12677,8 +12768,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       해마다 새 일정이 나오면 TOEIC / TS 배열만 갈아 끼우면 된다. */
 (function(){
   var DOW=['일','월','화','수','목','금','토'];
-  var today=new Date(); today.setHours(0,0,0,0);
-  function d(s){ var p=String(s).split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  var today=kwallNow(); today.setHours(0,0,0,0);
+  function d(s){ return kwall(kISO(s,'00:00')); }   // today 와 같은 서울 기준으로 둔다
   function fmt(x){ return (x.getMonth()+1)+'월 '+x.getDate()+'일'; }
   // 해가 넘어가면 연도를 붙인다 — '1월 6일'만 있으면 올해로 오해한다
   function full(x){
