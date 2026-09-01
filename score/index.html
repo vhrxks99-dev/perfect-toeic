@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>토익 점수 계산기 · 성적 분석기 | 완벽한토익</title>
+<meta name="description" content="틀린 개수만 넣으면 난이도 상·중·하별 예상 토익 점수를 바로 알려드립니다. 파트별로 나눠 넣으면 시간이 모자랐던 것인지 실력이 모자랐던 것인지까지 가려 드립니다.">
+<meta name="keywords" content="토익 점수 계산기, 토익 점수 환산기, 토익 예상점수, 토익 환산표, 토익 가채점, 토익 점수 계산, 토익 성적 분석, LC RC 점수, 토익 난이도, 완벽한토익">
+<link rel="canonical" href="https://perfect-toeic.com/score/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="토익 점수 계산기 · 성적 분석기 | 완벽한토익">
+<meta property="og:description" content="틀린 개수만 넣으면 난이도 상·중·하별 예상 점수가 나옵니다. 파트별로 넣으면 시간 문제인지 실력 문제인지까지 알려드립니다.">
+<meta property="og:url" content="https://perfect-toeic.com/score/">
+<meta property="og:image" content="https://perfect-toeic.com/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.ico">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "토익 점수는 틀린 개수로 정확히 계산되나요?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "아닙니다. 토익은 문항마다 배점이 달라, 같은 개수를 맞혀도 회차 난이도에 따라 점수가 달라집니다. 그래서 이 계산기는 난이도 상·중·하 세 가지 점수를 함께 보여드립니다."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "난이도 상·중·하는 무엇을 뜻하나요?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "그 회차가 어려웠는지를 뜻합니다. 어려운 회차(상)일수록 같은 개수를 맞혀도 점수가 높게 나옵니다."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "시간이 모자란 것인지 실력이 모자란 것인지 어떻게 아나요?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "파트별로 틀린 개수를 넣으면 알 수 있습니다. 마지막 10문항(191~200번)에 오답이 몰려 있으면 시간 문제이고, 앞뒤로 고르게 흩어져 있으면 실력 문제입니다. 처방이 서로 다릅니다."
+      }
+    }
+  ]
+}
+</script>
+</head>
+<body>
+
+<style>
+:root{
+  --paper:#F6F8FB; --surface:#FFFFFF; --surface-2:#F2F5FA; --surface-3:#E7EDF6;
+  --ink:#101720; --ink-2:#3C4756; --muted:#77828F;
+  --line:#E4EAF2; --line-2:#CBD5E1;
+  --accent:#1F62E0; --accent-deep:#1349B8; --accent-wash:#E9F0FE;
+  --hot:#C93F22; --hot-wash:#FCEEE9;
+  --cool:#22795A; --cool-wash:#E9F6F0;
+  --sh:0 1px 2px rgba(16,32,64,.04), 0 18px 40px -28px rgba(16,32,64,.28);
+  --f:'IBM Plex Sans KR',system-ui,-apple-system,'Malgun Gothic',sans-serif;
+  --fn:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0B0F14; --surface:#141A21; --surface-2:#1A212A; --surface-3:#232C37;
+    --ink:#E9EEF4; --ink-2:#B2BCC9; --muted:#828E9C;
+    --line:#232C37; --line-2:#374250;
+    --accent:#5E93F5; --accent-deep:#8CB2F8; --accent-wash:#152238;
+    --hot:#EE7050; --hot-wash:#2A1913; --cool:#5CC593; --cool-wash:#13241C;
+    --sh:0 1px 2px rgba(0,0,0,.5), 0 18px 40px -28px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0B0F14; --surface:#141A21; --surface-2:#1A212A; --surface-3:#232C37;
+  --ink:#E9EEF4; --ink-2:#B2BCC9; --muted:#828E9C;
+  --line:#232C37; --line-2:#374250;
+  --accent:#5E93F5; --accent-deep:#8CB2F8; --accent-wash:#152238;
+  --hot:#EE7050; --hot-wash:#2A1913; --cool:#5CC593; --cool-wash:#13241C;
+  --sh:0 1px 2px rgba(0,0,0,.5), 0 18px 40px -28px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f);
+  line-height:1.65;word-break:keep-all;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+.wrap{max-width:680px;margin:0 auto;padding:0 20px}
+button,input,select{font-family:inherit}
+.n{font-family:var(--fn);font-variant-numeric:tabular-nums}
+/* 브라우저 기본 화살표는 끈다 — 우리 스테퍼와 겹친다 */
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+
+.head{padding:56px 0 24px}
+h1{font-size:clamp(26px,5vw,34px);line-height:1.3;letter-spacing:-.04em;font-weight:600;margin:0}
+.draft{font-size:12.5px;color:var(--muted);margin:10px 0 0;font-weight:300}
+
+/* 입력 + 결과를 한 카드에 — 넣는 즉시 위 숫자가 바뀐다 */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--sh);padding:28px 26px;margin:0 0 14px}
+
+.inp{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.f{background:var(--surface-2);border-radius:14px;padding:16px 18px}
+.f label{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin:0 0 8px}
+.f .set{display:flex;align-items:center;gap:8px}
+.f input{width:100%;min-width:0;background:transparent;border:0;padding:0;
+  font-family:var(--fn);font-variant-numeric:tabular-nums;font-size:30px;font-weight:600;
+  color:var(--ink);letter-spacing:-.03em}
+.f input:focus{outline:none}
+.f .of{font-size:13px;color:var(--muted);font-weight:300;flex:none}
+.f .st{display:flex;flex-direction:column;gap:3px;flex:none}
+.f .st button{width:26px;height:19px;border:1px solid var(--line-2);background:var(--surface);
+  color:var(--muted);font-size:10px;line-height:1;border-radius:5px;cursor:pointer;padding:0}
+.f .st button:hover{border-color:var(--accent);color:var(--accent)}
+
+.rule{height:1px;background:var(--line);margin:26px 0 22px}
+
+.score{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.score .v{font-family:var(--fn);font-variant-numeric:tabular-nums;font-size:clamp(52px,13vw,72px);
+  font-weight:600;line-height:1;letter-spacing:-.055em;color:var(--accent-deep)}
+.score .u{font-size:15px;color:var(--muted);font-weight:300}
+.meta{display:flex;gap:20px;flex-wrap:wrap;margin:16px 0 0;font-size:13px;color:var(--muted);font-weight:300}
+.meta b{font-family:var(--fn);font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink-2)}
+.meta span{white-space:nowrap}
+
+/* 회차 난이도에 따라 점수가 갈린다. LC·RC 를 따로 본다 */
+.lv{width:100%;border-collapse:collapse;margin:20px 0 0;table-layout:fixed}
+.lv th,.lv td{padding:11px 8px;text-align:center;border-bottom:1px solid var(--line)}
+.lv thead th{font-size:11.5px;color:var(--muted);font-weight:400;padding-bottom:9px}
+.lv tbody th{font-size:13px;color:var(--muted);font-weight:400;text-align:left;width:52px}
+.lv td{font-family:var(--fn);font-variant-numeric:tabular-nums;font-size:16px;
+  font-weight:500;color:var(--ink-2);letter-spacing:-.02em}
+.lv .on{background:var(--accent-wash)}
+.lv tbody tr:last-child th,.lv tbody tr:last-child td{border-bottom:0}
+.lv .tot th{color:var(--ink);font-weight:500}
+.lv .tot td{font-size:19px;font-weight:600;color:var(--ink)}
+.lv .tot td.on{color:var(--accent-deep)}
+
+/* 펼침 */
+.more{border:1px solid var(--line);border-radius:16px;background:var(--surface);margin:0 0 14px;overflow:hidden}
+.more > summary{cursor:pointer;padding:18px 24px;font-size:14.5px;font-weight:500;list-style:none;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--ink)}
+.more > summary::-webkit-details-marker{display:none}
+.more > summary::after{content:'';width:8px;height:8px;flex:none;border-right:1.5px solid var(--muted);
+  border-bottom:1.5px solid var(--muted);transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
+.more[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.more-in{padding:4px 24px 24px}
+
+.rows{display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  padding:11px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row.sub{padding-left:16px}
+.row .k{font-size:14px;font-weight:400;letter-spacing:-.01em}
+.row .k i{font-style:normal;color:var(--muted);font-size:12px;margin-left:7px;font-family:var(--fn)}
+.row .set{display:flex;align-items:center;gap:8px;flex:none}
+.row input{width:46px;text-align:right;background:transparent;border:0;padding:0;
+  font-family:var(--fn);font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;color:var(--ink)}
+.row input:focus{outline:none}
+.row .of{font-size:12px;color:var(--muted);font-weight:300;width:30px}
+.row .st{display:flex;flex-direction:column;gap:3px}
+.row .st button{width:24px;height:17px;border:1px solid var(--line-2);background:var(--surface);
+  color:var(--muted);font-size:9px;line-height:1;border-radius:4px;cursor:pointer;padding:0}
+.row .st button:hover{border-color:var(--accent);color:var(--accent)}
+
+.guess{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  background:var(--surface-2);border-radius:12px;padding:14px 16px;margin:18px 0 0}
+.guess .k{font-size:14px;font-weight:400}
+.guess .set{display:flex;align-items:center;gap:8px}
+.guess input{width:46px;text-align:right;background:transparent;border:0;padding:0;
+  font-family:var(--fn);font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;color:var(--ink)}
+.guess input:focus{outline:none}
+.guess .of{font-size:12px;color:var(--muted);font-weight:300}
+.guess .st{display:flex;flex-direction:column;gap:3px}
+.guess .st button{width:24px;height:17px;border:1px solid var(--line-2);background:var(--surface);
+  color:var(--muted);font-size:9px;line-height:1;border-radius:4px;cursor:pointer;padding:0}
+.guess .st button:hover{border-color:var(--accent);color:var(--accent)}
+
+/* 진단 */
+.diag{border-radius:14px;padding:20px 22px;margin:20px 0 0}
+.diag.time{background:var(--hot-wash);border-left:3px solid var(--hot)}
+.diag.skill{background:var(--accent-wash);border-left:3px solid var(--accent)}
+.diag.good{background:var(--cool-wash);border-left:3px solid var(--cool)}
+.diag h3{font-size:18px;font-weight:600;margin:0 0 8px;letter-spacing:-.03em}
+.diag p{font-size:14px;color:var(--ink-2);margin:0 0 7px;line-height:1.75;font-weight:300}
+.diag p:last-child{margin:0}
+.diag b{font-family:var(--fn);font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink)}
+
+/* 목표 */
+.goal{margin:22px 0 0}
+.goal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.goal-h span{font-size:14px;font-weight:500}
+.goal-h select{padding:8px 11px;border:1px solid var(--line-2);border-radius:9px;
+  background:var(--surface);color:var(--ink);font-size:13.5px}
+.plan{display:flex;flex-direction:column}
+.plan .p{display:grid;grid-template-columns:1fr auto;gap:14px;padding:9px 0;
+  border-top:1px solid var(--line);font-size:13.5px;font-weight:300;color:var(--ink-2)}
+.plan .p:first-child{border-top:0}
+.plan .p b{font-family:var(--fn);font-variant-numeric:tabular-nums;font-weight:600;color:var(--hot)}
+.plan .p.ok b{color:var(--muted);font-weight:400}
+.pnote{font-size:13px;color:var(--muted);margin:14px 0 0;font-weight:300;line-height:1.7}
+
+/* 아래 링크 */
+.links{display:flex;flex-direction:column;gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:0 0 22px}
+.links a{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  background:var(--surface);padding:16px 20px;text-decoration:none;color:inherit;transition:background .15s}
+.links a:hover{background:var(--surface-2)}
+.links .t{font-size:14.5px;font-weight:500;letter-spacing:-.02em}
+.links .s{display:block;font-size:12.5px;color:var(--muted);font-weight:300;margin-top:2px}
+.links .r{font-family:var(--fn);font-variant-numeric:tabular-nums;font-size:15px;
+  font-weight:600;color:var(--accent-deep);white-space:nowrap}
+.foot{font-size:12px;color:var(--muted);padding:0 0 60px;line-height:1.75;font-weight:300}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<main class="wrap">
+  <header class="head">
+    <h1>토익 성적 분석기</h1>
+  </header>
+
+  <section class="panel">
+    <div class="inp">
+      <div class="f">
+        <label for="q_lc">LC 틀린 개수</label>
+        <div class="set">
+          <input type="number" id="q_lc" min="0" max="100" value="20" inputmode="numeric">
+          <span class="of">/ 100</span>
+          <span class="st">
+            <button type="button" data-q="lc:1" aria-label="LC 늘리기">▲</button>
+            <button type="button" data-q="lc:-1" aria-label="LC 줄이기">▼</button>
+          </span>
+        </div>
+      </div>
+      <div class="f">
+        <label for="q_rc">RC 틀린 개수</label>
+        <div class="set">
+          <input type="number" id="q_rc" min="0" max="100" value="30" inputmode="numeric">
+          <span class="of">/ 100</span>
+          <span class="st">
+            <button type="button" data-q="rc:1" aria-label="RC 늘리기">▲</button>
+            <button type="button" data-q="rc:-1" aria-label="RC 줄이기">▼</button>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="rule"></div>
+
+    <div class="score">
+      <span class="v" id="sv">695</span><span class="u">/ 990</span>
+    </div>
+    <table class="lv">
+      <thead><tr><th></th><th>난이도 상</th><th class="on">중</th><th>하</th></tr></thead>
+      <tbody>
+        <tr><th>LC</th><td class="n" id="lcH">—</td><td class="n on" id="lcN">—</td><td class="n" id="lcE">—</td></tr>
+        <tr><th>RC</th><td class="n" id="rcH">—</td><td class="n on" id="rcN">—</td><td class="n" id="rcE">—</td></tr>
+        <tr class="tot"><th>총점</th><td class="n" id="tH">—</td><td class="n on" id="tN">—</td><td class="n" id="tE">—</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <details class="more" id="more">
+    <summary>파트별로 나눠 보기</summary>
+    <div class="more-in">
+      <div class="rows" id="lcRows"></div>
+      <div class="rows" id="rcRows" style="margin-top:14px"></div>
+
+      <div class="guess">
+        <span class="k">시간이 없어 찍은 문제</span>
+        <span class="set">
+          <input type="number" id="guessIn" min="0" max="200" value="0" inputmode="numeric" aria-label="찍은 문제 개수">
+          <span class="of">문제</span>
+          <span class="st">
+            <button type="button" data-g="5" aria-label="늘리기">▲</button>
+            <button type="button" data-g="-5" aria-label="줄이기">▼</button>
+          </span>
+        </span>
+      </div>
+
+      <div id="diagBox"></div>
+
+      <div class="goal">
+        <div class="goal-h">
+          <span>목표까지 줄일 개수</span>
+          <select id="goalSel" aria-label="목표 점수">
+            <option>600</option><option>700</option><option selected>800</option>
+            <option>900</option><option>950</option>
+          </select>
+        </div>
+        <div class="plan" id="planBox"></div>
+        <p class="pnote" id="planNote"></p>
+      </div>
+    </div>
+  </details>
+
+  <nav class="links">
+    <a href="/#diagnose">
+      <span><span class="t">어떤 유형에서 막히는지 보기</span>
+        <span class="s">완벽한토익 진단테스트</span></span>
+      <span class="r">→</span>
+    </a>
+    <a href="/#examdates" id="nextExam">
+      <span><span class="t" id="neT">다음 토익 시험</span>
+        <span class="s" id="neS"></span></span>
+      <span class="r" id="neD">—</span>
+    </a>
+  </nav>
+
+  <p class="foot">예상치이며 실제 성적과 다를 수 있습니다. TOEIC은 ETS의 등록상표입니다.</p>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  const LC_P = [
+    { id:'p1', nm:'Part 1', n:6,  q:'1–6' },
+    { id:'p2', nm:'Part 2', n:25, q:'7–31' },
+    { id:'p3', nm:'Part 3', n:39, q:'32–70' },
+    { id:'p4', nm:'Part 4', n:30, q:'71–100' }
+  ];
+  const RC_P = [
+    { id:'p5',  nm:'Part 5', n:30, q:'101–130' },
+    { id:'p6',  nm:'Part 6', n:16, q:'131–146' },
+    { id:'p7a', nm:'Part 7 단일', n:29, q:'147–175' },
+    { id:'p7b', nm:'Part 7 연계', n:15, q:'176–190' },
+    { id:'p7z', nm:'마지막 10문항', n:10, q:'191–200', sub:true }
+  ];
+  const ALL = LC_P.concat(RC_P);
+  const SEED = { p1:1, p2:4, p3:8, p4:7, p5:8, p6:4, p7a:8, p7b:4, p7z:6 };
+
+  const LC_T = [[0,5],[5,20],[10,35],[15,55],[20,75],[25,95],[30,115],[35,140],[40,165],
+                [45,190],[50,215],[55,240],[60,265],[65,295],[70,320],[75,355],[80,385],
+                [85,415],[90,450],[95,480],[98,490],[100,495]];
+  const RC_T = [[0,5],[5,15],[10,30],[15,45],[20,60],[25,80],[30,100],[35,120],[40,145],
+                [45,170],[50,195],[55,225],[60,250],[65,280],[70,310],[75,340],[80,370],
+                [85,395],[90,425],[95,460],[98,480],[100,495]];
+
+  const $ = (id) => document.getElementById(id);
+  const cl = (v,a,b) => Math.max(a, Math.min(b, v));
+  const wrong = {};
+  let guessed = 0, deep = false;
+  const q = { lc: 20, rc: 30 };
+
+  function raw(t, n) {
+    n = cl(n, 0, 100);
+    for (let i = 0; i < t.length - 1; i++) {
+      const [x1,y1] = t[i], [x2,y2] = t[i+1];
+      if (n >= x1 && n <= x2) { const r = x2===x1?0:(n-x1)/(x2-x1); return y1 + (y2-y1)*r; }
+    }
+    return t[t.length-1][1];
+  }
+  const adj = (b,d) => cl(Math.round((b + d*20*Math.max(0, Math.min(b-5,495-b)/245))/5)*5, 5, 495);
+
+  function row(p) {
+    return '<div class="row' + (p.sub ? ' sub' : '') + '">' +
+      '<span class="k">' + p.nm + '<i>' + p.q + '</i></span>' +
+      '<span class="set">' +
+        '<input type="number" id="i_' + p.id + '" min="0" max="' + p.n + '" value="' + (SEED[p.id]||0) + '" inputmode="numeric" aria-label="' + p.nm + '">' +
+        '<span class="of">/ ' + p.n + '</span>' +
+        '<span class="st"><button type="button" data-d="' + p.id + ':1" aria-label="늘리기">▲</button>' +
+        '<button type="button" data-d="' + p.id + ':-1" aria-label="줄이기">▼</button></span>' +
+      '</span></div>';
+  }
+
+  function build() {
+    ALL.forEach((p) => { wrong[p.id] = SEED[p.id] || 0; });
+    $('lcRows').innerHTML = LC_P.map(row).join('');
+    $('rcRows').innerHTML = RC_P.map(row).join('');
+
+    document.querySelectorAll('[data-d]').forEach((b) => b.addEventListener('click', () => {
+      const [id, d] = b.dataset.d.split(':'); setPart(id, wrong[id] + +d);
+    }));
+    ALL.forEach((p) => $('i_' + p.id).addEventListener('input', (e) => setPart(p.id, e.target.value)));
+    document.querySelectorAll('[data-q]').forEach((b) => b.addEventListener('click', () => {
+      const [k, d] = b.dataset.q.split(':'); setQ(k, q[k] + +d);
+    }));
+    ['lc','rc'].forEach((k) => $('q_' + k).addEventListener('input', (e) => setQ(k, e.target.value)));
+    document.querySelectorAll('[data-g]').forEach((b) => b.addEventListener('click', () => setGuess(guessed + +b.dataset.g)));
+    $('guessIn').addEventListener('input', (e) => setGuess(e.target.value));
+    $('goalSel').addEventListener('change', render);
+    $('more').addEventListener('toggle', () => {
+      // 펼치는 순간, 위에 넣은 총 개수를 파트에 비례해 나눠 담는다
+      if ($('more').open && !deep) { spread(); deep = true; }
+      render();
+    });
+  }
+
+  /* 총 개수만 넣고 펼쳤을 때 파트 칸이 0이면 다시 넣어야 한다.
+     이미 넣은 숫자를 문항 수 비례로 흩어 두면 바로 이어서 고칠 수 있다. */
+  function spread() {
+    [[LC_P, q.lc], [RC_P, q.rc]].forEach(([parts, total]) => {
+      const cap = parts.reduce((s,p) => s + p.n, 0);
+      let left = Math.min(total, cap);
+      parts.forEach((p, i) => {
+        const v = i === parts.length - 1 ? left : Math.min(p.n, Math.round(total * p.n / cap));
+        wrong[p.id] = cl(v, 0, p.n); left -= wrong[p.id];
+      });
+      if (left > 0) parts.forEach((p) => {
+        const room = p.n - wrong[p.id], add = Math.min(room, left);
+        wrong[p.id] += add; left -= add;
+      });
+      parts.forEach((p) => { $('i_' + p.id).value = wrong[p.id]; });
+    });
+  }
+
+  function setPart(id, v) {
+    const p = ALL.find((x) => x.id === id);
+    wrong[id] = cl(parseInt(v,10) || 0, 0, p.n);
+    $('i_' + id).value = wrong[id];
+    const s = sums(); q.lc = s.lcW; q.rc = s.rcW;
+    $('q_lc').value = q.lc; $('q_rc').value = q.rc;
+    render();
+  }
+  function setQ(k, v) {
+    q[k] = cl(parseInt(v,10) || 0, 0, 100);
+    $('q_' + k).value = q[k];
+    if ($('more').open) { spread(); }
+    render();
+  }
+  function setGuess(v) { guessed = cl(parseInt(v,10) || 0, 0, 200); $('guessIn').value = guessed; render(); }
+  const sums = () => ({
+    lcW: LC_P.reduce((s,p) => s + wrong[p.id], 0),
+    rcW: RC_P.reduce((s,p) => s + wrong[p.id], 0)
+  });
+
+  function render() {
+    const lcW = q.lc, rcW = q.rc;
+    const lb = raw(LC_T, 100 - lcW), rb = raw(RC_T, 100 - rcW);
+    const lc = adj(lb,0), rc = adj(rb,0);
+    $('sv').textContent = lc + rc;
+    const lH = adj(lb,1), lE = adj(lb,-1), rH = adj(rb,1), rE = adj(rb,-1);
+    $('lcH').textContent = lH; $('lcN').textContent = lc; $('lcE').textContent = lE;
+    $('rcH').textContent = rH; $('rcN').textContent = rc; $('rcE').textContent = rE;
+    $('tH').textContent = lH + rH; $('tN').textContent = lc + rc; $('tE').textContent = lE + rE;
+    if ($('more').open) { diagnose(lcW + rcW); plan(lc + rc, lc, rc, lcW, rcW); }
+  }
+
+  function diagnose(totW) {
+    const z = wrong.p7z, zr = z / 10;
+    const fw = wrong.p5 + wrong.p6 + wrong.p7a + wrong.p7b, fr = fw / 90;
+    let cls, h, b;
+    if (guessed >= 5 || (zr >= 0.5 && zr >= fr * 1.8)) {
+      cls = 'time'; h = '실력보다 시간이 모자랐습니다';
+      const bits = [];
+      if (guessed > 0) bits.push('<b>' + guessed + '문제</b>를 찍으셨고');
+      if (z > 0) bits.push('마지막 10문항에서 <b>' + z + '개</b>를 틀리셨습니다');
+      b = '<p>' + (bits.join(', ') || '뒤쪽에 오답이 몰려 있습니다') +
+        '. 앞쪽 오답률 <b>' + Math.round(fr*100) + '%</b>, 마지막 10문항 <b>' + Math.round(zr*100) + '%</b>.</p>' +
+        '<p>단어를 더 외워도 오르지 않습니다. 푸는 순서를 바꾸고 버릴 문제를 정하는 훈련이 먼저입니다.</p>';
+    } else if (totW <= 10) {
+      cls = 'good'; h = '고르게 잘 푸셨습니다';
+      b = '<p>몰린 구간이 없습니다. 틀린 문제를 하나씩 뜯어보는 쪽이 점수가 더 오릅니다.</p>';
+    } else {
+      cls = 'skill'; h = '시간보다 내용이 문제였습니다';
+      const w = worst();
+      b = '<p>오답이 고르게 흩어져 있습니다. 아는 만큼 나온 결과입니다.</p>' +
+        (w ? '<p><b>' + w.nm + '</b>에서 ' + w.w + '개(' + w.n + '문항 중)로 가장 많이 틀리셨습니다.</p>' : '');
+    }
+    $('diagBox').innerHTML = '<div class="diag ' + cls + '"><h3>' + h + '</h3>' + b + '</div>';
+  }
+
+  function worst() {
+    let b = null;
+    ALL.forEach((p) => { const r = wrong[p.id]/p.n; if (!b || r > b.r) b = { nm:p.nm, w:wrong[p.id], n:p.n, r }; });
+    return b && b.w > 0 ? b : null;
+  }
+
+  function plan(now, lc, rc, lcW, rcW) {
+    const g = +$('goalSel').value, box = $('planBox');
+    if (now >= g) {
+      box.innerHTML = '<div class="p ok"><span>목표 ' + g + '점을 넘었습니다</span><b>—</b></div>';
+      $('planNote').textContent = '';
+      return;
+    }
+    const tilt = cl((lc - rc)/4, -60, 60);
+    const nl = cl(Math.round(g/2 + tilt), 5, 495), nr = cl(g - nl, 5, 495);
+    const cnt = (t,s) => { for (let n = 0; n <= 100; n++) if (raw(t,n) >= s) return n; return 100; };
+    const rows = [];
+    [[LC_P, lcW, 100 - cnt(LC_T, nl)], [RC_P, rcW, 100 - cnt(RC_T, nr)]].forEach(([ps, cur, ok]) => {
+      const cut = Math.max(0, cur - ok);
+      ps.forEach((p) => {
+        const c = Math.round(cut * (cur > 0 ? wrong[p.id]/cur : 0));
+        rows.push('<div class="p' + (c ? '' : ' ok') + '"><span>' + p.nm + '</span><b>' + (c ? '−' + c : '—') + '</b></div>');
+      });
+    });
+    box.innerHTML = rows.join('');
+    const w = worst();
+    $('planNote').textContent = (g - now) + '점 남았습니다.' + (w ? ' ' + w.nm + '부터 줄이는 게 가장 빠릅니다.' : '');
+  }
+
+  const TOEIC = [
+    ['제575회','2026-08-09','2026-08-18'],['제576회','2026-08-23','2026-09-03'],
+    ['제577회','2026-08-30','2026-09-08'],['제578회','2026-09-06','2026-09-15'],
+    ['제579회','2026-09-20','2026-09-29'],['제580회','2026-10-11','2026-10-20'],
+    ['제581회','2026-10-31','2026-11-10'],['제582회','2026-11-15','2026-11-24'],
+    ['제583회','2026-11-29','2026-12-08'],['제584회','2026-12-13','2026-12-22'],
+    ['제585회','2026-12-27','2027-01-06']
+  ];
+  const DOW = ['일','월','화','수','목','금','토'];
+  function nextExam() {
+    const n = new Date(), today = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+    const P = (s) => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+    const r = TOEIC.find((x) => P(x[1]) >= today);
+    if (!r) { $('nextExam').style.display = 'none'; return; }
+    const ex = P(r[1]), left = Math.round((ex - today)/86400000);
+    $('neT').textContent = r[0] + ' ' + (ex.getMonth()+1) + '월 ' + ex.getDate() + '일(' + DOW[ex.getDay()] + ')';
+    $('neS').textContent = '시험일정 전체 보기';
+    $('neD').textContent = left === 0 ? '오늘' : 'D-' + left;
+  }
+
+  build(); nextExam(); render();
+})();
+</script>
+
+</body>
+</html>
