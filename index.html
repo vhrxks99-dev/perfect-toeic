@@ -709,6 +709,15 @@
         <a href="#apply-form">수강 신청</a>
         <div class="submenu"><a href="#apply-form">수강신청 문의</a><a href="#books">교재</a><a href="#payment">결제</a><a href="#faq">자주 묻는 질문</a></div>
       </div>
+      <!-- 무료로 써보는 도구 묶음 (원장 지시 2026-09-02).
+           점수 환산기·레벨 테스트·단어 테스트·시험 일정은 성격이 같은데
+           흩어져 있었다. 시험 일정은 아예 어느 메뉴에도 없었고,
+           점수 환산기(/score/)는 주소를 직접 쳐야만 들어갈 수 있었다.
+           검색으로 환산기에 들어온 사람이 레벨 테스트까지 보게 하는 자리이기도 하다. -->
+      <div class="navitem">
+        <a href="#leveltest">무료 학습</a>
+        <div class="submenu"><a href="/score/">토익 점수 환산기</a><a href="#leveltest">레벨 테스트</a><a href="#voca">단어 테스트</a><i class="msep"></i><a href="#examdates">시험 일정</a></div>
+      </div>
       <div class="navitem"><a href="#reviews">수강 후기</a></div>
       <div class="navitem"><a href="#library">자료실</a></div>
     </nav>
@@ -735,10 +744,10 @@
       <a href="#course-toeic" data-close>토익</a><a href="#course-speaking" data-close>토익스피킹</a><a href="#course-opic" data-close>오픽</a><a href="#course-conversation" data-close>영어회화</a><a href="#offline" data-close>대면 수업</a><a href="#online" data-close>비대면 수업</a></div></div>
     <div class="dgroup"><span>수강 신청</span><div class="dsub">
       <a href="#apply-form" data-close>수강신청 문의</a><a href="#books" data-close>교재</a><a href="#payment" data-close>결제</a><a href="#faq" data-close>자주 묻는 질문</a></div></div>
+    <div class="dgroup"><span>무료 학습</span><div class="dsub">
+      <a href="/score/" data-close>토익 점수 환산기</a><a href="#leveltest" data-close>레벨 테스트</a><a href="#voca" data-close>단어 테스트</a><a href="#examdates" data-close>시험 일정</a></div></div>
     <div class="dgroup"><a class="dtop" href="#reviews" data-close>수강 후기</a></div>
     <div class="dgroup"><a class="dtop" href="#library" data-close>자료실</a></div>
-    <div class="dgroup"><a class="dtop" href="#leveltest" data-close>완토 진단 테스트</a></div>
-    <div class="dgroup"><a class="dtop" href="#voca" data-close>VOCA 단어테스트</a></div>
     <div class="dgroup"><a class="dtop" href="#location" data-close>오시는 길</a></div>
     <a href="#apply-form" class="btn btn-primary" data-close>수강신청 문의 →</a>
   </div>
@@ -3238,6 +3247,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           <a href="#payment">결제</a></div>
         <!-- 2026-08-25 상단 메뉴를 5개로 줄이면서 여기로 내린 항목들.
              상단에서 뺐다고 링크까지 없애면 안 되므로 반드시 남겨 둘 것. -->
+        <div class="col"><h5>무료 학습</h5>
+          <a href="/score/">토익 점수 환산기</a><a href="#leveltest">레벨 테스트</a>
+          <a href="#voca">단어 테스트</a><a href="#examdates">시험 일정</a></div>
         <div class="col"><h5>안내</h5>
           <a href="#faq">자주 묻는 질문</a><a href="#notice">공지사항</a>
           <a href="#library">자료실</a><a href="#outreach">출강문의</a>
