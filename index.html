@@ -3730,7 +3730,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <label>생년월일 <span class="wa-hint">(6자리)</span><input type="text" id="waSuBirth" maxlength="6" inputmode="numeric" placeholder="예: 940107"></label>
         <label>성별<select id="waSuGender"><option value="">선택 안 함</option><option>남성</option><option>여성</option></select></label>
       </div>
-      <label>관심 과목<select id="waSuInterest"><option value="">선택하세요</option><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option><option>토익+스피킹</option></select></label>
+      <label>관심 과목 <em>*</em><select id="waSuInterest" required><option value="">선택하세요</option><option>토익</option><option>토익스피킹</option><option>영어회화</option><option>오픽</option><option>토익+스피킹</option></select></label>
       <label>알게 된 경로<select id="waSuRoute"><option value="">선택하세요</option><option>인스타그램</option><option>네이버</option><option>숨고</option><option>지인 추천</option><option>블로그</option><option>기타</option></select></label>
       <label>희망 선생님 <span class="wa-hint">(선택 · 학원에서 확인 후 정해집니다)</span><select id="waSuTeacher"><option value="">아직 정하지 않았어요</option></select></label>
       <label class="wa-check"><input type="checkbox" id="waSuMarketing"><span>이벤트·개강·혜택 등 마케팅 정보 수신에 동의합니다. <span class="wa-hint">(선택)</span></span></label>
@@ -5176,7 +5176,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       </div>
       <div class="wa-row">
         <label>생년월일 <span class="wa-hint">(6자리)</span><input type="text" id="myBirth" maxlength="6" inputmode="numeric" placeholder="예: 940107"></label>
-        <label>관심 과목<select id="myInterest"><option value="">선택</option><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option><option>토익+스피킹</option></select></label>
+        <label>관심 과목<select id="myInterest"><option value="">선택</option><option>토익</option><option>토익스피킹</option><option>영어회화</option><option>오픽</option><option>토익+스피킹</option></select></label>
       </div>
       <div class="wa-row">
         <label>현재 점수<input type="text" id="myCurrent" maxlength="20"></label>
@@ -5316,7 +5316,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-form on" style="display:flex">
       <label>이름<input type="text" id="waEName"></label>
       <label>휴대폰 번호<input type="tel" id="waEPhone" placeholder="010-1234-5678"></label>
-      <label>관심 과목<input type="text" id="waEInterest" placeholder="토익 / 토익스피킹 / 오픽 / 영어회화"></label>
+      <label>관심 과목<select id="waEInterest"><option value="">선택</option><option>토익</option><option>토익스피킹</option><option>영어회화</option><option>오픽</option><option>토익+스피킹</option></select></label>
       <div class="wa-row">
         <label>현재 점수<input type="text" id="waECurrent"></label>
         <label>목표 점수<input type="text" id="waEGoal"></label>
@@ -5401,6 +5401,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var birth=$('waSuBirth').value, gender=$('waSuGender').value, interest=$('waSuInterest').value, current=$('waSuCurrent').value.trim(), goal=$('waSuGoal').value.trim(), route=$('waSuRoute').value, marketing=$('waSuMarketing').checked;
     var err=$('waSuErr'); err.textContent='';
     if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·휴대폰 번호·비밀번호는 필수입니다.'; return; }
+    if(!interest){ err.textContent='관심 과목을 골라주세요.'; $('waSuInterest').focus(); return; }
     if(pw.length<4){ err.textContent='비밀번호는 4자 이상이어야 합니다.'; return; }
     if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
     if(!$('waSuAgree').checked){ err.textContent='개인정보 수집·이용에 동의해주세요.'; return; }
@@ -5548,6 +5549,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var birth=$('waSuBirth').value.trim()||null, gender=$('waSuGender').value||null, interest=$('waSuInterest').value||null;
     var route=$('waSuRoute').value||null, marketing=$('waSuMarketing').checked;
     if(!name||!email||!pw||!phone){ err.textContent='이름·이메일·휴대폰 번호·비밀번호는 필수입니다.'; return; }
+    // 안 고르고 가입한 사람이 19명이라 나중에 손으로 채웠다(원장 지시 2026-09-02).
+    if(!interest){ err.textContent='관심 과목을 골라주세요.'; $('waSuInterest').focus(); return; }
     var badv = badName(name)||badEmail(email)||badPhone(phone);
     if(badv){ err.textContent=badv; return; }
     phone = fmtPhone(phone);
@@ -6337,7 +6340,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function openEdit(u){
     editingId=u.id;
     $('waEditEmail').textContent=u.email;
-    $('waEName').value=u.name||''; $('waEPhone').value=u.phone||''; $('waEInterest').value=u.interest||'';
+    $('waEName').value=u.name||''; $('waEPhone').value=u.phone||'';
+    setInterestSel($('waEInterest'), u.interest);
     $('waECurrent').value=u.current_score||''; $('waEGoal').value=u.goal_score||''; $('waERoute').value=u.route||'';
     if($('waEPeriod')) $('waEPeriod').value=u.goal_period||'';
     editingRole=u.role||'student'; editingTeacher=u.teacher_id||'';
@@ -7190,6 +7194,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
 
   function pad(n){ return (n<10?'0':'')+n; }
+  // 관심 과목 고르기 칸에 값을 넣는다. 예전에 손으로 적어 둔 값이 목록에 없으면
+  // 그 값을 항목으로 끼워 넣는다 — 안 그러면 저장할 때 값이 조용히 지워진다.
+  function setInterestSel(el, v){
+    if(!el) return; v=String(v||'').trim();
+    if(v && !Array.prototype.some.call(el.options, function(o){ return o.value===v || o.text===v; })){
+      var o=document.createElement('option'); o.value=v; o.text=v; el.appendChild(o);
+    }
+    el.value=v;
+  }
   function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function ym(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1); }
   function fmtDT(iso){ if(!iso) return '-'; var d=kwall(iso); return pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
@@ -12186,7 +12199,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('myPhone')) $('myPhone').value=profile.phone||'';
     if($('myGender')) $('myGender').value=profile.gender||'';
     if($('myBirth')) $('myBirth').value=profile.birth||'';
-    if($('myInterest')) $('myInterest').value=profile.interest||'';
+    if($('myInterest')) setInterestSel($('myInterest'), profile.interest);
     if($('myCurrent')) $('myCurrent').value=profile.current_score||'';
     if($('myGoal')) $('myGoal').value=profile.goal_score||'';
     if($('myMarketing')) $('myMarketing').checked=!!profile.marketing;
