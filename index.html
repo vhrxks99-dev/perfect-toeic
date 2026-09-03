@@ -4944,7 +4944,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                (2026-08-17 최소 횟수 제한 자체를 없앴다 — 4회만 끊는 학생도 있다.) -->
           <!-- 2026-08-25 「환불」을 뺐다(원장 지시). 아래 「🧾 환불 계산기」가 회차·강사 몫까지
                한 번에 처리하는데, 여기서 금액만 손으로 넣으면 그 계산을 건너뛰게 된다. -->
-          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
+          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"><span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span></label>
@@ -5297,7 +5297,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-sub" id="pyeStudent"></div>
     <div class="wa-form on" style="display:flex">
       <div class="wa-row">
-        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="refund">환불</option></select></label>
+        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
         <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"><span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span></label>
@@ -10384,6 +10384,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var net = p.teacher_id ? (won(s.net)+' <span style="color:var(--muted);font-size:11.5px">('+s.rate+'%)</span>') : '-';
       var vat = p.vat ? '<span style="color:var(--muted)">'+won(p.vat)+'</span>' : '-';
       var otTag = (p.kind==='ot') ? ' <span style="font-size:11px;font-weight:800;color:#8a5a00;background:#fff6e5;border-radius:5px;padding:2px 5px">사전 OT</span>' : '';
+      // 스터디비용도 딱지를 붙인다 — 수업료와 섞여 보이면 매출을 잘못 읽는다.
+      if(p.kind==='study') otTag = ' <span style="font-size:11px;font-weight:800;color:#0a6b4a;background:#e8f6ef;border-radius:5px;padding:2px 5px">스터디</span>';
       h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
@@ -10533,7 +10535,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!amount||amount<=0){ err.textContent='금액을 입력하세요.'; return; }
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
     var kv=$('pyKind')?$('pyKind').value:'payment';
-    var kind=(kv==='refund')?'refund':((kv==='ot')?'ot':'payment');
+    // 아는 종류면 그대로 쓴다. 모르는 값이 오면 수납으로 본다.
+    var kind=(['refund','ot','study'].indexOf(kv)>=0)?kv:'payment';
     // 환불은 돌려준 횟수만큼 남은 횟수에서 빼야 한다(원장 지시 2026-08-18).
     // 전에는 0으로 지웠는데, 그러면 결제 때 더한 횟수가 그대로 남는다.
     // 2026-08-18 김지영 건 — 오티 1회를 환불했는데 횟수가 안 빠져서, 나중에 정규 등록을
@@ -10554,6 +10557,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
     if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
     if(kind==='ot' && !sessions){ err.textContent='사전 OT 는 횟수를 1회로 넣어주세요.'; return; }
+    // 스터디비용은 수업 횟수와 상관없다. 회차 계산도 payment·ot 만 세므로 남은 횟수에 영향이 없다.
+    if(kind==='study') sessions=0;
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
     if(!vatGuardOK(amount, vat)){ if($('pyVat')) $('pyVat').focus(); return; }
@@ -10604,7 +10609,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     editingPayId=p.id;
     if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
     if($('pyeKind')){
-      $('pyeKind').value=(p.kind==='refund')?'refund':((p.kind==='ot')?'ot':'payment');
+      $('pyeKind').value=(['refund','ot','study'].indexOf(p.kind)>=0)?p.kind:'payment';
       // 이미 환불인 줄은 그대로 고칠 수 있어야 하지만, 멀쩡한 수납을 여기서 환불로
       // 바꾸는 길은 막는다. 새 환불은 환불 계산기로만 만든다(2026-08-25 원장 지시).
       var _ro=$('pyeKind').querySelector('option[value="refund"]');
@@ -10670,7 +10675,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
     var sessions=parseInt($('pyeSessions').value,10)||0;
     var ekv=$('pyeKind')?$('pyeKind').value:'payment';
-    var ekind=(ekv==='refund')?'refund':((ekv==='ot')?'ot':'payment');
+    var ekind=(['refund','ot','study'].indexOf(ekv)>=0)?ekv:'payment';
     if(ekind==='refund') sessions=-Math.abs(sessions);   // 등록 폼과 같은 규칙(2026-08-18)
     // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
