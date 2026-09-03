@@ -3694,6 +3694,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-table{width:100%;border-collapse:collapse;font-size:13px}
 .wa-table th{position:sticky;top:0;background:var(--surface-2);text-align:left;padding:10px 12px;font-weight:800;border-bottom:1px solid var(--line);white-space:nowrap}
 .wa-table td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--ink-soft)}
+/* 메모 칸이 한 글자씩 세로로 늘어지던 것(원장 지적 2026-09-03).
+   열이 많아 휴대폰에서 이 칸만 손가락 너비로 눌렸다. 최소 너비를 주고
+   낱말이 통째로 넘어가게 한다. 표는 원래 가로로 밀리므로 잘리지 않는다. */
+.wa-table td.tb-memo{min-width:108px;word-break:keep-all;line-height:1.55}
+@media(max-width:640px){ .wa-table td.tb-memo{min-width:92px} }
 .wa-table tr:last-child td{border-bottom:none}
 .wa-empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
 @media(max-width:600px){ #waAuth .wa-user{display:none} }
@@ -10507,7 +10512,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var otTag = (p.kind==='ot') ? ' <span style="font-size:11px;font-weight:800;color:#8a5a00;background:#fff6e5;border-radius:5px;padding:2px 5px">사전 OT</span>' : '';
       // 스터디비용도 딱지를 붙인다 — 수업료와 섞여 보이면 매출을 잘못 읽는다.
       if(p.kind==='study') otTag = ' <span style="font-size:11px;font-weight:800;color:#0a6b4a;background:#e8f6ef;border-radius:5px;padding:2px 5px">스터디</span>';
-      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td>'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td class="tb-memo">'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
