@@ -10195,8 +10195,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var tmap={}; (_members||[]).forEach(function(m){ tmap[m.id]=m.name; });
     var groups={}, order=[], guessed=false, unassigned=0, unassignedCnt=0;
     rows.forEach(function(p){
-      var key=p.teacher_id||'';
-      if(!groups[key]){ groups[key]={ name:(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정'), amount:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
+      // 스터디비용은 학원 몫이다. 강사 정산에 섞이면 안 되고,
+      // 담당이 비어 있다고 '담당 빠뜨림' 경고에 잡혀서도 안 된다(원장 지적 2026-09-03).
+      var key=(p.kind==='study') ? '__study__' : (p.teacher_id||'');
+      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
       if(!isRefundSide(p)) groups[key].allRefund=false;
       var s=payShare(p);
       // 담당 미지정 건은 배분 자체를 안 하므로 '배분율 없음' 경고 대상이 아니다.
@@ -10208,10 +10210,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     });
     // 담당이 정해지지 않은 건은 누구 몫인지 모르므로 강사 몫을 계산하지 않는다.
     if(groups['']){ groups[''].gross=0; groups[''].fee=0; groups[''].tax=0; groups[''].net=0; }
+    // 스터디비용도 마찬가지 — 학원이 갖는 돈이라 강사 몫·원천징수가 없다.
+    if(groups['__study__']){ var _st=groups['__study__']; _st.gross=0; _st.fee=0; _st.tax=0; _st.net=0; }
     var totAmount=0, totGross=0, totTax=0, totNet=0;
     order.forEach(function(k){ totAmount+=groups[k].amount; totGross+=groups[k].gross; totTax+=groups[k].tax; totNet+=groups[k].net; });
     // 강사 먼저, 미지정은 맨 뒤로
-    order.sort(function(a,b){ if(!a) return 1; if(!b) return -1; return groups[b].net-groups[a].net; });
+    // 강사 먼저, 그다음 스터디(학원 몫), 담당 미지정은 맨 뒤
+    function _rank(k){ return !k ? 2 : (k==='__study__' ? 1 : 0); }
+    order.sort(function(a,b){
+      if(_rank(a)!==_rank(b)) return _rank(a)-_rank(b);
+      return groups[b].net-groups[a].net;
+    });
 
     var h='';
     order.forEach(function(k){
