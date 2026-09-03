@@ -11026,25 +11026,63 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
                     .filter(function(x){ return x.rem<=2 && hasSessionsEver(x.s.id) && !alreadyHandled(x.s.id); })
                     .sort(function(a,b){ return a.rem-b.rem; });
-    // 오늘 나간 안내. 목록이 비었을 때 칸을 통째로 숨기면 기능이 죽은 줄 아신다
+    // 나간 안내. 목록이 비었을 때 칸을 통째로 숨기면 기능이 죽은 줄 아신다
     // (2026-08-14 원장 "하나로 합친 거 맞아? 모바일에 안 뜨는데?" — 사실은 대상이 0명이었다).
-    // 그래서 '없습니다'라고 적고, 오늘 나간 것을 같이 보여준다.
+    // 그래서 '없습니다'라고 적고, 나간 것을 같이 보여준다.
+    // 🔄 2026-09-03 원장 지시 — 전에는 '오늘 것'만 보여서 어제 나간 것도 확인이 안 됐다.
+    //    ("유라엘 알림톡 나간 거 맞아? 왜 나간 안내에서 안 떠?" — 8/31 에 정상 발송된 건이었다)
+    //    최근 7일치를 날짜별로 묶어서 보여준다.
     var nameById={};
     (_members||[]).forEach(function(m){ nameById[String(m.id)]=m.name; });
     var todayStr=kymd();
-    var sentToday=(notif||[]).filter(function(n){
-      return n.sent_at && kymd(n.sent_at)===todayStr;
-    });
-    var sentLine = sentToday.length
-      ? '<div style="margin-top:8px"><b style="color:#0f7a52">✅ 오늘 나간 안내 · '+sentToday.length+'명</b>'
-        + '<div style="margin-top:4px;line-height:1.9">'
-        + sentToday.map(function(n){
-            return '<span style="display:inline-block;margin-right:14px"><b>'
-                 + esc(nameById[String(n.student_id)]||'-')+'</b> '
-                 + '<span style="color:var(--muted);font-weight:700">'+esc(hm(n.sent_at))+'</span></span>';
+    var since7=kwallNow(); since7.setDate(since7.getDate()-6); since7.setHours(0,0,0,0);
+    var sinceStr=ymd(since7);
+    var sentRecent=(notif||[]).filter(function(n){
+      return n.sent_at && kymd(n.sent_at)>=sinceStr;
+    }).sort(function(a,b){ return String(b.sent_at).localeCompare(String(a.sent_at)); });
+    var sentLine='';
+    if(sentRecent.length){
+      // 날짜별로 묶는다 — 한 줄에 죽 늘어놓으면 언제 나간 건지 안 보인다.
+      var byDay={}, dayOrder=[];
+      sentRecent.forEach(function(n){
+        var d=kymd(n.sent_at);
+        if(!byDay[d]){ byDay[d]=[]; dayOrder.push(d); }
+        byDay[d].push(n);
+      });
+      sentLine='<div style="margin-top:8px"><b style="color:#0f7a52">✅ 최근 7일 나간 안내 · '
+             + sentRecent.length+'명</b>'
+             + dayOrder.map(function(d){
+                 var lbl = (d===todayStr) ? '오늘' : d.slice(5).replace('-','/');
+                 return '<div style="margin-top:4px;line-height:1.9">'
+                      + '<span style="display:inline-block;min-width:44px;color:var(--muted);font-weight:800">'+esc(lbl)+'</span>'
+                      + byDay[d].map(function(n){
+                          return '<span style="display:inline-block;margin-right:14px"><b>'
+                               + esc(nameById[String(n.student_id)]||n.student_name||'-')+'</b> '
+                               + '<span style="color:var(--muted);font-weight:700">'+esc(hm(n.sent_at))+'</span></span>';
+                        }).join('')
+                      + '</div>';
+               }).join('')
+             + '</div>';
+    }
+    // 🚨 보낼 때 조건이 안 맞아 건너뛴 채로 굳어 버린 줄. 지금은 조건이 맞는데도 안 나간다.
+    //    (발송기가 tries 를 3 까지 올려 영구 제외해 버린 것 — 2026-09-03 발견)
+    var stuck=(notif||[]).filter(function(n){
+      return !n.sent_at && (n.tries||0)>=3 && /남은 횟수가/.test(String(n.error||''));
+    }).map(function(n){
+      var nm=nameById[String(n.student_id)]||n.student_name||'-';
+      return { n:n, name:nm, rem:remainDoneOf(n.student_id) };
+    }).filter(function(x){ return x.rem<=1; });
+    if(stuck.length){
+      sentLine += '<div style="margin-top:8px;background:#fff4f4;border:1px solid #f0c8c8;border-radius:9px;padding:9px 12px">'
+        + '<b style="color:#c0342b">⚠️ 안 나간 채로 멈춘 안내 · '+stuck.length+'명</b>'
+        + '<div style="margin-top:3px;line-height:1.9">'
+        + stuck.map(function(x){
+            return '<span style="display:inline-block;margin-right:14px"><b>'+esc(x.name)+'</b> '
+                 + '<span style="font-weight:800">남은 '+x.rem+'회</span></span>';
           }).join('')
-        + '</div></div>'
-      : '';
+        + '</div><div style="margin-top:3px;color:var(--muted);font-weight:700;font-size:12px">'
+        + '대기열에 올릴 때와 보낼 때 횟수가 달라져 건너뛴 건들입니다. 지금은 조건이 맞으니 손으로 챙겨 주세요.</div></div>';
+    }
     if(!due.length){
       $('attDue').innerHTML='💳 <b>결제 안내</b> <span style="color:var(--muted);font-weight:700">지금 안내가 필요한 학생은 없습니다.</span>'
         + sentLine;

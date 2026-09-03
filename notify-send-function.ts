@@ -146,10 +146,22 @@ Deno.serve(async (req) => {
       // 대기열에 들어간 뒤 상황이 바뀌었을 수 있다. 보내는 순간 다시 확인한다.
       const { data: left } = await db.rpc("sessions_left_done", { p_student: r.student_id });
       if (left !== 1) {
-        await db.from("notify_outbox")
-          .update({ error: `보낼 때 남은 횟수가 ${left}회라 건너뜀`, tries: (r.tries ?? 0) + 1 })
-          .eq("id", r.id);
-        out.push({ id: r.id, who: r.student_name, skipped: `남은 ${left}회` });
+        // 🚨 2026-09-03 고침 — 전에는 여기서 tries 를 올렸다. 30분마다 도니까 두 시간이면
+        //    tries 가 3 이 되어 **영영 제외**됐고, 나중에 다시 1회가 돼도 안 나갔다.
+        //    (맹진영·명순형 학생이 이렇게 묻혔다. 원장 지적 "안 나가는 경우가 없어야 해")
+        //    이건 실패가 아니라 '아직 때가 아님'이다. 실패로 세면 안 된다.
+        //    · 아직 남은 게 많다(2회 이상) → 줄을 지운다. 다시 1회가 되면
+        //      30분마다 도는 scan_payment_due 가 새로 넣어 준다.
+        //    · 이미 0회 이하로 지나갔다 → 자동으로는 못 잡는다. 줄을 남겨 화면에서 보이게 한다.
+        if ((left ?? 0) > 1) {
+          await db.from("notify_outbox").delete().eq("id", r.id);
+          out.push({ id: r.id, who: r.student_name, requeued: `남은 ${left}회 — 줄을 지움(1회가 되면 다시 잡힘)` });
+        } else {
+          await db.from("notify_outbox")
+            .update({ error: `0회를 이미 지나감(남은 ${left}회) — 손으로 챙길 것`, tries: 3 })
+            .eq("id", r.id);
+          out.push({ id: r.id, who: r.student_name, skipped: `남은 ${left}회 — 수동 확인 필요` });
+        }
         continue;
       }
       if (!r.phone) {
