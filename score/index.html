@@ -166,6 +166,38 @@ h1{font-size:clamp(26px,5vw,34px);line-height:1.3;letter-spacing:-.04em;font-wei
 .more[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
 .more-in{padding:4px 24px 24px}
 
+/* 실제 성적 알려주기 — 접어두고, 성적표 받은 사람만 펼치게 한다 (2026-09-04) */
+.give{border:1px solid var(--line);border-radius:16px;background:var(--surface);
+  margin:0 0 14px;overflow:hidden}
+.give > summary{cursor:pointer;padding:18px 24px;font-size:14.5px;font-weight:500;
+  list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--ink)}
+.give > summary::-webkit-details-marker{display:none}
+.give > summary::after{content:'';width:8px;height:8px;flex:none;
+  border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);
+  transform:rotate(45deg) translate(-2px,-2px);transition:transform .2s}
+.give[open] > summary::after{transform:rotate(-135deg) translate(-2px,-2px)}
+.give-in{padding:4px 24px 24px}
+.gv-why{font-size:13.5px;color:var(--ink-2);font-weight:300;margin:0 0 16px;line-height:1.6}
+.gv-l{display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin:0 0 6px}
+.give select,.give input{width:100%;background:var(--surface-2);border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px;font-size:15px;color:var(--ink);
+  font-family:var(--fn);font-variant-numeric:tabular-nums}
+.give select{font-family:var(--f);font-size:14px}
+.give input::placeholder{color:var(--muted);font-family:var(--f);font-size:13.5px}
+.give select:focus,.give input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.gv-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 0}
+.gv-act{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0 0}
+#gvSend{appearance:none;border:0;cursor:pointer;background:var(--accent);color:#fff;
+  font-size:14.5px;font-weight:600;padding:12px 24px;border-radius:10px;transition:background .15s}
+#gvSend:hover{background:var(--accent-deep)}
+#gvSend:disabled{background:var(--line-2);cursor:default}
+#gvSend:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px}
+.gv-msg{font-size:13px;font-weight:400}
+.gv-msg.ok{color:var(--cool)}
+.gv-msg.no{color:var(--hot)}
+.gv-note{font-size:12px;color:var(--muted);font-weight:300;margin:14px 0 0}
+@media (max-width:520px){ .gv-grid{grid-template-columns:1fr} }
+
 .rows{display:flex;flex-direction:column}
 .row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
   padding:11px 0;border-top:1px solid var(--line)}
@@ -322,6 +354,36 @@ h1{font-size:clamp(26px,5vw,34px);line-height:1.3;letter-spacing:-.04em;font-wei
     </div>
   </details>
 
+  <!-- 실제 성적 모으기 (2026-09-04) — 지금 환산표는 임시값이라, 학생들이 준
+       "몇 개 틀림 → 몇 점" 이 쌓이면 학원이 직접 만든 정확한 표를 갖게 된다. -->
+  <details class="give" id="give">
+    <summary>성적표 나왔나요? 실제 점수 알려주기</summary>
+    <div class="give-in">
+      <p class="gv-why">위 점수는 예상치입니다. 실제로 받으신 점수를 알려주시면
+        다음 분들 계산이 더 정확해집니다.</p>
+
+      <label class="gv-l" for="gvRound">어느 회차 시험인가요</label>
+      <select id="gvRound"></select>
+
+      <div class="gv-grid">
+        <div><label class="gv-l" for="gvLcW">LC 틀린 개수</label>
+          <input type="number" id="gvLcW" min="0" max="100" inputmode="numeric" placeholder="예: 12"></div>
+        <div><label class="gv-l" for="gvLcS">실제 LC 점수</label>
+          <input type="number" id="gvLcS" min="5" max="495" step="5" inputmode="numeric" placeholder="예: 435"></div>
+        <div><label class="gv-l" for="gvRcW">RC 틀린 개수</label>
+          <input type="number" id="gvRcW" min="0" max="100" inputmode="numeric" placeholder="예: 18"></div>
+        <div><label class="gv-l" for="gvRcS">실제 RC 점수</label>
+          <input type="number" id="gvRcS" min="5" max="495" step="5" inputmode="numeric" placeholder="예: 380"></div>
+      </div>
+
+      <div class="gv-act">
+        <button type="button" id="gvSend">보내기</button>
+        <span class="gv-msg" id="gvMsg"></span>
+      </div>
+      <p class="gv-note">이름·연락처는 받지 않습니다. 점수만 모읍니다.</p>
+    </div>
+  </details>
+
   <nav class="links">
     <a href="/#leveltest">
       <span><span class="t">어떤 유형에서 막히는지 보기</span>
@@ -337,6 +399,7 @@ h1{font-size:clamp(26px,5vw,34px);line-height:1.3;letter-spacing:-.04em;font-wei
 
   <p class="foot">예상치이며 실제 성적과 다를 수 있습니다. TOEIC은 ETS의 등록상표입니다.</p>
 </main>
+
 
 <script>
 (() => {
@@ -583,7 +646,65 @@ h1{font-size:clamp(26px,5vw,34px);line-height:1.3;letter-spacing:-.04em;font-wei
     $('neD').textContent = left === 0 ? '오늘' : 'D-' + left;
   }
 
-  build(); nextExam(); lastExam();
+  /* ---- 실제 성적 모으기 (2026-09-04 원장 지시) ----
+     지금 환산표는 임시값이다. "몇 개 틀림 → 몇 점" 이 쌓이면 학원이 직접 만든 표를 갖게 된다.
+     ⚠ supabase 를 못 읽어오거나 저장이 실패해도 계산기 본체는 멀쩡해야 한다. 전부 감싼다. */
+  // 데이터베이스에 바로 넣지 않고 우리 서버를 거친다.
+  // 브라우저에서 직접 넣으면 로그인 안 한 사람이 막히기 때문이다(2026-09-04 확인).
+  // 서버가 값도 한 번 더 보고, 같은 곳에서 하루 5건까지만 받는다.
+  const FN_URL = 'https://guaqfsuwrvqjffmbiwpw.supabase.co/functions/v1/toeic-actual';
+  const SB_KEY = 'sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
+
+  function giveInit() {
+    const sel = $('gvRound');
+    if (!sel) return;
+    // 이미 치른 시험만 고르게 한다. 최근 것이 맨 위로.
+    const today = kToday();
+    const done = TOEIC.filter((x) => PD(x[1]) <= today).reverse();
+    sel.innerHTML = done.length
+      ? done.map((x) => {
+          const d = PD(x[1]);
+          return '<option value="' + x[0] + '|' + x[1] + '">' + x[0] + ' · '
+               + (d.getMonth()+1) + '월 ' + d.getDate() + '일</option>';
+        }).join('')
+      : '<option value="">—</option>';
+    $('gvSend').addEventListener('click', giveSend);
+  }
+
+  async function giveSend() {
+    const msg = $('gvMsg'), btn = $('gvSend');
+    const say = (t, k) => { msg.textContent = t; msg.className = 'gv-msg ' + (k || ''); };
+
+    const lw = parseInt($('gvLcW').value, 10), rw = parseInt($('gvRcW').value, 10);
+    const ls = parseInt($('gvLcS').value, 10), rs = parseInt($('gvRcS').value, 10);
+
+    // 서버에도 같은 제약이 걸려 있지만, 여기서 먼저 걸러야 왜 안 되는지 바로 보인다.
+    if ([lw, rw, ls, rs].some((v) => isNaN(v))) { say('네 칸을 모두 채워주세요.', 'no'); return; }
+    if (lw < 0 || lw > 100 || rw < 0 || rw > 100) { say('틀린 개수는 0~100 사이입니다.', 'no'); return; }
+    if (ls < 5 || ls > 495 || rs < 5 || rs > 495) { say('점수는 5~495 사이입니다.', 'no'); return; }
+    if (ls % 5 || rs % 5) { say('토익 점수는 5점 단위입니다. 성적표를 다시 봐주세요.', 'no'); return; }
+
+    const [rd, dt] = ($('gvRound').value || '|').split('|');
+    btn.disabled = true; say('보내는 중…');
+    try {
+      const res = await fetch(FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SB_KEY, 'apikey': SB_KEY },
+        body: JSON.stringify({
+          exam_round: rd || null, exam_date: dt || null,
+          lc_wrong: lw, rc_wrong: rw, lc_score: ls, rc_score: rs
+        })
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!j.ok) { say(j.error || '보내지 못했습니다. 잠시 뒤 다시 해주세요.', 'no'); btn.disabled = false; return; }
+      say('고맙습니다. 다음 분들 계산에 반영됩니다.', 'ok');
+      btn.textContent = '보냈습니다';
+    } catch (e) {
+      say('보내지 못했습니다. 잠시 뒤 다시 시도해주세요.', 'no'); btn.disabled = false;
+    }
+  }
+
+  build(); nextExam(); lastExam(); giveInit();
   $('calcBtn').addEventListener('click', show);
 })();
 </script>
