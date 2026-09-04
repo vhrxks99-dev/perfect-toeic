@@ -5687,6 +5687,44 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   });
   (function(){ try{ var em=localStorage.getItem('wt_saved_email'); if(em){ if($('waLoginEmail')) $('waLoginEmail').value=em; if($('waRemember')) $('waRemember').checked=true; } }catch(e){} })();
 
+  // ---- 보기 전환(미리보기) ----
+  // 원장 지시(2026-09-04) — "학생 기준·선생님 기준에서 화면이 어떻게 나오는지 보고 싶다".
+  // profile 의 role 만 갈아끼운다. role 을 보고 갈리는 기존 코드가 전부 저절로 따라온다.
+  // ⚠️ 화면만 바뀐다. 데이터 권한은 서버(RLS)가 정하므로 실제 권한은 원장 그대로다.
+  //    그래서 미리보기 중에는 화면 아래에 띠를 띄워 헷갈리지 않게 한다.
+  //    또 원장님 계정에는 학생 데이터(내 수업·내 숙제)가 없어 학생 화면은 비어 보일 수 있다.
+  //    "화면 구조가 이렇게 생겼다"를 보는 용도이지 남의 데이터를 보는 기능이 아니다.
+  // sessionStorage 를 쓴 이유 — 탭을 닫으면 저절로 풀린다. 켜둔 채 잊는 사고를 막는다.
+  var VW_ROLES = [
+    { v:'',        t:'원장'   },
+    { v:'admin',   t:'선생님' },
+    { v:'manager', t:'실장'   },
+    { v:'student', t:'학생'   }
+  ];
+  function vwGet(){ try{ return sessionStorage.getItem('wt_view_as')||''; }catch(e){ return ''; } }
+  function vwSet(r){
+    if(r === vwGet()) return;
+    try{ if(r) sessionStorage.setItem('wt_view_as', r); else sessionStorage.removeItem('wt_view_as'); }catch(e){}
+    location.reload();   // 화면 곳곳이 role 로 갈리므로 통째로 다시 그리는 편이 확실하다
+  }
+  function vwRender(){
+    var real = window.WT_REAL_PROFILE;
+    var box  = document.getElementById('vwBar');
+    if(!real || real.role !== 'master'){ if(box) box.remove(); return; }   // 원장님에게만 보인다
+    if(!box){ box = document.createElement('div'); box.id = 'vwBar'; document.body.appendChild(box); }
+    var cur = vwGet();
+    box.className = cur ? 'vw-bar on' : 'vw-bar';
+    var h = '<span class="vw-lb">' + (cur ? '⚠ 미리보기' : '보기') + '</span>';
+    VW_ROLES.forEach(function(r){
+      h += '<button type="button" class="vw-b' + (r.v === cur ? ' sel' : '') + '" data-vw="' + r.v + '">' + r.t + '</button>';
+    });
+    if(cur) h += '<span class="vw-note">화면만 바뀝니다 · 실제 권한은 원장</span>';
+    box.innerHTML = h;
+    box.querySelectorAll('button[data-vw]').forEach(function(b){
+      b.onclick = function(){ vwSet(this.getAttribute('data-vw')); };
+    });
+  }
+
   async function refresh(){
     profile=null;
     if(sb){
@@ -5728,9 +5766,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         }
       }
     }
+    // 진짜 나는 따로 보관해 둔다. 미리보기를 켜고 끄는 판단은 항상 이 값으로 한다
+    // (바꿔치운 profile 로 판단하면 학생으로 본 뒤에 다시 원장으로 못 돌아온다).
+    window.WT_REAL_PROFILE = profile;
+    var _vw = vwGet();
+    if(_vw && profile && profile.role === 'master'){
+      profile = Object.assign({}, profile, { role:_vw });
+    }
     window.WT_LOGGED_IN = !!profile;
     window.WT_PROFILE = profile;
     renderAuth();
+    vwRender();
     if(window.WT_PENDING) openNeedInfo(window.WT_PENDING);
     else if(needsInfo(profile)) openNeedInfo(profile);
     try{ window.dispatchEvent(new Event('wt-auth')); }catch(e){}
@@ -12954,6 +13000,28 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 </script>
 <style>
   .navitem>a.nav-active{color:var(--accent);background:var(--surface-2)}
+
+  /* 보기 전환(미리보기) — 원장님에게만 보인다. 2026-09-04 원장 지시.
+     오른쪽 아래는 카카오톡·수강신청 버튼이 이미 쓰고 있어서 왼쪽 아래에 둔다. */
+  .vw-bar{position:fixed;left:12px;bottom:12px;z-index:9998;display:flex;align-items:center;
+          gap:4px;padding:6px 8px;border-radius:10px;background:rgba(28,28,30,.92);
+          box-shadow:0 4px 16px rgba(0,0,0,.25);backdrop-filter:blur(6px);
+          font-size:12px;line-height:1;max-width:calc(100vw - 24px);flex-wrap:wrap}
+  .vw-bar .vw-lb{color:#aeb0b4;font-weight:700;margin-right:2px;white-space:nowrap}
+  .vw-bar .vw-b{appearance:none;border:0;cursor:pointer;padding:5px 9px;border-radius:7px;
+                background:rgba(255,255,255,.10);color:#e8e8ea;font-size:12px;
+                font-family:inherit;white-space:nowrap}
+  .vw-bar .vw-b:hover{background:rgba(255,255,255,.20)}
+  .vw-bar .vw-b.sel{background:#fff;color:#1c1c1e;font-weight:700}
+  .vw-bar .vw-note{color:#c9cbcf;margin-left:4px;white-space:nowrap}
+  /* 미리보기 중에는 확실히 눈에 띄게 — 켜둔 걸 잊으면 엉뚱한 걸 보고 판단하게 된다 */
+  .vw-bar.on{background:#8a2f16;box-shadow:0 4px 18px rgba(138,47,22,.45)}
+  .vw-bar.on .vw-lb{color:#ffd9c9}
+  .vw-bar.on .vw-note{color:#ffd9c9}
+  @media (max-width:640px){
+    .vw-bar{left:8px;right:8px;bottom:8px;justify-content:center}
+    .vw-bar .vw-note{flex-basis:100%;text-align:center;margin:2px 0 0}
+  }
 </style>
 <script>
 /* 시험일정 카드 — 토익 / 토익스피킹 / 오픽 (2026-08-13)
