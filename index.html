@@ -12985,8 +12985,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 그날 이미 잡힌 수업을 위에 보여준다. 학생이 스스로 이어지는 자리를 고르게 하려는 것.
     var dayHtml = '';
     if(d.busy && d.busy.length){
+      // 2:1 합반이면 같은 시간이 두 줄로 온다. 화면에는 한 번만 보여준다.
+      var _seen = {};
+      var _day = d.busy.filter(function(b){
+        var k = b.start+'-'+b.end;
+        if(_seen[k]) return false;
+        _seen[k] = 1; return true;
+      });
       dayHtml = '<div class="wa-book-day">그날 <b>'+esc(d.teacher_name||'')+'</b> 선생님 수업 — '
-              + d.busy.map(function(b){ return '<b>'+esc(b.start)+'~'+esc(b.end)+'</b>'; }).join(' · ')
+              + _day.map(function(b){ return '<b>'+esc(b.start)+'~'+esc(b.end)+'</b>'; }).join(' · ')
               + '<br>바로 이어지는 자리에는 <b style="color:#1b6047">이어서</b> 표시가 붙어 있어요.</div>';
     }
 
