@@ -11368,6 +11368,41 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 한 칸에 모으되 **자동으로 나가는 쪽**과 **손으로 챙겨야 하는 쪽**을 갈라 보여준다.
   // 🚨 자동 발송은 남은 횟수가 **딱 1회**일 때만 나간다(서버 scan_payment_due 가 =1 로 잡는다).
   //    0회 이하로 이미 지나간 학생은 영영 자동으로 안 나가므로 직접 챙겨야 한다.
+  // '막힌 것 풀기' 버튼 (2026-09-05).
+  //  전에는 막힐 때마다 원장님이 SQL 창을 열어 붙여넣어야 했다. 두 번 헛수고하셨다 —
+  //  Run 을 눌러도 "Potential issue detected" 창이 한 번 더 떠서 거기서 멈췄던 것이다.
+  //  이제 버튼 하나로 푼다. 누르면 누구한테 나가는지 먼저 보여주고, 확인해야 실행한다.
+  if($('attDue')) $('attDue').addEventListener('click', async function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('#unblockNoticeBtn'):null;
+    if(!b||b.disabled) return;
+    var old=b.textContent; b.disabled=true; b.textContent='확인 중…';
+    try{
+      var pre=await sb.rpc('unblock_payment_notices',{p_dry:true});
+      if(pre.error){
+        alert(/unblock_payment_notices|function/.test(pre.error.message||'')
+          ? '아직 준비가 안 됐습니다.\n\nnotify_unblock_button.sql 을 먼저 실행해주세요.'
+          : ('확인 실패: '+pre.error.message));
+        return;
+      }
+      var d=pre.data||{};
+      if(d.error){ alert(d.error); return; }
+      var will=d.will_send||[], stk=d.stuck||[];
+      var msg='막혀 있는 줄 '+stk.length+'개를 걷어냅니다.\n\n';
+      msg += will.length
+        ? ('걷어내면 아래 학생에게 결제 안내가 나갑니다.\n\n'
+           + will.map(function(x){ return '· '+x.name+' ('+x.phone+')'; }).join('\n')
+           + '\n\n진행할까요?')
+        : '지금 안내가 나갈 학생은 없습니다.\n\n진행할까요?';
+      if(!confirm(msg)) return;
+      var run=await sb.rpc('unblock_payment_notices',{p_dry:false});
+      if(run.error){ alert('실패: '+run.error.message); return; }
+      var rr=run.data||{};
+      if(rr.error){ alert(rr.error); return; }
+      alert('정리했습니다.\n\n· 막힌 줄 '+(rr.deleted||0)+'개 지움\n· 대기줄에 '+(rr.queued||0)+'명 넣음\n\n30분 안에 나갑니다.');
+      try{ await loadAttendance(); }catch(e2){}
+    } finally { b.disabled=false; b.textContent=old; }
+  });
+
   function drawPaymentDue(){
     if(!$('attDue')) return;
     var purchased=window.__wtAttP||{}, used=window.__wtAttU||{}, notif=window.__wtNotify;
@@ -11449,7 +11484,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                  + '<span style="font-weight:800">남은 '+x.rem+'회</span></span>';
           }).join('')
         + '</div><div style="margin-top:3px;color:var(--muted);font-weight:700;font-size:12px">'
-        + '대기열에 올릴 때와 보낼 때 횟수가 달라져 건너뛴 건들입니다. 지금은 조건이 맞으니 손으로 챙겨 주세요.</div></div>';
+        + '대기열에 올릴 때와 보낼 때 횟수가 달라져 건너뛴 건들입니다.</div>'
+        // 원장님이 SQL 창을 여실 일이 없어야 한다(2026-09-05 — 두 번 헛수고하셨다).
+        // 누르면 누구한테 나가는지 먼저 보여주고, 확인해야 실제로 푼다.
+        + '<div style="margin-top:7px"><button type="button" id="unblockNoticeBtn" '
+        + 'style="border:1.5px solid #c0342b;background:#fff;color:#c0342b;border-radius:8px;'
+        + 'padding:6px 13px;font-size:12.5px;font-weight:800;font-family:var(--font-sans);cursor:pointer">'
+        + '막힌 것 풀기</button></div></div>';
     }
     if(!due.length){
       $('attDue').innerHTML='💳 <b>결제 안내</b> <span style="color:var(--muted);font-weight:700">지금 안내가 필요한 학생은 없습니다.</span>'
