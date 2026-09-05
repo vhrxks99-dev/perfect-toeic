@@ -11469,8 +11469,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     // 🚨 보낼 때 조건이 안 맞아 건너뛴 채로 굳어 버린 줄. 지금은 조건이 맞는데도 안 나간다.
     //    (발송기가 tries 를 3 까지 올려 영구 제외해 버린 것 — 2026-09-03 발견)
+    // 🔄 2026-09-05 — 전에는 '남은 횟수가…' 라는 에러 문구가 든 것만 잡았다.
+    //    그러면 다른 이유로 막힌 건(번호 없음 · 발송기가 안 도는 등)이 안 보인다.
+    //    이제는 '안 나간 지 오래된 것'을 전부 막힌 것으로 본다.
+    //    발송기가 30분마다 도니까, 두 시간이 넘었으면 네 번을 놓친 것이다.
     var stuck=(notif||[]).filter(function(n){
-      return !n.sent_at && (n.tries||0)>=3 && /남은 횟수가/.test(String(n.error||''));
+      if(n.sent_at) return false;
+      if((n.tries||0)>=3) return true;
+      var made=Date.parse(n.created_at);
+      return !!made && (Date.now()-made) > 2*3600*1000;
     }).map(function(n){
       var nm=nameById[String(n.student_id)]||n.student_name||'-';
       return { n:n, name:nm, rem:remainDoneOf(n.student_id) };
