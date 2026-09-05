@@ -4992,7 +4992,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
-          <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"><span class="wa-hint" id="pySessHint">대면 60,000원 · 비대면 50,000원</span></label>
+          <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"></label>
           <label>정산 월<input type="month" id="pyMonth"></label>
         </div>
         <div class="dash-row">
@@ -5345,7 +5345,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
-        <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"><span class="wa-hint" id="pyeSessHint">대면 60,000원 · 비대면 50,000원</span></label>
+        <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"></label>
       </div>
       <div class="wa-row">
         <label>결제수단<select id="pyeMethod"></select></label>
@@ -10585,8 +10585,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function syncPayTeacher(){
     var st=(_members||[]).filter(function(m){return m.id===($('pyStudent')?$('pyStudent').value:'');})[0];
     if($('pyTeacher')) $('pyTeacher').value=(st&&st.teacher_id)||'';
-    // 학생이 바뀌면 수업형태(대면/비대면)도 달라지므로 단가를 다시 계산한다
-    syncAddPrice(true);
+    // 학생이 바뀌면 수업형태(대면/비대면)도 달라지므로 안내 문구를 다시 만든다.
+    // 금액은 채우지 않는다 — 아래 2026-09-05 지시 참고.
+    syncAddPrice(false);
     syncPayRate();
   }
   function syncPayRate(){
@@ -10655,8 +10656,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyVat')) $('pyVat').value=vat;
     drawPayPreview();
   };
-  // 수업 1회 단가 — 대면 6만원 / 비대면 5만원. 학생의 '수업형태'로 자동 선택한다.
-  // ※ 단가가 바뀌면 이 두 숫자만 고치면 된다.
+  // 수업 1회 단가 — 대면 6만원 / 비대면 5만원.
+  // 🚫 2026-09-05 원장·이창희 지시로 '금액 자동 채우기'와 '단가 안내'를 껐다.
+  //    이유 — 예전부터 다니던 학생은 값이 그대로라 사람마다 단가가 다르다.
+  //          자동으로 채우면 그 학생들 금액이 잘못 적힌다(오기입).
+  //    계산식 자체는 남겨 뒀다 — 강사 실지급 미리보기가 계속 쓰고 있어서다.
+  //    되살리려면 syncAddPrice 에 넘기는 fillAmount 를 true 로 바꾸면 된다.
   var SESSION_PRICE={ offline:60000, online:50000 };
   // 수업형태가 정해지지 않은 학생은 단가를 알 수 없다 → 계산을 보류하고 알린다.
   // (대면으로 넘겨짚으면 비대면 학생에게 1만원씩 더 청구된다)
@@ -10691,12 +10696,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     drawPayPreview();
   }
   function syncAddPrice(fillAmount){
-    applySessionPrice('pySessions','pyAmount','pySessHint', studentMode($('pyStudent')?$('pyStudent').value:''), fillAmount);
+    applySessionPrice('pySessions','pyAmount',null, studentMode($('pyStudent')?$('pyStudent').value:''), fillAmount);
   }
-  if($('pySessions')) $('pySessions').addEventListener('input', function(){ syncAddPrice(true); });
+  if($('pySessions')) $('pySessions').addEventListener('input', function(){ syncAddPrice(false); });
   var editingPayMode='';
   if($('pyeSessions')) $('pyeSessions').addEventListener('input', function(){
-    applySessionPrice('pyeSessions','pyeAmount','pyeSessHint', editingPayMode, true);
+    applySessionPrice('pyeSessions','pyeAmount',null, editingPayMode, false);
   });
   if($('pyAdd')) $('pyAdd').onclick=async function(){
     var err=$('pyErr'); err.textContent='';
@@ -10802,7 +10807,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyeSessions')) $('pyeSessions').value=p.sessions||'';
     // 안내 문구만 맞춰준다. 이미 등록된 금액은 건드리지 않는다(할인 건이 덮이면 안 됨).
     editingPayMode=studentMode(p.student_id);
-    applySessionPrice('pyeSessions','pyeAmount','pyeSessHint', editingPayMode, false);
+    applySessionPrice('pyeSessions','pyeAmount',null, editingPayMode, false);
     if($('pyeMemo')) $('pyeMemo').value=p.memo||'';
     fillPayTeachers();
     if($('pyeTeacher')) $('pyeTeacher').value=p.teacher_id||'';
