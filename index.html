@@ -3917,7 +3917,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-book-row{display:flex;gap:12px;margin:6px 0 4px}
 .wa-book-row label{flex:1;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--ink-soft)}
 .wa-book-row input,.wa-book-row select{padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
-.wa-book-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:12px 0 4px}
+.wa-book-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px;margin:12px 0 4px}
 .wa-book-slot{padding:12px 6px;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface);text-align:center;cursor:pointer;transition:.15s}
 .wa-book-slot .t{font-family:var(--font-num);font-weight:800;font-size:15px;color:var(--ink)}
 .wa-book-slot .s{font-size:11.5px;color:var(--muted);margin-top:2px}
@@ -12951,7 +12951,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var leftTxt = (left==null) ? ''
         : (left>0 ? ' · 지금 <b>'+left+'건</b> 더 예약할 수 있어요 (최대 4건)'
                   : ' · <b style="color:#c0342b">지금은 예약할 수 없어요</b>');
-      $('waBookSub').innerHTML='담당 '+esc(d.teacher_name)+' 선생님의 빈 시간을 골라 예약을 요청하세요. (2시간 단위)'+leftTxt
+      // 수업 길이는 학생의 수업형태로 정해진다(비대면 90분 / 대면 120분). 서버가 minutes 로 알려준다.
+      var minTxt = d.minutes ? (d.minutes % 60 === 0 ? (d.minutes/60)+'시간' : d.minutes+'분') : '';
+      var modeTxt = d.online ? '비대면' : '대면';
+      $('waBookSub').innerHTML='담당 '+esc(d.teacher_name)+' 선생님의 빈 시간을 골라 예약을 요청하세요.'
+        + (minTxt ? ' ('+modeTxt+' '+minTxt+' 수업 · 30분 단위)' : '')+leftTxt
         + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>변경·취소는 선생님께 문의</b>해주세요.</span>';
     }
     if(left===0){
