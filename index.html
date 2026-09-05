@@ -12966,7 +12966,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         + (minTxt ? ' ('+modeTxt+' '+minTxt+' 수업 · 30분 단위)' : '')+leftTxt
         + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>변경·취소는 선생님께 문의</b>해주세요.</span>';
     }
-    if(left===0){
+    // 원장·선생님·실장이 '학생 화면 미리보기'로 들어온 경우는 막지 않는다 (2026-09-05 원장 지시).
+    // 이 사람들은 수강권이 없어 남은 횟수가 0 이라, 예전에는 화면을 볼 수조차 없었다.
+    var _real = window.WT_REAL_PROFILE;
+    var _staff = !!(_real && ['master','admin','manager'].indexOf(_real.role) >= 0);
+    if(left===0 && !_staff){
       box.innerHTML='<div class="wa-book-empty" style="color:#c0342b;font-weight:700;line-height:1.8">'
         + '지금은 예약할 수 없어요.<br>'
         + '<span style="font-weight:600;color:var(--ink-soft)">남은 수업 횟수가 없거나, 이미 4건을 잡아두셨습니다.<br>'
