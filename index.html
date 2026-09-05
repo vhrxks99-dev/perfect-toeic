@@ -4195,6 +4195,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .dash-list-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:800;margin:16px 0 8px;letter-spacing:-.01em;flex-wrap:wrap}
 .dash-total{font-family:var(--font-num);font-weight:800;color:var(--accent);font-size:16px}
 .dash-note{font-size:13px;color:var(--ink-soft);line-height:1.7;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:8px}
+/* ---- 그날 일정 띠 + 빈 시간 버튼 (2026-09-05 원장 지시) ----
+   "학생이 오후1시 수업하고 3시에 끝났는데 다른 학생이 4시에 잡으면 중간에 1시간이 뜬다.
+    이런 일이 없으면 좋겠다. 그렇다고 안 되게 만들면 안 된다"
+   → 막지 않는다. 앞뒤로 딱 붙는 자리를 버튼으로 먼저 보여줘서 자연히 붙게 만든다. */
+.scday{margin-top:8px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.scday-h{font-size:12.5px;font-weight:800;color:var(--ink-soft);margin:0 0 8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.scday-bar{display:flex;height:32px;border-radius:8px;overflow:hidden;border:1px solid var(--line-strong);background:var(--surface)}
+.scday-seg{display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;overflow:hidden;white-space:nowrap;min-width:0;padding:0 2px;font-family:var(--font-num)}
+.scday-seg.busy{background:var(--accent);color:#fff}
+.scday-seg.free{background:repeating-linear-gradient(45deg,transparent,transparent 5px,var(--line) 5px,var(--line) 6px);color:var(--muted)}
+.scday-tick{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-weight:700;margin-top:3px;font-family:var(--font-num)}
+.scday-list{margin:9px 0 0;font-size:12.5px;color:var(--ink-soft);line-height:1.8}
+.scday-list b{color:var(--ink);font-family:var(--font-num)}
+.scday-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.scday-btn{border:1.5px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:800;font-family:var(--font-num);cursor:pointer;line-height:1.3;text-align:left}
+.scday-btn:hover{background:var(--accent);color:#fff}
+.scday-btn small{display:block;font-size:10.5px;font-weight:700;opacity:.85;margin-top:1px;font-family:var(--font-sans)}
+.scday-none{font-size:12.5px;color:var(--muted);font-weight:700}
 .wa-table select.sc-room{padding:5px 7px;border:1.5px solid var(--line-strong);border-radius:7px;font-family:var(--font-sans);font-size:12.5px;font-weight:700;background:var(--surface);color:var(--ink);max-width:150px}
 .wa-table select.sc-room.none{border-color:#f0c36d;background:#fff9ec;color:#8a5a00}
 /* 중복 가입·정보 미입력 경고 상자 (회원 관리 표 위) */
@@ -4925,6 +4943,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             <span>수강권 횟수를 차감하지 않습니다. 수업이 끝나면 상담 기록을 남기라고 알려드려요.</span></label>
         </div>
         <div id="scFree" class="dash-note" style="margin-top:0;display:none"></div>
+        <!-- 날짜·선생님을 고르면 그날 일정 띠와 '앞뒤로 붙는 자리' 버튼이 여기 뜬다. -->
+        <div id="scDay" class="scday" style="display:none"></div>
         <p class="wa-err" id="scErr"></p>
         <div class="wa-ok" id="scOk"></div>
         <button class="btn btn-primary" id="scAdd" type="button">＋ 스케줄 추가</button>
@@ -7868,6 +7888,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 목록 표('다가오는 수업')는 2026-08-08에 없앴다 → loadSchedules 는 첫 줄에서 그냥 빠져나간다.
       // 그래서 예전에는 추가해도 화면이 아무것도 안 변했다. 달력을 반드시 다시 그린다.
       await loadSchedules(); await renderCalendar();
+      try{ renderScDay(); }catch(e){}               // 방금 잡은 수업이 그날 띠에도 바로 보이게
       try{ await loadAttendance(); }catch(e){}      // 남은 수업 횟수는 스케줄 수로 세므로 같이 갱신
       try{ await loadTeacherAlerts(); }catch(e){}
     } finally {
@@ -9942,6 +9963,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // ---- 스케줄 폼: 선택 시간대 빈 강의장 실시간 표시 ----
   async function updateScFree(){
     if(!$('scFree')) return;
+    renderScDay();   // 그날 일정 띠도 같이 갱신한다(아래에 빠져나가는 곳이 여럿이라 맨 앞에서 부른다)
     var d=$('scDate').value, s=$('scStart').value, en=$('scEnd').value;
     if(!d||!s||!en){ $('scFree').style.display='none'; $('scFree').innerHTML=''; return; }
     var startISO=slotISO(d,s), endISO=slotISO(d,en);
@@ -9957,9 +9979,139 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var busyR=_rooms.filter(function(rm){ return rm.active!==false && busy[rm.id]; });
     $('scFree').innerHTML='🟢 빈 강의장: <b>'+(free.length?free.map(function(x){return esc(roomLabel(x));}).join(', '):'없음')+'</b>'+(busyR.length?' &nbsp;&nbsp;🔴 사용중: '+busyR.map(function(x){return esc(roomLabel(x));}).join(', '):'');
   }
+  // ---- 그날 일정 띠 + '앞뒤로 붙는 자리' 버튼 (2026-09-05 원장 지시) ----
+  //  "학생이 오후1시 수업하고 3시에 끝났는데 다른 학생이 4시에 잡게 되면 중간에 1시간이 뜬다.
+  //   이러한 일이 가능하면 없으면 좋겠다. 그렇다고 안 되게 만들면 안 돼"
+  //  → 못 잡게 막지 않는다. 앞뒤로 딱 붙는 자리를 버튼으로 먼저 보여줘서 자연히 붙게 만든다.
+  var SCD_OPEN=9*60, SCD_CLOSE=23*60;          // 학원 여는/닫는 시각 (예약 화면과 같은 기준)
+  function scdMin(iso){ var w=kwall(iso); return w.getHours()*60+w.getMinutes(); }
+  function scdT(m){ return pad(Math.floor(m/60))+':'+pad(m%60); }
+
+  async function renderScDay(){
+    var box=$('scDay'); if(!box) return;
+    var d=$('scDate')?$('scDate').value:'';
+    var tid=$('scTeacher')?$('scTeacher').value:'';
+    if(!sb||!d||!tid){ box.style.display='none'; box.innerHTML=''; return; }
+    box.style.display='';
+
+    var r=await sb.from('schedules')
+      .select('id,starts_at,ends_at,teacher_id,student_name,room_id,status')
+      .gte('starts_at', kISO(d,'00:00')).lt('starts_at', kISO(d,'24:00'));
+    if(r.error){ box.innerHTML='<div class="scday-none">그날 일정을 못 불러왔습니다: '+esc(r.error.message)+'</div>'; return; }
+    // 휴강·결석은 자리를 놓은 것이므로 없는 것으로 본다(빈 강의장 계산과 같은 기준).
+    var all=(r.data||[]).filter(function(x){
+      var st=x.status||'confirmed'; return st!=='canceled' && st!=='noshow';
+    });
+
+    var mine=all.filter(function(x){ return String(x.teacher_id||'')===String(tid); })
+      .map(function(x){ return {s:scdMin(x.starts_at), e:scdMin(x.ends_at), row:x}; })
+      .filter(function(x){ return x.e>x.s; })
+      .sort(function(a,b){ return a.s-b.s; });
+
+    // 잡으려는 수업 길이 — 폼에 이미 들어 있으면 그 길이, 없으면 120분(대면 기본).
+    var len=120;
+    var fs=$('scStart')?$('scStart').value:'', fe=$('scEnd')?$('scEnd').value:'';
+    if(fs&&fe&&fs.length>=5&&fe.length>=5){
+      var a=parseInt(fs.slice(0,2),10)*60+parseInt(fs.slice(3,5),10);
+      var b=parseInt(fe.slice(0,2),10)*60+parseInt(fe.slice(3,5),10);
+      if(b>a) len=b-a;
+    }
+
+    // 합반(같은 시간에 두 줄)은 띠에서 한 덩어리로 합친다.
+    var merged=[];
+    mine.forEach(function(x){
+      var last=merged[merged.length-1];
+      if(last && x.s<=last.e) last.e=Math.max(last.e,x.e);
+      else merged.push({s:x.s,e:x.e});
+    });
+
+    var segs=[], cur=SCD_OPEN;
+    merged.forEach(function(b){
+      var bs=Math.max(b.s,SCD_OPEN), be=Math.min(b.e,SCD_CLOSE);
+      if(be<=bs) return;
+      if(bs>cur) segs.push({free:true,s:cur,e:bs});
+      segs.push({free:false,s:bs,e:be});
+      cur=be;
+    });
+    if(cur<SCD_CLOSE) segs.push({free:true,s:cur,e:SCD_CLOSE});
+
+    var bar='<div class="scday-bar">'+segs.map(function(g){
+      var w=g.e-g.s;
+      return '<div class="scday-seg '+(g.free?'free':'busy')+'" style="flex:'+w+' 1 0" title="'
+        + esc(scdT(g.s)+'~'+scdT(g.e))+'">'+esc(w>=80?(scdT(g.s)+'–'+scdT(g.e)):'')+'</div>';
+    }).join('')+'</div>';
+
+    // 앞뒤로 딱 붙는 시작 시각만 후보로 삼는다.
+    var why={};
+    if(!merged.length) why[SCD_OPEN]='이 날 첫 수업';
+    merged.forEach(function(b){
+      if(b.e+len<=SCD_CLOSE && why[b.e]==null) why[b.e]='앞 수업에 이어서';
+      if(b.s-len>=SCD_OPEN && why[b.s-len]==null) why[b.s-len]='뒤 수업에 이어서';
+    });
+
+    var openRooms=(_rooms||[]).filter(function(rm){ return rm.active!==false; });
+    function freeRoomCount(st,en){
+      var busy={};
+      all.forEach(function(x){
+        if(x.room_id==null) return;
+        if(scdMin(x.starts_at)<en && scdMin(x.ends_at)>st) busy[x.room_id]=true;
+      });
+      return openRooms.filter(function(rm){ return !busy[rm.id]; }).length;
+    }
+
+    var free=Object.keys(why).map(function(k){ return parseInt(k,10); })
+      .filter(function(st){
+        var en=st+len;
+        if(st<SCD_OPEN||en>SCD_CLOSE) return false;
+        return !mine.some(function(x){ return x.s<en && x.e>st; });   // 선생님이 이미 그 시간에 있으면 뺀다
+      })
+      .sort(function(a,b){ return a-b; });
+
+    var btns=free.map(function(st){
+      var en=st+len, n=freeRoomCount(st,en);
+      return '<button type="button" class="scday-btn" data-scds="'+scdT(st)+'" data-scde="'+scdT(en)+'"'
+        + (n?'':' disabled style="opacity:.42;cursor:not-allowed"')+'>'
+        + esc(scdT(st)+' ~ '+scdT(en))
+        + '<small>'+esc(why[st]+' · '+(n?('빈 강의장 '+n+'개'):'빈 강의장 없음'))+'</small></button>';
+    }).join('');
+
+    var list=mine.length
+      ? '<div class="scday-list">'+mine.map(function(x){
+          return '<b>'+esc(scdT(x.s)+'~'+scdT(x.e))+'</b> &nbsp;'
+            + esc(x.row.student_name||'(이름 없음)')+' · '
+            + esc(x.row.room_id!=null?roomLabelById(x.row.room_id):'강의장 미배정');
+        }).join('<br>')+'</div>'
+      : '<div class="scday-list scday-none">이 날 이 선생님 수업이 아직 없습니다.</div>';
+
+    var tname=((_members||[]).filter(function(m){ return m.id===tid; })[0]||{}).name||'선생님';
+    box.innerHTML=
+      '<div class="scday-h">📅 '+esc(d)+' · '+esc(tname)+' 하루'
+        + ' <span style="font-weight:700;color:var(--muted)">('+len+'분 수업 기준)</span></div>'
+      + bar
+      + '<div class="scday-tick"><span>'+scdT(SCD_OPEN)+'</span><span>16:00</span><span>'+scdT(SCD_CLOSE)+'</span></div>'
+      + list
+      + (free.length
+          ? '<div class="scday-h" style="margin:12px 0 0">🟢 앞뒤로 붙는 자리 — 누르면 위 시작·종료 칸에 들어갑니다</div>'
+            + '<div class="scday-btns">'+btns+'</div>'
+          : '<div class="scday-btns"><span class="scday-none">붙여 잡을 자리가 없습니다. 위에서 시간을 직접 골라주세요.</span></div>');
+  }
+
+  if($('scDay')) $('scDay').addEventListener('click', function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('button[data-scds]'):null;
+    if(!b||b.disabled) return;
+    var s=b.getAttribute('data-scds'), en=b.getAttribute('data-scde');
+    if($('scStart')) $('scStart').value=s;
+    if($('scEnd')) $('scEnd').value=en;
+    // 30분 단위가 아니면 select 에 그 값이 없어 조용히 비어버린다 — 그때는 알려준다.
+    if($('scStart')&&$('scStart').value!==s){ if($('scErr')) $('scErr').textContent='그 시간은 목록에 없습니다. 직접 골라주세요.'; return; }
+    updateScFree();   // 이 안에서 띠도 다시 그린다
+  });
+
   if($('scDate')) $('scDate').onchange=updateScFree;
   if($('scStart')) $('scStart').onchange=updateScFree;
   if($('scEnd')) $('scEnd').onchange=updateScFree;
+  // 선생님 칸에는 이미 다른 onchange 가 걸려 있다(학생 명단 채우기) — 덮지 말고 얹는다.
+  if($('scTeacher')) $('scTeacher').addEventListener('change', renderScDay);
 
   // ---- 캘린더 클릭 → 날짜/시간 자동 입력 ----
   if($('calGrid')) $('calGrid').addEventListener('click', function(e){
