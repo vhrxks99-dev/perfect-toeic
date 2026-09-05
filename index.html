@@ -5028,6 +5028,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <div class="dash-row" style="margin-top:12px">
           <label>학생<input type="text" id="rfStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="rfStudent"></select></label>
           <label>들은 회차<input type="number" id="rfDone" min="0" step="1" placeholder="자동"><span class="wa-hint">수업 일정에서 자동으로 셉니다</span></label>
+          <label>실제 환불액<input type="number" id="rfAmount" min="0" step="1000" placeholder="비우면 자동"><span class="wa-hint">깎은 게 있으면 직접 적으세요</span></label>
           <label>환불일<input type="date" id="rfPaid"></label>
           <label>정산 월<input type="month" id="rfMonth"></label>
         </div>
@@ -10118,7 +10119,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var left = totalSess - done;
 
     var ratio  = rfRatio(done, totalSess);
-    var refund = Math.round(totalAmt * ratio);
+    var autoRefund = Math.round(totalAmt * ratio);
+
+    // 실제로 돌려준 금액을 직접 적을 수 있게 한다 (원장 지시 2026-09-05).
+    // 예 — OT 만 듣고 그만둔 학생. 수업은 0회라 법정으로는 전액 반환이지만
+    //      실제로는 OT 비용을 빼고 돌려준다. 자동 계산만으로는 그 금액을 넣을 수 없었다.
+    // 비워 두면 예전처럼 자동 계산값을 쓴다.
+    var manualEl = $('rfAmount');
+    var manualRaw = manualEl ? String(manualEl.value).trim() : '';
+    var manual = manualRaw === '' ? NaN : parseInt(manualRaw, 10);
+    var useManual = !isNaN(manual) && manual >= 0 && manual <= totalAmt;
+
+    var refund = useManual ? manual : autoRefund;
     var keep   = totalAmt - refund;                 // 학원이 쥐는 돈
 
     // 강사 몫은 '한 수업'만. 배분율은 그 학생 결제에 박혀 있는 값을 쓴다.
@@ -10135,7 +10147,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     _rfCalc = { totalAmt:totalAmt, totalSess:totalSess, per:per, done:done, left:left,
                 ratio:ratio, refund:refund, keep:keep, rate:rate, tname:tname,
-                teachBase:teachBase, teachGross:teachGross, academy:academy };
+                teachBase:teachBase, teachGross:teachGross, academy:academy,
+                autoRefund:autoRefund, useManual:useManual };
 
     var warn = (prev && prev.length)
       ? '<div style="margin-top:8px;color:#b26a00;font-weight:700">⚠️ 이 학생은 이미 환불 기록이 '+prev.length+'건 있습니다. 두 번 넣는 게 아닌지 확인해주세요.</div>' : '';
@@ -10145,7 +10158,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     + '<b>들은 회차</b> '+done+'회 · <b>안 들은 회차</b> '+left+'회 · 진행률 '
       + (totalSess? Math.round(done/totalSess*100):0) + '% → <b>반환 '+rfRatioText(ratio)+'</b><br>'
     + '<hr style="border:0;border-top:1px solid var(--line);margin:9px 0">'
-    + '<b style="color:#c0342b">학생에게 환불 '+won(refund)+'</b><br>'
+    + '<b style="color:#c0342b">학생에게 환불 '+won(refund)+'</b>'
+    + (useManual
+        ? ' <span style="font-size:12.5px;color:#b26a00;font-weight:700">직접 적으신 금액입니다'
+          + (refund!==autoRefund ? ' · 자동 계산은 '+won(autoRefund)+' · 차액 '+won(autoRefund-refund)+'은 학원이 가집니다' : '')
+          + '</span>'
+        : '')
+    + '<br>'
     + '학원이 쥐는 돈 '+won(keep)+' = '
       + (tname? esc(tname)+' 선생님 ' : '강사 ')+won(teachGross)+' ('+done+'회 × '+won(Math.round(per))+' × '+rate+'%)'
       + ' + 학원 '+won(academy)+'<br>'
@@ -10174,7 +10193,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var c=_rfCalc;
 
     if(!confirm(sname+' 학생 환불을 등록합니다.\n\n'
-      + '환불 '+won(c.refund)+' · 남은 횟수 '+c.left+'회 차감\n'
+      + '환불 '+won(c.refund)+(c.useManual? ' (직접 적으신 금액 · 자동 계산은 '+won(c.autoRefund)+')':'')+' · 남은 횟수 '+c.left+'회 차감\n'
       + (c.tname? c.tname+' 선생님 ':'강사 ')+won(c.teachGross)+' · 학원 '+won(c.academy)+'\n\n'
       + '안 한 수업 '+c.left+'회분은 담당 강사에서 떼어냅니다.'
       + ((_rfFuture && _rfFuture.length) ? '\n앞으로 잡힌 수업 '+_rfFuture.length+'회도 휴강 처리합니다.' : ''))) return;
@@ -10241,6 +10260,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       }
 
       if($('rfDone')) $('rfDone').value='';
+      if($('rfAmount')) $('rfAmount').value='';
       if($('rfStudent')) $('rfStudent').value='';
       if($('rfCalc')) $('rfCalc').innerHTML='등록했습니다.'
         + (offN ? ' 앞으로 잡힌 수업 <b>'+offN+'회</b>도 휴강으로 바꿨습니다.' : '')
@@ -10258,8 +10278,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('rfStudentSearch')) $('rfStudentSearch').oninput=function(){
     if($('rfStudent')) $('rfStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value);
   };
-  if($('rfStudent')) $('rfStudent').onchange=function(){ if($('rfDone')) $('rfDone').value=''; rfLoadStudent(); };
+  if($('rfStudent')) $('rfStudent').onchange=function(){
+    if($('rfDone')) $('rfDone').value='';
+    if($('rfAmount')) $('rfAmount').value='';   // 앞 학생에게 적은 금액이 남으면 안 된다
+    rfLoadStudent();
+  };
   if($('rfDone'))    $('rfDone').oninput=function(){ rfDraw(); };
+  if($('rfAmount'))  $('rfAmount').oninput=function(){ rfDraw(); };
   if($('rfGo'))      $('rfGo').onclick=rfSubmit;
 
   // ================= 정산 = 강사 급여 =================
