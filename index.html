@@ -3917,7 +3917,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-book-row{display:flex;gap:12px;margin:6px 0 4px}
 .wa-book-row label{flex:1;display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--ink-soft)}
 .wa-book-row input,.wa-book-row select{padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px;font-size:14px;font-family:var(--font-sans);background:var(--surface);color:var(--ink)}
-.wa-book-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px;margin:12px 0 4px}
+.wa-book-slots{margin:12px 0 4px}
+.wa-book-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px}
 .wa-book-slot{padding:12px 6px;border:1px solid var(--line-strong);border-radius:12px;background:var(--surface);text-align:center;cursor:pointer;transition:.15s}
 .wa-book-slot .t{font-family:var(--font-num);font-weight:800;font-size:15px;color:var(--ink)}
 .wa-book-slot .s{font-size:11.5px;color:var(--muted);margin-top:2px}
@@ -3925,6 +3926,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-book-slot.busy{opacity:.45;cursor:not-allowed;background:var(--surface-2)}
 .wa-book-slot.busy .t{color:var(--muted);text-decoration:line-through}
 .wa-book-slot.busy:hover{border-color:var(--line-strong);background:var(--surface-2)}
+/* 앞뒤 수업과 딱 붙는 자리 — 눌러야 한다는 게 아니라 눈에 띄게만 한다 (2026-09-05 원장 지시) */
+.wa-book-slot.adj{border-color:#22795a;background:#eef6f1}
+.wa-book-slot.adj:hover{border-color:#1b6047;background:#e3f0e9}
+.wa-book-slot .bk-badge{display:block;font-size:10.5px;font-weight:800;color:#1b6047;margin-top:3px;letter-spacing:-.02em}
+/* 그날 이미 잡힌 수업 — 시간만 보여준다. 학생 이름은 넘기지 않는다 */
+.wa-book-day{margin:10px 0 2px;padding:9px 12px;border-radius:10px;background:var(--surface-2);font-size:12.5px;color:var(--ink-soft);line-height:1.65}
+.wa-book-day b{color:var(--ink);font-weight:800}
 .wa-book-empty{grid-column:1/-1;color:var(--muted);font-size:13px;padding:14px 2px;text-align:center}
 .wa-book-mine{margin-top:16px;border-top:1px solid var(--line);padding-top:14px}
 .wa-book-mine-h{font-weight:800;font-size:14px;margin-bottom:8px}
@@ -12967,16 +12975,43 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     var slots=d.slots||[];
     if(!slots.length){ box.innerHTML='<div class="wa-book-empty">예약 가능한 시간이 없어요.</div>'; return; }
-    box.innerHTML=slots.map(function(sl){
+    // 누른 뒤 안내 문구를 만들 때 다시 봐야 해서 들고 있는다
+    window.__bookSlots = slots;
+
+    // 그날 이미 잡힌 수업을 위에 보여준다. 학생이 스스로 이어지는 자리를 고르게 하려는 것.
+    var dayHtml = '';
+    if(d.busy && d.busy.length){
+      dayHtml = '<div class="wa-book-day">그날 <b>'+esc(d.teacher_name||'')+'</b> 선생님 수업 — '
+              + d.busy.map(function(b){ return '<b>'+esc(b.start)+'~'+esc(b.end)+'</b>'; }).join(' · ')
+              + '<br>바로 이어지는 자리에는 <b style="color:#1b6047">이어서</b> 표시가 붙어 있어요.</div>';
+    }
+
+    box.innerHTML = dayHtml + '<div class="wa-book-grid">' + slots.map(function(sl){
       var busy=!sl.available;
+      var adj = (!busy && sl.adjacent);
       var attr=busy?'':(' data-slot="'+esc(sl.start)+'"');
-      return '<div class="wa-book-slot'+(busy?' busy':'')+'"'+attr+'><div class="t">'+esc(sl.start)+'</div><div class="s">'+(busy?'예약중':('~'+esc(sl.end)))+'</div></div>';
-    }).join('');
+      return '<div class="wa-book-slot'+(busy?' busy':'')+(adj?' adj':'')+'"'+attr+'>'
+           + '<div class="t">'+esc(sl.start)+'</div>'
+           + '<div class="s">'+(busy?'예약중':('~'+esc(sl.end)))+'</div>'
+           + (adj?'<div class="bk-badge">이어서</div>':'')
+           + '</div>';
+    }).join('') + '</div>';
   }
   if($('waBookSlots')) $('waBookSlots').addEventListener('click', async function(e){
     var el=(e.target&&e.target.closest)?e.target.closest('[data-slot]'):null; if(!el||!sb) return;
     var start=el.getAttribute('data-slot'), date=$('waBookDate').value, subject=$('waBookSubject')?$('waBookSubject').value:'토익';
-    if(!confirm(date+' '+start+' 수업으로 예약을 요청할까요?\n선생님 승인 후 확정됩니다.')) return;
+    // 고른 자리가 앞뒤 수업과 안 붙는데, 붙는 빈자리가 따로 있으면 한 번 알려준다.
+    // 막지 않는다 — "그래도 이 시간" 하면 그대로 진행된다 (원장 지시 2026-09-05).
+    var _all = window.__bookSlots || [];
+    var _pick = _all.filter(function(s){ return s.start === start; })[0];
+    var _adj  = _all.filter(function(s){ return s.available && s.adjacent; })
+                    .map(function(s){ return s.start; });
+    var _tip = '';
+    if(_pick && !_pick.adjacent && _adj.length){
+      _tip = '\n\n' + _adj.slice(0,3).join(' · ') + ' 에 하시면 앞뒤 수업과 바로 이어져요.'
+           + '\n그래도 ' + start + ' 로 할까요?';
+    }
+    if(!confirm(date+' '+start+' 수업으로 예약을 요청할까요?\n선생님 승인 후 확정됩니다.'+_tip)) return;
     var r=await sb.rpc('request_booking',{p_date:date,p_start:start,p_subject:subject});
     // 실패도 성공처럼 팝업으로 알린다. 예전엔 빨간 글씨만 찍었는데 그 자리가
     // 시간 목록 아래라 화면 밖이었고, 학생은 아무 일도 안 일어난 걸로 느꼈다(2026-08-10).
