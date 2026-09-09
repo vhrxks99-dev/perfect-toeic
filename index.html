@@ -5424,7 +5424,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-head">내 학습 <span id="waLearnName" class="dash-badge"></span></div>
     <div class="wa-sub">숙제와 수업 일정, 남은 수강 횟수를 한눈에 확인하세요.</div>
     <!-- 공지 (2026-09-09). 앱 홈 맨 위와 같은 것을 읽는다. 없으면 자리도 없다. -->
+    <!-- 프로필 사진 (2026-09-09). 앱과 같은 저장통을 쓴다. -->
+    <div id="myAvatar" style="display:none"></div>
     <div id="myNotice" style="display:none"></div>
+    <!-- 성적 그래프·진단 리포트 (2026-09-09). 앱 「내 학습」과 같은 그림이다.
+         자료가 없으면 자리도 안 만든다. -->
+    <div id="myExam" style="display:none"></div>
+    <div id="myDiag" style="display:none"></div>
     <div id="myTeacher"></div>
     <div class="dash-list-head">🎫 내 수강권 (남은 수업 횟수)</div>
     <div class="dash-note" id="myPass"></div>
@@ -5517,6 +5523,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="wa-row">
         <label>현재 점수<input type="text" id="waECurrent"></label>
         <label>목표 점수<input type="text" id="waEGoal"></label>
+        <!-- 선생님 한마디 (2026-09-09). 학생 앱·웹 첫 화면에 그대로 보인다. -->
+        <label style="flex:1 1 100%">선생님 한마디 <span style="color:var(--muted);font-weight:600;font-size:12px">(학생 화면에 그대로 보입니다)</span><textarea id="waENote" rows="2" maxlength="500" placeholder="예: 이번 주 파트5 오답 정리부터 하고 오세요." style="width:100%;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></textarea></label>
       </div>
       <label>목표 기간<input type="text" id="waEPeriod" placeholder="예: 2026년 10월까지 / 3개월"></label>
       <label>가입 경로<input type="text" id="waERoute"></label>
@@ -6589,6 +6597,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('waEPeriod')) $('waEPeriod').value=u.goal_period||'';
     editingRole=u.role||'student'; editingTeacher=u.teacher_id||'';
     if($('waETeacher')){ var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';}); $('waETeacher').innerHTML='<option value="">미배정</option>'+ts.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join(''); $('waETeacher').value=u.teacher_id||''; }
+    if($('waENote')) $('waENote').value=u.teacher_note||'';
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
     editingRate=(u.pay_rate!=null)?Number(u.pay_rate):50;
     if($('waERate')) $('waERate').value=editingRate;
@@ -6624,7 +6633,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var patch={ name:$('waEName').value.trim(), phone:($('waEPhone').value.trim()||null), interest:($('waEInterest').value.trim()||null), current_score:($('waECurrent').value.trim()||null), goal_score:($('waEGoal').value.trim()||null), goal_period:(($('waEPeriod')?$('waEPeriod').value.trim():'')||null), route:($('waERoute').value.trim()||null) };
     if(!patch.name){ $('waEErr').textContent='이름은 필수입니다.'; return; }
     var wasSelf = profile && editingId===profile.id;
+    if($('waENote')){
+      patch.teacher_note = ($('waENote').value.trim() || null);
+      patch.teacher_note_at = new Date().toISOString();
+    }
     var r=await sb.from('profiles').update(patch).eq('id',editingId);
+    // 🚨 한마디 칸이 아직 없는 DB 면 그 칸만 빼고 다시 넣는다.
+    //    한마디 하나 때문에 이름·연락처 수정까지 막히면 안 된다.
+    if(r.error && /teacher_note/.test(r.error.message||'')){
+      delete patch.teacher_note; delete patch.teacher_note_at;
+      r=await sb.from('profiles').update(patch).eq('id',editingId);
+      if(!r.error) alert('「선생님 한마디」 칸이 아직 없어 나머지만 저장했습니다.');
+    }
     if(r.error){ $('waEErr').textContent='저장 실패: '+r.error.message; return; }
     if(newRole!==editingRole){ var rr=await sb.rpc('set_role',{target:editingId,new_role:newRole}); if(rr.error){ $('waEErr').textContent='권한 변경 실패: '+rr.error.message; return; } }
     var newTeacher=$('waETeacher')?$('waETeacher').value:'';
@@ -6654,6 +6674,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     await renderMy();
     // 공지는 열 때마다 새로 읽는다. 앱에서 올린 것이 바로 보여야 한다.
     if(typeof myNoticeLoad==='function'){ try{ await myNoticeLoad(); }catch(e){} }
+    // 성적·진단 그래프도 열 때마다 새로 읽는다.
+    if(typeof window.myAvatarLoad==='function'){ try{ await window.myAvatarLoad(); }catch(e){} }
+    if(typeof window.myScoreLoad==='function'){ try{ await window.myScoreLoad(); }catch(e){} }
     $('waMy').classList.add('on');
   }
   async function openLearn(){ if(!profile||!$('waLearn')) return; await renderLearn(); $('waLearn').classList.add('on'); }
@@ -13303,12 +13326,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 담당강사 — 학생은 남의 프로필을 읽을 수 없어 my_teacher() RPC로 이름만 받는다.
     if($('myTeacher')){
       var tbox=$('myTeacher'), tname='';
+      // 선생님 한마디 (2026-09-09). 앱 학생 홈에 뜨는 것과 같은 글이다.
+      var tnote='';
+      if(sb && profile){
+        try{
+          var rn=await sb.from('profiles').select('teacher_note').eq('id',profile.id).maybeSingle();
+          if(!rn.error && rn.data) tnote=(rn.data.teacher_note||'').trim();
+        }catch(e){}
+      }
       if(sb){ try{ var rt3=await sb.rpc('my_teacher'); if(!rt3.error && rt3.data && rt3.data.assigned) tname=rt3.data.name||''; }catch(e){} }
       tbox.innerHTML = tname
         ? '<div style="display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:13px 16px;margin:14px 0 4px">'
           +'<span style="width:34px;height:34px;border-radius:50%;background:'+teacherColorStable(profile.teacher_id)+';color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px">'+esc(tname.slice(-2))+'</span>'
           +'<div><div style="font-size:12px;color:var(--muted);font-weight:700">담당강사</div>'
           +'<div style="font-size:16px;font-weight:800;color:var(--ink)">'+esc(tname)+' 선생님</div></div></div>'
+          + (tnote ? ('<div id="myNoteBox" style="display:flex;gap:9px;background:var(--accent-wash);border-radius:11px;padding:12px 15px;margin:0 0 4px;font-size:13.5px;line-height:1.7;color:var(--ink-soft)">'
+              + '<span>💬</span><span><b style="color:var(--ink)">선생님 한마디</b><br>'+esc(tnote)+'</span></div>') : '')
         : '<div style="background:#fff8ec;border:1px solid #f0d9ae;border-radius:12px;padding:13px 16px;margin:14px 0 4px;font-size:13.5px;color:#7a5a1f">'
           +'<b>담당강사가 아직 배정되지 않았어요.</b><br><span style="font-size:12.5px">배정 후 수업 예약과 숙제 확인이 가능합니다. 카카오톡 채널로 문의해주세요.</span></div>';
     }
@@ -14300,6 +14333,359 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(document.readyState === 'complete') setTimeout(drawPublicNotices, 300);
     else window.addEventListener('load', function(){ setTimeout(drawPublicNotices, 300); });
     window.addEventListener('wt-auth', function(){ setTimeout(drawPublicNotices, 200); });
+  })();
+</script>
+<script>
+  // ══════════════════════════════════════════════════════════════
+  // 내 정보 화면 — 성적 그래프와 진단 리포트 (2026-09-09 원장 지시)
+  //
+  // 앱의 「내 학습」에 넣은 것과 **같은 그림**이다. 두 화면이 다른 말을 하면 안 된다.
+  //   ① 총점 흐름      725 → 735 → 755
+  //   ② 지난 시험과 견주면   0 을 가운데 두고 오른 건 초록 오른쪽, 내린 건 빨강 왼쪽
+  //   ③ 이번 회차 열 항목   막대 + 그 회차 전체 수험자 평균선
+  //   ④ 진단 리포트     능력별 막대 + ETS 평균선 + 목표 역산 (등록 학생만)
+  //
+  // 🚨 총점만 보고 「올랐다」고 하면 안 된다. LC 가 55 오르는 동안 RC 가 35 내린
+  //    학생이 실제로 있었다. 그래서 ②를 ① 바로 밑에 둔다.
+  // 🚨 진단 리포트의 해석(평균선·목표 역산)은 **등록한 학생에게만** 연다.
+  //    본인 정답률은 본인 것이라 늘 보여 준다.
+  // 🚨 표가 없거나 자료가 없으면 자리를 아예 안 만든다. 화면이 깨지면 안 된다.
+  // ══════════════════════════════════════════════════════════════
+  (function(){
+    function esc(v){
+      return String(v==null?'':v).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    // 성적표에 적힌 순서 그대로. 앱(lib/exams.ts)과 같은 순서여야 한다.
+    var AB = [
+      ['lc_short_gist','LC','짧은 대화 요지'],
+      ['lc_long_gist','LC','긴 담화 요지'],
+      ['lc_short_detail','LC','짧은 대화 세부'],
+      ['lc_long_detail','LC','긴 담화 세부'],
+      ['lc_intent','LC','화자의 의도'],
+      ['rc_infer','RC','추론'],
+      ['rc_locate','RC','특정 정보 찾기'],
+      ['rc_connect','RC','여러 문장 연결'],
+      ['rc_vocab','RC','어휘'],
+      ['rc_gram','RC','문법']
+    ];
+
+    // ETS 성적표에 찍히는 전체 수험자 평균. 앱 lib/bench.ts 와 같은 값이다.
+    var ETS_AVG = { locate:68, connect:66, infer:66, vocab:72, gram:79 };
+    // 목표 점수를 낸 학생들이 실제로 냈던 수준
+    var TARGET = [
+      { band:850, label:'850 이상', need:{ gram:95, vocab:84, connect:79, infer:79, locate:72 } },
+      { band:750, label:'700점대',  need:{ gram:86, vocab:79, connect:68, infer:65, locate:75 } },
+      { band:650, label:'600점대',  need:{ gram:74, vocab:57, connect:61, infer:56, locate:56 } }
+    ];
+    var DIAG = [ ['ab_gram','gram','문법'], ['ab_vocab','vocab','어휘'],
+                 ['ab_connect','connect','연결'], ['ab_locate','locate','찾기'],
+                 ['ab_infer','infer','추론'] ];
+    var FULL = 6;   // 진단테스트는 능력별 여섯 문항
+
+    function bar(pct, color, avg){
+      var tick = (avg==null) ? '' :
+        '<i style="position:absolute;top:-2px;left:'+avg+'%;width:2px;height:13px;border-radius:1px;background:#d98324"></i>';
+      return '<span style="position:relative;display:block;height:9px;border-radius:5px;background:var(--surface-2);overflow:visible">'
+        + '<i class="ms-grow" data-w="'+pct+'" style="display:block;height:9px;border-radius:5px;background:'+color+';width:0;transition:width .8s cubic-bezier(.2,.8,.2,1)"></i>'
+        + tick + '</span>';
+    }
+
+    function runGrow(root){
+      // 그린 다음 한 박자 뒤에 늘린다. 그래야 늘어나는 게 보인다.
+      setTimeout(function(){
+        root.querySelectorAll('.ms-grow').forEach(function(el, i){
+          setTimeout(function(){ el.style.width = el.getAttribute('data-w')+'%'; }, i*55);
+        });
+      }, 40);
+    }
+
+    function levelFor(goal){
+      if(goal==null) return TARGET[0];
+      var best=TARGET[0];
+      TARGET.forEach(function(t){ if(Math.abs(t.band-goal) < Math.abs(best.band-goal)) best=t; });
+      return best;
+    }
+
+    // ── 시험 성적 ──────────────────────────────────────────────
+    function drawExams(box, rows){
+      if(!rows.length){ box.style.display='none'; box.innerHTML=''; return; }
+      box.style.display='';
+
+      var cur=rows[0], prev=rows[1];
+      var asc=rows.slice().reverse();
+
+      var h='<div class="dash-list-head" style="margin-top:0">📈 시험 성적</div>';
+
+      // ① 총점 흐름
+      if(asc.length>1){
+        h+='<div style="display:flex;gap:8px;margin:4px 0 10px">'
+          + asc.map(function(e,i){
+              var b=i>0?asc[i-1].total:null;
+              var d=(b!=null&&e.total!=null)?(e.total-b):null;
+              var dd=d==null?'&nbsp;':('<span style="color:'+(d>0?'#1a7a4a':(d<0?'#c0342b':'var(--muted)'))+'">'
+                     +(d>0?('+'+d):(d<0?String(d):'±0'))+'</span>');
+              return '<div style="flex:1;text-align:center;background:var(--surface-2);border-radius:9px;padding:8px 4px">'
+                + '<div style="font-size:17px;font-weight:800">'+(e.total==null?'-':e.total)+'</div>'
+                + '<div style="font-size:11px;color:var(--muted)">'+esc(String(e.exam_date||''))+'</div>'
+                + '<div style="font-size:11px;font-weight:800">'+dd+'</div></div>';
+            }).join('')
+          + '</div>';
+      }
+
+      // ② 지난 시험과 견주면
+      if(prev){
+        var diffs=[];
+        AB.forEach(function(a){
+          var n=cur[a[0]], p=prev[a[0]];
+          if(n!=null && p!=null) diffs.push({ area:a[1], label:a[2], d:n-p });
+        });
+        diffs.sort(function(x,y){ return x.d-y.d; });
+        if(diffs.length){
+          var max=Math.max(10, Math.max.apply(null, diffs.map(function(x){return Math.abs(x.d);})));
+          h+='<div style="font-size:12.5px;font-weight:800;margin:10px 0 4px">지난 시험과 견주면</div>'
+           + '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-bottom:3px">'
+           + '<span>◀ 내려간 쪽</span><span>올라간 쪽 ▶</span></div>'
+           + diffs.map(function(x){
+               var w=(Math.abs(x.d)/max)*50;
+               var side = x.d>0
+                 ? 'left:50%;background:#2f9e63'
+                 : 'right:50%;background:#d0473c';
+               return '<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
+                 + '<span style="width:104px;font-size:11.5px;color:var(--ink-soft)"><b style="color:var(--muted)">'+x.area+'</b> '+esc(x.label)+'</span>'
+                 + '<span style="position:relative;flex:1;height:12px">'
+                 +   '<i style="position:absolute;left:50%;width:1px;height:12px;background:var(--line)"></i>'
+                 +   (x.d===0?'':'<i class="ms-grow" data-w="'+w.toFixed(1)+'" style="position:absolute;'+side+';height:8px;top:2px;border-radius:4px;width:0;transition:width .7s cubic-bezier(.2,.8,.2,1)"></i>')
+                 + '</span>'
+                 + '<span style="width:44px;text-align:right;font-size:11px;font-weight:800;color:'
+                 +   (x.d>0?'#1a7a4a':(x.d<0?'#c0342b':'var(--muted)'))+'">'+(x.d>0?('+'+x.d):x.d)+'</span>'
+                 + '</div>';
+             }).join('');
+        }
+      }
+
+      // ③ 이번 회차 열 항목
+      h+='<div style="font-size:12.5px;font-weight:800;margin:12px 0 2px">이번 시험 능력별 정답률'
+        + ' <span style="font-weight:600;color:var(--muted);font-size:11px">'
+        + esc(String(cur.exam_date||''))+' · 총점 '+(cur.total==null?'-':cur.total)
+        + ' (LC '+(cur.lc==null?'-':cur.lc)+' · RC '+(cur.rc==null?'-':cur.rc)+')</span></div>'
+        + '<div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">'
+        + '파란 막대 = 내 정답률 · <b style="color:#d98324">│</b> 선 = 그 회차 전체 수험자 평균</div>';
+
+      AB.forEach(function(a){
+        var v=cur[a[0]]; if(v==null) return;
+        var avg=(cur.avg_json&&cur.avg_json[a[0]]!=null)?cur.avg_json[a[0]]:null;
+        var p=prev?prev[a[0]]:null;
+        var d=(p!=null)?(v-p):null;
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
+          + '<span style="width:104px;font-size:11.5px;color:var(--ink-soft)"><b style="color:var(--muted)">'+a[1]+'</b> '+esc(a[2])+'</span>'
+          + '<span style="flex:1">'+bar(v, 'var(--accent)', avg)+'</span>'
+          + '<span style="width:34px;text-align:right;font-size:11px;font-weight:800;color:'
+          +   (d==null?'var(--muted)':(d>0?'#1a7a4a':(d<0?'#c0342b':'var(--muted)')))+'">'
+          +   (d==null?'':(d>0?('+'+d):(d<0?String(d):'±0')))+'</span>'
+          + '<span style="width:38px;text-align:right;font-size:12px;font-weight:800">'+v+'%</span>'
+          + '</div>';
+      });
+
+      box.innerHTML=h;
+      runGrow(box);
+    }
+
+    // ── 진단 리포트 ────────────────────────────────────────────
+    function drawDiag(box, rows, locked, goal){
+      if(!rows.length){ box.style.display='none'; box.innerHTML=''; return; }
+      box.style.display='';
+
+      var d=rows[0], prev=rows[1];
+      var t=levelFor(goal);
+
+      var h='<div class="dash-list-head" style="margin-top:0">🎯 진단 리포트'
+          + ' <span style="font-weight:600;color:var(--muted);font-size:11.5px">'
+          + (d.score!=null?('읽기 예상 '+d.score+'점 · '):'')
+          + (d.level?esc(d.level)+' · ':'')
+          + esc(String(d.created_at||'').slice(0,10))+'</span></div>'
+        + '<div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">파란 막대 = 내 정답률'
+        + (locked?'':' · <b style="color:#d98324">│</b> 선 = 전체 수험자 평균'
+                   + (prev?' · 오른쪽 숫자 = 지난 회차 대비':''))
+        + '</div>';
+
+      DIAG.forEach(function(a){
+        var v=d[a[0]]; if(v==null) return;
+        var pct=Math.round(v/FULL*100);
+        var before=prev?prev[a[0]]:null;
+        var diff=(!locked && before!=null)?(v-before):null;
+        var half = v*2<=FULL;
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
+          + '<span style="width:36px;font-size:12px;font-weight:700;color:var(--ink-soft)">'+esc(a[2])+'</span>'
+          + '<span style="flex:1">'+bar(pct, (!locked&&half)?'#d0473c':'var(--accent)', locked?null:ETS_AVG[a[1]])+'</span>'
+          + '<span style="width:30px;text-align:right;font-size:11px;font-weight:800;color:'
+          +   (diff==null?'var(--muted)':(diff>0?'#1a7a4a':(diff<0?'#c0342b':'var(--muted)')))+'">'
+          +   (diff==null?'':(diff>0?('+'+diff):String(diff)))+'</span>'
+          + '<span style="width:40px;text-align:right;font-size:12px;font-weight:800">'+v+'<span style="font-weight:600;color:var(--muted)">/'+FULL+'</span></span>'
+          + '</div>'
+          + ((!locked && half)
+              ? '<div style="margin-left:44px;font-size:10.5px;font-weight:700;color:#c0342b">절반이 안 됩니다. 여기부터 봅니다</div>'
+              : '');
+      });
+
+      if(locked){
+        h+='<div style="margin-top:8px;background:var(--accent-wash);border-radius:9px;padding:10px 12px;font-size:11.5px;line-height:1.7;color:var(--ink-soft)">'
+          + '🔒 전체 수험자 평균과 <b>목표 점수까지 남은 거리</b>는 수강 등록 후에 열립니다. 상담 때 담당 선생님과 함께 봅니다.</div>';
+      } else {
+        h+='<div style="font-size:12.5px;font-weight:800;margin:12px 0 4px">'
+          + (goal?('목표 '+goal+'점'):'850점')+'까지 — '+t.label+' 학생들이 냈던 수준</div>';
+        DIAG.forEach(function(a){
+          var v=d[a[0]]; if(v==null) return;
+          var mine=Math.round(v/FULL*100), need=t.need[a[1]], gap=need-mine;
+          h+='<div style="display:flex;align-items:center;gap:8px;padding:1px 0;font-size:12px">'
+            + '<span style="width:36px;font-weight:700;color:var(--ink-soft)">'+esc(a[2])+'</span>'
+            + '<span style="width:42px;text-align:right;font-weight:700">'+mine+'%</span>'
+            + '<span style="color:var(--muted)">→</span>'
+            + '<span style="width:42px;font-weight:800;color:var(--accent)">'+need+'%</span>'
+            + '<span style="flex:1;text-align:right;font-size:11px;color:'+(gap<=0?'#1a7a4a':'var(--muted)')+'">'
+            +   (gap<=0?'이미 넘었습니다':(gap+'%p 더'))+'</span></div>';
+        });
+        h+='<div style="margin-top:8px;font-size:10.5px;color:var(--muted);line-height:1.6">'
+          + '평균선은 ETS 성적표에 표시되는 전체 수험자 평균입니다. 목표 수준은 완벽한토익 수강생들의 '
+          + '실제 성적표에서 모은 값이며, 자료는 계속 쌓이고 있습니다. 문항이 여섯 개라 한 문제가 17%p 입니다 — '
+          + '한두 문제 차이는 그날 운일 수 있습니다. 무엇을 얼마나 할지는 상담 때 담당 선생님이 정합니다.</div>';
+      }
+
+      box.innerHTML=h;
+      runGrow(box);
+    }
+
+    // ── 불러오기 ──────────────────────────────────────────────
+    window.myScoreLoad = async function(){
+      var ex=document.getElementById('myExam');
+      var dg=document.getElementById('myDiag');
+      var p=window.WT_PROFILE || null;
+      if(!window.sb || !p){ if(ex) ex.style.display='none'; if(dg) dg.style.display='none'; return; }
+
+      if(ex){
+        try{
+          var r=await window.sb.from('exam_scores').select('*')
+            .eq('student_id', p.id).order('exam_date',{ascending:false}).limit(6);
+          drawExams(ex, (!r.error && r.data) ? r.data : []);
+        }catch(e){ ex.style.display='none'; }
+      }
+
+      if(dg){
+        try{
+          var q=await window.sb.from('diagnostics').select('*')
+            .eq('student_id', p.id).order('created_at',{ascending:false}).limit(3);
+          // 해석은 담당 선생님이 배정된(=등록한) 학생에게만 연다. 직원은 늘 열려 있다.
+          var locked = (p.role==='student') &&
+                       (String(p.status||'')==='ended' || !p.teacher_id);
+          var goal = p.goal_score ? Number(String(p.goal_score).replace(/[^0-9]/g,'')) : null;
+          drawDiag(dg, (!q.error && q.data) ? q.data : [], locked, (goal&&goal>0)?goal:null);
+        }catch(e){ dg.style.display='none'; }
+      }
+    };
+  })();
+</script>
+<script>
+  // ══════════════════════════════════════════════════════════════
+  // 프로필 사진 (2026-09-09) — 앱과 같은 저장통(avatars)·같은 칸(avatar_url)
+  //
+  // 🚨 파일은 **자기 id 칸 아래**에 담는다(<내id>/photo.jpg). 저장통 규칙이
+  //    첫 칸을 보고 남의 사진을 막는다. 원장님만 남의 것도 바꿀 수 있다.
+  // 🚨 사진이 없으면 카카오톡처럼 회색 바탕에 사람 모양을 둔다(앱과 같다).
+  // 🚨 같은 주소에 덮어쓰므로 뒤에 시각을 붙여야 브라우저가 새 사진을 본다.
+  // ══════════════════════════════════════════════════════════════
+  (function(){
+    var BUCKET = 'avatars';
+
+    function blank(size){
+      var s = size || 64;
+      return '<span style="width:'+s+'px;height:'+s+'px;border-radius:50%;background:#C7C4BF;'
+        + 'display:inline-flex;align-items:flex-end;justify-content:center;overflow:hidden">'
+        + '<svg viewBox="0 0 24 24" width="'+Math.round(s*0.72)+'" height="'+Math.round(s*0.72)+'" fill="#fff">'
+        + '<circle cx="12" cy="8.5" r="4"/><path d="M4 22c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg></span>';
+    }
+
+    function img(url, size){
+      var s = size || 64;
+      return '<img src="'+url+'" style="width:'+s+'px;height:'+s+'px;border-radius:50%;object-fit:cover;background:#eee">';
+    }
+
+    window.wtAvatarHtml = function(url, size){
+      return url ? img(url, size) : blank(size);
+    };
+
+    // 내 정보 화면 맨 위 — 자기 사진을 바꾼다
+    window.myAvatarLoad = async function(){
+      var box = document.getElementById('myAvatar');
+      var p = window.WT_PROFILE || null;
+      if(!box || !window.sb || !p){ if(box) box.style.display='none'; return; }
+      box.style.display='';
+
+      var url = null;
+      try{
+        var r = await window.sb.from('profiles').select('avatar_url').eq('id', p.id).maybeSingle();
+        if(!r.error && r.data) url = r.data.avatar_url || null;
+      }catch(e){}
+
+      box.innerHTML =
+        '<div style="display:flex;align-items:center;gap:14px;margin:0 0 6px">'
+        + '<span id="myAvatarPic">' + window.wtAvatarHtml(url, 64) + '</span>'
+        + '<div>'
+        +   '<div style="font-size:15px;font-weight:800">' + (p.name ? String(p.name).replace(/[<>&]/g,'') : '') + '</div>'
+        +   '<div style="margin-top:4px;display:flex;gap:12px">'
+        +     '<a class="wa-link" id="myAvatarPick">사진 바꾸기</a>'
+        +     (url ? '<a class="wa-link" id="myAvatarDrop" style="color:var(--muted)">지우기</a>' : '')
+        +   '</div>'
+        +   '<div id="myAvatarMsg" style="font-size:11.5px;color:var(--muted);margin-top:3px"></div>'
+        + '</div>'
+        + '<input type="file" id="myAvatarFile" accept="image/*" style="display:none">'
+        + '</div>';
+
+      var pick = document.getElementById('myAvatarPick');
+      var file = document.getElementById('myAvatarFile');
+      var drop = document.getElementById('myAvatarDrop');
+      var msg  = document.getElementById('myAvatarMsg');
+
+      if(pick && file) pick.onclick = function(){ file.click(); };
+
+      if(file) file.onchange = async function(){
+        var f = this.files && this.files[0];
+        if(!f) return;
+        if(f.size > 5*1024*1024){ if(msg) msg.textContent='5MB 이하 사진만 올려주세요.'; return; }
+        if(msg) msg.textContent='올리는 중…';
+
+        var path = p.id + '/photo.jpg';
+        var up = await window.sb.storage.from(BUCKET)
+          .upload(path, f, { contentType: f.type || 'image/jpeg', upsert: true });
+        if(up.error){
+          if(msg) msg.textContent = /bucket|not found/i.test(up.error.message||'')
+            ? '사진 저장통이 아직 없습니다. 원장님께 알려주세요.'
+            : ('올리지 못했습니다: ' + up.error.message);
+          return;
+        }
+        // 같은 주소에 덮어쓰므로 뒤에 시각을 붙인다.
+        var pub = window.sb.storage.from(BUCKET).getPublicUrl(path);
+        var newUrl = pub.data.publicUrl + '?v=' + Date.now();
+
+        var u = await window.sb.from('profiles').update({ avatar_url: newUrl }).eq('id', p.id);
+        if(u.error){
+          if(msg) msg.textContent = /avatar_url/.test(u.error.message||'')
+            ? '사진 칸이 아직 없습니다. 원장님께 알려주세요.'
+            : ('저장하지 못했습니다: ' + u.error.message);
+          return;
+        }
+        if(msg) msg.textContent='바꿨습니다.';
+        window.myAvatarLoad();
+      };
+
+      if(drop) drop.onclick = async function(){
+        if(!confirm('사진을 지울까요? 기본 그림으로 돌아갑니다.')) return;
+        try{ await window.sb.storage.from(BUCKET).remove([p.id + '/photo.jpg']); }catch(e){}
+        await window.sb.from('profiles').update({ avatar_url: null }).eq('id', p.id);
+        window.myAvatarLoad();
+      };
+    };
   })();
 </script>
 </body></html>
