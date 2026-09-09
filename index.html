@@ -4720,6 +4720,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-head">관리 페이지 <span id="waRoleBadge" class="dash-badge"></span></div>
     <div class="dash-tabs">
       <button class="dash-tab on" data-dtab="members">회원</button>
+      <button class="dash-tab" data-dtab="notice">공지</button>
       <button class="dash-tab" data-dtab="student">학생 카드</button>
       <button class="dash-tab" data-dtab="sched">수업 스케줄</button>
       <button class="dash-tab" data-dtab="off">휴무</button>
@@ -4731,6 +4732,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <button class="dash-tab" data-dtab="work">출퇴근</button>
       <button class="dash-tab" data-dtab="oplog">운영일지</button>
       <button class="dash-tab" data-dtab="diag">진단결과</button>
+      <button class="dash-tab" data-dtab="exam">성적</button>
       <button class="dash-tab" data-dtab="hw">숙제</button><button class="dash-tab" data-dtab="lib">자료실</button>
       <button class="dash-tab" data-dtab="consult">상담</button>
       <button class="dash-tab" data-dtab="eval">선생님 평가</button>
@@ -5200,6 +5202,84 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="wa-table-wrap"><table class="wa-table" id="diagTable"></table></div>
     </div>
 
+    <!-- 토익 성적표 입력 (2026-09-09 원장 지시). 앱의 「성적 입력」과 같은 표(exam_scores)를 쓴다.
+         🚨 앱과 웹이 같은 칸을 같은 순서로 받아야 한다. 순서가 다르면 옮겨 적다가 틀린다. -->
+    <!-- 공지 (2026-09-09 원장 지시). 앱의 「공지 쓰기」와 같은 표(notices)를 쓴다.
+         🚨 여기서 올린 공지가 앱 홈 맨 위에 그대로 뜬다. 반대도 같다.
+         🚨 대상(전체/선생님만/학생만)은 서버(RLS)가 가른다. 화면이 숨기는 게 아니다. -->
+    <div class="dash-pane" data-dpane="notice">
+      <div class="dash-list-head" style="margin-top:6px">📣 공지사항
+        <button class="btn btn-ghost" id="ntReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="dash-note" style="margin-top:0">
+        여기 올린 공지는 <b>앱 홈 맨 위</b>와 <b>웹 내 정보 화면</b>에 함께 뜹니다.
+        <b>누가 보나</b>를 「선생님만」으로 두면 학생 기기에는 아예 내려가지 않습니다.
+      </div>
+
+      <div class="dash-form" id="ntForm">
+        <div class="dash-row">
+          <label style="flex:2">제목<input type="text" id="ntTitle" placeholder="예: 추석 연휴 휴원 안내" maxlength="120"></label>
+          <label>누가 보나<select id="ntAud">
+            <option value="all">전체</option>
+            <option value="staff">선생님만</option>
+            <option value="student">학생만</option>
+          </select></label>
+          <label>필독<select id="ntPin"><option value="">아니요</option><option value="1">필독으로 맨 위에</option></select></label>
+        </div>
+        <div class="dash-row">
+          <label style="flex:1">내용<textarea id="ntBody" rows="5" placeholder="자세한 내용 (없으면 비워 두세요)"
+            style="width:100%;padding:10px 12px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></textarea></label>
+        </div>
+        <div class="dash-row">
+          <label>사진 <span style="color:var(--muted);font-weight:600;font-size:12px">(여러 장 가능 · 없어도 됩니다)</span>
+            <input type="file" id="ntFiles" accept="image/*" multiple></label>
+        </div>
+        <div id="ntThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0"></div>
+        <div class="dash-row">
+          <button class="btn btn-primary" id="ntSave" type="button">공지 올리기</button>
+          <span id="ntMsg" style="align-self:center;font-size:13px;font-weight:700"></span>
+        </div>
+      </div>
+
+      <div class="dash-list-head" style="margin-top:16px">올라간 공지</div>
+      <div id="ntList"></div>
+    </div>
+
+    <div class="dash-pane" data-dpane="exam">
+      <div class="dash-list-head" style="margin-top:6px">📄 토익 성적표 넣기
+        <button class="btn btn-ghost" id="exReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
+      <div class="dash-note" style="margin-top:0">
+        학생이 받은 <b>실제 토익 성적표</b>를 회차별로 넣습니다. 여기 넣으면 학생 앱의
+        <b>성적 그래프</b>와 커리큘럼 자료로 바로 이어집니다.
+        <b>모르는 칸은 비워 두세요</b> — 0 을 넣으면 「그 항목을 다 틀렸다」는 뜻이 됩니다.
+        같은 학생·같은 응시일을 다시 넣으면 <b>덮어씁니다.</b>
+      </div>
+
+      <div class="dash-form">
+        <div class="dash-row">
+          <label>학생<input type="text" id="exStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="exStudent"></select></label>
+          <label>응시일<input type="date" id="exDate"></label>
+          <label>LC<input type="number" id="exLc" min="5" max="495" placeholder="415"></label>
+          <label>RC<input type="number" id="exRc" min="5" max="495" placeholder="340"></label>
+          <label>총점<input type="text" id="exTotal" readonly placeholder="자동"></label>
+        </div>
+
+        <div class="dash-note" style="margin-top:2px">
+          아래는 성적표에 적힌 <b>순서 그대로</b>입니다. 왼쪽 칸은 학생 정답률(%),
+          오른쪽 칸은 그 옆에 작게 찍힌 <b>전체 수험자 평균</b>입니다.
+        </div>
+
+        <table class="wa-table" id="exAbTable" style="margin-top:8px"></table>
+
+        <div class="dash-row" style="margin-top:10px">
+          <button class="btn btn-primary" id="exSave" type="button">성적 저장</button>
+          <span id="exMsg" style="align-self:center;font-size:13px;font-weight:700"></span>
+        </div>
+      </div>
+
+      <div class="dash-list-head" style="margin-top:16px">이 학생의 지난 성적</div>
+      <div class="wa-table-wrap"><table class="wa-table" id="exList"></table></div>
+    </div>
+
     <div class="dash-pane" data-dpane="hw">
       <div class="dash-form">
         <div class="dash-row">
@@ -5342,6 +5422,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <button class="wa-x" id="waLearnClose" aria-label="닫기">&times;</button>
     <div class="wa-head">내 학습 <span id="waLearnName" class="dash-badge"></span></div>
     <div class="wa-sub">숙제와 수업 일정, 남은 수강 횟수를 한눈에 확인하세요.</div>
+    <!-- 공지 (2026-09-09). 앱 홈 맨 위와 같은 것을 읽는다. 없으면 자리도 없다. -->
+    <div id="myNotice" style="display:none"></div>
     <div id="myTeacher"></div>
     <div class="dash-list-head">🎫 내 수강권 (남은 수업 횟수)</div>
     <div class="dash-note" id="myPass"></div>
@@ -6566,7 +6648,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   };
 
   function openMaster(){ openAdmin(); }
-  async function openMy(){ if(!profile) return; await renderMy(); $('waMy').classList.add('on'); }
+  async function openMy(){
+    if(!profile) return;
+    await renderMy();
+    // 공지는 열 때마다 새로 읽는다. 앱에서 올린 것이 바로 보여야 한다.
+    if(typeof myNoticeLoad==='function'){ try{ await myNoticeLoad(); }catch(e){} }
+    $('waMy').classList.add('on');
+  }
   async function openLearn(){ if(!profile||!$('waLearn')) return; await renderLearn(); $('waLearn').classList.add('on'); }
   // 비대면 수업 안내 — 읽을 내용이 고정이라 그릴 것이 없다. 창만 연다.
   function openOnline(){ if(!profile||!$('waOnline')) return; $('waOnline').classList.add('on'); }
@@ -6598,6 +6686,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(name==='chglog' && typeof loadChgLog==='function'){ try{ loadChgLog(); }catch(e){} }
     // 자료실도 열 때마다 새로 읽는다(다른 기기에서 열고 닫은 것이 바로 보이게).
     if(name==='lib' && typeof loadLib==='function'){ try{ loadLib(); }catch(e){} }
+    // 성적표 — 열 때 학생 목록과 표를 만든다(회원 목록이 이미 읽혀 있어야 한다).
+    if(name==='exam' && typeof exInit==='function'){ try{ exInit(); }catch(e){} }
+    // 공지도 열 때마다 새로 읽는다. 앱에서 올린 것이 바로 보여야 한다.
+    if(name==='notice' && typeof ntInit==='function'){ try{ ntInit(); }catch(e){} }
   }
   (function(){ var c=$('waAdmin'); if(c) c.querySelectorAll('.dash-tab').forEach(function(b){ b.onclick=function(){ dashTab(b.getAttribute('data-dtab')); }; }); })();
 
@@ -7464,8 +7556,382 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var hint = tid && !opts ? '<option value="" disabled>담당 학생이 없어요 (회원관리에서 담당강사 배정)</option>' : '';
     $('scStudent').innerHTML='<option value="">(미지정)</option>'+opts+hint;
   }
+  // ══════════════════════════════════════════════════════════════
+  // 토익 성적표 넣기 (2026-09-09 원장 지시)
+  //
+  // 🚨 앱의 「성적 입력」과 **같은 표(exam_scores) · 같은 칸 · 같은 순서**다.
+  //    순서가 다르면 옮겨 적다가 틀린다. 앱을 고치면 여기도 같이 고칠 것.
+  // 🚨 안 적은 칸은 0 이 아니라 null 로 넣는다. 0 은 「다 틀렸다」는 뜻이라
+  //    학생 그래프가 거짓말을 한다.
+  // 🚨 넣고 고치는 것은 직원만이다. 막는 것은 서버(RLS)고 여기는 관리 화면이라
+  //    애초에 학생이 들어오지 못한다.
+  // ══════════════════════════════════════════════════════════════
+  var EX_AB = [
+    ['lc_short_gist', 'LC', '짧은 대화 요지'],
+    ['lc_long_gist',  'LC', '긴 담화 요지'],
+    ['lc_short_detail','LC', '짧은 대화 세부'],
+    ['lc_long_detail','LC', '긴 담화 세부'],
+    ['lc_intent',     'LC', '화자의 의도'],
+    ['rc_infer',      'RC', '추론'],
+    ['rc_locate',     'RC', '특정 정보 찾기'],
+    ['rc_connect',    'RC', '여러 문장 연결'],
+    ['rc_vocab',      'RC', '어휘'],
+    ['rc_gram',       'RC', '문법']
+  ];
+
+  function exBuildTable(){
+    var t=$('exAbTable'); if(!t || t.dataset.built) return;
+    var h='<tr><th style="width:46%">항목</th><th>내 정답률 %</th><th>전체 평균 %</th></tr>';
+    EX_AB.forEach(function(a){
+      h+='<tr><td><b style="color:var(--muted);font-size:11px">'+a[1]+'</b> '+esc(a[2])+'</td>'
+       + '<td><input type="number" min="0" max="100" id="ex_'+a[0]+'" placeholder="—" '
+       +      'style="width:100%;padding:7px 9px;border:1.5px solid var(--line-strong);border-radius:8px"></td>'
+       + '<td><input type="number" min="0" max="100" id="exavg_'+a[0]+'" placeholder="—" '
+       +      'style="width:100%;padding:7px 9px;border:1.5px solid var(--line-strong);border-radius:8px"></td></tr>';
+    });
+    t.innerHTML=h;
+    t.dataset.built='1';
+  }
+
+  function exNum(id){
+    var el=$(id); if(!el) return null;
+    var v=String(el.value||'').trim();
+    if(!v) return null;
+    var n=Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  function exFillStudents(){
+    if(!$('exStudent')) return;
+    var q=$('exStudentSearch')?$('exStudentSearch').value:'';
+    $('exStudent').innerHTML='<option value="">선택</option>'+studentOpts(q);
+  }
+
+  function exTotalCalc(){
+    var l=exNum('exLc'), r=exNum('exRc');
+    if($('exTotal')) $('exTotal').value=(l!=null&&r!=null)?(l+r+'점'):'';
+  }
+
+  async function exLoadList(){
+    var box=$('exList'); if(!box||!sb) return;
+    var sid=$('exStudent')?$('exStudent').value:'';
+    if(!sid){ box.innerHTML='<tr><td style="color:var(--muted)">학생을 고르면 지난 성적이 보입니다.</td></tr>'; return; }
+
+    var r=await sb.from('exam_scores')
+      .select('id, exam_date, total, lc, rc, rc_infer, rc_locate, rc_connect, rc_vocab, rc_gram')
+      .eq('student_id', sid).order('exam_date',{ascending:false}).limit(20);
+
+    if(r.error){
+      box.innerHTML='<tr><td style="color:#c0342b">불러오지 못했습니다. ('+esc(r.error.message)+')</td></tr>';
+      return;
+    }
+    var rows=r.data||[];
+    if(!rows.length){ box.innerHTML='<tr><td style="color:var(--muted)">아직 넣은 성적이 없습니다.</td></tr>'; return; }
+
+    var h='<tr><th>응시일</th><th>총점</th><th>LC</th><th>RC</th><th>RC 능력별</th><th></th></tr>';
+    rows.forEach(function(e, i){
+      var prev=rows[i+1];
+      var d=(prev && e.total!=null && prev.total!=null) ? (e.total-prev.total) : null;
+      var dd = d==null ? '' : ('<span style="font-weight:800;color:'+(d>0?'#1a7a4a':(d<0?'#c0342b':'var(--muted)'))+'"> '
+             + (d>0?('+'+d):(d<0?String(d):'±0'))+'</span>');
+      var ab=['rc_infer','rc_locate','rc_connect','rc_vocab','rc_gram'].map(function(k,j){
+        return e[k]==null ? null : (['추론','찾기','연결','어휘','문법'][j]+' '+e[k]);
+      }).filter(Boolean).join(' · ');
+      h+='<tr><td>'+esc(e.exam_date)+'</td><td><b>'+(e.total==null?'-':e.total)+'</b>'+dd+'</td>'
+       + '<td>'+(e.lc==null?'-':e.lc)+'</td><td>'+(e.rc==null?'-':e.rc)+'</td>'
+       + '<td style="font-size:12px;color:var(--muted)">'+esc(ab||'-')+'</td>'
+       + '<td><a class="wa-link" data-exdel="'+esc(e.id)+'" style="color:#c0342b">지우기</a></td></tr>';
+    });
+    box.innerHTML=h;
+  }
+
+  async function exSave(){
+    var msg=$('exMsg'); if(msg){ msg.textContent=''; msg.style.color=''; }
+    function bad(t){ if(msg){ msg.textContent=t; msg.style.color='#c0342b'; } }
+
+    if(!sb) return bad('로그인이 필요합니다.');
+    var sid=$('exStudent')?$('exStudent').value:'';
+    if(!sid) return bad('학생을 고르세요.');
+    var date=$('exDate')?$('exDate').value:'';
+    if(!date) return bad('응시일을 고르세요.');
+
+    var l=exNum('exLc'), r=exNum('exRc');
+    if(l==null||r==null) return bad('LC 와 RC 를 적어 주세요.');
+    if(l<5||l>495||r<5||r>495) return bad('LC · RC 는 5~495 사이입니다.');
+
+    var row={ student_id:sid, exam_date:date, lc:l, rc:r, total:l+r };
+    var avg={}, hasAvg=false;
+    for(var i=0;i<EX_AB.length;i++){
+      var k=EX_AB[i][0];
+      var v=exNum('ex_'+k);
+      if(v!=null && (v<0||v>100)) return bad(EX_AB[i][2]+' 은(는) 0~100 사이여야 합니다.');
+      row[k]=v;                       // 🚨 비어 있으면 null 그대로 넣는다
+      var a=exNum('exavg_'+k);
+      if(a!=null && (a<0||a>100)) return bad(EX_AB[i][2]+' 평균은 0~100 사이여야 합니다.');
+      if(a!=null){ avg[k]=a; hasAvg=true; }
+    }
+    row.avg_json = hasAvg ? avg : null;
+
+    var me=(profile&&profile.id)||null;
+    if(me) row.created_by=me;
+
+    var res=await sb.from('exam_scores').upsert(row, {onConflict:'student_id,exam_date'});
+    if(res.error){
+      return bad(/exam_scores/.test(res.error.message||'')
+        ? '성적표 표가 아직 없습니다. 토익성적표 이력 SQL 을 먼저 실행해주세요.'
+        : ('저장 실패: '+res.error.message));
+    }
+
+    if(msg){ msg.textContent='저장했습니다.'; msg.style.color='#1a7a4a'; }
+    // 다음 회차를 이어서 넣기 쉽게 점수 칸만 비운다(학생·날짜는 그대로 둔다).
+    ['exLc','exRc'].forEach(function(id){ if($(id)) $(id).value=''; });
+    EX_AB.forEach(function(a){
+      if($('ex_'+a[0])) $('ex_'+a[0]).value='';
+      if($('exavg_'+a[0])) $('exavg_'+a[0]).value='';
+    });
+    exTotalCalc();
+    exLoadList();
+  }
+
+  function exInit(){
+    exBuildTable();
+    exFillStudents();
+    if($('exDate') && !$('exDate').value) $('exDate').value=kymd();
+    exLoadList();
+  }
+
+  if($('exStudentSearch')) $('exStudentSearch').oninput=function(){ exFillStudents(); };
+  if($('exStudent')) $('exStudent').onchange=function(){ exLoadList(); };
+  if($('exLc')) $('exLc').oninput=exTotalCalc;
+  if($('exRc')) $('exRc').oninput=exTotalCalc;
+  if($('exSave')) $('exSave').onclick=exSave;
+  if($('exReload')) $('exReload').onclick=function(){ exFillStudents(); exLoadList(); };
+  if($('exList')) $('exList').addEventListener('click', async function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('[data-exdel]'):null;
+    if(!a||!sb) return;
+    if(!confirm('이 성적을 지울까요? 되돌릴 수 없습니다.')) return;
+    var d=await sb.from('exam_scores').delete().eq('id', a.getAttribute('data-exdel'));
+    if(d.error) alert('지우지 못했습니다: '+d.error.message);
+    exLoadList();
+  });
+
+  // ══════════════════════════════════════════════════════════════
+  // 공지사항 (2026-09-09 원장 지시) — 앱과 같은 표(notices)를 쓴다.
+  //
+  // 🚨 여기서 올린 공지가 **앱 홈 맨 위**에 그대로 뜬다. 반대도 같다.
+  //    앱을 고치면 여기도 같이 고칠 것.
+  // 🚨 누가 보는지는 서버(RLS)가 가른다. 「학생만」으로 두면 선생님 기기에는
+  //    아예 안 내려간다 — 화면에서 숨기는 게 아니다.
+  // 🚨 쓰고 지우는 것은 원장님만 된다(서버가 막는다). 선생님에게는 폼을 감춘다.
+  // ══════════════════════════════════════════════════════════════
+  var NT_BUCKET = 'notice-images';
+  var _ntShots = [];     // 이번에 올린 사진 주소들
+
+  function ntAudLabel(a){ return a==='staff' ? '선생님' : (a==='student' ? '학생' : '전체'); }
+
+  function ntImages(n){
+    var many = Array.isArray(n.image_urls) ? n.image_urls.filter(Boolean) : [];
+    if(many.length) return many;
+    return n.image_url ? [n.image_url] : [];
+  }
+
+  function ntDrawThumbs(){
+    var box=$('ntThumbs'); if(!box) return;
+    box.innerHTML=_ntShots.map(function(u,i){
+      return '<span style="position:relative;display:inline-block">'
+        + '<img src="'+esc(u)+'" style="width:62px;height:62px;object-fit:cover;border-radius:9px;border:1px solid var(--line)">'
+        + '<a data-ntdrop="'+i+'" title="빼기" style="position:absolute;top:2px;right:2px;width:18px;height:18px;'
+        + 'border-radius:50%;background:rgba(0,0,0,.55);color:#fff;font-size:12px;line-height:18px;text-align:center;cursor:pointer">×</a>'
+        + '</span>';
+    }).join('');
+  }
+
+  async function ntUpload(files){
+    var msg=$('ntMsg');
+    if(!sb || !files || !files.length) return;
+    if(msg){ msg.textContent='사진 올리는 중…'; msg.style.color='var(--muted)'; }
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      if(f.size > 10*1024*1024){ alert(f.name+' 은 10MB 가 넘습니다. 건너뜁니다.'); continue; }
+      var name = Date.now()+'-'+Math.floor(Math.random()*1e6)+'.jpg';
+      var up = await sb.storage.from(NT_BUCKET).upload(name, f, { contentType: f.type||'image/jpeg', upsert:false });
+      if(up.error){
+        if(msg){ msg.textContent = /bucket|not found/i.test(up.error.message||'')
+          ? '사진 저장통이 아직 없습니다. 공지사진 SQL 을 먼저 실행해주세요.'
+          : ('사진 올리기 실패: '+up.error.message); msg.style.color='#c0342b'; }
+        return;
+      }
+      var pub = sb.storage.from(NT_BUCKET).getPublicUrl(name);
+      _ntShots.push(pub.data.publicUrl);
+    }
+    if(msg){ msg.textContent=''; }
+    ntDrawThumbs();
+  }
+
+  async function ntLoad(){
+    var box=$('ntList'); if(!box||!sb) return;
+    box.innerHTML='<div class="wa-empty">불러오는 중…</div>';
+
+    var r=await sb.from('notices')
+      .select('id, title, body, audience, pinned, is_open, image_url, image_urls, author_name, created_at')
+      .order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(50);
+
+    if(r.error){
+      box.innerHTML='<div class="wa-empty">'+(/notices/.test(r.error.message||'')
+        ? '공지 표가 아직 없습니다. 공지사항 SQL 을 먼저 실행해주세요.'
+        : esc(r.error.message))+'</div>';
+      return;
+    }
+    var rows=r.data||[];
+    if(!rows.length){ box.innerHTML='<div class="wa-empty">아직 공지가 없습니다.</div>'; return; }
+
+    box.innerHTML=rows.map(function(n){
+      var imgs=ntImages(n);
+      var thumb = imgs.length
+        ? '<img src="'+esc(imgs[0])+'" style="width:54px;height:54px;object-fit:cover;border-radius:9px;flex:none">' : '';
+      var pin = n.pinned ? '<span class="dash-badge" style="background:#fdeeed;color:#c0342b">필독</span>' : '';
+      var off = n.is_open ? '' : '<span class="dash-badge" style="background:#eef1f4;color:var(--muted)">내림</span>';
+      var auds=['all','staff','student'].map(function(a){
+        return '<a class="wa-link" data-ntaud="'+esc(n.id)+'" data-ntv="'+a+'" style="'
+          + (n.audience===a ? 'font-weight:800;color:var(--accent)' : 'color:var(--muted)')
+          + ';margin-right:8px">'+ntAudLabel(a)+'</a>';
+      }).join('');
+      return '<div style="display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--line)">'
+        + thumb
+        + '<div style="flex:1;min-width:0">'
+        +   '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+pin+off
+        +     '<b style="font-size:14px">'+esc(n.title||'')+'</b>'
+        +     (imgs.length>1?('<span style="font-size:11px;color:var(--muted)">사진 '+imgs.length+'장</span>'):'')
+        +   '</div>'
+        +   (n.body?('<div style="font-size:12.5px;color:var(--muted);margin-top:3px;white-space:pre-wrap">'+esc(String(n.body).slice(0,160))+(String(n.body).length>160?'…':'')+'</div>'):'')
+        +   '<div style="font-size:11.5px;color:var(--muted);margin-top:5px">누가 보나 &nbsp;'+auds+'</div>'
+        +   '<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+esc(String(n.created_at||'').slice(0,10))
+        +     (n.author_name?(' · '+esc(n.author_name)):'')
+        +     ' &nbsp; <a class="wa-link" data-ntoff="'+esc(n.id)+'">'+(n.is_open?'내리기':'다시 올리기')+'</a>'
+        +     ' &nbsp; <a class="wa-link" data-ntdel="'+esc(n.id)+'" style="color:#c0342b">지우기</a></div>'
+        + '</div></div>';
+    }).join('');
+  }
+
+  async function ntSave(){
+    var msg=$('ntMsg');
+    function bad(t){ if(msg){ msg.textContent=t; msg.style.color='#c0342b'; } }
+    if(!sb) return bad('로그인이 필요합니다.');
+
+    var title=($('ntTitle')&&$('ntTitle').value||'').trim();
+    if(!title) return bad('제목을 적어 주세요.');
+
+    var row={
+      title: title,
+      body: (($('ntBody')&&$('ntBody').value)||'').trim() || null,
+      audience: ($('ntAud')&&$('ntAud').value)||'all',
+      pinned: !!($('ntPin')&&$('ntPin').value),
+      image_urls: _ntShots.slice(),
+      image_url: _ntShots[0] || null
+    };
+    if(profile){ row.author_id=profile.id; row.author_name=profile.name||null; }
+
+    var r=await sb.from('notices').insert(row);
+    if(r.error){
+      if(/image_urls/.test(r.error.message||'')){
+        // 여러 장 칸이 아직 없는 DB — 한 장만 넣고 알린다.
+        delete row.image_urls;
+        var again=await sb.from('notices').insert(row);
+        if(again.error) return bad('올리지 못했습니다: '+again.error.message);
+        if(msg){ msg.textContent='올렸습니다. (사진은 한 장만 — 여러장 SQL 미실행)'; msg.style.color='#b26a00'; }
+      } else {
+        return bad(/notices/.test(r.error.message||'')
+          ? '공지 표가 아직 없습니다. 공지사항 SQL 을 먼저 실행해주세요.'
+          : ('올리지 못했습니다: '+r.error.message));
+      }
+    } else if(msg){ msg.textContent='올렸습니다.'; msg.style.color='#1a7a4a'; }
+
+    if($('ntTitle')) $('ntTitle').value='';
+    if($('ntBody')) $('ntBody').value='';
+    if($('ntPin')) $('ntPin').value='';
+    if($('ntFiles')) $('ntFiles').value='';
+    _ntShots=[]; ntDrawThumbs();
+    ntLoad();
+    if(typeof myNoticeLoad==='function') myNoticeLoad();
+  }
+
+  function ntInit(){
+    // 🚨 쓰는 것은 원장님만. 선생님에게는 폼을 감춘다(서버도 막는다).
+    if($('ntForm')) $('ntForm').style.display = isMasterNow() ? '' : 'none';
+    ntDrawThumbs();
+    ntLoad();
+  }
+
+  if($('ntSave')) $('ntSave').onclick=ntSave;
+  if($('ntReload')) $('ntReload').onclick=ntLoad;
+  if($('ntFiles')) $('ntFiles').onchange=function(){ ntUpload(this.files); };
+  if($('ntThumbs')) $('ntThumbs').addEventListener('click', function(e){
+    var a=(e.target&&e.target.closest)?e.target.closest('[data-ntdrop]'):null;
+    if(!a) return;
+    _ntShots.splice(Number(a.getAttribute('data-ntdrop')),1);
+    ntDrawThumbs();
+  });
+  if($('ntList')) $('ntList').addEventListener('click', async function(e){
+    if(!sb) return;
+    var t=e.target;
+    var aud=t.closest?t.closest('[data-ntaud]'):null;
+    if(aud){
+      var u=await sb.from('notices').update({audience:aud.getAttribute('data-ntv')}).eq('id',aud.getAttribute('data-ntaud'));
+      if(u.error) alert('바꾸지 못했습니다: '+u.error.message);
+      ntLoad(); if(typeof myNoticeLoad==='function') myNoticeLoad();
+      return;
+    }
+    var off=t.closest?t.closest('[data-ntoff]'):null;
+    if(off){
+      var id=off.getAttribute('data-ntoff');
+      var cur=(off.textContent||'').indexOf('내리기')>=0;
+      var o=await sb.from('notices').update({is_open:!cur}).eq('id',id);
+      if(o.error) alert('바꾸지 못했습니다: '+o.error.message);
+      ntLoad(); if(typeof myNoticeLoad==='function') myNoticeLoad();
+      return;
+    }
+    var del=t.closest?t.closest('[data-ntdel]'):null;
+    if(del){
+      if(!confirm('아주 지울까요? 되돌릴 수 없습니다.\n내리기로 감춰 두는 편이 안전합니다.')) return;
+      var d=await sb.from('notices').delete().eq('id',del.getAttribute('data-ntdel'));
+      if(d.error) alert('지우지 못했습니다: '+d.error.message);
+      ntLoad(); if(typeof myNoticeLoad==='function') myNoticeLoad();
+    }
+  });
+
+  // ── 내 정보 화면 맨 위에 뜨는 공지 (학생·선생님이 본다) ──────────
+  // 🚨 공지가 없으면 자리를 아예 안 만든다. 「공지 없음」이 맨 위를 차지할 이유가 없다.
+  async function myNoticeLoad(){
+    var box=$('myNotice'); if(!box) return;
+    if(!sb){ box.style.display='none'; return; }
+
+    var r=await sb.from('notices')
+      .select('id, title, body, audience, pinned, image_url, image_urls, created_at')
+      .order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(5);
+
+    if(r.error || !r.data || !r.data.length){ box.style.display='none'; box.innerHTML=''; return; }
+
+    box.style.display='';
+    box.innerHTML='<div class="dash-list-head" style="margin-top:0">📣 공지</div>'
+      + r.data.map(function(n){
+          var imgs=ntImages(n);
+          var thumb = imgs.length
+            ? '<img src="'+esc(imgs[0])+'" style="width:52px;height:52px;object-fit:cover;border-radius:9px;flex:none">' : '';
+          return '<div style="display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line)">'
+            + thumb
+            + '<div style="flex:1;min-width:0">'
+            +   '<div style="font-weight:800;font-size:13.5px">'
+            +     (n.pinned?'<span style="color:#c0342b">[필독] </span>':'')+esc(n.title||'')+'</div>'
+            +   (n.body?('<div style="font-size:12.5px;color:var(--muted);margin-top:3px;white-space:pre-wrap">'+esc(n.body)+'</div>'):'')
+            +   (imgs.length>1?('<div style="font-size:11px;color:var(--muted);margin-top:3px">사진 '+imgs.length+'장</div>'):'')
+            +   '<div style="font-size:11px;color:var(--muted);margin-top:3px">'+esc(String(n.created_at||'').slice(0,10))+'</div>'
+            + '</div></div>';
+        }).join('');
+  }
+
   function fillStudentSelects(){
     fillScStudent();
+    if(typeof exFillStudents==='function') exFillStudents();
     if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts($('pyStudentSearch')?$('pyStudentSearch').value:'');
     if($('rfStudent')) $('rfStudent').innerHTML='<option value="">선택</option>'+studentOpts($('rfStudentSearch')?$('rfStudentSearch').value:'');
     if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts($('hwStudentSearch')?$('hwStudentSearch').value:'');
