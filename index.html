@@ -5219,7 +5219,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <div class="dash-row">
           <label style="flex:2">제목<input type="text" id="ntTitle" placeholder="예: 추석 연휴 휴원 안내" maxlength="120"></label>
           <label>누가 보나<select id="ntAud">
-            <option value="all">전체</option>
+            <option value="public">전체 공개 (비회원도 봄)</option>
+            <option value="all" selected>회원 전체</option>
             <option value="staff">선생님만</option>
             <option value="student">학생만</option>
           </select></label>
@@ -7727,7 +7728,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   var NT_BUCKET = 'notice-images';
   var _ntShots = [];     // 이번에 올린 사진 주소들
 
-  function ntAudLabel(a){ return a==='staff' ? '선생님' : (a==='student' ? '학생' : '전체'); }
+  function ntAudLabel(a){
+    if(a==='public') return '전체 공개';
+    if(a==='staff') return '선생님';
+    if(a==='student') return '학생';
+    return '회원 전체';
+  }
 
   function ntImages(n){
     var many = Array.isArray(n.image_urls) ? n.image_urls.filter(Boolean) : [];
@@ -7791,7 +7797,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         ? '<img src="'+esc(imgs[0])+'" style="width:54px;height:54px;object-fit:cover;border-radius:9px;flex:none">' : '';
       var pin = n.pinned ? '<span class="dash-badge" style="background:#fdeeed;color:#c0342b">필독</span>' : '';
       var off = n.is_open ? '' : '<span class="dash-badge" style="background:#eef1f4;color:var(--muted)">내림</span>';
-      var auds=['all','staff','student'].map(function(a){
+      var auds=['public','all','staff','student'].map(function(a){
         return '<a class="wa-link" data-ntaud="'+esc(n.id)+'" data-ntv="'+a+'" style="'
           + (n.audience===a ? 'font-weight:800;color:var(--accent)' : 'color:var(--muted)')
           + ';margin-right:8px">'+ntAudLabel(a)+'</a>';
@@ -7830,6 +7836,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       image_url: _ntShots[0] || null
     };
     if(profile){ row.author_id=profile.id; row.author_name=profile.name||null; }
+
+    if(row.audience==='public' &&
+       !confirm('전체 공개로 올릴까요?\n\n로그인하지 않은 사람도 봅니다. 홈페이지 공지사항에 그대로 걸립니다.\n수업료·학생 이름처럼 밖에 나가면 안 되는 내용이 없는지 확인해주세요.')) return;
 
     var r=await sb.from('notices').insert(row);
     if(r.error){
@@ -7876,7 +7885,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var t=e.target;
     var aud=t.closest?t.closest('[data-ntaud]'):null;
     if(aud){
-      var u=await sb.from('notices').update({audience:aud.getAttribute('data-ntv')}).eq('id',aud.getAttribute('data-ntaud'));
+      var v=aud.getAttribute('data-ntv');
+      // 🚨 밖으로 내보내는 쪽은 되돌리기 어렵다(이미 본 사람이 생긴다).
+      if(v==='public' && !confirm('전체 공개로 바꿀까요?\n\n로그인하지 않은 사람도 보게 됩니다. 홈페이지 공지사항에 그대로 걸립니다.')) return;
+      var u=await sb.from('notices').update({audience:v}).eq('id',aud.getAttribute('data-ntaud'));
       if(u.error) alert('바꾸지 못했습니다: '+u.error.message);
       ntLoad(); if(typeof myNoticeLoad==='function') myNoticeLoad();
       return;
@@ -14215,6 +14227,79 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     window.addEventListener('wt-auth', load);
     window.WT_LIB_RELOAD = load;
     draw(); load();
+  })();
+</script>
+<script>
+  // ══════════════════════════════════════════════════════════════
+  // 홈페이지 공지사항 — 「전체 공개」로 올린 것을 표에서 읽어 맨 위에 붙인다.
+  // (2026-09-09 원장 지시 — 회원·비회원 어디까지 보는지 고를 수 있게)
+  //
+  // 🚨 로그인 안 한 사람도 보는 자리다. 서버 정책이 audience='public' 인 것만
+  //    내려 준다. 여기서 거르는 게 아니다.
+  // 🚨 원래 있던 안내 여섯 줄(개강·이벤트 등)은 그대로 둔다. 새로 올린 공지를
+  //    그 **위에** 얹기만 한다. 기존 안내가 사라지면 안 된다.
+  // 🚨 표가 없거나 정책을 아직 안 걸었으면 조용히 아무것도 안 한다.
+  //    홈페이지가 공지 때문에 깨지면 안 된다.
+  // ══════════════════════════════════════════════════════════════
+  (function(){
+    // 🚨 이 블록은 다른 <script> 라 위쪽의 esc 를 못 쓴다. 여기서 따로 만든다.
+    function esc(v){
+      return String(v==null?'':v).replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+
+    async function drawPublicNotices(){
+      var list = document.querySelector('#notice .notice-list');
+      if(!list || !window.sb) return;
+
+      var r;
+      try{
+        r = await window.sb.from('notices')
+          .select('id, title, body, pinned, image_url, image_urls, created_at')
+          .eq('audience','public').eq('is_open', true)
+          .order('pinned',{ascending:false}).order('created_at',{ascending:false}).limit(6);
+      }catch(e){ return; }
+      if(!r || r.error || !r.data || !r.data.length) return;
+
+      // 이미 그렸으면 다시 안 그린다(로그인 상태가 바뀌면 이 함수가 또 불린다).
+      list.querySelectorAll('[data-pubnt]').forEach(function(el){ el.remove(); });
+
+      var html = r.data.map(function(n){
+        var d = String(n.created_at||'').slice(0,10).replace(/-/g,'.');
+        var tag = n.pinned
+          ? '<span class="ntag ntag-must">필독</span>'
+          : '<span class="ntag">공지</span>';
+        // 홈페이지 공지는 링크가 아니라 그 자리에서 펼쳐 보여 준다.
+        var body = n.body ? String(n.body) : '';
+        return '<a href="#notice" data-pubnt="1" data-pubbody="'+esc(body)+'">'
+             + tag + '<span class="ntit">'+esc(n.title||'')+'</span>'
+             + '<span class="ndate">'+esc(d)+'</span></a>';
+      }).join('');
+
+      list.insertAdjacentHTML('afterbegin', html);
+    }
+
+    // 누르면 내용을 그 자리에서 펼친다. 새 창을 띄우지 않는다.
+    document.addEventListener('click', function(e){
+      var a = e.target && e.target.closest ? e.target.closest('[data-pubnt]') : null;
+      if(!a) return;
+      e.preventDefault();
+      var body = a.getAttribute('data-pubbody') || '';
+      var open = a.nextElementSibling && a.nextElementSibling.classList &&
+                 a.nextElementSibling.classList.contains('pubnt-body');
+      if(open){ a.nextElementSibling.remove(); return; }
+      if(!body.trim()) return;
+      a.insertAdjacentHTML('afterend',
+        '<div class="pubnt-body" style="padding:12px 16px;border-top:1px solid var(--line);'
+        + 'font-size:14px;line-height:1.75;color:var(--ink-soft);white-space:pre-wrap">'
+        + esc(body) + '</div>');
+    });
+
+    // 사이트가 다 뜬 뒤에 한 번, 로그인 상태가 바뀌면 다시.
+    if(document.readyState === 'complete') setTimeout(drawPublicNotices, 300);
+    else window.addEventListener('load', function(){ setTimeout(drawPublicNotices, 300); });
+    window.addEventListener('wt-auth', function(){ setTimeout(drawPublicNotices, 200); });
   })();
 </script>
 </body></html>
