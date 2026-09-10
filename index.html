@@ -5529,6 +5529,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <label>목표 기간<input type="text" id="waEPeriod" placeholder="예: 2026년 10월까지 / 3개월"></label>
       <label>가입 경로<input type="text" id="waERoute"></label>
       <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
+      <label id="waEPairWrap">2:1 짝 <span style="color:var(--muted);font-weight:600;font-size:12px">(짝을 정하면 한 명이 예약할 때 둘 다 잡힙니다)</span><select id="waEPair"><option value="">짝 없음</option></select><span id="waEPairHint" style="font-weight:600;font-size:12px;color:var(--muted)">담당 선생님과 수업 형태(대면·비대면)가 같은 학생만 고를 수 있습니다.</span></label>
       <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">매니저</option><option value="master">원장님</option></select></label>
       <label id="waERateWrap" style="display:none">강사 배분율(%)<input type="number" id="waERate" min="0" max="100" step="0.1" placeholder="50"><span style="font-weight:600;font-size:12px;color:var(--muted)">이 강사가 맡은 학생 매출에서 가져가는 비율입니다. 여기서 원천징수 3.3%를 뗀 금액이 실지급액이 됩니다.</span></label>
       <p class="wa-err" id="waEErr"></p>
@@ -6482,6 +6483,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // ---- 회원 수정/삭제 (마스터 전용) ----
   var editingId=null, editingRole='student', editingTeacher='', editingRate=50;
+  var editingPair = '';   // 창을 열 때 읽어 둔 현재 짝
   if($('waTable')) $('waTable').addEventListener('click', function(e){
     var g=(e.target && e.target.closest)?e.target.closest('a[data-goal-for]'):null;
     if(g){ e.preventDefault(); var gu=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(g.getAttribute('data-goal-for'));})[0]; if(gu) openGoal(gu); return; }
@@ -6598,6 +6600,31 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     editingRole=u.role||'student'; editingTeacher=u.teacher_id||'';
     if($('waETeacher')){ var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';}); $('waETeacher').innerHTML='<option value="">미배정</option>'+ts.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join(''); $('waETeacher').value=u.teacher_id||''; }
     if($('waENote')) $('waENote').value=u.teacher_note||'';
+    // 2:1 짝 (2026-09-10). 원장님만 보이고, 학생일 때만 뜬다.
+    if($('waEPairWrap')){
+      var _canPair = isMasterNow() && u.role==='student';
+      $('waEPairWrap').style.display = _canPair ? '' : 'none';
+      if(_canPair){
+        // 🚨 담당쌤·수업형태가 같은 학생만. 서버도 같은 조건으로 막는다.
+        var _mates=(_members||[]).filter(function(m){
+          return m.role==='student' && String(m.id)!==String(u.id)
+              && String(m.status||'')!=='ended'
+              && m.teacher_id && String(m.teacher_id)===String(u.teacher_id||'')
+              && String(m.lesson_mode||'')===String(u.lesson_mode||'');
+        });
+        $('waEPair').innerHTML='<option value="">짝 없음</option>'
+          + _mates.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>'; }).join('');
+        editingPair='';
+        $('waEPair').value='';
+        if($('waEPairHint')) $('waEPairHint').textContent = _mates.length
+          ? '담당 선생님과 수업 형태(대면·비대면)가 같은 학생만 고를 수 있습니다.'
+          : '짝이 될 수 있는 학생이 없습니다. 담당 선생님과 수업 형태가 같아야 합니다.';
+        sb.from('lesson_pairs').select('partner_id').eq('student_id',u.id).maybeSingle()
+          .then(function(pr){
+            if(pr && !pr.error && pr.data){ editingPair=pr.data.partner_id||''; $('waEPair').value=editingPair; }
+          });
+      }
+    }
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
     editingRate=(u.pay_rate!=null)?Number(u.pay_rate):50;
     if($('waERate')) $('waERate').value=editingRate;
@@ -6649,6 +6676,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(newRole!==editingRole){ var rr=await sb.rpc('set_role',{target:editingId,new_role:newRole}); if(rr.error){ $('waEErr').textContent='권한 변경 실패: '+rr.error.message; return; } }
     var newTeacher=$('waETeacher')?$('waETeacher').value:'';
     if(newTeacher!==editingTeacher){ var rt2=await sb.rpc('set_teacher',{target:editingId,tid:(newTeacher||null)}); if(rt2.error){ $('waEErr').textContent='담당 선생님 변경 실패: '+rt2.error.message; return; } }
+    // 2:1 짝. 🚨 담당쌤을 바꾼 **뒤에** 해야 한다 —
+    //    서버가 「담당쌤이 같은지」를 보는데, 순서가 반대면 옛 담당쌤으로 검사해 거절된다.
+    if($('waEPair') && $('waEPairWrap') && $('waEPairWrap').style.display!=='none'){
+      var newPair=$('waEPair').value||'';
+      if(newPair!==editingPair){
+        var rp2 = newPair
+          ? await sb.rpc('set_lesson_pair',{a:editingId,b:newPair})
+          : await sb.rpc('clear_lesson_pair',{a:editingId});
+        if(rp2.error){ $('waEErr').textContent='2:1 짝 변경 실패: '+rp2.error.message; return; }
+      }
+    }
     // 배분율은 본인이 못 바꾸도록 원장님 전용 RPC로만 변경한다.
     if(newRole==='admin'||newRole==='master'){
       var newRate=parseFloat($('waERate')?$('waERate').value:'');
@@ -13862,9 +13900,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 수업 길이는 학생의 수업형태로 정해진다(비대면 90분 / 대면 120분). 서버가 minutes 로 알려준다.
       var minTxt = d.minutes ? (d.minutes % 60 === 0 ? (d.minutes/60)+'시간' : d.minutes+'분') : '';
       var modeTxt = d.online ? '비대면' : '대면';
+      // 2:1 짝이 있으면 먼저 알려 준다. 내 예약이 짝에게도 잡히기 때문이다(2026-09-10).
+      var pairTxt = d.pair_name ? (' · <b>'+esc(d.pair_name)+' 학생과 2:1</b>') : '';
       $('waBookSub').innerHTML='담당 '+esc(d.teacher_name)+' 선생님의 빈 시간을 골라 예약을 요청하세요.'
-        + (minTxt ? ' ('+modeTxt+' '+minTxt+' 수업 · 30분 단위)' : '')+leftTxt
-        + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>변경·취소는 선생님께 문의</b>해주세요.</span>';
+        + (minTxt ? ' ('+modeTxt+' '+minTxt+' 수업 · 30분 단위)' : '')+pairTxt+leftTxt
+        + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>변경·취소는 선생님께 문의</b>해주세요.'
+        + (d.pair_name ? ('<br>고르신 시간에 <b>'+esc(d.pair_name)+'</b> 학생도 함께 잡힙니다. <b style="color:#1F62E0">2:1</b> 표시가 있는 시간은 그 학생이 이미 잡아 둔 자리예요.') : '')
+        + '</span>';
     }
     // 원장·선생님·실장이 '학생 화면 미리보기'로 들어온 경우는 막지 않는다 (2026-09-05 원장 지시).
     // 이 사람들은 수강권이 없어 남은 횟수가 0 이라, 예전에는 화면을 볼 수조차 없었다.
@@ -13900,11 +13942,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     box.innerHTML = dayHtml + '<div class="wa-book-grid">' + slots.map(function(sl){
       var busy=!sl.available;
       var adj = (!busy && sl.adjacent);
+      // 🚨 짝이 이미 잡아 둔 자리. 여기를 고르면 그 수업에 합류한다.
+      var pr  = (!busy && sl.pair_here);
       var attr=busy?'':(' data-slot="'+esc(sl.start)+'"');
       return '<div class="wa-book-slot'+(busy?' busy':'')+(adj?' adj':'')+'"'+attr+'>'
            + '<div class="t">'+esc(sl.start)+'</div>'
            + '<div class="s">'+(busy?'예약중':('~'+esc(sl.end)))+'</div>'
-           + (adj?'<div class="bk-badge">이어서</div>':'')
+           + (pr?'<div class="bk-badge" style="background:#1F62E0">2:1</div>'
+               :(adj?'<div class="bk-badge">이어서</div>':''))
            + '</div>';
     }).join('') + '</div>';
   }
