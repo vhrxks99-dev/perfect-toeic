@@ -12055,7 +12055,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                 + '<span style="font-weight:800">남은 2회</span>'
                 + '<span style="color:var(--muted);font-weight:700"> · '+when+' 1회</span>'
                 + (hasPhoneOf(x.s)?'':' <span style="color:#c0342b;font-weight:800">번호 없음</span>')
-                + kkBtn(x.s.id,x.s.name)
+                // 🚨 여기는 「보내기」를 두지 않는다(2026-09-10 원장 지적).
+                //    결제 안내는 남은 1회일 때 나가는 규칙이다. 2회 칸은 예고일 뿐이다.
                 + '</span>';
          }).join('')
        + '</div></div>';
