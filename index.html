@@ -15075,11 +15075,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     // ETS 성적표에 찍히는 전체 수험자 평균. 앱 lib/bench.ts 와 같은 값이다.
     var ETS_AVG = { locate:68, connect:67, infer:66, vocab:72, gram:80 };
-    // 목표 점수를 낸 학생들이 실제로 냈던 수준
+    // 목표 점수를 낸 학생들이 실제로 냈던 수준 (2026-09-11 · 25명, 김솔윤 2차까지)
+    // 🚨 앱 lib/bench.ts 와 **같은 숫자**여야 한다. 한쪽만 고치지 말 것.
     var TARGET = [
       { band:850, label:'850 이상', need:{ gram:95, vocab:84, connect:79, infer:79, locate:72 } },
       { band:750, label:'700점대', need:{ gram:87, vocab:79, connect:68, infer:67, locate:75 } },
-      { band:650, label:'600점대', need:{ gram:80, vocab:64, connect:63, infer:56, locate:65 } }
+      { band:650, label:'600점대', need:{ gram:80, vocab:63, connect:61, infer:53, locate:66 } }
     ];
     var DIAG = [ ['ab_gram','gram','문법'], ['ab_vocab','vocab','어휘'],
                  ['ab_connect','connect','연결'], ['ab_locate','locate','찾기'],
