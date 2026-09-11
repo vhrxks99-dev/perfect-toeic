@@ -4051,6 +4051,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .bm-req{margin-left:8px;font-size:11.5px;font-weight:800;color:#8a5a00}
 .bm-undo{margin-left:6px;font-size:11.5px;font-weight:800;color:#c0342b;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--font-sans)}
 .screq-late{font-size:12px;font-weight:800;color:#c0342b}
+/* 다음 수업 강의장 (2026-09-11) */
+.np-box{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 6px;background:var(--surface)}
+.np-head{font-size:13.5px;font-weight:700;color:var(--ink-soft);margin-bottom:10px}
+.np-head b{color:var(--ink);font-weight:800}
+.np-head span{color:var(--muted);font-weight:700;font-size:12.5px}
+.np-img{display:block;width:100%;max-width:520px;border-radius:10px;aspect-ratio:4/3;object-fit:cover;background:var(--surface-2)}
+.np-note{margin-top:10px;font-size:13px;line-height:1.75;color:var(--ink-soft)}
 #scStuReqBox .wa-al-approve,#scStuReqBox .wa-al-reject{line-height:1.25;padding:6px 10px}
 #scStuReqBox .wa-al-approve small,#scStuReqBox .wa-al-reject small{font-size:10.5px;opacity:.85;font-weight:700}
 /* 2:1 짝 관리 패널 (2026-09-11) */
@@ -5531,6 +5538,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="dash-list-head">📝 내 숙제 <span style="color:var(--muted);font-weight:700;font-size:12px">담당 선생님이 내준 숙제</span></div>
     <div id="myHwRate" class="my-hw-rate" style="display:none"></div>
     <div class="wa-table-wrap"><table class="wa-table" id="myHwTable"></table></div>
+    <!-- 다음 수업 강의장 사진·찾아오는 길 (2026-09-11 원장 지시) -->
+    <div id="myNextPlace"></div>
     <div class="dash-list-head">📅 내 수업 일정</div>
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
     <div class="dash-list-head">💳 결제 내역</div>
@@ -13774,6 +13783,42 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     alert('탈퇴 처리되었습니다. 그동안 이용해 주셔서 감사합니다.');
     location.reload();
   };
+
+  // ── 다음 수업 강의장 사진·찾아오는 길 (2026-09-11 원장 지시) ────
+  //    "강의장 사진도 같이나오면좋을거같은데"
+  //    🚨 표 칸 안이 아니라 표 **위**에 따로 둔다. 칸 안에 넣으면 좁아서 다 깨진다.
+  //    🚨 대면이면서 강의장이 정해진 다음 수업이 있을 때만 그린다.
+  function drawNextPlace(rows, info){
+    var box=$('myNextPlace'); if(!box) return;
+    box.innerHTML='';
+    if(!rows || !rows.length) return;
+    if(String(profile && profile.lesson_mode||'')==='online') return;   // 비대면은 갈 곳이 없다
+
+    var now=Date.now();
+    var next=null;
+    for(var i=0;i<rows.length;i++){
+      var s2=rows[i], st=s2.status||'confirmed';
+      if(st==='canceled'||st==='noshow') continue;          // 휴강·결석은 다음 수업이 아니다
+      if(Date.parse(s2.starts_at||'')<=now) continue;
+      if(!s2.room_id) continue;                              // 강의장이 아직 안 정해졌다
+      next=s2; break;                                        // rows 는 starts_at 오름차순이다
+    }
+    if(!next) return;
+
+    var r=info[String(next.room_id)];
+    if(!r || (!r.photo_url && !r.find_note)) return;
+
+    box.innerHTML='<div class="np-box">'
+      + '<div class="np-head">📍 다음 수업은 여기예요 — <b>'+esc(r.name||'강의장')+'</b>'
+      + ' <span>'+esc(fmtDT(next.starts_at))+'</span></div>'
+      + (r.photo_url
+          ? '<img class="np-img" src="'+esc(r.photo_url)+'" alt="'+esc(r.name||'강의장')+' 사진" '
+            + 'onerror="this.style.display=\'none\'">'
+          : '')
+      + (r.find_note ? '<div class="np-note">'+esc(r.find_note)+'</div>' : '')
+      + '</div>';
+  }
+
   // 내 학습 — 수강권·숙제·일정·결제·출석. '내 정보'와 분리된 별도 창.
   async function renderLearn(){
     if($('waLearnName')) $('waLearnName').textContent=roleTag(profile.role);
@@ -13807,11 +13852,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 구글 캘린더에서 온 수업은 memo 에 숙제 안내까지 통째로 들어와 학생 화면이 지저분했다.
       // 강의장은 이름만 적어 두면 학생이 어디인지 모른다(원장 2026-08-14).
       // 관리 화면과 같은 형식으로 정원·옆건물까지 적는다 — 강의장 A (4인) / 강의장 C (4인 · 옆건물).
-      var roomMap={};
+      var roomMap={}, _roomInfo={};
       if(sb){
         try{
-          var rr=await sb.from('rooms').select('id,name,capacity,building');
+          // 🚨 photo_url·find_note 는 2026-09-11 에 생긴 칸이다.
+          //    아직 없는 DB 에서도 일정표는 나와야 하니, 실패하면 옛 칸만 다시 받는다.
+          var rr=await sb.from('rooms').select('id,name,capacity,building,photo_url,find_note');
+          if(rr.error) rr=await sb.from('rooms').select('id,name,capacity,building');
           if(!rr.error) (rr.data||[]).forEach(function(x){
+            _roomInfo[String(x.id)]=x;
             var bits=[], c=parseInt(x.capacity,10);
             if(c>0) bits.push(c+'인');
             if(x.building==='미플') bits.push('옆건물');
@@ -13860,6 +13909,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           h+='<tr'+(off?' class="ms-off"':'')+'><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+tag+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="강의장">'+esc(rn)+'</td><td data-l="변경">'+ch+'</td></tr>';
         });
         $('myschedTable').innerHTML=h; }
+      drawNextPlace(rows, _roomInfo);
     }
     if($('mypayTable')){
       var pr=[];
