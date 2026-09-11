@@ -5408,7 +5408,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
       <div class="dash-list-head" style="margin-top:16px">이 학생의 지난 성적</div>
       <!-- 점수 변화 그래프 (2026-09-11 원장 지적) -->
+      <!-- 실제 토익 시험 · 완토 진단테스트 (2026-09-11) -->
+      <div class="sd-h2" style="margin-top:14px">📈 실제 토익 시험</div>
       <div id="exChart"></div>
+      <div class="sd-h2" style="margin-top:16px">🎯 완토 진단테스트</div>
+      <div id="exDiagChart"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="exList"></table></div>
     </div>
 
@@ -8384,9 +8388,49 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
    */
   function exDrawChart(rows, target){
     var box = target || $('exChart'); if(!box) return;
+    box.style.display='';
     if(typeof window.wtDrawExams !== 'function'){ box.innerHTML=''; return; }
-    if(!rows || !rows.length){ box.innerHTML=''; box.style.display='none'; return; }
+    // 🚨 자료가 없어도 칸은 채운다. 비워 두면 고장인지 자료가 없는 건지 알 수 없다.
+    if(!rows || !rows.length){
+      box.innerHTML='<div class="sd-none">아직 넣은 성적이 없습니다. '
+        + '위에서 토익 성적표를 넣으면 여기에 그래프가 나옵니다.</div>';
+      return;
+    }
     window.wtDrawExams(box, rows);
+  }
+
+  /**
+   * 성적 탭의 완토 진단테스트 칸 (2026-09-11 원장님 신고로 추가).
+   *
+   * 🚨 진단을 **학생 카드에만** 넣고 성적 탭에는 안 넣었다. 그게 이번 버그다.
+   *    원장님은 성적 탭에서 학생을 검색해 보고 계셨고,
+   *    「없습니다」조차 안 뜬 건 그 칸 자체가 없었기 때문이다.
+   *
+   * 🚨 학생 화면이 쓰는 drawDiag 를 그대로 쓴다. 그림이 갈라지면 안 된다.
+   * 🚨 locked 를 걸지 않는다. 잠금은 **학생에게** 해석을 감추는 장치다.
+   */
+  async function exLoadDiag(){
+    var box=$('exDiagChart'); if(!box) return;
+    box.style.display='';
+    var sid=$('exStudent')?$('exStudent').value:'';
+    if(!sid || !sb){
+      box.innerHTML='<div class="sd-none">학생을 고르면 진단 결과가 보입니다.</div>';
+      return;
+    }
+    var rows=[];
+    try{
+      var r=await sb.from('diagnostics').select('*').eq('student_id',sid)
+             .order('created_at',{ascending:false}).limit(3);
+      if(!r.error && r.data) rows=r.data;
+    }catch(e){}
+
+    if(!rows.length || typeof window.wtDrawDiag !== 'function'){
+      box.innerHTML='<div class="sd-none">아직 응시한 진단테스트가 없습니다.</div>';
+      return;
+    }
+    var st=(window.__wtMembers||[]).filter(function(u){ return String(u.id)===String(sid); })[0];
+    var goal = st && st.goal_score ? Number(String(st.goal_score).replace(/[^0-9]/g,'')) : null;
+    window.wtDrawDiag(box, rows, false, (goal&&goal>0)?goal:null);
   }
 
   async function exLoadList(){
@@ -8486,16 +8530,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('exDate') && !$('exDate').value) $('exDate').value=kymd();
     exLoadList();
     exFillFromSaved();
+    exLoadDiag();
   }
 
   if($('exStudentSearch')) $('exStudentSearch').oninput=function(){ exFillStudents(); };
-  if($('exStudent')) $('exStudent').onchange=function(){ exLoadList(); exFillFromSaved(); };
+  if($('exStudent')) $('exStudent').onchange=function(){
+    exLoadList(); exFillFromSaved(); exLoadDiag();
+  };
   // 🚨 날짜를 바꿀 때도 불러온다. 날짜만 바꾸면 다른 회차를 고치는 것이다.
   if($('exDate')) $('exDate').onchange=function(){ exFillFromSaved(); };
   if($('exLc')) $('exLc').oninput=exTotalCalc;
   if($('exRc')) $('exRc').oninput=exTotalCalc;
   if($('exSave')) $('exSave').onclick=exSave;
-  if($('exReload')) $('exReload').onclick=function(){ exFillStudents(); exLoadList(); };
+  if($('exReload')) $('exReload').onclick=function(){ exFillStudents(); exLoadList(); exLoadDiag(); };
   if($('exList')) $('exList').addEventListener('click', async function(e){
     var a=(e.target&&e.target.closest)?e.target.closest('[data-exdel]'):null;
     if(!a||!sb) return;
