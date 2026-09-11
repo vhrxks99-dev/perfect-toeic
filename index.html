@@ -7426,7 +7426,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // 한 학생 자료를 한꺼번에 읽어 온다
   async function sdLoad(sid){
-    var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[], notes:[] };
+    var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[], notes:[], exam:[] };
     if(!sb||!sid) return out;
     var qs=[
       sb.from('schedules').select('*').eq('student_id',sid).order('starts_at',{ascending:false}).limit(400),
@@ -7450,6 +7450,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         if(!c2.error&&c2.data) out.consult=c2.data;
       }
     }catch(e){}
+    // 토익 성적 (2026-09-11). 🚨 못 읽어도 학생 카드는 떠야 하므로 조용히 넘어간다.
+    try{
+      var ex=await sb.from('exam_scores').select('*').eq('student_id',sid)
+              .order('exam_date',{ascending:false}).limit(10);
+      if(!ex.error && ex.data) out.exam=ex.data;
+    }catch(e){}
+
     // 스터디 참석 (표가 없을 수도 있어 조용히 넘어간다)
     try{
       var sg=await sb.from('study_signups').select('*').eq('student_id',sid)
@@ -7459,6 +7466,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!so.error&&so.data) out.studyOff=so.data.map(function(x){ return String(x.off_date); });
     }catch(e){}
     return out;
+  }
+
+  /**
+   * 학생 카드의 성적 칸 (2026-09-11).
+   * 그림은 그린 뒤에 채운다 — exDrawChart 가 DOM 을 직접 만지기 때문이다.
+   */
+  var _sdExam=[];
+  function sdExamHtml(rows){
+    _sdExam=rows||[];
+    if(!_sdExam.length){
+      return '<div class="sd-c" style="margin-top:10px"><div class="lab">토익 성적</div>'
+        + '<div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:4px">'
+        + '아직 넣은 성적이 없습니다.<br>성적 탭에서 토익 성적표를 넣으면 여기에 그래프가 나옵니다.</div></div>';
+    }
+    return '<div id="sdExamChart" style="margin-top:10px"></div>';
+  }
+  function sdExamDraw(){
+    var box=document.getElementById('sdExamChart');
+    if(box && _sdExam.length && typeof exDrawChart==='function') exDrawChart(_sdExam, box);
   }
 
   // 최근 6개월 수업 횟수 막대
@@ -7587,6 +7613,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           +' · 휴강 '+d.sched.filter(function(x){return x.status==='canceled';}).length+'</div></div>'
         +'</div>';
 
+      // 성적 그래프 (2026-09-11 원장님 지시: "거기도 넣어").
+      // 🚨 선생님이 학생을 들여다보는 화면인데 성적이 없었다.
+      //    성적 탭과 **같은 그림**을 쓴다 — 따로 그리면 두 화면이 달라진다.
+      h+=sdExamHtml(d.exam);
+
       // 월별 막대 + 수납 요약
       h+='<div class="sd-grid">'
         +'<div class="sd-box"><div class="bh"><b>월별 수업 횟수</b><span>최근 6개월</span></div>'
@@ -7660,6 +7691,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +'</div></div></div>';
 
       box.innerHTML=h;
+      sdExamDraw();
       _sdCache=sid;
     }).catch(function(e){
       box.innerHTML='<div class="sd-empty">불러오지 못했습니다. '+esc(String(e&&e.message||e))+'</div>';
@@ -8299,8 +8331,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
    * @param rows exLoadList 가 이미 받아 온 자료. 여기서 다시 읽지 않는다.
    *             (내림차순으로 온다 — 그릴 때 오름차순으로 뒤집는다)
    */
-  function exDrawChart(rows){
-    var box=$('exChart'); if(!box) return;
+  function exDrawChart(rows, target){
+    // 🚨 학생 카드에서도 같은 그림을 쓴다(2026-09-11). 그릴 칸을 받는다.
+    var box = target || $('exChart'); if(!box) return;
     var list=(rows||[]).filter(function(e){ return e.total!=null; }).slice().reverse();
     if(!list.length){ box.innerHTML=''; return; }
 
