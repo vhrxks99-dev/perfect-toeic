@@ -4051,10 +4051,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .bm-req{margin-left:8px;font-size:11.5px;font-weight:800;color:#8a5a00}
 .bm-undo{margin-left:6px;font-size:11.5px;font-weight:800;color:#c0342b;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--font-sans)}
 .screq-late{font-size:12px;font-weight:800;color:#c0342b}
-/* 성적 변화 그래프 (2026-09-11) */
-.ex-chart{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;background:var(--surface)}
-.ex-chart-head{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:6px}
-.ex-chart-head span{font-weight:700;color:var(--muted);margin-left:6px;font-size:12.5px}
+/* 능력별 그래프 — 커리큘럼과 같은 모양 (2026-09-11) */
+.ab-h{font-size:13.5px;font-weight:800;color:var(--ink);margin:14px 0 5px}
+.ab-h span{font-weight:600;color:var(--muted);font-size:11.5px;margin-left:5px}
+.ab-box{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}
+.ab-r{display:flex;align-items:center;gap:8px;padding:3px 0}
+.ab-n{width:118px;font-size:11.5px;color:var(--ink-soft);font-weight:700}
+.ab-b{flex:1}
+.ab-d{width:38px;text-align:right;font-size:11px;font-weight:800}
+.ab-v{width:92px;text-align:right;font-size:11.5px;color:var(--ink)}
+.ab-v s{text-decoration:none;color:var(--muted);font-size:10.5px}
+.ab-lg{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);font-size:10.5px;color:var(--muted);line-height:1.6}
+.ab-lg i{font-style:normal;color:#d98324;font-weight:800}
+@media(max-width:640px){ .ab-n{width:84px;font-size:10.5px} .ab-v{width:78px} }
 /* 주차했어요 (2026-09-11) */
 .mp-box{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 6px;background:var(--surface)}
 .mp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:14px}
@@ -8331,62 +8340,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
    * @param rows exLoadList 가 이미 받아 온 자료. 여기서 다시 읽지 않는다.
    *             (내림차순으로 온다 — 그릴 때 오름차순으로 뒤집는다)
    */
+  /**
+   * 성적 그래프 — **커리큘럼과 같은 그림**을 그린다 (2026-09-11).
+   *
+   * 🚨 여기서 직접 그리지 않는다. 학생 화면이 쓰는 `drawExams` 를 그대로 부른다.
+   *    처음엔 총점 꺾은선을 새로 만들었는데, 원장님이 원한 건 커리큘럼의
+   *    **능력별 막대 + 평균선** 그림이었다. 같은 그림이 두 개 있으면
+   *    어느 쪽이 맞는지 알 수 없다. 하나만 둔다.
+   *
+   * @param rows  exLoadList 가 이미 받아 온 자료 (최근이 앞)
+   * @param target 그릴 칸. 안 주면 성적 탭의 #exChart
+   */
   function exDrawChart(rows, target){
-    // 🚨 학생 카드에서도 같은 그림을 쓴다(2026-09-11). 그릴 칸을 받는다.
     var box = target || $('exChart'); if(!box) return;
-    var list=(rows||[]).filter(function(e){ return e.total!=null; }).slice().reverse();
-    if(!list.length){ box.innerHTML=''; return; }
-
-    var W=640, H=200, PL=44, PR=16, PT=18, PB=30;
-    var vals=list.map(function(e){ return Number(e.total); });
-    var lo=Math.min.apply(null, vals), hi=Math.max.apply(null, vals);
-    // 위아래로 숨 쉴 자리를 둔다. 붙어 있으면 선이 테두리에 닿는다.
-    var pad=Math.max(30, Math.round((hi-lo)*0.35));
-    lo=Math.max(0, lo-pad); hi=Math.min(990, hi+pad);
-    if(hi===lo){ hi=lo+10; }
-
-    function X(i){ return list.length===1 ? (PL+(W-PL-PR)/2)
-                                          : PL + i*(W-PL-PR)/(list.length-1); }
-    function Y(v){ return PT + (hi-v)*(H-PT-PB)/(hi-lo); }
-
-    var pts=list.map(function(e,i){ return X(i)+','+Y(Number(e.total)); }).join(' ');
-    var dots=list.map(function(e,i){
-      var x=X(i), y=Y(Number(e.total));
-      return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4.5" fill="#1F62E0"/>'
-        + '<text x="'+x.toFixed(1)+'" y="'+(y-11).toFixed(1)+'" text-anchor="middle" '
-        + 'font-size="12.5" font-weight="800" fill="#14161a">'+e.total+'</text>'
-        + '<text x="'+x.toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" '
-        + 'font-size="11" fill="#6b7787">'+esc(String(e.exam_date).slice(5))+'</text>';
-    }).join('');
-
-    // 가로 눈금 세 줄
-    var grid='';
-    [0,0.5,1].forEach(function(f){
-      var v=Math.round(lo+(hi-lo)*(1-f));
-      var y=PT+f*(H-PT-PB);
-      grid+='<line x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'" '
-         +  'stroke="#E5E8EE" stroke-width="1"/>'
-         +  '<text x="'+(PL-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" '
-         +  'font-size="11" fill="#6b7787">'+v+'</text>';
-    });
-
-    var line = list.length>1
-      ? '<polyline points="'+pts+'" fill="none" stroke="#1F62E0" stroke-width="2.5" '
-        + 'stroke-linejoin="round" stroke-linecap="round"/>'
-      : '';
-
-    var first=list[0], last=list[list.length-1];
-    var diff = list.length>1 ? (Number(last.total)-Number(first.total)) : null;
-    var head = list.length>1
-      ? ('처음 '+first.total+'점 → 최근 '+last.total+'점 '
-         + '<b style="color:'+(diff>0?'#1a7a4a':(diff<0?'#c0342b':'var(--muted)'))+'">'
-         + (diff>0?('+'+diff):(diff<0?String(diff):'±0'))+'</b>')
-      : '회차가 하나입니다. 두 번째 성적이 들어오면 변화가 보입니다.';
-
-    box.innerHTML='<div class="ex-chart">'
-      + '<div class="ex-chart-head">📈 점수 변화 <span>'+head+'</span></div>'
-      + '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="auto" '
-      + 'preserveAspectRatio="xMidYMid meet">'+grid+line+dots+'</svg></div>';
+    if(typeof window.wtDrawExams !== 'function'){ box.innerHTML=''; return; }
+    if(!rows || !rows.length){ box.innerHTML=''; box.style.display='none'; return; }
+    window.wtDrawExams(box, rows);
   }
 
   async function exLoadList(){
@@ -8398,8 +8367,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       return;
     }
 
-    var r=await sb.from('exam_scores')
-      .select('id, exam_date, total, lc, rc, rc_infer, rc_locate, rc_connect, rc_vocab, rc_gram')
+    // 🚨 그래프가 능력별 열 항목과 avg_json 까지 쓴다. 칸을 골라 받으면 그림이 빈다.
+    var r=await sb.from('exam_scores').select('*')
       .eq('student_id', sid).order('exam_date',{ascending:false}).limit(20);
 
     if(r.error){
@@ -15658,32 +15627,77 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         }
       }
 
-      // ③ 이번 회차 열 항목
-      h+='<div style="font-size:12.5px;font-weight:800;margin:12px 0 2px">이번 시험 능력별 정답률'
-        + ' <span style="font-weight:600;color:var(--muted);font-size:11px">'
-        + esc(String(cur.exam_date||''))+' · 총점 '+(cur.total==null?'-':cur.total)
-        + ' (LC '+(cur.lc==null?'-':cur.lc)+' · RC '+(cur.rc==null?'-':cur.rc)+')</span></div>'
-        + '<div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">'
-        + '파란 막대 = 내 정답률 · <b style="color:#d98324">│</b> 선 = 그 회차 전체 수험자 평균</div>';
-
-      AB.forEach(function(a){
-        var v=cur[a[0]]; if(v==null) return;
-        var avg=(cur.avg_json&&cur.avg_json[a[0]]!=null)?cur.avg_json[a[0]]:null;
-        var p=prev?prev[a[0]]:null;
-        var d=(p!=null)?(v-p):null;
-        h+='<div style="display:flex;align-items:center;gap:8px;padding:2px 0">'
-          + '<span style="width:104px;font-size:11.5px;color:var(--ink-soft)"><b style="color:var(--muted)">'+a[1]+'</b> '+esc(a[2])+'</span>'
-          + '<span style="flex:1">'+bar(v, 'var(--accent)', avg)+'</span>'
-          + '<span style="width:34px;text-align:right;font-size:11px;font-weight:800;color:'
-          +   (d==null?'var(--muted)':(d>0?'#1a7a4a':(d<0?'#c0342b':'var(--muted)')))+'">'
-          +   (d==null?'':(d>0?('+'+d):(d<0?String(d):'±0')))+'</span>'
-          + '<span style="width:38px;text-align:right;font-size:12px;font-weight:800">'+v+'%</span>'
-          + '</div>';
-      });
+      // ③ 이번 회차 능력별 — 커리큘럼 PDF 와 **같은 모양**으로 그린다
+      //    (2026-09-11 원장님: "커리큘럼에 나오는 그래프가 그대로 앱·웹에 나오면 좋겠어")
+      //    🚨 LC·RC 를 따로 묶고, 평균 아래면 막대를 **빨갛게** 한다.
+      //       그 빨강이 「여기가 약하다」를 한눈에 보여 주는 장치다.
+      h += abilBlock('듣기(LC)', 'LC', cur, prev, cur.lc);
+      h += abilBlock('읽기(RC)', 'RC', cur, prev, cur.rc);
 
       box.innerHTML=h;
       runGrow(box);
     }
+
+    /**
+     * 커리큘럼 PDF 의 능력별 표 한 덩어리 (2026-09-11).
+     *
+     * @param title 「듣기(LC)」 · 「읽기(RC)」
+     * @param area  AB 의 둘째 칸과 맞춘다
+     * @param cur   이번 회차
+     * @param prev  지난 회차 (없으면 변화 칸을 비운다)
+     * @param score 그 영역 점수 (LC 415 / RC 225)
+     */
+    function abilBlock(title, area, cur, prev, score){
+      var list = AB.filter(function(a){ return a[1]===area; })
+                   .map(function(a){
+                     var v = cur[a[0]];
+                     if(v==null) return null;
+                     var avg = (cur.avg_json && cur.avg_json[a[0]]!=null) ? cur.avg_json[a[0]] : null;
+                     var p = prev ? prev[a[0]] : null;
+                     return { key:a[0], label:a[2], v:v, avg:avg,
+                              d:(p!=null? (v-p) : null),
+                              bad:(avg!=null && v<avg) };
+                   }).filter(Boolean);
+      if(!list.length) return '';
+
+      // 높은 것부터. 커리큘럼도 그렇게 세워 둔다.
+      list.sort(function(x,y){ return y.v-x.v; });
+
+      // 🚨 한 줄 요약은 **실제로 세서** 쓴다. 지어내면 안 된다.
+      var withAvg = list.filter(function(r){ return r.avg!=null; });
+      var over = withAvg.filter(function(r){ return !r.bad; }).length;
+      var note;
+      if(!withAvg.length)      note = '이 회차 전체 평균이 없어 견줄 수 없습니다';
+      else if(over===withAvg.length) note = '다섯 항목이 모두 평균 위입니다';
+      else if(over===0)        note = '다섯 항목이 모두 평균 아래입니다';
+      else                     note = withAvg.length+' 중 '+over+'개가 평균 위입니다';
+
+      var rows = list.map(function(r){
+        var color = r.bad ? '#c0342b' : 'var(--accent)';
+        var dtxt = (r.d==null) ? ''
+          : '<b style="color:'+(r.d>0?'#1a7a4a':(r.d<0?'#c0342b':'var(--muted)'))+'">'
+            + (r.d>0?('+'+r.d):(r.d<0?String(r.d):'±0'))+'</b>';
+        return '<div class="ab-r">'
+          + '<span class="ab-n">'+esc(r.label)+'</span>'
+          + '<span class="ab-b">'+bar(r.v, color, r.avg)+'</span>'
+          + '<span class="ab-d">'+dtxt+'</span>'
+          + '<span class="ab-v"><b>'+r.v+'%</b> <s>/ 평균 '+(r.avg==null?'-':r.avg)+'</s></span>'
+          + '</div>';
+      }).join('');
+
+      return '<div class="ab-h">'+esc(title)+' 능력별 정답률 '
+        + '<span>'+(score==null?'':(score+'점 · '))+esc(note)+'</span></div>'
+        + '<div class="ab-box">'+rows
+        + '<div class="ab-lg"><b>파란 막대</b> = 이번 시험 정답률 · '
+        + '<i>주황 세로선</i> = 전체 수험자 평균 · '
+        + '오른쪽 숫자 = <b>지난 시험 대비 변화</b> · '
+        + '<b style="color:#c0342b">빨간 막대</b> = 평균 아래</div></div>';
+    }
+
+    // 🚨 이 함수는 닫힌 함수 안에 있어 관리자 쪽에서 이름이 안 보인다.
+    //    성적 탭·학생 카드도 **같은 그림**을 써야 하므로 창에 내건다
+    //    (2026-09-11 원장님 지적: "내가 말한건 커리큘럼에서 만들어준 그래프야").
+    window.wtDrawExams = drawExams;
 
     // ── 진단 리포트 ────────────────────────────────────────────
     function drawDiag(box, rows, locked, goal){
