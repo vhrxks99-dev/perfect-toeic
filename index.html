@@ -4051,6 +4051,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .bm-req{margin-left:8px;font-size:11.5px;font-weight:800;color:#8a5a00}
 .bm-undo{margin-left:6px;font-size:11.5px;font-weight:800;color:#c0342b;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--font-sans)}
 .screq-late{font-size:12px;font-weight:800;color:#c0342b}
+/* 성적 변화 그래프 (2026-09-11) */
+.ex-chart{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;background:var(--surface)}
+.ex-chart-head{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:6px}
+.ex-chart-head span{font-weight:700;color:var(--muted);margin-left:6px;font-size:12.5px}
 /* 주차했어요 (2026-09-11) */
 .mp-box{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 6px;background:var(--surface)}
 .mp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:14px}
@@ -5391,6 +5395,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       </div>
 
       <div class="dash-list-head" style="margin-top:16px">이 학생의 지난 성적</div>
+      <!-- 점수 변화 그래프 (2026-09-11 원장 지적) -->
+      <div id="exChart"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="exList"></table></div>
     </div>
 
@@ -8284,10 +8290,80 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('exTotal')) $('exTotal').value=(l!=null&&r!=null)?(l+r+'점'):'';
   }
 
+  /**
+   * 점수 변화 그래프 (2026-09-11 원장님 지적: "밑에 그래프는 왜안나와").
+   *
+   * 🚨 학생 본인 화면에만 있던 그래프를 원장님 화면에도 둔다.
+   *    그쪽 코드는 로그인한 사람 것을 그리므로 원장님 계정으로는 늘 비어 있었다.
+   *
+   * @param rows exLoadList 가 이미 받아 온 자료. 여기서 다시 읽지 않는다.
+   *             (내림차순으로 온다 — 그릴 때 오름차순으로 뒤집는다)
+   */
+  function exDrawChart(rows){
+    var box=$('exChart'); if(!box) return;
+    var list=(rows||[]).filter(function(e){ return e.total!=null; }).slice().reverse();
+    if(!list.length){ box.innerHTML=''; return; }
+
+    var W=640, H=200, PL=44, PR=16, PT=18, PB=30;
+    var vals=list.map(function(e){ return Number(e.total); });
+    var lo=Math.min.apply(null, vals), hi=Math.max.apply(null, vals);
+    // 위아래로 숨 쉴 자리를 둔다. 붙어 있으면 선이 테두리에 닿는다.
+    var pad=Math.max(30, Math.round((hi-lo)*0.35));
+    lo=Math.max(0, lo-pad); hi=Math.min(990, hi+pad);
+    if(hi===lo){ hi=lo+10; }
+
+    function X(i){ return list.length===1 ? (PL+(W-PL-PR)/2)
+                                          : PL + i*(W-PL-PR)/(list.length-1); }
+    function Y(v){ return PT + (hi-v)*(H-PT-PB)/(hi-lo); }
+
+    var pts=list.map(function(e,i){ return X(i)+','+Y(Number(e.total)); }).join(' ');
+    var dots=list.map(function(e,i){
+      var x=X(i), y=Y(Number(e.total));
+      return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4.5" fill="#1F62E0"/>'
+        + '<text x="'+x.toFixed(1)+'" y="'+(y-11).toFixed(1)+'" text-anchor="middle" '
+        + 'font-size="12.5" font-weight="800" fill="#14161a">'+e.total+'</text>'
+        + '<text x="'+x.toFixed(1)+'" y="'+(H-10)+'" text-anchor="middle" '
+        + 'font-size="11" fill="#6b7787">'+esc(String(e.exam_date).slice(5))+'</text>';
+    }).join('');
+
+    // 가로 눈금 세 줄
+    var grid='';
+    [0,0.5,1].forEach(function(f){
+      var v=Math.round(lo+(hi-lo)*(1-f));
+      var y=PT+f*(H-PT-PB);
+      grid+='<line x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'" '
+         +  'stroke="#E5E8EE" stroke-width="1"/>'
+         +  '<text x="'+(PL-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" '
+         +  'font-size="11" fill="#6b7787">'+v+'</text>';
+    });
+
+    var line = list.length>1
+      ? '<polyline points="'+pts+'" fill="none" stroke="#1F62E0" stroke-width="2.5" '
+        + 'stroke-linejoin="round" stroke-linecap="round"/>'
+      : '';
+
+    var first=list[0], last=list[list.length-1];
+    var diff = list.length>1 ? (Number(last.total)-Number(first.total)) : null;
+    var head = list.length>1
+      ? ('처음 '+first.total+'점 → 최근 '+last.total+'점 '
+         + '<b style="color:'+(diff>0?'#1a7a4a':(diff<0?'#c0342b':'var(--muted)'))+'">'
+         + (diff>0?('+'+diff):(diff<0?String(diff):'±0'))+'</b>')
+      : '회차가 하나입니다. 두 번째 성적이 들어오면 변화가 보입니다.';
+
+    box.innerHTML='<div class="ex-chart">'
+      + '<div class="ex-chart-head">📈 점수 변화 <span>'+head+'</span></div>'
+      + '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="auto" '
+      + 'preserveAspectRatio="xMidYMid meet">'+grid+line+dots+'</svg></div>';
+  }
+
   async function exLoadList(){
     var box=$('exList'); if(!box||!sb) return;
     var sid=$('exStudent')?$('exStudent').value:'';
-    if(!sid){ box.innerHTML='<tr><td style="color:var(--muted)">학생을 고르면 지난 성적이 보입니다.</td></tr>'; return; }
+    if(!sid){
+      box.innerHTML='<tr><td style="color:var(--muted)">학생을 고르면 지난 성적이 보입니다.</td></tr>';
+      exDrawChart([]);
+      return;
+    }
 
     var r=await sb.from('exam_scores')
       .select('id, exam_date, total, lc, rc, rc_infer, rc_locate, rc_connect, rc_vocab, rc_gram')
@@ -8298,7 +8374,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       return;
     }
     var rows=r.data||[];
-    if(!rows.length){ box.innerHTML='<tr><td style="color:var(--muted)">아직 넣은 성적이 없습니다.</td></tr>'; return; }
+    if(!rows.length){
+      box.innerHTML='<tr><td style="color:var(--muted)">아직 넣은 성적이 없습니다.</td></tr>';
+      exDrawChart([]);
+      return;
+    }
+    // 🚨 그래프는 표와 **같은 자료**로 그린다. 따로 읽으면 두 값이 어긋난다.
+    exDrawChart(rows);
 
     var h='<tr><th>응시일</th><th>총점</th><th>LC</th><th>RC</th><th>RC 능력별</th><th></th></tr>';
     rows.forEach(function(e, i){
