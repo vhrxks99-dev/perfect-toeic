@@ -4084,6 +4084,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .park-note .lead{color:var(--ink);font-weight:800;margin-bottom:3px}
 .park-car{padding:4px 10px;border-radius:7px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink);font-family:var(--font-sans);font-size:13px;font-weight:800;cursor:pointer}
 #scParkBox .cal-modes .cal-mode{padding:4px 10px;font-size:12px}
+/* 직원이 대신 넣는 칸 (2026-09-11) */
+.park-in{width:120px;padding:4px 8px;border-radius:7px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink);font-family:var(--font-sans);font-size:12.5px;font-weight:700;letter-spacing:.02em}
+.park-save{padding:4px 10px;border-radius:7px;border:0;background:var(--accent);color:#fff;font-size:12px;font-weight:800;cursor:pointer;margin-left:4px}
+.park-edit{margin-left:6px;font-size:12px;font-weight:700;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.park-none{color:var(--muted);font-weight:700;font-size:12.5px}
 /* 다음 수업 강의장 (2026-09-11) */
 .np-box{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 6px;background:var(--surface)}
 .np-head{font-size:13.5px;font-weight:700;color:var(--ink-soft);margin-bottom:10px}
@@ -5680,6 +5685,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       </div>
       <label>목표 기간<input type="text" id="waEPeriod" placeholder="예: 2026년 10월까지 / 3개월"></label>
       <label>가입 경로<input type="text" id="waERoute"></label>
+      <!-- 차량번호 (2026-09-11 원장 지시). 학생이 안 넣으면 직원이 대신 넣는다. -->
+      <label id="waECarWrap">차량번호 <span style="color:var(--muted);font-weight:600;font-size:12px">(넣어 두면 수업 있는 날 주차 명단에 오릅니다)</span>
+        <input type="text" id="waECar" maxlength="20" placeholder="예: 12가 3456"></label>
       <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
       <label id="waEPairWrap">2:1 짝 <span style="color:var(--muted);font-weight:600;font-size:12px">(짝을 정하면 한 명이 예약할 때 둘 다 잡힙니다)</span><select id="waEPair"><option value="">짝 없음</option></select><span id="waEPairHint" style="font-weight:600;font-size:12px;color:var(--muted)">담당 선생님과 수업 형태(대면·비대면)가 같은 학생만 고를 수 있습니다.</span></label>
       <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">매니저</option><option value="master">원장님</option></select></label>
@@ -6744,6 +6752,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   ];
 
   var _parkRows=[], _parkDay=null;
+  // 🚨 「번호 없는 학생도 보기」. 켜면 그날 오는 학생이 전부 나와서 대신 넣어 줄 수 있다.
+  //    기본은 꺼 둔다 — 평소에는 **주차하는 사람만** 보여야 명단이 명단 구실을 한다.
+  var _parkAll=false;
 
   /** 차 번호만 줄줄이. 같은 학생이 하루 두 번 오면 한 번만 넣는다. */
   function parkCars(rows){
@@ -6761,7 +6772,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     _parkDay = day || _parkDay || kymd();
     _parkRows=[];
     try{
-      var r=await sb.rpc('parking_list',{ p_date: _parkDay });
+      // 🚨 새 함수(parking_day)를 부른다. 옛 parking_list 는 인자가 하나뿐이라
+      //    「번호 없는 학생」을 못 준다. 옛 것은 지우지 않았다 — 옛 배포본이 아직 쓴다.
+      var r=await sb.rpc('parking_day',{ p_date: _parkDay, p_all: _parkAll });
+      // SQL 을 아직 안 돌렸으면 새 함수가 없다. 그때는 옛 것으로라도 보여 준다.
+      if(r.error) r=await sb.rpc('parking_list',{ p_date: _parkDay });
       if(r.error){ box.innerHTML=''; return; }   // 함수가 아직 없으면 조용히 넘어간다
       _parkRows=r.data||[];
     }catch(e){ box.innerHTML=''; return; }
@@ -6779,11 +6794,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           return '<li><span class="wa-al-tag t-req">주차</span><b>'+esc(x.student_name||'학생')+'</b>'
             + ' — '+esc(when)+tn+(x.room_name?(' · '+esc(x.room_name)):'')
             + '<span class="wa-al-sp"></span>'
-            + '<button class="park-car" data-parkcar="'+esc(String(x.car_number||''))+'">'
-            + esc(x.car_number||'')+'</button></li>';
+            + parkCell(x)+'</li>';
         }).join('')
-      : '<li style="color:var(--muted)">이 날 주차할 학생이 없습니다. '
-        + '학생이 「내 정보」에 차량번호를 넣으면 여기에 나옵니다.</li>';
+      : '<li style="color:var(--muted)">'
+        + (_parkAll ? '이 날 오는 학생이 없습니다.'
+                    : '이 날 주차할 학생이 없습니다. 학생이 「내 정보」에 차량번호를 '
+                      + '넣거나, 아래 「번호 없는 학생도 보기」를 켜고 직접 넣어 주세요.')
+        + '</li>';
 
     box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
       + '<div class="wa-al-head">🚗 주차 명단 <span class="wa-al-badge">'+cars.length+'</span>'
@@ -6791,7 +6808,51 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + '<span class="cal-modes" style="display:inline-flex">'+days+'</span> '
       + '<button class="btn btn-ghost" id="parkCopyAll" type="button" '
       + 'style="padding:5px 11px;font-size:12px;margin-left:6px">차번호 전부 복사</button>'
-      + '</span></div><ul>'+lis+'</ul></div>';
+      + '</span></div><ul>'+lis+'</ul>'
+      // 🚨 학생이 안 넣으면 원장님이 넣어야 한다. 그 스위치가 여기다.
+      + '<label class="wa-check" style="margin:8px 2px 0;font-size:12.5px">'
+      + '<input type="checkbox" id="parkAllChk"'+(_parkAll?' checked':'')+'>'
+      + '<span>번호 없는 학생도 보기 (직접 넣어 주기)</span></label>'
+      + '</div>';
+  }
+
+  /**
+   * 명단 한 줄의 오른쪽 칸.
+   *   번호가 있으면 → 눌러서 복사 + 「고치기」
+   *   번호가 없으면 → 바로 쳐 넣는 칸 (원장·담당 선생님만 저장된다)
+   * 🚨 같은 학생이 하루에 두 번 오면 줄이 둘이다. 한 줄에서 고치면 다른 줄도
+   *    같이 맞아야 하므로, 저장 뒤에는 명단을 다시 그린다.
+   */
+  function parkCell(x){
+    var car=String(x.car_number||'').trim();
+    var sid=esc(String(x.student_id||''));
+    if(car){
+      return '<span data-parkrow="'+sid+'">'
+        + '<button class="park-car" data-parkcar="'+esc(car)+'">'+esc(car)+'</button>'
+        + '<a class="park-edit" data-parkedit="'+sid+'">고치기</a></span>';
+    }
+    return '<span data-parkrow="'+sid+'">'
+      + '<input class="park-in" data-parkin="'+sid+'" maxlength="20" placeholder="12가 3456">'
+      + '<button class="park-save" data-parksave="'+sid+'">저장</button></span>';
+  }
+
+  /** 직원이 학생 차번호를 저장한다. 빈 칸으로 저장하면 지운다. */
+  async function parkSaveCar(sid, car, btn){
+    if(!sb) return;
+    if(btn) btn.disabled=true;
+    var r=await sb.rpc('set_student_car',{ target: sid, p_car: car });
+    if(btn) btn.disabled=false;
+    if(r.error){
+      alert(/set_student_car/.test(String(r.error.message||''))
+        ? '주차 기능이 아직 없습니다. parking_staff.sql 을 먼저 실행해주세요.'
+        : ('저장 실패: '+r.error.message));
+      return;
+    }
+    if(r.data && r.data.ok===false){ alert(r.data.msg||'저장하지 못했습니다.'); return; }
+    // 회원 목록에도 반영해 둔다. 다시 불러오지 않아도 학생 카드가 같은 값을 보게.
+    var u=(window.__wtMembers||[]).filter(function(m){return String(m.id)===String(sid);})[0];
+    if(u) u.car_number=(r.data&&r.data.car)||null;
+    await renderParking(_parkDay);
   }
 
   /** YYYY-MM-DD 를 n일 옮긴다. kwall 을 써서 서울 기준으로 센다. */
@@ -6807,14 +6868,48 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var d=(t&&t.closest)?t.closest('[data-parkday]'):null;
     var c=(t&&t.closest)?t.closest('[data-parkcar]'):null;
     var a=(t&&t.closest)?t.closest('#parkCopyAll'):null;
+    var ed=(t&&t.closest)?t.closest('[data-parkedit]'):null;
+    var sv=(t&&t.closest)?t.closest('[data-parksave]'):null;
     if(d){ await renderParking(d.getAttribute('data-parkday')); return; }
     if(c){ await parkCopy(c.getAttribute('data-parkcar'), '차량번호를 복사했습니다'); return; }
+    // 「고치기」 — 그 줄만 입력칸으로 바꾼다. 지금 값을 넣어 두고 전체 선택해 준다.
+    if(ed){
+      var sid=ed.getAttribute('data-parkedit');
+      var row=ed.closest('[data-parkrow]'); if(!row) return;
+      var now=(row.querySelector('[data-parkcar]')||{}).textContent||'';
+      row.innerHTML='<input class="park-in" data-parkin="'+esc(sid)+'" maxlength="20" '
+        + 'value="'+esc(now.trim())+'" placeholder="비우면 지웁니다">'
+        + '<button class="park-save" data-parksave="'+esc(sid)+'">저장</button>';
+      var inp=row.querySelector('[data-parkin]'); if(inp){ inp.focus(); inp.select(); }
+      return;
+    }
+    if(sv){
+      var sid2=sv.getAttribute('data-parksave');
+      var row2=sv.closest('[data-parkrow]');
+      var inp2=row2?row2.querySelector('[data-parkin]'):null;
+      await parkSaveCar(sid2, inp2?inp2.value:'', sv);
+      return;
+    }
     if(a){
       var cars=parkCars(_parkRows);
       if(!cars.length){ alert('이 날 주차할 학생이 없습니다.'); return; }
       await parkCopy(cars.join(String.fromCharCode(10)),
                      '차량번호 '+cars.length+'개를 복사했습니다.');
     }
+  });
+
+  // 「번호 없는 학생도 보기」 스위치 + 입력칸에서 엔터
+  if($('scParkBox')) $('scParkBox').addEventListener('change', async function(e){
+    if(e.target && e.target.id==='parkAllChk'){
+      _parkAll = !!e.target.checked;
+      await renderParking(_parkDay);
+    }
+  });
+  if($('scParkBox')) $('scParkBox').addEventListener('keydown', async function(e){
+    if(e.key!=='Enter') return;
+    var inp=e.target; if(!inp||!inp.getAttribute||!inp.getAttribute('data-parkin')) return;
+    e.preventDefault();
+    await parkSaveCar(inp.getAttribute('data-parkin'), inp.value, null);
   });
 
   async function parkCopy(text, msg){
@@ -7119,6 +7214,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     editingRole=u.role||'student'; editingTeacher=u.teacher_id||'';
     if($('waETeacher')){ var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';}); $('waETeacher').innerHTML='<option value="">미배정</option>'+ts.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join(''); $('waETeacher').value=u.teacher_id||''; }
     if($('waENote')) $('waENote').value=u.teacher_note||'';
+    // 차량번호 (2026-09-11). 학생일 때만. 값은 전용 RPC 로 읽는다 —
+    // profiles 를 직접 select 하면 칸 권한에 걸려 늘 빈칸으로 보인다.
+    waECarLoad(u);
     // 2:1 짝 (2026-09-10). 원장님만 보이고, 학생일 때만 뜬다.
     if($('waEPairWrap')){
       var _canPair = isMasterNow() && u.role==='student';
@@ -7173,6 +7271,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   if($('waEditClose')) $('waEditClose').onclick=function(){ $('waEdit').classList.remove('on'); };
   if($('waEdit')) $('waEdit').addEventListener('click',function(e){ if(e.target===$('waEdit')) $('waEdit').classList.remove('on'); });
+  /** 회원 수정 창의 차량번호 칸을 채운다. 학생이 아니면 칸 자체를 숨긴다. */
+  var _waECarWas='';
+  function waECarLoad(u){
+    var wrap=$('waECarWrap'), inp=$('waECar');
+    if(!wrap||!inp) return;
+    var isStu=((u&&u.role)||'student')==='student';
+    wrap.style.display = isStu ? '' : 'none';
+    inp.value=''; _waECarWas='';
+    if(!isStu||!sb) return;
+    sb.rpc('student_car',{ target:u.id }).then(function(r){
+      // 그새 다른 회원을 열었으면 버린다
+      if(String(editingId)!==String(u.id)) return;
+      if(r.error) return;                 // SQL 을 아직 안 돌렸으면 빈칸으로 둔다
+      _waECarWas=String(r.data||'');
+      inp.value=_waECarWas;
+    });
+  }
+
   if($('waESave')) $('waESave').onclick=async function(){
     if(!editingId||!sb) return;
     var newRole=$('waERole').value;
@@ -7211,6 +7327,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var newRate=parseFloat($('waERate')?$('waERate').value:'');
       if(isNaN(newRate)||newRate<0||newRate>100){ $('waEErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
       if(newRate!==editingRate){ var rp=await sb.rpc('set_pay_rate',{target:editingId,rate:newRate}); if(rp.error){ $('waEErr').textContent='배분율 변경 실패: '+rp.error.message; return; } }
+    }
+    // 차량번호 — 바뀌었을 때만 보낸다. 🚨 profiles update 에 실으면 칸 권한에 막힌다.
+    if($('waECar') && $('waECarWrap') && $('waECarWrap').style.display!=='none'){
+      var carNow=$('waECar').value.trim();
+      if(carNow!==_waECarWas){
+        var rc=await sb.rpc('set_student_car',{ target:editingId, p_car:carNow });
+        if(rc.error){
+          $('waEErr').textContent = /set_student_car/.test(String(rc.error.message||''))
+            ? '차량번호 기능이 아직 없습니다. parking_staff.sql 을 먼저 실행해주세요.'
+            : ('차량번호 저장 실패: '+rc.error.message);
+          return;
+        }
+        if(rc.data && rc.data.ok===false){ $('waEErr').textContent=rc.data.msg||'차량번호를 저장하지 못했습니다.'; return; }
+      }
     }
     $('waEdit').classList.remove('on');
     await renderTable();
