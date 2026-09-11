@@ -7637,7 +7637,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   function libTargets(){
     // 받을 수 있는 사람: 학생과 선생님 (매니저·원장은 어차피 다 받는다)
-    return (_members||[]).filter(function(m){ return m.role==='student'||m.role==='admin'; })
+    // 🚨 수강종료한 사람은 뺀다 (2026-09-11 원장 지시:
+    //    "종료한애들한테 자료줄일은 절대 없어"). 그만둔 선생님도 같이 뺀다.
+    return (_members||[]).filter(function(m){
+        return (m.role==='student'||m.role==='admin') && String(m.status||'')!=='ended';
+      })
       .sort(function(a,b){
         var ra=(a.role==='admin'?0:1), rb=(b.role==='admin'?0:1);
         if(ra!==rb) return ra-rb;
@@ -7650,9 +7654,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     _libEdit=it.id;
     var picked=(_libGrants[it.id]||[]);
     var all=it.audience==='all';
-    var list=libTargets().map(function(m){
+    var live=libTargets();
+
+    // 🚨 이미 받고 있는데 그 사이 수강종료된 사람. 목록에 없으니 저장하면 권한이 없어진다.
+    //    없어지는 건 맞지만 **모르게** 없어지면 안 된다. 몇 명인지 적어 보여 준다.
+    var liveIds={}; live.forEach(function(m){ liveIds[String(m.id)]=1; });
+    var goneNames=(_members||[]).filter(function(m){
+      return picked.indexOf(m.id)>=0 && !liveIds[String(m.id)];
+    }).map(function(m){ return m.name||'(이름 없음)'; });
+
+    var list=live.map(function(m){
       var on=picked.indexOf(m.id)>=0;
-      return '<label style="display:flex;align-items:center;gap:7px;padding:4px 2px;font-size:12.5px">'
+      // 검색은 이름·연락처로 건다. data-libname 에 넣어 두고 화면에서만 걸러 낸다.
+      var key=((m.name||'')+' '+(m.phone||'')).toLowerCase();
+      return '<label data-libname="'+esc(key)+'" style="display:flex;align-items:center;gap:7px;padding:4px 2px;font-size:12.5px">'
         +'<input type="checkbox" data-libg="'+esc(m.id)+'"'+(on?' checked':'')+(all?' disabled':'')+'>'
         +'<span>'+esc(m.name||'(이름 없음)')+(m.role==='admin'?' <span style="color:var(--muted)">선생님</span>':'')+'</span></label>';
     }).join('');
@@ -7661,8 +7676,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       +'<div style="font-size:13px;font-weight:800;margin-bottom:8px">「'+esc(it.title)+'」 받을 사람</div>'
       +'<label style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-bottom:8px">'
       +'<input type="checkbox" id="libAll"'+(all?' checked':'')+'> <b>로그인한 수강생 전체에게 열기</b></label>'
+      + (goneNames.length
+          ? '<div style="font-size:12px;color:#8a5a00;background:#fff8ec;border:1px solid #f0d9ae;'
+            + 'border-radius:8px;padding:8px 10px;margin-bottom:8px">'
+            + '⚠️ 수강종료한 <b>'+goneNames.length+'명</b>이 이 자료를 받고 있었습니다 ('
+            + esc(goneNames.slice(0,4).join(', '))+(goneNames.length>4?' 외':'')+')<br>'
+            + '목록에서 빠졌습니다. <b>저장하면 그 학생들의 권한도 함께 사라집니다.</b></div>'
+          : '')
+      +'<input id="libPickSearch" type="search" placeholder="🔍 이름 · 연락처로 찾기" autocomplete="off" '
+      +'style="width:100%;padding:8px 10px;margin-bottom:8px;border:1.5px solid var(--line-strong);'
+      +'border-radius:8px;font-family:var(--font-sans);font-size:13px;background:var(--surface);color:var(--ink)"'
+      +(all?' disabled':'')+'>'
       +'<div id="libPickWrap" style="max-height:240px;overflow:auto;border-top:1px solid var(--line);padding-top:8px'+(all?';opacity:.45':'')+'">'
-      +(list||'<div class="wa-empty">회원 목록을 먼저 불러와야 합니다. 회원 탭을 한 번 열어주세요.</div>')+'</div>'
+      +(list||'<div class="wa-empty">회원 목록을 먼저 불러와야 합니다. 회원 탭을 한 번 열어주세요.</div>')
+      +'<div id="libPickNone" class="wa-empty" style="display:none">찾는 사람이 없습니다.</div>'+'</div>'
       +'<div style="display:flex;gap:8px;margin-top:11px;align-items:center">'
       +'<button class="btn btn-primary" id="libGrantSave" type="button" style="padding:7px 13px;font-size:12.5px">저장</button>'
       +'<button class="btn btn-ghost" id="libGrantCancel" type="button" style="padding:7px 13px;font-size:12.5px">닫기</button>'
@@ -7671,6 +7698,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var w=$('libPickWrap'); if(!w) return;
       w.style.opacity=this.checked?'.45':'';
       w.querySelectorAll('input[data-libg]').forEach(function(c){ c.disabled=this.checked; }, this);
+      // 전체에게 열면 고르는 일 자체가 없다. 검색칸도 같이 잠근다.
+      var q=$('libPickSearch'); if(q) q.disabled=this.checked;
+    };
+    // 🚨 찾기는 **화면에서만** 거른다. 숨겨진 줄의 체크는 그대로 살아 있고,
+    //    저장할 때 #libPickWrap 전체를 훑으므로 검색해도 선택이 풀리지 않는다.
+    var qbox=$('libPickSearch');
+    if(qbox) qbox.oninput=function(){
+      var q=this.value.trim().toLowerCase();
+      var n=0;
+      document.querySelectorAll('#libPickWrap label[data-libname]').forEach(function(el){
+        var hit = !q || el.getAttribute('data-libname').indexOf(q)>=0;
+        el.style.display = hit ? '' : 'none';
+        if(hit) n++;
+      });
+      var none=$('libPickNone');
+      if(none) none.style.display = n ? 'none' : '';
     };
     $('libGrantCancel').onclick=function(){ box.style.display='none'; box.innerHTML=''; _libEdit=null; };
     $('libGrantSave').onclick=libGrantSave;
