@@ -7229,16 +7229,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     // 달력은 탭이 숨어 있는 동안 폭이 0이라 스크롤 계산이 안 먹는다. 열릴 때 다시 맞춘다.
     if(name==='sched' && typeof centerToday==='function') setTimeout(centerToday, 0);
-    // 학생별 화면 — 열 때 학생 목록을 채운다(회원 목록이 이미 읽혀 있어야 한다).
-    if(name==='student' && typeof sdFillStudents==='function') sdFillStudents();
+    // 학생별 화면 — 열 때 학생 목록을 채운다.
+    // 🚨 회원을 아직 안 읽었으면 여기서 읽는다(2026-09-11). 전에는 비어 있었다.
+    if(name==='student' && typeof sdFillStudents==='function'){
+      ensureStudentPool().then(function(){ try{ sdFillStudents(); }catch(e){} });
+    }
     // 스터디는 학생들이 수시로 참/불을 바꾸므로 탭을 열 때마다 새로 읽는다.
     if(name==='study' && typeof loadStudy==='function'){ try{ loadStudy(); }catch(e){} }
     // 변경기록도 열 때마다 새로 읽는다. 방금 고친 것이 바로 보여야 확인 용도로 쓸 수 있다.
     if(name==='chglog' && typeof loadChgLog==='function'){ try{ loadChgLog(); }catch(e){} }
     // 자료실도 열 때마다 새로 읽는다(다른 기기에서 열고 닫은 것이 바로 보이게).
     if(name==='lib' && typeof loadLib==='function'){ try{ loadLib(); }catch(e){} }
-    // 성적표 — 열 때 학생 목록과 표를 만든다(회원 목록이 이미 읽혀 있어야 한다).
-    if(name==='exam' && typeof exInit==='function'){ try{ exInit(); }catch(e){} }
+    // 성적표 — 열 때 학생 목록과 표를 만든다.
+    // 🚨 회원을 아직 안 읽었으면 여기서 읽는다(2026-09-11 원장 신고:
+    //    "솔윤 검색해도 아무거도 안나오는데"). 전에는 목록이 텅 비어 있었다.
+    if(name==='exam' && typeof exInit==='function'){
+      ensureStudentPool().then(function(){ try{ exInit(); }catch(e){} });
+    }
     // 공지도 열 때마다 새로 읽는다. 앱에서 올린 것이 바로 보여야 한다.
     if(name==='notice' && typeof ntInit==='function'){ try{ ntInit(); }catch(e){} }
   }
@@ -8130,6 +8137,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('scTeacher')){ $('scTeacher').innerHTML=teachers.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+'</option>'; }).join(''); if(profile) $('scTeacher').value=profile.id; }
   }
   var _studentPool=[];
+
+  /**
+   * 학생 목록이 비어 있으면 회원부터 읽어 채운다 (2026-09-11 원장 신고로 추가).
+   *
+   * 🚨 `_studentPool` 은 dashInit 에서 한 번만 만들어지고, 그 재료인
+   *    `window.__wtMembers` 는 **회원 탭**(renderTable)이 채운다.
+   *    그래서 관리 페이지를 열자마자 성적 탭으로 가면 목록이 텅 비어 있었다.
+   *    「회원 탭을 한 번 열어주세요」를 사용자가 알아야 하는 건 잘못됐다.
+   *
+   * 🚨 이미 차 있으면 다시 읽지 않는다. 탭 옮길 때마다 읽으면 느려진다.
+   */
+  async function ensureStudentPool(){
+    if(_studentPool && _studentPool.length) return;
+    if(typeof renderTable === 'function'){
+      try{ await renderTable(); }catch(e){}
+    }
+    _members = window.__wtMembers || _members || [];
+    computeStudentPool();
+  }
+
   function computeStudentPool(){
     var all=_members.filter(function(m){return m.role==='student';});
     _studentPool = isOps() ? all : all.filter(function(m){ return m.teacher_id && m.teacher_id===profile.id; });
@@ -8198,7 +8225,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function exFillStudents(){
     if(!$('exStudent')) return;
     var q=$('exStudentSearch')?$('exStudentSearch').value:'';
-    $('exStudent').innerHTML='<option value="">선택</option>'+studentOpts(q);
+    var opts=studentOpts(q);
+    // 🚨 비었을 때 그냥 「선택」만 두면 고장인지 검색어 탓인지 알 수가 없다.
+    var none = opts ? '' :
+      (q ? '<option value="" disabled>「'+esc(q)+'」에 맞는 학생이 없습니다</option>'
+         : '<option value="" disabled>학생 목록을 불러오지 못했습니다. 새로고침을 눌러주세요</option>');
+    $('exStudent').innerHTML='<option value="">선택</option>'+opts+none;
   }
 
   function exTotalCalc(){
