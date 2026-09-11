@@ -5370,6 +5370,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="dash-form">
         <div class="dash-row">
           <label>학생<input type="text" id="exStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="exStudent"></select></label>
+          <div id="exEditing" style="font-size:12.5px;margin:-2px 0 6px"></div>
           <label>응시일<input type="date" id="exDate"></label>
           <label>LC<input type="number" id="exLc" min="5" max="495" placeholder="415"></label>
           <label>RC<input type="number" id="exRc" min="5" max="495" placeholder="340"></label>
@@ -8214,6 +8215,51 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     t.dataset.built='1';
   }
 
+  /**
+   * 이미 넣어 둔 회차가 있으면 폼에 채운다 (2026-09-11 원장님 지적).
+   *
+   * 🚨 저장은 「같은 학생·같은 날짜면 덮어쓰기」다. 값이 안 보이는 채로 저장하면
+   *    멀쩡히 들어 있던 능력별 점수가 **빈칸으로 덮인다.** 그래서 먼저 보여 준다.
+   *
+   * 🚨 없는 날짜면 비운다. 앞 회차 값이 남아 있으면 그게 더 위험하다.
+   */
+  async function exFillFromSaved(){
+    if(!sb) return;
+    var sid=$('exStudent')?$('exStudent').value:'';
+    var day=$('exDate')?$('exDate').value:'';
+    var note=$('exEditing');
+
+    function clear(){
+      if($('exLc')) $('exLc').value='';
+      if($('exRc')) $('exRc').value='';
+      EX_AB.forEach(function(a){
+        if($('ex_'+a[0])) $('ex_'+a[0]).value='';
+        if($('exavg_'+a[0])) $('exavg_'+a[0]).value='';
+      });
+      if(typeof exTotalCalc==='function') exTotalCalc();
+      if(note) note.textContent='';
+    }
+
+    if(!sid || !day){ clear(); return; }
+
+    var r=await sb.from('exam_scores').select('*')
+                  .eq('student_id', sid).eq('exam_date', day).maybeSingle();
+    if(r.error || !r.data){ clear(); return; }
+
+    var e=r.data;
+    if($('exLc')) $('exLc').value = (e.lc==null?'':e.lc);
+    if($('exRc')) $('exRc').value = (e.rc==null?'':e.rc);
+    var avg = e.avg_json || {};
+    EX_AB.forEach(function(a){
+      var k=a[0];
+      if($('ex_'+k)) $('ex_'+k).value = (e[k]==null?'':e[k]);
+      if($('exavg_'+k)) $('exavg_'+k).value = (avg[k]==null?'':avg[k]);
+    });
+    if(typeof exTotalCalc==='function') exTotalCalc();
+    if(note) note.innerHTML='<b style="color:#b26a00">'+esc(day)
+      +' 성적이 이미 있어 불러왔습니다. 저장하면 덮어씁니다.</b>';
+  }
+
   function exNum(id){
     var el=$(id); if(!el) return null;
     var v=String(el.value||'').trim();
@@ -8324,10 +8370,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     exFillStudents();
     if($('exDate') && !$('exDate').value) $('exDate').value=kymd();
     exLoadList();
+    exFillFromSaved();
   }
 
   if($('exStudentSearch')) $('exStudentSearch').oninput=function(){ exFillStudents(); };
-  if($('exStudent')) $('exStudent').onchange=function(){ exLoadList(); };
+  if($('exStudent')) $('exStudent').onchange=function(){ exLoadList(); exFillFromSaved(); };
+  // 🚨 날짜를 바꿀 때도 불러온다. 날짜만 바꾸면 다른 회차를 고치는 것이다.
+  if($('exDate')) $('exDate').onchange=function(){ exFillFromSaved(); };
   if($('exLc')) $('exLc').oninput=exTotalCalc;
   if($('exRc')) $('exRc').oninput=exTotalCalc;
   if($('exSave')) $('exSave').onclick=exSave;
