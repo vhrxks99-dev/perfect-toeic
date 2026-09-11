@@ -15267,9 +15267,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     ['제583회','2026-11-29','2026-12-08'],['제584회','2026-12-13','2026-12-22'],
     ['제585회','2026-12-27','2027-01-06']
   ];
-  // 🚨 성적 입력에서 응시일을 이 목록에서 고르게 한다 (2026-09-11 원장님 지시).
-  //    같은 날짜가 두 곳에 적히면 언젠가 어긋난다. 여기 하나만 둔다.
+  // 🚨 시험일정은 **DB(toeic_exam_dates)가 원본**이다 (2026-09-11).
+  //    여기 박힌 TOEIC 배열은 **비상용**이다 — DB 를 못 읽을 때만 쓴다.
+  //    ⚠️ 내년 일정은 **여기가 아니라 DB 를 고친다.** 여기만 고치면 앱과 어긋난다.
   window.WT_TOEIC_DATES = TOEIC.map(function(x){ return { round:x[0], date:x[1] }; });
+
+  (async function(){
+    if(!window.sb) return;
+    try{
+      var r=await window.sb.rpc('toeic_dates');
+      if(r.error || !r.data || !r.data.length) return;   // 못 읽으면 비상용 그대로
+      window.WT_TOEIC_DATES = r.data.map(function(x){
+        return { round:x.round, date:String(x.exam_date).slice(0,10) };
+      });
+      // 이미 그려 둔 고르는 칸이 있으면 다시 채운다.
+      if(typeof exDateFill==='function'){ try{ exDateFill(); }catch(e){} }
+    }catch(e){}
+  })();
 
   // 토익스피킹 공식 시험일정 (www.toeicswt.co.kr) — 시험일 / 성적발표일
   var TS=[
