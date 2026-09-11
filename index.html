@@ -3775,6 +3775,47 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     </form>
   </div>
 </div>
+<!-- 학생 휴강·시간변경 신청 (2026-09-11 원장 지시).
+     🚨 여기서 수업이 바뀌지 않는다. 신청서만 들어간다. 바꾸는 건 선생님 승인뿐이다. -->
+<div class="wa-overlay" id="waSCreq" aria-hidden="true">
+  <div class="wa-card">
+    <button class="wa-x" id="waSCClose" aria-label="닫기">&times;</button>
+    <div class="wa-head">휴강 · 시간 변경 신청</div>
+    <div class="wa-sub" id="waSCWhen"></div>
+    <div id="waSCWarn"></div>
+
+    <div class="sc-sec">
+      <div class="sc-lab">무엇을 신청하시나요</div>
+      <div class="sc-chips" id="waSCKind">
+        <button type="button" class="sc-chip on" data-sckind="cancel">이 수업 휴강</button>
+        <button type="button" class="sc-chip" data-sckind="change">다른 시간으로 변경</button>
+      </div>
+    </div>
+
+    <div class="sc-sec" id="waSCWhenBox" style="display:none">
+      <div class="sc-lab">옮길 날짜</div>
+      <input type="date" id="waSCDate">
+      <div class="sc-lab" style="margin-top:10px">옮길 시간</div>
+      <div class="sc-chips" id="waSCSlots"></div>
+      <div class="sc-hint">지금 수업이 있는 시간은 나오지 않습니다. 빈 시간만 보입니다.</div>
+    </div>
+
+    <div class="sc-sec">
+      <div class="sc-lab">사유 <em class="sc-must">꼭 골라주세요</em></div>
+      <div class="sc-chips" id="waSCReasons"></div>
+      <textarea id="waSCNote" rows="2" placeholder="더 하실 말씀이 있으면 적어주세요"></textarea>
+      <div class="sc-hint" id="waSCNoteHint"></div>
+    </div>
+
+    <p class="wa-err" id="waSCErr"></p>
+    <button class="btn btn-primary" id="waSCGo" disabled>신청하기</button>
+    <div class="sc-foot">
+      · 신청해도 수업은 그대로입니다. <b>선생님이 승인해야</b> 바뀝니다.<br>
+      · 승인 전까지는 신청을 취소할 수 있습니다.<br>
+      · 24시간 안에 신청하면 선생님 판단에 따라 수업 횟수가 차감될 수 있습니다.
+    </div>
+  </div>
+</div>
 <!-- 수업 수정 — 학생은 취소·변경을 못 하므로 선생님이 여기서 직접 고친다 -->
 <div class="wa-overlay" id="waSchedEdit" aria-hidden="true">
   <div class="wa-card">
@@ -3991,6 +4032,27 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .fut-sum span{color:var(--muted)}
 .fut-sum b{color:var(--ink)}
 #waAdmin .wa-table-wrap{max-height:none}
+/* 학생 휴강·변경 신청 (2026-09-11) */
+.sc-sec{margin-top:14px}
+.sc-lab{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:6px}
+.sc-must{font-style:normal;font-size:12px;font-weight:700;color:#c0342b;margin-left:4px}
+.sc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.sc-chip{padding:7px 13px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-family:var(--font-sans);font-size:13px;font-weight:700;cursor:pointer}
+.sc-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.sc-hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.6}
+#waSCreq textarea{width:100%;margin-top:8px;padding:10px;border:1.5px solid var(--line);border-radius:8px;font-family:var(--font-sans);font-size:13.5px;color:var(--ink);background:var(--surface);resize:vertical}
+#waSCreq input[type=date]{padding:8px 10px;border:1.5px solid var(--line-strong);border-radius:8px;font-family:var(--font-sans);font-size:13.5px;font-weight:700;background:var(--surface);color:var(--ink)}
+.sc-warn{margin-top:12px;padding:12px 14px;border-radius:10px;background:#fdeeec;border:1.5px solid #c0342b}
+.sc-warn b{color:#c0342b}
+.sc-warn-t{font-size:13.5px;font-weight:800;color:#c0342b;margin-bottom:3px}
+.sc-warn-s{font-size:12.5px;color:var(--ink);line-height:1.65}
+.sc-foot{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.75}
+.bm-ask{margin-left:8px;padding:3px 10px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);font-family:var(--font-sans);font-size:11.5px;font-weight:800;cursor:pointer}
+.bm-req{margin-left:8px;font-size:11.5px;font-weight:800;color:#8a5a00}
+.bm-undo{margin-left:6px;font-size:11.5px;font-weight:800;color:#c0342b;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--font-sans)}
+.screq-late{font-size:12px;font-weight:800;color:#c0342b}
+#scStuReqBox .wa-al-approve,#scStuReqBox .wa-al-reject{line-height:1.25;padding:6px 10px}
+#scStuReqBox .wa-al-approve small,#scStuReqBox .wa-al-reject small{font-size:10.5px;opacity:.85;font-weight:700}
 /* 2:1 짝 관리 패널 (2026-09-11) */
 .pair-panel{margin:12px 0 4px;padding:16px 18px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface-2)}
 .pair-lead{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:14px}
@@ -4979,6 +5041,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
            스케줄 탭 안에서도 따로 보이게 한다("수업 스케줄 알림에 따로 뜨게"). -->
       <div id="scPendBox"></div>
       <!-- 24시간 안에 있는 수업을 옮기려는 요청. 원장님이 승인해야 반영된다. -->
+      <!-- 학생이 넣은 휴강·변경 신청 (2026-09-11). 아래 scChgReqBox 와 다른 기능이다. -->
+      <div id="scStuReqBox"></div>
       <div id="scChgReqBox"></div>
       <!-- 수업 시간이 옮겨진 기록. 원장·매니저만 보인다(applyTabRoles 아님 — renderSchedChanges 가 판단). -->
       <div id="scChgBox"></div>
@@ -9164,6 +9228,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 스케줄 탭 목록은 알림 배너보다 먼저 그린다 — 아래에 'alerts 도 pend 도 없으면 return' 이 있어서
     // 여기서 안 그리면 예약이 0건일 때 스케줄 탭의 옛 목록이 지워지지 않는다.
     drawSchedPending(pend);
+    try{ await renderStudentReqs(); }catch(e){}
     try{ await renderSchedChangeReqs(); }catch(e){}
     try{ await renderSchedChanges(); }catch(e){}
     // 2026-08-09 — '등원 기록이 없어요' 노쇼 알림은 없앴다.
@@ -9219,6 +9284,99 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 24시간 안에 있는 수업을 옮겨 달라는 요청 (2026-08-14 원장 지시).
   // 선생님이 저장을 누르면 바로 바뀌지 않고 여기로 온다. 원장님이 승인해야 반영된다.
   // 선생님 화면에도 보인다(내가 올린 요청이 어떻게 됐는지 알아야 하므로) — 버튼만 원장님께 나온다.
+
+  // ── 학생이 넣은 휴강·변경 신청 (2026-09-11 원장 지시) ───────────
+  //    🚨 아래 renderSchedChangeReqs 와 **다른 기능**이다.
+  //       저건 선생님이 원장님께 올리는 것(schedule_change_requests),
+  //       이건 학생이 선생님께 올리는 것(student_change_requests).
+  //    🚨 누가 볼 수 있는지는 RLS 가 정한다 — 원장·매니저는 전체, 선생님은 담당 학생만.
+  //       화면에서 teacher_id 로 거르지 않는다(담당이 바뀌었을 수 있다).
+  var _stuReqRows=[];
+  async function renderStudentReqs(){
+    var box=$('scStuReqBox'); if(!box||!sb) return;
+    _stuReqRows=[];
+    try{
+      var r=await sb.from('student_change_requests')
+                    .select('id,schedule_id,student_id,kind,reason_code,reason_text,want_starts_at,late,created_at')
+                    .eq('status','pending').order('created_at',{ascending:true});
+      if(r.error){ box.innerHTML=''; return; }   // 표가 아직 없으면 조용히 넘어간다
+      _stuReqRows=r.data||[];
+    }catch(e){ box.innerHTML=''; return; }
+    if(!_stuReqRows.length){ box.innerHTML=''; return; }
+
+    // 수업 정보를 붙인다 — 누구의 언제 수업인지 안 보이면 판단할 수가 없다.
+    var ids=_stuReqRows.map(function(q){ return q.schedule_id; });
+    var scMap={};
+    try{
+      var sr=await sb.from('schedules').select('id,student_name,teacher_name,starts_at,ends_at,subject').in('id',ids);
+      if(!sr.error && sr.data) sr.data.forEach(function(x){ scMap[String(x.id)]=x; });
+    }catch(e){}
+
+    var lis=_stuReqRows.map(function(q){
+      var sc=scMap[String(q.schedule_id)]||{};
+      var tag = (q.kind==='cancel')
+        ? '<span class="wa-al-tag t-req">휴강 신청</span>'
+        : '<span class="wa-al-tag t-req">시간변경 신청</span>';
+      var when = esc(fmtDT(sc.starts_at))
+        + (q.kind==='change' && q.want_starts_at ? ' → <b>'+esc(fmtDT(q.want_starts_at))+'</b>' : '');
+      var why = q.reason_code + (q.reason_text ? (q.reason_code==='기타' ? ' — '+q.reason_text : ' · '+q.reason_text) : '');
+      // 🚨 「차감됩니다」라고 단정하지 않는다. 어느 쪽으로 할지는 선생님이 고른다.
+      var lateTxt = q.late
+        ? '<br><span class="screq-late">24시간 이내 신청 · 결석(차감)을 권합니다</span>'
+        : '';
+      var tn = (isOps() && sc.teacher_name) ? ' <span style="color:var(--muted);font-weight:700">('+esc(sc.teacher_name)+' 담당)</span>' : '';
+      return '<li>'+tag+'<b>'+esc(sc.student_name||'학생')+'</b> 학생'+tn+' — '+when
+        + ' <span style="color:#c0342b;font-weight:800">'+esc(why)+'</span>'+lateTxt
+        + '<span class="wa-al-sp"></span>'
+        + (q.kind==='cancel'
+            ? '<button class="wa-al-approve" data-stuok="'+esc(String(q.id))+'" data-stucharge="0">휴강 승인<br><small>차감 없음</small></button>'
+              +'<button class="wa-al-approve" data-stuok="'+esc(String(q.id))+'" data-stucharge="1">결석 승인<br><small>차감</small></button>'
+            : '<button class="wa-al-approve" data-stuok="'+esc(String(q.id))+'" data-stucharge="0">옮기기만<br><small>차감 없음</small></button>'
+              +'<button class="wa-al-approve" data-stuok="'+esc(String(q.id))+'" data-stucharge="1">옮기고 차감<br><small>1회</small></button>')
+        + '<button class="wa-al-reject" data-stuno="'+esc(String(q.id))+'">거절</button></li>';
+    }).join('');
+
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
+      + '<div class="wa-al-head">🙋 학생이 넣은 휴강 · 변경 신청 <span class="wa-al-badge">'+_stuReqRows.length+'</span></div>'
+      + '<ul>'+lis+'</ul></div>';
+  }
+
+  if($('scStuReqBox')) $('scStuReqBox').addEventListener('click', async function(e){
+    var t=e.target;
+    var ok=(t&&t.closest)?t.closest('[data-stuok]'):null;
+    var no=(t&&t.closest)?t.closest('[data-stuno]'):null;
+    if((!ok&&!no)||!sb) return;
+    var id=(ok||no).getAttribute(ok?'data-stuok':'data-stuno');
+    var q=_stuReqRows.filter(function(x){ return String(x.id)===String(id); })[0]||{};
+
+    var charge = ok ? (ok.getAttribute('data-stucharge')==='1') : null;
+    if(ok){
+      var what = (q.kind==='cancel')
+        ? (charge ? '결석으로 처리합니다. 수업 횟수가 차감됩니다.'
+                  : '휴강으로 처리합니다. 수업 횟수는 그대로입니다.')
+        : (charge ? '신청한 시간으로 옮기고, 수업 횟수를 1회 차감합니다.'
+                  : '신청한 시간으로 옮깁니다. 수업 횟수는 그대로입니다.');
+      if(!confirm(what+_sqNL+_sqNL+'이대로 승인할까요?')) return;
+    }else{
+      if(!confirm('이 신청을 거절할까요?'+_sqNL+_sqNL+'수업은 그대로 둡니다. 학생에게 거절로 보입니다.')) return;
+    }
+    var msg = no ? (prompt('거절 사유를 적어주세요(선택). 학생에게 보입니다.','')||null) : null;
+
+    var r = ok ? await sb.rpc('approve_student_change',
+                   {p_id:parseInt(id,10), p_charge:charge, p_memo:null})
+               : await sb.rpc('reject_student_change',{p_id:parseInt(id,10), p_memo:msg});
+    if(r.error){ alert('처리 실패: '+r.error.message); return; }
+    // 🚨 서버가 거절한 이유(그 사이 자리가 찼다 등)를 그대로 보여 준다.
+    if(r.data && r.data.ok===false){ alert(r.data.msg||'처리하지 못했습니다.'); return; }
+    // 🚨 서버가 실제로 무엇을 했는지 그대로 알려 준다.
+    if(ok && r.data && r.data.msg) alert(r.data.msg);
+
+    await loadTeacherAlerts();
+    try{ await loadSchedules(); }catch(e){}
+    try{ await renderCalendar(); }catch(e){}
+    try{ await loadAttendance(); }catch(e){}
+  });
+
   async function renderSchedChangeReqs(){
     var box=$('scChgReqBox'); if(!box||!sb) return;
     var rows=[];
@@ -14105,7 +14263,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var pairTxt = d.pair_name ? (' · <b>'+esc(d.pair_name)+' 학생과 2:1</b>') : '';
       $('waBookSub').innerHTML='담당 '+esc(d.teacher_name)+' 선생님의 빈 시간을 골라 예약을 요청하세요.'
         + (minTxt ? ' ('+modeTxt+' '+minTxt+' 수업 · 30분 단위)' : '')+pairTxt+leftTxt
-        + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>변경·취소는 선생님께 문의</b>해주세요.'
+        + '<br><span style="font-size:12px">예약해도 수업 횟수는 안 빠져요. 실제로 오신 날 1회 차감됩니다. <b>휴강·시간 변경은 아래 「내 예약」에서 신청</b>할 수 있어요. 선생님 승인 후 바뀝니다.'
         + (d.pair_name ? ('<br>고르신 시간에 <b>'+esc(d.pair_name)+'</b> 학생도 함께 잡힙니다. <b style="color:#1F62E0">2:1</b> 표시가 있는 시간은 그 학생이 이미 잡아 둔 자리예요.') : '')
         + '</span>';
     }
@@ -14185,10 +14343,186 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     alert(res.msg||'예약이 요청되었어요.');
     await loadBookSlots(); await loadMyBookings();
   });
+
+  // ── 학생 휴강·시간변경 신청 (2026-09-11 원장 지시) ───────────────
+  //    🚨 여기서 수업이 바뀌지 않는다. student_change_requests 에 줄 하나만 넣는다.
+  //       실제로 바꾸는 건 선생님 승인(approve_student_change)뿐이다.
+  //    🚨 표·함수 이름에 student_ 가 붙어 있다. schedule_change_requests(선생님→원장,
+  //       2026-08-14)와 **다른 기능**이다. 섞지 말 것.
+  var _sqNL=String.fromCharCode(10);
+  var SC_REASONS=['몸이 아파서','학교·회사 일정','집안 사정','개인 일정','교통·날씨 문제','시험 준비','기타'];
+  var _scSched=null, _scLate=false, _scKind='cancel', _scReason='', _scPick='', _scBusy=false;
+  var _myReqs={};   // 수업 id → 대기 중인 신청
+
+  function scLate(startsAt){
+    var t=Date.parse(startsAt||'');
+    if(isNaN(t)) return false;
+    return (t - Date.now()) < 24*3600*1000;
+  }
+
+  function scOpen(row){
+    _scSched=row; _scLate=scLate(row.starts_at);
+    _scKind='cancel'; _scReason=''; _scPick=''; _scBusy=false;
+    if($('waSCNote')) $('waSCNote').value='';
+    if($('waSCErr')) $('waSCErr').textContent='';
+    if($('waSCWhen')) $('waSCWhen').innerHTML=esc(fmtDT(row.starts_at))+'~'+esc(hm(row.ends_at))
+      + (row.subject?(' <span style="color:var(--muted)">'+esc(row.subject)+'</span>'):'');
+    if($('waSCWarn')) $('waSCWarn').innerHTML = _scLate
+      ? '<div class="sc-warn"><div class="sc-warn-t">수업까지 24시간이 안 남았습니다</div>'
+        + '<div class="sc-warn-s">선생님 판단에 따라 <b>수업 횟수가 차감될 수 있습니다.</b><br>'
+        + '사정을 사유에 적어 주시면 선생님이 보고 정합니다.</div></div>'
+      : '';
+    // 날짜 칸은 그 수업 날짜로 시작한다
+    if($('waSCDate')){
+      var d=new Date(row.starts_at);
+      var ymd=[d.getFullYear(), ('0'+(d.getMonth()+1)).slice(-2), ('0'+d.getDate()).slice(-2)].join('-');
+      $('waSCDate').value=ymd;
+      $('waSCDate').min=new Date(Date.now()+9*3600*1000).toISOString().slice(0,10);
+    }
+    scDrawKind(); scDrawReasons(); scSync();
+    if($('waSCreq')) $('waSCreq').classList.add('on');
+  }
+  function scClose(){ if($('waSCreq')) $('waSCreq').classList.remove('on'); }
+
+  function scDrawKind(){
+    Array.prototype.forEach.call(document.querySelectorAll('#waSCKind [data-sckind]'), function(b){
+      if(b.getAttribute('data-sckind')===_scKind) b.classList.add('on'); else b.classList.remove('on');
+    });
+    if($('waSCWhenBox')) $('waSCWhenBox').style.display = (_scKind==='change') ? '' : 'none';
+  }
+  function scDrawReasons(){
+    var box=$('waSCReasons'); if(!box) return;
+    box.innerHTML=SC_REASONS.map(function(r){
+      return '<button type="button" class="sc-chip'+(r===_scReason?' on':'')+'" data-screason="'+esc(r)+'">'+esc(r)+'</button>';
+    }).join('');
+  }
+
+  /** 단추를 열지 말지. 🚨 서버도 같은 검사를 한다. 화면은 미리 알려 줄 뿐이다. */
+  function scSync(){
+    var note=$('waSCNote')?$('waSCNote').value.trim():'';
+    var needNote=(_scReason==='기타');
+    if($('waSCNote')) $('waSCNote').placeholder = needNote
+      ? '사유를 적어주세요 (필수)' : '더 하실 말씀이 있으면 적어주세요';
+    if($('waSCNoteHint')) $('waSCNoteHint').innerHTML = (needNote && !note)
+      ? '<span style="color:#c0342b;font-weight:800">「기타」를 고르셨습니다. 사유를 적어야 신청됩니다.</span>' : '';
+    var ok = !!_scReason && (!needNote || !!note) && (_scKind==='cancel' || !!_scPick) && !_scBusy;
+    if($('waSCGo')) $('waSCGo').disabled=!ok;
+  }
+
+  async function scLoadSlots(){
+    var box=$('waSCSlots'); if(!box||!sb) return;
+    _scPick=''; scSync();
+    var date=$('waSCDate')?$('waSCDate').value:'';
+    if(!date){ box.innerHTML='<div class="sc-hint">날짜를 골라주세요.</div>'; return; }
+    box.innerHTML='<div class="sc-hint">불러오는 중…</div>';
+    var r=await sb.rpc('free_slots',{p_date:date});
+    if(r.error){ box.innerHTML='<div class="sc-hint">불러오지 못했어요.</div>'; return; }
+    var d=r.data||{}, slots=(d.slots||[]).filter(function(x){ return x.available; });
+    if(!slots.length){ box.innerHTML='<div class="sc-hint">이 날은 빈 시간이 없습니다. 다른 날짜를 골라주세요.</div>'; return; }
+    box.innerHTML=slots.map(function(x){
+      return '<button type="button" class="sc-chip" data-scslot="'+esc(x.start)+'">'+esc(x.start)+'</button>';
+    }).join('');
+  }
+
+  async function scSubmit(){
+    if(_scBusy||!_scSched||!sb) return;
+    var note=$('waSCNote')?$('waSCNote').value.trim():'';
+    var date=$('waSCDate')?$('waSCDate').value:'';
+
+    var what = (_scKind==='cancel')
+      ? '이 수업을 휴강으로 신청합니다.'
+      : (date+' '+_scPick+' 로 옮겨 달라고 신청합니다.');
+    var warn = _scLate
+      ? (_sqNL+_sqNL+'⚠️ 수업까지 24시간이 안 남았습니다.'+_sqNL
+         + (_scKind==='cancel'
+             ? '선생님 판단에 따라 수업 횟수가 차감될 수 있습니다.'
+             : '선생님 판단에 따라 수업 횟수가 1회 차감될 수 있습니다.'))
+      : '';
+    if(!confirm(what+_sqNL+_sqNL+'선생님이 승인해야 실제로 바뀝니다.'+warn)) return;
+
+    _scBusy=true; scSync();
+    if($('waSCErr')) $('waSCErr').textContent='';
+    try{
+      var r=await sb.rpc('student_request_change',{
+        p_schedule_id: parseInt(_scSched.id,10),
+        p_kind: _scKind,
+        p_reason_code: _scReason,
+        p_reason_text: note||null,
+        p_want_date: (_scKind==='change'? date : null),
+        p_want_start: (_scKind==='change'? _scPick : null)
+      });
+      if(r.error) throw new Error(r.error.message);
+      var d=r.data||{};
+      // 🚨 서버 문구를 그대로 띄운다. 차감 여부 판단은 서버가 맞다.
+      if(!d.ok){ if($('waSCErr')) $('waSCErr').textContent=d.msg||'신청하지 못했습니다.'; return; }
+      alert(d.msg||'신청했습니다.');
+      scClose();
+      await loadMyBookings();
+    }catch(e){
+      if($('waSCErr')) $('waSCErr').textContent=(e&&e.message)?e.message:'신청하지 못했습니다.';
+    }finally{ _scBusy=false; scSync(); }
+  }
+
+  if($('waSCClose')) $('waSCClose').onclick=scClose;
+  if($('waSCreq')) $('waSCreq').addEventListener('click', function(e){ if(e.target===this) scClose(); });
+  if($('waSCKind')) $('waSCKind').addEventListener('click', function(e){
+    var b=e.target.closest?e.target.closest('[data-sckind]'):null; if(!b) return;
+    _scKind=b.getAttribute('data-sckind'); scDrawKind(); scSync();
+    if(_scKind==='change') scLoadSlots();
+  });
+  if($('waSCReasons')) $('waSCReasons').addEventListener('click', function(e){
+    var b=e.target.closest?e.target.closest('[data-screason]'):null; if(!b) return;
+    _scReason=b.getAttribute('data-screason'); scDrawReasons(); scSync();
+  });
+  if($('waSCSlots')) $('waSCSlots').addEventListener('click', function(e){
+    var b=e.target.closest?e.target.closest('[data-scslot]'):null; if(!b) return;
+    _scPick=b.getAttribute('data-scslot');
+    Array.prototype.forEach.call($('waSCSlots').querySelectorAll('[data-scslot]'), function(x){
+      if(x===b) x.classList.add('on'); else x.classList.remove('on');
+    });
+    scSync();
+  });
+  if($('waSCDate')) $('waSCDate').onchange=scLoadSlots;
+  if($('waSCNote')) $('waSCNote').oninput=scSync;
+  if($('waSCGo')) $('waSCGo').onclick=scSubmit;
+
+  /** 내 대기 신청을 읽어 둔다. 표가 아직 없으면 조용히 넘어간다. */
+  async function loadMyReqs(){
+    _myReqs={};
+    if(!sb||!profile) return;
+    try{
+      var r=await sb.from('student_change_requests')
+                    .select('id,schedule_id,kind,reason_code,reason_text,late,status')
+                    .eq('student_id',profile.id).eq('status','pending');
+      if(r.error||!r.data) return;
+      r.data.forEach(function(x){ _myReqs[String(x.schedule_id)]=x; });
+    }catch(e){}
+  }
+
+  async function scWithdraw(id){
+    if(!sb) return;
+    if(!confirm('신청을 취소할까요?'+_sqNL+_sqNL+'수업은 원래대로 그대로 진행됩니다.')) return;
+    var r=await sb.rpc('student_withdraw_change',{p_id:parseInt(id,10)});
+    if(r.error){ alert('취소하지 못했습니다'+_sqNL+_sqNL+r.error.message); return; }
+    if(r.data && r.data.ok===false){ alert(r.data.msg||'취소하지 못했습니다.'); return; }
+    await loadMyBookings();
+  }
+
+  if($('waBookMine')) $('waBookMine').addEventListener('click', function(e){
+    var a=e.target.closest?e.target.closest('[data-scask]'):null;
+    var u=e.target.closest?e.target.closest('[data-scundo]'):null;
+    if(a){ var row=(_myBookRows||[]).filter(function(x){ return String(x.id)===a.getAttribute('data-scask'); })[0];
+           if(row) scOpen(row); return; }
+    if(u){ scWithdraw(u.getAttribute('data-scundo')); }
+  });
+
+  var _myBookRows=[];
   async function loadMyBookings(){
     var box=$('waBookMine'); if(!box||!sb||!profile) return;
     var r=await sb.from('schedules').select('*').eq('student_id',profile.id).gte('ends_at', new Date(Date.now()-2*3600*1000).toISOString()).order('starts_at').limit(50);
     var rows=(!r.error&&r.data)?r.data:[];
+    _myBookRows=rows;
+    await loadMyReqs();
     if(!rows.length){ box.innerHTML='<div class="wa-book-empty">예약 내역이 없어요.</div>'; return; }
     // 학생은 취소·변경을 할 수 없다(원장 지시).
     // 선생님마다 사정이 달라 사람이 확인해야 하므로, 문의로만 안내한다.
@@ -14203,8 +14537,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       else if(s.status==='noshow')   st='<span class="bm-st st-noshow">결석</span>';
       else                           st='<span class="bm-st st-confirmed">확정</span>';
       return '<div class="bm'+(off?' bm-off':'')+'"><span class="bm-t">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+'</span> <span style="color:var(--muted)">'+esc(s.subject||'')+'</span>'+st
-        + (off ? '' : '<span style="font-size:11.5px;color:var(--muted);margin-left:8px">변경·취소는 선생님께 문의</span>')+'</div>';
+        + (off ? '' : scTail(s))+'</div>';
     }).join('');
+  }
+
+  /** 예약 한 줄의 오른쪽 꼬리 — 신청 단추 또는 「승인 대기」.
+      🚨 이미 신청해 둔 수업에는 단추를 안 보여 준다. 두 번 눌러도 서버가 거절할 뿐이다.
+      🚨 지난 수업도 안 보여 준다(서버가 막는다). */
+  function scTail(row){
+    var req=_myReqs[String(row.id)];
+    if(req){
+      return '<span class="bm-req">'+(req.kind==='cancel'?'휴강':'시간변경')+' 신청함 · 승인 대기'
+           + (req.late?' · 24시간 이내':'')+'</span>'
+           + '<button class="bm-undo" data-scundo="'+esc(String(req.id))+'">신청 취소</button>';
+    }
+    if(Date.parse(row.starts_at||'') <= Date.now()) return '';
+    return '<button class="bm-ask" data-scask="'+esc(String(row.id))+'">휴강 · 변경 신청</button>';
   }
 
   // PKCE 방식(코드 교환 후)엔 이 이벤트로 복구 모달을 띄움
