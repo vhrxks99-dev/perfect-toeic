@@ -4051,6 +4051,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .bm-req{margin-left:8px;font-size:11.5px;font-weight:800;color:#8a5a00}
 .bm-undo{margin-left:6px;font-size:11.5px;font-weight:800;color:#c0342b;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--font-sans)}
 .screq-late{font-size:12px;font-weight:800;color:#c0342b}
+/* 주차했어요 (2026-09-11) */
+.mp-box{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 6px;background:var(--surface)}
+.mp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:14px}
+.mp-car{font-size:12.5px;font-weight:800;color:var(--muted);background:var(--surface-2);padding:3px 9px;border-radius:7px}
+.mp-hint{font-size:12.5px;color:var(--muted);line-height:1.7;margin-bottom:9px}
+.mp-sent{font-size:13px;font-weight:700;color:var(--accent);line-height:1.7}
+.mp-ok{font-size:13px;font-weight:700;color:#12855C;line-height:1.7}
+#myParkBtn{width:100%;padding:11px;font-size:14px}
+/* 주차 등록 (2026-09-11) */
+.park-note{margin:8px 0 2px;padding:10px 12px;border-radius:9px;background:var(--surface-2);font-size:12.5px;line-height:1.7;color:var(--muted)}
+.park-note .lead{color:var(--ink);font-weight:800;margin-bottom:3px}
+.park-car{padding:4px 10px;border-radius:7px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--ink);font-family:var(--font-sans);font-size:13px;font-weight:800;cursor:pointer}
+#scParkBox .cal-modes .cal-mode{padding:4px 10px;font-size:12px}
 /* 다음 수업 강의장 (2026-09-11) */
 .np-box{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 6px;background:var(--surface)}
 .np-head{font-size:13.5px;font-weight:700;color:var(--ink-soft);margin-bottom:10px}
@@ -5049,6 +5062,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div id="scPendBox"></div>
       <!-- 24시간 안에 있는 수업을 옮기려는 요청. 원장님이 승인해야 반영된다. -->
       <!-- 학생이 넣은 휴강·변경 신청 (2026-09-11). 아래 scChgReqBox 와 다른 기능이다. -->
+      <!-- 주차 명단 (2026-09-11) -->
+      <!-- 지금 주차했다고 알린 학생 (2026-09-11) -->
+      <div id="scParkNowBox"></div>
+      <div id="scParkBox"></div>
       <div id="scStuReqBox"></div>
       <div id="scChgReqBox"></div>
       <!-- 수업 시간이 옮겨진 기록. 원장·매니저만 보인다(applyTabRoles 아님 — renderSchedChanges 가 판단). -->
@@ -5472,6 +5489,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <label>현재 점수<input type="text" id="myCurrent" maxlength="20"></label>
         <label>목표 점수<input type="text" id="myGoal" maxlength="20"></label>
       </div>
+      <!-- 주차 등록 (2026-09-11 원장 지시). 학생에게만 보인다. -->
+      <div id="myCarWrap" style="display:none">
+        <label>차량번호 <span class="wa-hint">(주차하실 때만 · 비우면 등록 안 함)</span>
+          <input type="text" id="myCarNum" maxlength="20" placeholder="예: 12가 3456"></label>
+        <div id="myCarNote" class="park-note"></div>
+      </div>
       <label>새 비밀번호 <span class="wa-hint">(변경 시에만 입력)</span><input type="password" id="myPw" placeholder="6자 이상"></label>
       <label class="wa-check" style="margin-top:0"><input type="checkbox" id="myMarketing"><span>이벤트·혜택 등 마케팅 정보 수신 동의</span></label>
       <p class="wa-err" id="myErr"></p>
@@ -5539,6 +5562,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div id="myHwRate" class="my-hw-rate" style="display:none"></div>
     <div class="wa-table-wrap"><table class="wa-table" id="myHwTable"></table></div>
     <!-- 다음 수업 강의장 사진·찾아오는 길 (2026-09-11 원장 지시) -->
+    <!-- 주차했어요 (2026-09-11 원장 지시) -->
+    <div id="myParkBox"></div>
     <div id="myNextPlace"></div>
     <div class="dash-list-head">📅 내 수업 일정</div>
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
@@ -6579,6 +6604,196 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
   });
   if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
+
+
+
+  // ── 「주차했어요」 (2026-09-11 원장 지시 · 2번안) ────────────────
+  //    건물 주차 시스템은 **차가 이미 들어와 있어야** 할인을 걸 수 있다.
+  //    그래서 학생이 「지금 댔다」를 눌러 줘야 한다.
+  //    🚨 아래 renderParking(오늘 예정자)과 **다른 것**이다. 섞지 말 것.
+
+  /** 학생 화면 — 차 번호를 넣은 학생에게만 보인다. */
+  async function renderMyParking(){
+    var box=$('myParkBox'); if(!box||!sb||!profile) return;
+    box.innerHTML='';
+    if(profile.role!=='student') return;
+
+    var car='', mine=null;
+    try{
+      var rc=await sb.rpc('my_car');
+      if(!rc.error) car=String(rc.data||'').trim();
+    }catch(e){ return; }
+    if(!car) return;                      // 번호 안 넣은 학생에겐 안 보여 준다
+
+    try{
+      var rm=await sb.rpc('my_parking_today');
+      if(!rm.error) mine=rm.data||null;
+    }catch(e){}
+
+    var inner;
+    if(mine && mine.done){
+      inner='<div class="mp-ok">2시간 무료주차 등록이 끝났습니다. 편하게 수업 들으세요.</div>';
+    }else if(mine){
+      inner='<div class="mp-sent">알려 주셔서 감사합니다. 곧 2시간 무료주차를 등록해 드릴게요.</div>';
+    }else{
+      inner='<div class="mp-hint">주차장에 차를 대신 뒤에 눌러 주세요. 그때부터 등록할 수 있습니다.</div>'
+          + '<button class="btn btn-primary" id="myParkBtn" type="button">주차했어요</button>';
+    }
+    box.innerHTML='<div class="mp-box"><div class="mp-top">'
+      + '<b>🚗 오늘 차 가지고 오셨나요?</b><span class="mp-car">'+esc(car)+'</span></div>'
+      + inner+'</div>';
+
+    if($('myParkBtn')) $('myParkBtn').onclick=async function(){
+      this.disabled=true;
+      var r=await sb.rpc('checkin_parking');
+      if(r.error){ alert('보내지 못했습니다: '+r.error.message); this.disabled=false; return; }
+      // 🚨 서버 문구를 그대로 띄운다. 「이미 눌렀다」도 서버가 판단한다.
+      alert((r.data&&r.data.msg)||'알려 드렸습니다.');
+      await renderMyParking();
+    };
+  }
+
+  /** 선생님·원장 화면 — 지금 주차했다고 알린 학생. */
+  var _parkNow=[];
+  async function renderParkNow(){
+    var box=$('scParkNowBox'); if(!box||!sb) return;
+    _parkNow=[];
+    try{
+      var r=await sb.rpc('parking_checkins_today',{ p_date: _parkDay || kymd() });
+      if(r.error){ box.innerHTML=''; return; }   // 함수가 아직 없으면 조용히 넘어간다
+      _parkNow=r.data||[];
+    }catch(e){ box.innerHTML=''; return; }
+    if(!_parkNow.length){ box.innerHTML=''; return; }
+
+    var lis=_parkNow.map(function(x){
+      var when=[ x.created_at?(hm(x.created_at)+' 알림'):null,
+                 x.starts_at?('수업 '+hm(x.starts_at)):'수업 없음',
+                 x.room_name||null ].filter(Boolean).join(' · ');
+      var act = x.done_at
+        ? '<span style="color:#12855C;font-weight:800;font-size:12.5px">완료</span>'
+        : '<button class="wa-al-approve" data-parkdone="'+esc(String(x.id))+'">등록함</button>';
+      return '<li><span class="wa-al-tag t-req">주차함</span><b>'+esc(x.student_name||'학생')+'</b>'
+        + ' — '+esc(when)
+        + '<span class="wa-al-sp"></span>'
+        + '<button class="park-car" data-parkcar="'+esc(String(x.car_number||''))+'">'
+        + esc(x.car_number||'')+'</button> '+act+'</li>';
+    }).join('');
+
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px;border-color:#1F62E0">'
+      + '<div class="wa-al-head">🅿️ 지금 주차했다고 알린 학생 <span class="wa-al-badge">'+_parkNow.length+'</span>'
+      + '<span style="float:right;font-weight:700;font-size:12px;color:var(--muted)">'
+      + '차가 들어와 있습니다. 지금 등록하시면 됩니다.</span></div>'
+      + '<ul>'+lis+'</ul></div>';
+  }
+
+  if($('scParkNowBox')) $('scParkNowBox').addEventListener('click', async function(e){
+    var t=e.target;
+    var c=(t&&t.closest)?t.closest('[data-parkcar]'):null;
+    var d=(t&&t.closest)?t.closest('[data-parkdone]'):null;
+    if(c){ await parkCopy(c.getAttribute('data-parkcar'), '차량번호를 복사했습니다'); return; }
+    if(d&&sb){
+      var r=await sb.rpc('mark_parking_done',{ p_id: parseInt(d.getAttribute('data-parkdone'),10), p_memo:null });
+      if(r.error){ alert('표시 실패: '+r.error.message); return; }
+      if(r.data && r.data.ok===false){ alert(r.data.msg||'표시하지 못했습니다.'); return; }
+      await renderParkNow();
+    }
+  });
+
+  // ── 주차 등록 (2026-09-11 원장 지시) ────────────────────────────
+  //    "주차필요한 학생들이 직접 어플이나 웹에서 차번호 등록하면
+  //     자동으로 두시간 무료주차등록되게 하고싶은거야"
+  //    🚨 규칙은 한 줄이다 — **차 번호를 넣은 학생 = 주차하는 학생.**
+  //       스위치도 수업별 체크도 없다. 안 오게 되면 번호를 지우면 된다.
+  //    🚨 요금을 같이 적어 둔다. 2시간 넘으면 돈이 붙는데 모르고 세우면 항의가 나온다
+  //       (2026-08-17 실제로 그래서 생긴 문구다).
+  var PARK_NOTE = [
+    '차 번호를 넣어 두시면 수업이 있는 날 2시간 무료주차가 등록됩니다.',
+    '2시간이 넘으면 10분당 200원, 주차한 지 5시간이 넘으면 하루 주차비 2만원이 붙습니다.',
+    '차종에 따라 기계식 주차장에 못 들어갈 수 있습니다. 큰 차·SUV는 미리 알려주세요.',
+    '주차하시면 지하 2층 강의장 C로, 자리가 없어 공영주차장을 쓰시면 본관 4층으로 오세요.'
+  ];
+
+  var _parkRows=[], _parkDay=null;
+
+  /** 차 번호만 줄줄이. 같은 학생이 하루 두 번 오면 한 번만 넣는다. */
+  function parkCars(rows){
+    var seen={}, out=[];
+    (rows||[]).forEach(function(r){
+      var c=String(r.car_number||'').trim();
+      if(!c || seen[c]) return;
+      seen[c]=1; out.push(c);
+    });
+    return out;
+  }
+
+  async function renderParking(day){
+    var box=$('scParkBox'); if(!box||!sb) return;
+    _parkDay = day || _parkDay || kymd();
+    _parkRows=[];
+    try{
+      var r=await sb.rpc('parking_list',{ p_date: _parkDay });
+      if(r.error){ box.innerHTML=''; return; }   // 함수가 아직 없으면 조용히 넘어간다
+      _parkRows=r.data||[];
+    }catch(e){ box.innerHTML=''; return; }
+
+    var cars=parkCars(_parkRows);
+    var days=[['어제',-1],['오늘',0],['내일',1]].map(function(d){
+      var v=ymdShift(kymd(), d[1]);
+      return '<button type="button" class="cal-mode'+(v===_parkDay?' on':'')+'" data-parkday="'+esc(v)+'">'+d[0]+'</button>';
+    }).join('');
+
+    var lis = _parkRows.length
+      ? _parkRows.map(function(x){
+          var when = fmtDT(x.starts_at)+'~'+hm(x.ends_at);
+          var tn = (isOps() && x.teacher_name) ? (' · '+esc(x.teacher_name)+' 선생님') : '';
+          return '<li><span class="wa-al-tag t-req">주차</span><b>'+esc(x.student_name||'학생')+'</b>'
+            + ' — '+esc(when)+tn+(x.room_name?(' · '+esc(x.room_name)):'')
+            + '<span class="wa-al-sp"></span>'
+            + '<button class="park-car" data-parkcar="'+esc(String(x.car_number||''))+'">'
+            + esc(x.car_number||'')+'</button></li>';
+        }).join('')
+      : '<li style="color:var(--muted)">이 날 주차할 학생이 없습니다. '
+        + '학생이 「내 정보」에 차량번호를 넣으면 여기에 나옵니다.</li>';
+
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
+      + '<div class="wa-al-head">🚗 주차 명단 <span class="wa-al-badge">'+cars.length+'</span>'
+      + '<span style="float:right;font-weight:700">'
+      + '<span class="cal-modes" style="display:inline-flex">'+days+'</span> '
+      + '<button class="btn btn-ghost" id="parkCopyAll" type="button" '
+      + 'style="padding:5px 11px;font-size:12px;margin-left:6px">차번호 전부 복사</button>'
+      + '</span></div><ul>'+lis+'</ul></div>';
+  }
+
+  /** YYYY-MM-DD 를 n일 옮긴다. kwall 을 써서 서울 기준으로 센다. */
+  function ymdShift(ymd, n){
+    var p=String(ymd).split('-');
+    var d=new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
+    d.setDate(d.getDate()+n);
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
+
+  if($('scParkBox')) $('scParkBox').addEventListener('click', async function(e){
+    var t=e.target;
+    var d=(t&&t.closest)?t.closest('[data-parkday]'):null;
+    var c=(t&&t.closest)?t.closest('[data-parkcar]'):null;
+    var a=(t&&t.closest)?t.closest('#parkCopyAll'):null;
+    if(d){ await renderParking(d.getAttribute('data-parkday')); return; }
+    if(c){ await parkCopy(c.getAttribute('data-parkcar'), '차량번호를 복사했습니다'); return; }
+    if(a){
+      var cars=parkCars(_parkRows);
+      if(!cars.length){ alert('이 날 주차할 학생이 없습니다.'); return; }
+      await parkCopy(cars.join(String.fromCharCode(10)),
+                     '차량번호 '+cars.length+'개를 복사했습니다.');
+    }
+  });
+
+  async function parkCopy(text, msg){
+    try{ await navigator.clipboard.writeText(text); alert(msg); }
+    catch(e){
+      // 클립보드가 막힌 브라우저도 있다. 그때는 골라서 복사하시라고 띄운다.
+      window.prompt('아래를 복사하세요 (Ctrl+C)', text);
+    }
+  }
 
   // ── 2:1 짝 관리 (2026-09-11 원장 지시) ──────────────────────────
   //    회원 고치기 창 맨 아래에 숨어 있던 것을 회원 탭으로 꺼냈다.
@@ -9280,6 +9495,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 스케줄 탭 목록은 알림 배너보다 먼저 그린다 — 아래에 'alerts 도 pend 도 없으면 return' 이 있어서
     // 여기서 안 그리면 예약이 0건일 때 스케줄 탭의 옛 목록이 지워지지 않는다.
     drawSchedPending(pend);
+    try{ await renderParkNow(); }catch(e){}
+    try{ await renderParking(); }catch(e){}
     try{ await renderStudentReqs(); }catch(e){}
     try{ await renderSchedChangeReqs(); }catch(e){}
     try{ await renderSchedChanges(); }catch(e){}
@@ -13811,6 +14028,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('myErr')) $('myErr').textContent='';
     // 탈퇴는 학생만. 강사·원장 계정은 정산 배분과 얽혀 있어 원장님이 처리한다.
     if($('myQuitWrap')) $('myQuitWrap').style.display = (profile.role==='student') ? '' : 'none';
+    // 주차 등록도 학생만 (2026-09-11). 선생님·원장은 여기 차를 넣을 일이 없다.
+    if($('myCarWrap')){
+      var isStu = (profile.role==='student');
+      $('myCarWrap').style.display = isStu ? '' : 'none';
+      if(isStu){
+        if($('myCarNote')) $('myCarNote').innerHTML = PARK_NOTE.map(function(t,i){
+          return '<div'+(i===0?' class="lead"':'')+'>'+(i===0?'':'· ')+esc(t)+'</div>';
+        }).join('');
+        // 🚨 profiles 를 직접 읽지 않는다. 칸 권한에 걸린다.
+        if(sb) sb.rpc('my_car').then(function(r){
+          if(!r.error && $('myCarNum')) $('myCarNum').value = r.data || '';
+        });
+      }
+    }
   }
   // 회원 탈퇴 — 되돌릴 수 없으므로 이름을 직접 입력해 확인받는다
   if($('myQuit')) $('myQuit').onclick=async function(e){
@@ -13953,6 +14184,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         });
         $('myschedTable').innerHTML=h; }
       drawNextPlace(rows, _roomInfo);
+      try{ await renderMyParking(); }catch(e){}
     }
     if($('mypayTable')){
       var pr=[];
@@ -14219,6 +14451,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var patch={ name:name, phone:phone, gender:($('myGender').value||null), birth:($('myBirth').value||null), interest:($('myInterest').value||null), current_score:($('myCurrent').value.trim()||null), goal_score:($('myGoal').value.trim()||null), marketing:$('myMarketing').checked };
     var r=await sb.from('profiles').update(patch).eq('id',profile.id);
     if(r.error){ err.textContent='저장 실패: '+r.error.message; return; }
+    // 🚨 차 번호는 profiles 직접 수정이 막혀 있어 전용 RPC 로 따로 저장한다.
+    //    서버가 거절하면 그 이유를 그대로 띄우고 멈춘다.
+    if(profile.role==='student' && $('myCarNum')){
+      var cr=await sb.rpc('save_my_car',{ p_car: $('myCarNum').value });
+      if(cr.error){ err.textContent='차량번호 저장 실패: '+cr.error.message; return; }
+      if(cr.data && cr.data.ok===false){ err.textContent=cr.data.msg||'차량번호를 저장하지 못했습니다.'; return; }
+    }
     var pw=$('myPw').value;
     if(pw){ if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; } var pr=await sb.auth.updateUser({password:pw}); if(pr.error){ err.textContent='비밀번호 변경 실패: '+pr.error.message; return; } }
     await refresh();
