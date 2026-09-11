@@ -4051,6 +4051,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .bm-req{margin-left:8px;font-size:11.5px;font-weight:800;color:#8a5a00}
 .bm-undo{margin-left:6px;font-size:11.5px;font-weight:800;color:#c0342b;cursor:pointer;text-decoration:underline;background:none;border:none;font-family:var(--font-sans)}
 .screq-late{font-size:12px;font-weight:800;color:#c0342b}
+/* 학생 카드의 성적·진단 칸 (2026-09-11) */
+.sd-h2{font-size:13.5px;font-weight:800;color:var(--ink);margin-bottom:6px}
+.sd-none{font-size:12.5px;color:var(--muted);line-height:1.7;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface)}
 /* 능력별 그래프 — 커리큘럼과 같은 모양 (2026-09-11) */
 .ab-h{font-size:13.5px;font-weight:800;color:var(--ink);margin:14px 0 5px}
 .ab-h span{font-weight:600;color:var(--muted);font-size:11.5px;margin-left:5px}
@@ -7435,7 +7438,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // 한 학생 자료를 한꺼번에 읽어 온다
   async function sdLoad(sid){
-    var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[], notes:[], exam:[] };
+    var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[], notes:[], exam:[], diag:[] };
     if(!sb||!sid) return out;
     var qs=[
       sb.from('schedules').select('*').eq('student_id',sid).order('starts_at',{ascending:false}).limit(400),
@@ -7466,6 +7469,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!ex.error && ex.data) out.exam=ex.data;
     }catch(e){}
 
+    // 완토 진단테스트 (2026-09-11). 시험 성적과 **다른 것**이라 따로 읽는다.
+    try{
+      var dg=await sb.from('diagnostics').select('*').eq('student_id',sid)
+              .order('created_at',{ascending:false}).limit(3);
+      if(!dg.error && dg.data) out.diag=dg.data;
+    }catch(e){}
+
     // 스터디 참석 (표가 없을 수도 있어 조용히 넘어간다)
     try{
       var sg=await sb.from('study_signups').select('*').eq('student_id',sid)
@@ -7481,19 +7491,40 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
    * 학생 카드의 성적 칸 (2026-09-11).
    * 그림은 그린 뒤에 채운다 — exDrawChart 가 DOM 을 직접 만지기 때문이다.
    */
-  var _sdExam=[];
-  function sdExamHtml(rows){
-    _sdExam=rows||[];
-    if(!_sdExam.length){
-      return '<div class="sd-c" style="margin-top:10px"><div class="lab">토익 성적</div>'
-        + '<div style="font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:4px">'
-        + '아직 넣은 성적이 없습니다.<br>성적 탭에서 토익 성적표를 넣으면 여기에 그래프가 나옵니다.</div></div>';
-    }
-    return '<div id="sdExamChart" style="margin-top:10px"></div>';
+  var _sdExam=[], _sdDiag=[];
+  function sdExamHtml(rows, diag){
+    _sdExam=rows||[]; _sdDiag=diag||[];
+    var h='';
+
+    // ① 실제 토익 시험
+    h+='<div class="sd-h2">📈 실제 토익 시험</div>';
+    h+= _sdExam.length
+      ? '<div id="sdExamChart"></div>'
+      : '<div class="sd-none">아직 넣은 성적이 없습니다. 성적 탭에서 성적표를 넣으면 나옵니다.</div>';
+
+    // ② 완토 진단테스트 — 학생 화면과 같은 그림
+    h+='<div class="sd-h2" style="margin-top:16px">🎯 완토 진단테스트</div>';
+    h+= _sdDiag.length
+      ? '<div id="sdDiagChart"></div>'
+      : '<div class="sd-none">아직 응시한 진단테스트가 없습니다.</div>';
+
+    return '<div style="margin-top:12px">'+h+'</div>';
   }
   function sdExamDraw(){
-    var box=document.getElementById('sdExamChart');
-    if(box && _sdExam.length && typeof exDrawChart==='function') exDrawChart(_sdExam, box);
+    var e=document.getElementById('sdExamChart');
+    if(e && _sdExam.length && typeof exDrawChart==='function') exDrawChart(_sdExam, e);
+
+    var g=document.getElementById('sdDiagChart');
+    if(g && _sdDiag.length && typeof window.wtDrawDiag==='function'){
+      // 🚨 locked 를 걸지 않는다. 잠금은 **학생에게** 해석을 감추는 장치다.
+      //    선생님은 판단하려고 보는 것이라 다 보여야 한다.
+      var st=(window.__wtMembers||[]).filter(function(u){
+        return String(u.id)===String((_sdDiag[0]||{}).student_id);
+      })[0];
+      var goal = st && st.goal_score
+        ? Number(String(st.goal_score).replace(/[^0-9]/g,'')) : null;
+      window.wtDrawDiag(g, _sdDiag, false, (goal&&goal>0)?goal:null);
+    }
   }
 
   // 최근 6개월 수업 횟수 막대
@@ -7625,7 +7656,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 성적 그래프 (2026-09-11 원장님 지시: "거기도 넣어").
       // 🚨 선생님이 학생을 들여다보는 화면인데 성적이 없었다.
       //    성적 탭과 **같은 그림**을 쓴다 — 따로 그리면 두 화면이 달라진다.
-      h+=sdExamHtml(d.exam);
+      h+=sdExamHtml(d.exam, d.diag);
 
       // 월별 막대 + 수납 요약
       h+='<div class="sd-grid">'
@@ -15698,6 +15729,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     //    성적 탭·학생 카드도 **같은 그림**을 써야 하므로 창에 내건다
     //    (2026-09-11 원장님 지적: "내가 말한건 커리큘럼에서 만들어준 그래프야").
     window.wtDrawExams = drawExams;
+    // 진단도 같은 이유로 내건다 (2026-09-11). 학생 카드에서 같은 그림을 쓴다.
+    window.wtDrawDiag = drawDiag;
 
     // ── 진단 리포트 ────────────────────────────────────────────
     function drawDiag(box, rows, locked, goal){
