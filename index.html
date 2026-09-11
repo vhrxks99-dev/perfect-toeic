@@ -3991,6 +3991,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .fut-sum span{color:var(--muted)}
 .fut-sum b{color:var(--ink)}
 #waAdmin .wa-table-wrap{max-height:none}
+/* 2:1 짝 관리 패널 (2026-09-11) */
+.pair-panel{margin:12px 0 4px;padding:16px 18px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.pair-lead{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:14px}
+.pair-lead b{color:var(--ink)}
+.pair-h{font-size:14.5px;font-weight:800;color:var(--ink);margin:16px 0 8px}
+.pair-h span{color:var(--accent)}
+.pair-empty{font-size:13px;color:var(--muted);padding:14px 0}
+.pair-card{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.pair-main{flex:1;min-width:0}
+.pair-names{font-size:14.5px;font-weight:800;color:var(--ink)}
+.pair-names i{font-style:normal;color:var(--accent)}
+.pair-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.pair-warn{font-size:12.5px;color:#8a5a00;font-weight:700;margin-top:3px}
+.pair-x{flex:none;padding:7px 14px;font-size:13px}
+.pair-make{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.pair-make label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:var(--muted)}
+.pair-make select{padding:8px 10px;border:1.5px solid var(--line-strong);border-radius:8px;font-family:var(--font-sans);font-size:13.5px;font-weight:700;background:var(--surface);color:var(--ink);min-width:170px}
+.pair-none{flex:1 1 100%;font-size:13px;color:var(--muted);line-height:1.7}
+.pair-none b{color:var(--ink)}
+.pair-foot{margin-top:16px;font-size:12.5px;color:var(--muted);line-height:1.8}
 #waAdmin .wa-x{top:18px;right:22px;font-size:30px;z-index:5}
 #waAdmin .wa-head{font-size:23px}
 .dash-badge{font-size:12px;font-weight:800;color:#fff;background:var(--accent);padding:2px 10px;border-radius:999px;vertical-align:middle}
@@ -4824,7 +4844,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="wa-admin-actions">
         <button class="btn btn-primary" id="waReload">🔄 새로고침</button>
         <button class="btn btn-ghost" id="waExportCsv">CSV로 내보내기</button>
+        <!-- 2:1 짝 관리 (2026-09-11 원장 지시: "너무 어려운데 회원 페이지에 따로 만들면 좋을거같아").
+             전에는 회원 → 고치기 → 맨 아래까지 들어가야 보였다. 여기로 꺼냈다. -->
+        <button class="btn btn-ghost" id="waPairOpen" style="display:none">👥 2:1 짝 관리</button>
       </div>
+      <div id="waPairBox" style="display:none"></div>
       <div class="mem-filters">
         <div class="cal-modes" id="waRoleFilter">
           <!-- 원장 지시(2026-08-10): 수강 종료한 학생과 수강 중인 학생을 따로 보고 싶다.
@@ -6113,6 +6137,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     window.__wtMembers=m;
     drawMembers();
+    // 2:1 짝 단추는 원장님에게만 (2026-09-11)
+    if(window.wtPairBtnSync) window.wtPairBtnSync();
   }
   // 회원 목록 구분: 학생과 선생님(원장·매니저 포함)을 갈라서 본다.
   var memberFilter='all';
@@ -6480,6 +6506,181 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
   });
   if($('waReload')) $('waReload').onclick=function(){ renderTable(); };
+
+  // ── 2:1 짝 관리 (2026-09-11 원장 지시) ──────────────────────────
+  //    회원 고치기 창 맨 아래에 숨어 있던 것을 회원 탭으로 꺼냈다.
+  //    🚨 원장님만. 짝을 정하면 한 명이 예약할 때 짝도 같이 잡히기 때문이다.
+  var _pairOpen=false, _pairRows=[], _pairBusy=false, _pairFirst='';
+  var _pairNL=String.fromCharCode(10);
+
+  function pairMembers(){ return (window.__wtMembers||[]); }
+  function pairMemberOf(id){
+    return pairMembers().filter(function(x){ return String(x.id)===String(id); })[0]||null;
+  }
+  function pairName(id){ var m=pairMemberOf(id); return m?(m.name||'이름 없음'):'(목록에 없음)'; }
+  function pairModeLabel(v){ return v==='online'?'비대면':(v==='offline'?'대면':'미지정'); }
+
+  /** 이미 묶여 있는 사람들. 한 학생은 짝이 하나다. */
+  function pairTaken(){ var t={}; _pairRows.forEach(function(r){ t[r.a]=1; t[r.b]=1; }); return t; }
+
+  /** 짝을 만들 수 있는 학생 — 수강중 · 담당쌤 있음 · 아직 안 묶임. */
+  function pairCandidates(){
+    var taken=pairTaken();
+    return pairMembers().filter(function(m){
+      return m.role==='student' && String(m.status||'')!=='ended' && m.teacher_id && !taken[m.id];
+    }).sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||''),'ko'); });
+  }
+
+  async function pairLoad(){
+    _pairRows=[];
+    if(!sb) return;
+    var r=await sb.from('lesson_pairs').select('student_id,partner_id');
+    if(r.error) throw new Error(r.error.message);
+    var seen={};
+    (r.data||[]).forEach(function(x){
+      var k=[x.student_id,x.partner_id].sort().join('|');
+      if(seen[k]) return;
+      seen[k]=1;
+      _pairRows.push({ a:x.student_id, b:x.partner_id });
+    });
+  }
+
+  function pairDraw(){
+    var box=$('waPairBox'); if(!box) return;
+    if(!_pairOpen){ box.style.display='none'; return; }
+    box.style.display='';
+
+    var h='<div class="pair-panel">';
+    h+='<div class="pair-lead">짝을 정해 두면 한 명이 예약할 때 <b>짝도 같은 시간에 같이</b> 잡힙니다. '
+     + '학생끼리 시간을 맞추려고 연락하지 않아도 됩니다.</div>';
+
+    h+='<div class="pair-h">묶여 있는 짝 <span>'+_pairRows.length+'</span></div>';
+    if(!_pairRows.length){
+      h+='<div class="pair-empty">아직 묶인 짝이 없습니다. 아래에서 학생 두 명을 골라 만들어 주세요.</div>';
+    }else{
+      _pairRows.forEach(function(r,i){
+        var a=pairMemberOf(r.a), b=pairMemberOf(r.b);
+        var tname='담당 미배정';
+        if(a && a.teacher_id){ var t=pairMemberOf(a.teacher_id); if(t) tname=(t.name||'이름 없음')+' 선생님'; }
+        var gone=(a&&String(a.status||'')==='ended')||(b&&String(b.status||'')==='ended');
+        h+='<div class="pair-card">'
+          +  '<div class="pair-main">'
+          +    '<div class="pair-names">'+esc(pairName(r.a))+' <i>&harr;</i> '+esc(pairName(r.b))+'</div>'
+          +    '<div class="pair-sub">'+esc(tname)+' &middot; '+esc(pairModeLabel(a?a.lesson_mode:null))+'</div>'
+          +    (gone?'<div class="pair-warn">수강이 끝난 학생이 들어 있습니다. 풀어 두는 편이 좋습니다.</div>':'')
+          +  '</div>'
+          +  '<button class="btn btn-ghost pair-x" data-pairoff="'+i+'">풀기</button>'
+          +'</div>';
+      });
+    }
+
+    h+='<div class="pair-h">짝 만들기</div>';
+    var cand=pairCandidates();
+    if(!cand.length){
+      h+='<div class="pair-empty">고를 수 있는 학생이 없습니다. 수강중이고 담당 선생님이 정해진 학생만 나옵니다.</div>';
+    }else{
+      var first=_pairFirst?pairMemberOf(_pairFirst):null;
+      if(_pairFirst && !first) _pairFirst='';
+      h+='<div class="pair-make">';
+      h+='<label>1단계 &middot; 첫 번째 학생<select id="waPairA"><option value="">— 고르세요 —</option>'
+       + cand.map(function(m){
+           return '<option value="'+esc(m.id)+'"'+(String(m.id)===String(_pairFirst)?' selected':'')+'>'+esc(m.name||'이름 없음')+'</option>';
+         }).join('')
+       + '</select></label>';
+      if(first){
+        var mates=cand.filter(function(m){
+          return String(m.id)!==String(first.id)
+              && String(m.teacher_id||'')===String(first.teacher_id||'')
+              && String(m.lesson_mode||'')===String(first.lesson_mode||'');
+        });
+        if(!mates.length){
+          h+='<div class="pair-none">함께 묶을 학생이 없습니다. <b>담당 선생님</b>과 '
+           + '<b>수업 형태(대면&middot;비대면)</b>가 모두 같아야 2:1 이 됩니다.</div>';
+        }else{
+          h+='<label>2단계 &middot; 함께 수업할 학생<select id="waPairB"><option value="">— 고르세요 —</option>'
+           + mates.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name||'이름 없음')+'</option>'; }).join('')
+           + '</select></label>';
+          h+='<button class="btn btn-primary" id="waPairMake"'+(_pairBusy?' disabled':'')+'>짝 만들기</button>';
+        }
+      }
+      h+='</div>';
+    }
+
+    h+='<div class="pair-foot">&middot; 한 학생은 짝을 하나만 가질 수 있습니다.<br>'
+     + '&middot; 담당 선생님이나 수업 형태를 바꾸면 짝을 다시 확인해 주세요.<br>'
+     + '&middot; 이미 잡혀 있는 수업은 짝을 풀어도 그대로 남습니다.</div>';
+    h+='</div>';
+    box.innerHTML=h;
+
+    var selA=$('waPairA');
+    if(selA) selA.onchange=function(){ _pairFirst=this.value||''; pairDraw(); };
+
+    var mk=$('waPairMake');
+    if(mk) mk.onclick=async function(){
+      var b=$('waPairB')?$('waPairB').value:'';
+      if(!_pairFirst || !b){ alert('학생 두 명을 모두 골라 주세요.'); return; }
+      if(_pairBusy) return;
+      _pairBusy=true; pairDraw();
+      try{
+        var r=await sb.rpc('set_lesson_pair',{a:_pairFirst,b:b});
+        // 🚨 서버가 거절한 이유를 그대로 보여 준다. 내가 다시 쓰지 않는다.
+        if(r.error) throw new Error(r.error.message);
+        _pairFirst='';
+        await pairLoad();
+      }catch(e){
+        alert('짝을 만들지 못했습니다'+_pairNL+_pairNL+(e&&e.message?e.message:'다시 시도해 주세요.'));
+      }
+      _pairBusy=false; pairDraw();
+    };
+
+    Array.prototype.forEach.call(box.querySelectorAll('[data-pairoff]'), function(btn){
+      btn.onclick=async function(){
+        var r=_pairRows[Number(btn.getAttribute('data-pairoff'))];
+        if(!r) return;
+        var msg=pairName(r.a)+' 학생과 '+pairName(r.b)+' 학생의 2:1 짝을 풉니다.'+_pairNL+_pairNL
+              + '앞으로는 각자 따로 예약하게 됩니다. 이미 잡혀 있는 수업은 그대로 남습니다.';
+        if(!confirm(msg)) return;
+        if(_pairBusy) return;
+        _pairBusy=true; pairDraw();
+        try{
+          var q=await sb.rpc('clear_lesson_pair',{a:r.a});
+          if(q.error) throw new Error(q.error.message);
+          await pairLoad();
+        }catch(e){
+          alert('짝을 풀지 못했습니다'+_pairNL+_pairNL+(e&&e.message?e.message:'다시 시도해 주세요.'));
+        }
+        _pairBusy=false; pairDraw();
+      };
+    });
+  }
+
+  async function pairToggle(){
+    _pairOpen=!_pairOpen;
+    var btn=$('waPairOpen');
+    if(btn) btn.textContent=_pairOpen?'👥 2:1 짝 관리 닫기':'👥 2:1 짝 관리';
+    var box=$('waPairBox');
+    if(_pairOpen){
+      if(box){ box.style.display=''; box.innerHTML='<div class="pair-panel"><div class="pair-empty">불러오는 중…</div></div>'; }
+      try{ await pairLoad(); }
+      catch(e){
+        if(box) box.innerHTML='<div class="pair-panel"><div class="pair-empty">'
+          +esc(e&&e.message?e.message:'불러오지 못했습니다.')+'</div></div>';
+        return;
+      }
+    }
+    pairDraw();
+  }
+
+  if($('waPairOpen')) $('waPairOpen').onclick=pairToggle;
+
+  // 🚨 단추는 **원장님에게만** 보인다. 회원 목록을 다시 그릴 때마다 확인한다.
+  window.wtPairBtnSync=function(){
+    var btn=$('waPairOpen'); if(!btn) return;
+    var on=isMasterNow();
+    btn.style.display=on?'':'none';
+    if(!on){ _pairOpen=false; var box=$('waPairBox'); if(box){ box.style.display='none'; box.innerHTML=''; } }
+  };
+
 
   // ---- 회원 수정/삭제 (마스터 전용) ----
   var editingId=null, editingRole='student', editingTeacher='', editingRate=50;
