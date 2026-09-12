@@ -15770,7 +15770,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var navas=document.querySelectorAll('nav.main .navitem>a, .head-cta a[href^="#"]');
     for(var k=0;k<navas.length;k++){ var hh=navas[k].getAttribute('href')||''; navas[k].classList.toggle('nav-active', hh.charAt(0)==='#' && pageOf(hh.slice(1))===p); }
     var t=anchor && document.getElementById(anchor);
-    if(t && SUB[anchor]===p){ window.scrollTo(0, Math.max(0, t.getBoundingClientRect().top+window.pageYOffset-88)); }
+    // 🚨 전에는 SUB(페이지 안의 하위 앵커)만 봤다. 그래서 PAGE_OF 에 등록된 섹션
+    //    (공지사항·브랜드소개·시험일정)을 누르면 조건이 어긋나 **늘 맨 위로만** 갔다.
+    //    시험일정은 home 의 마지막, 공지사항은 intro 의 두 번째라
+    //    맨 위로 가면 첫 섹션만 보여서 「눌러도 반응이 없다」로 보였다
+    //    (2026-09-12 원장님 신고). 같은 페이지의 섹션이면 그 자리로 내려간다.
+    //    그 페이지의 첫 섹션이면 계산값이 0 근처라 지금과 똑같이 맨 위가 된다.
+    if(t && (SUB[anchor]===p || PAGE_OF[anchor]===p)){
+      window.scrollTo(0, Math.max(0, t.getBoundingClientRect().top+window.pageYOffset-88));
+    }
     else { window.scrollTo(0,0); }
   }
   function route(){
