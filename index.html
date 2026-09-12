@@ -4071,6 +4071,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .ab-lg{margin-top:7px;padding-top:6px;border-top:1px solid var(--line);font-size:10.5px;color:var(--muted);line-height:1.6}
 .ab-lg i{font-style:normal;color:#d98324;font-weight:800}
 @media(max-width:640px){ .ab-n{width:84px;font-size:10.5px} .ab-v{width:78px} }
+/* 성적 자동 진단 (2026-09-12) */
+.adv{margin-top:14px;padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.adv .k{font-size:11px;font-weight:800;letter-spacing:1.2px;color:var(--accent);margin-bottom:4px}
+.adv .hl{font-size:14px;font-weight:800;line-height:1.65;color:var(--ink);margin-bottom:10px}
+.adv .sb{font-size:12px;font-weight:800;color:var(--muted);margin:10px 0 6px}
+.adv .it{display:flex;gap:9px;margin-bottom:9px}
+.adv .n{flex:none;width:18px;height:18px;border-radius:9px;background:var(--accent);color:#fff;
+        font-size:11px;font-weight:800;text-align:center;line-height:18px}
+.adv .n.no{background:var(--muted)}
+.adv .t{font-size:12.5px;font-weight:800;color:var(--ink);line-height:1.5}
+.adv .b{font-size:12.5px;color:var(--muted);line-height:1.7;margin-top:2px}
+.adv .ft2{font-size:12px;color:var(--muted);line-height:1.65;margin-top:8px}
 /* 주차했어요 (2026-09-11) */
 .mp-box{border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0 6px;background:var(--surface)}
 .mp-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;font-size:14px}
@@ -4866,6 +4878,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     </div>
 
     <div id="waAlerts" class="wa-alerts" style="display:none"></div>
+    <!-- 숙제 확인이 밀린 선생님 (2026-09-12 원장 지시). 원장·매니저만 보인다. -->
+    <div id="waHwLate"></div>
       <!-- 자료실 관리 (원장 지시 2026-08-17). 올린 직후는 '닫힘' — 아무도 못 받는다. -->
       <div class="dash-pane" data-dpane="lib">
         <div class="dash-list-head" style="margin-top:6px">📂 자료실
@@ -6912,6 +6926,71 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     await parkSaveCar(inp.getAttribute('data-parkin'), inp.value, null);
   });
 
+  // ── 숙제 확인이 밀린 선생님 (2026-09-12 원장 지시) ──────────────
+  //    🚨 앱 lib/home.ts 의 HW_LATE_DAYS · HW_LATE_MIN 과 **같은 값**이어야 한다.
+  //       한쪽만 고치면 앱과 웹이 다른 사람을 부른다.
+  var HW_LATE_DAYS = 14;   // 이 일수를 넘겨 확인 안 된 숙제
+  var HW_LATE_MIN  = 5;    // 한 선생님에게 이만큼 밀리면 올린다
+
+  /**
+   * 원장님 화면에 「누가 숙제 확인을 안 하고 있는지」를 띄운다.
+   *
+   * 🚨 한두 건은 밀린 게 아니라 아직 안 한 것이다. 그걸로 사람을 부르면 안 된다.
+   *    그래서 5건 이상만 올린다.
+   * 🚨 담당쌤이 없는 학생의 숙제는 뺀다 — 누구를 부를지 알 수 없는 줄은
+   *    화면에 있어 봐야 할 수 있는 일이 없다.
+   */
+  async function renderHwLate(){
+    var box=$('waHwLate'); if(!box) return;
+    box.innerHTML='';
+    if(!sb || !isOps()) return;                   // 선생님에게는 안 보인다
+
+    var cut=ymdShift(kymd(), -HW_LATE_DAYS);
+    var r;
+    try{
+      r=await sb.from('homeworks').select('id, student_id, created_at')
+                .lt('created_at', cut)
+                .or('teacher_checked.is.null,teacher_checked.eq.false')
+                .limit(2000);
+    }catch(e){ return; }
+    if(r.error || !r.data || !r.data.length) return;
+
+    // 학생 → 담당쌤. 종료한 학생은 뺀다(이제 와서 확인할 일이 없다).
+    var tOf={};
+    (window.__wtMembers||[]).forEach(function(u){
+      if(u.role!=='student') return;
+      if(typeof isEnded==='function' && isEnded(u)) return;
+      if(u.teacher_id) tOf[String(u.id)]=String(u.teacher_id);
+    });
+
+    var by={};
+    r.data.forEach(function(x){
+      var t=tOf[String(x.student_id)]; if(!t) return;
+      by[t]=(by[t]||0)+1;
+    });
+
+    var rows=Object.keys(by).filter(function(t){ return by[t]>=HW_LATE_MIN; })
+      .map(function(t){
+        var m=(window.__wtMembers||[]).filter(function(u){ return String(u.id)===t; })[0];
+        return { id:t, name:(m&&m.name)||'(이름 없음)', n:by[t] };
+      }).sort(function(a,b){ return b.n-a.n; });
+
+    if(!rows.length) return;
+
+    var lis=rows.map(function(x){
+      return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(x.name)+'</b> 선생님 — '
+        + '<b>'+x.n+'건</b>이 '+HW_LATE_DAYS+'일 넘게 확인 전입니다</li>';
+    }).join('');
+
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
+      + '<div class="wa-al-head">📝 숙제 확인이 밀린 선생님 '
+      + '<span class="wa-al-badge">'+rows.length+'</span></div>'
+      + '<ul>'+lis+'</ul>'
+      + '<div style="font-size:12.5px;color:var(--muted);margin-top:6px">'
+      + HW_LATE_DAYS+'일이 지나도 확인되지 않은 숙제가 '+HW_LATE_MIN+'건 이상인 선생님만 나옵니다. '
+      + '월례 결산의 「강사 근태·평가」에 그대로 쓰실 수 있습니다.</div></div>';
+  }
+
   async function parkCopy(text, msg){
     try{ await navigator.clipboard.writeText(text); alert(msg); }
     catch(e){
@@ -7653,7 +7732,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   function sdExamDraw(){
     var e=document.getElementById('sdExamChart');
-    if(e && _sdExam.length && typeof exDrawChart==='function') exDrawChart(_sdExam, e);
+    if(e && _sdExam.length && typeof exDrawChart==='function'){
+      // 🚨 지금 열려 있는 학생의 목표 점수를 같이 넘긴다.
+      var _sid=$('sdStudent')?$('sdStudent').value:'';
+      var _su=(window.__wtMembers||[]).filter(function(u){ return String(u.id)===String(_sid); })[0];
+      exDrawChart(_sdExam, e, window.wtGoalNum(_su && _su.goal_score));
+    }
 
     var g=document.getElementById('sdDiagChart');
     if(g && _sdDiag.length && typeof window.wtDrawDiag==='function'){
@@ -8574,8 +8658,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
    *
    * @param rows  exLoadList 가 이미 받아 온 자료 (최근이 앞)
    * @param target 그릴 칸. 안 주면 성적 탭의 #exChart
+   * @param goal   그 학생의 목표 점수(숫자). 모르면 넘기지 않는다 —
+   *               없는 목표를 지어내지 않기 위해서다.
    */
-  function exDrawChart(rows, target){
+  function exDrawChart(rows, target, goal){
     var box = target || $('exChart'); if(!box) return;
     box.style.display='';
     if(typeof window.wtDrawExams !== 'function'){ box.innerHTML=''; return; }
@@ -8585,7 +8671,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         + '위에서 토익 성적표를 넣으면 여기에 그래프가 나옵니다.</div>';
       return;
     }
-    window.wtDrawExams(box, rows, { noHead: true });
+    // 🚨 목표 점수는 **부르는 쪽이** 넘겨 준다. 여기서는 누구 성적인지 모른다.
+    //    (전에 여기서 st 를 읽었다가 ReferenceError 로 그래프가 통째로 안 그려졌다)
+    window.wtDrawExams(box, rows, { noHead: true, goal: (goal == null ? null : goal) });
   }
 
   /**
@@ -8646,7 +8734,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       return;
     }
     // 🚨 그래프는 표와 **같은 자료**로 그린다. 따로 읽으면 두 값이 어긋난다.
-    exDrawChart(rows);
+    var _eu=(window.__wtMembers||[]).filter(function(u){ return String(u.id)===String(sid); })[0];
+    exDrawChart(rows, null, window.wtGoalNum(_eu && _eu.goal_score));
 
     var h='<tr><th>응시일</th><th>총점</th><th>LC</th><th>RC</th><th>RC 능력별</th><th></th></tr>';
     rows.forEach(function(e, i){
@@ -9929,6 +10018,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 스케줄 탭 목록은 알림 배너보다 먼저 그린다 — 아래에 'alerts 도 pend 도 없으면 return' 이 있어서
     // 여기서 안 그리면 예약이 0건일 때 스케줄 탭의 옛 목록이 지워지지 않는다.
     drawSchedPending(pend);
+    try{ await renderHwLate(); }catch(e){}
     try{ await renderParkNow(); }catch(e){}
     try{ await renderParking(); }catch(e){}
     try{ await renderStudentReqs(); }catch(e){}
@@ -15793,6 +15883,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       });
     }
 
+    /** 목표 점수를 숫자로. 못 읽으면 null — 없는 목표를 지어내지 않는다.
+     *  🚨 앱 goalNum() 과 같은 규칙. */
+    window.wtGoalNum = function(v){
+      if(v==null) return null;
+      var m = String(v).match(/\d{3,4}/);
+      return m ? Number(m[0]) : null;
+    };
+
     // 성적표에 적힌 순서 그대로. 앱(lib/exams.ts)과 같은 순서여야 한다.
     var AB = [
       ['lc_short_gist','LC','짧은 대화 요지'],
@@ -15809,10 +15907,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     // ETS 성적표에 찍히는 전체 수험자 평균. 앱 lib/bench.ts 와 같은 값이다.
     var ETS_AVG = { locate:68, connect:67, infer:66, vocab:72, gram:80 };
-    // 목표 점수를 낸 학생들이 실제로 냈던 수준 (2026-09-11 · 25명, 김솔윤 2차까지)
+    // 목표 점수를 낸 학생들이 실제로 냈던 수준 (2026-09-12 · 26명, 이예은 825까지)
     // 🚨 앱 lib/bench.ts 와 **같은 숫자**여야 한다. 한쪽만 고치지 말 것.
+    // 🚨 850 줄은 **4명**뿐이다. 한 사람 들어오면 이만큼 움직인다 — 단정해서 쓰지 말 것.
     var TARGET = [
-      { band:850, label:'850 이상', need:{ gram:95, vocab:84, connect:79, infer:79, locate:72 } },
+      { band:850, label:'850 이상', need:{ gram:94, vocab:87, connect:79, infer:80, locate:74 } },
       { band:750, label:'700점대', need:{ gram:87, vocab:79, connect:68, infer:67, locate:75 } },
       { band:650, label:'600점대', need:{ gram:80, vocab:63, connect:61, infer:53, locate:66 } }
     ];
@@ -15934,8 +16033,185 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       h += abilBlock('듣기(LC)', 'LC', cur, prev, cur.lc);
       h += abilBlock('읽기(RC)', 'RC', cur, prev, cur.rc);
 
+      // ④ 자동 진단 (2026-09-12 원장님 지시)
+      //    "어디가 부족하다 어떤걸 공부해라 이런내용을" — 앱과 **같은 규칙**이다.
+      h += adviceHtml(cur, (opts && opts.goal) || null);
+
       box.innerHTML=h;
       runGrow(box);
+    }
+
+    /**
+     * 항목별 처방. 🚨 앱 lib/advice.ts 의 HOW 와 **같은 문장**이어야 한다.
+     */
+    var ADV_HOW = {
+      rc_locate: '지문 하나에 4분(이중 6분·삼중 8분)씩 시계를 켜고 풉니다. 시간이 되면 넘어갑니다.',
+      rc_connect: '두 지문을 같이 봐야 푸는 문제는 표시만 해 두고 맨 마지막에 풉니다.',
+      rc_infer: '근거 문장에 밑줄을 긋고 고릅니다. 근거를 못 찾으면 그 보기는 답이 아닙니다.',
+      rc_vocab: '하루 40개, 뜻은 하나만. 철자는 외우지 않습니다.',
+      rc_gram: '문법책 한 권을 세 번 돕니다. 여러 권을 한 번씩 보는 것보다 남습니다.',
+      lc_short_gist: '음성 시작 전에 문제를 먼저 읽습니다. 주제는 앞 두 문장에 나옵니다.',
+      lc_long_gist: '첫 두 문장에 집중합니다. 긴 담화의 주제는 거의 첫머리에 나옵니다.',
+      lc_short_detail: '문제 세 개를 먼저 읽고 듣습니다. 세부사항은 한 번 지나가면 끝입니다.',
+      lc_long_detail: 'Part 3·4 의 가운데 문제를 눈에 넣고 듣습니다. 대개 세부사항입니다.',
+      lc_intent: '앞뒤 한 문장을 같이 봅니다. 그 문장만 들으면 못 풉니다.'
+    };
+
+    /**
+     * 어휘가 낮으면 찾기·추론·연결 처방이 **달라진다**.
+     * 🚨 어휘 50 인 학생에게 「Part 7 을 시간 재고 푸세요」라고 하면 틀린 지시다.
+     *    단어를 모르면 지문까지 가도 못 읽는다. 원인이 시간이 아니라 단어다.
+     * 🚨 앱 howFor() 와 같은 규칙·같은 문장.
+     */
+    var ADV_VOCAB_FLOOR = 75;
+    function advHow(key, vocab){
+      var base = ADV_HOW[key];
+      if(!base) return null;
+      if(vocab==null || vocab>=ADV_VOCAB_FLOOR) return base;
+      if(key==='rc_locate')
+        return '찾기가 낮은 것이 늘 시간 탓은 아닙니다. 어휘 '+vocab+'% 라면 지문까지 가도 못 읽습니다. '
+             + '지금은 Part 7 전략이 아니라 단어를 먼저 채웁니다.';
+      if(key==='rc_infer' || key==='rc_connect')
+        return '추론·연결은 지문이 읽혀야 되는 것입니다. 어휘 '+vocab+'% 에서는 여기를 따로 붙잡아도 '
+             + '잘 오르지 않습니다. 단어가 올라오면 같이 따라옵니다.';
+      return base;
+    }
+
+    /**
+     * 성적표 자동 진단 (2026-09-12 원장님 지시).
+     *
+     * 🚨🚨 앱 lib/advice.ts 의 buildAdvice() 와 **같은 규칙**이다.
+     *    한쪽만 고치면 앱과 웹이 같은 학생에게 다른 말을 한다.
+     *
+     * 🚨 없는 것을 지어내지 않는다 — 능력별 값을 안 넣었으면 조언도 없다.
+     *    평균이 없는 항목은 「평균 아래」를 판정할 수 없으므로 계산에서 뺀다.
+     */
+    function examAdvice(cur, goal){
+      var out = { headline:null, todo:[], avoid:[], reason:null };
+      if(!cur){ out.reason='성적이 없습니다.'; return out; }
+
+      var rows = AB.map(function(a){
+        var v = cur[a[0]];
+        if(v==null) return null;
+        var avg = (cur.avg_json && cur.avg_json[a[0]]!=null) ? cur.avg_json[a[0]] : null;
+        return { key:a[0], label:a[2], area:a[1], v:v, avg:avg };
+      }).filter(Boolean);
+
+      if(rows.length<5){
+        out.reason='능력별 정답률이 아직 없습니다. 성적 입력에서 열 항목을 넣으면 여기에 진단이 나옵니다.';
+        return out;
+      }
+      var cmp = rows.filter(function(r){ return r.avg!=null; })
+                    .map(function(r){ r.gap = r.v - r.avg; return r; });
+      if(!cmp.length){
+        out.reason='이 회차의 전체 평균이 없어 견줄 수 없습니다. 평균까지 넣으면 진단이 나옵니다.';
+        return out;
+      }
+
+      var below = cmp.filter(function(r){ return r.gap<0; })
+                     .sort(function(a,b){ return a.gap-b.gap; });
+      var ranked = below.length ? below : cmp.slice().sort(function(a,b){ return a.gap-b.gap; });
+      // 🚨 한 줄 진단이 지목한 항목. 아래에서 정하고, 처방 1순위로 쓴다.
+      var focus = null;
+      // 🚨 진단이 한쪽 영역을 지목하면 처방도 **그 영역 안에서만** 고른다.
+      //    「읽기만 올리세요」라고 해 놓고 듣기를 처방하면 앞뒤가 안 맞는다(실제로 그랬다).
+      var onlyArea = null;
+
+      function G(k){ for(var i=0;i<cmp.length;i++) if(cmp[i].key===k) return cmp[i]; return null; }
+      var vocab=G('rc_vocab'), locate=G('rc_locate'), gram=G('rc_gram');
+      var lc=(typeof cur.lc==='number')?cur.lc:null, rc=(typeof cur.rc==='number')?cur.rc:null;
+
+      // 🚨 위에서부터 먼저 맞는 것 하나만. 여러 줄을 늘어놓으면 아무것도 안 남는다.
+      if(vocab && locate && vocab.v>=85 && locate.v<=vocab.v-12){
+        focus='rc_locate';
+        out.headline='몰라서 틀리는 게 아니라, 제때 못 찾아서 틀립니다. 어휘 '+vocab.v
+                   +'% 인데 찾기 '+locate.v+'% 입니다 — 실력이 아니라 시간 문제입니다.';
+      } else if(vocab && vocab.v<60){
+        focus='rc_vocab';
+        out.headline='어휘 '+vocab.v+'% 입니다. 여기부터 채웁니다 — 단어를 모르면 어떤 전략도 안 먹힙니다.';
+      } else if(lc!=null && rc!=null && lc-rc>=90){
+        // 읽기가 통째로 비어 있으면 읽기 항목 중 가장 낮은 곳을 짚는다.
+        onlyArea='RC';
+        var _rw=cmp.filter(function(r){ return r.area==='RC'; })
+                   .sort(function(a,b){ return a.v-b.v; })[0];
+        focus = _rw ? _rw.key : null;
+        out.headline='듣기 '+lc+' · 읽기 '+rc+' — '+(lc-rc)+'점 차이입니다. 읽기만 올려도 점수가 크게 움직입니다.';
+      } else if(lc!=null && rc!=null && rc-lc>=50){
+        onlyArea='LC';
+        var _lw=cmp.filter(function(r){ return r.area==='LC'; })
+                   .sort(function(a,b){ return a.v-b.v; })[0];
+        focus = _lw ? _lw.key : null;
+        out.headline='읽기 '+rc+' 에 비해 듣기 '+lc+' 가 뒤쳐져 있습니다. 듣기를 매일 손에 잡아야 합니다.';
+      } else if(!below.length){
+        out.headline='견줄 수 있는 '+cmp.length+'개 항목이 전부 평균 위입니다. '
+                   + '이 점수대는 낮은 곳이 아니라 제일 얇은 곳을 봐야 합니다.';
+      } else {
+        out.headline='평균보다 낮은 항목이 '+below.length+'개 있습니다. 낮은 쪽부터 채웁니다.';
+      }
+
+      // 🚨 진단이 지목한 항목이 **반드시 첫 번째**다. 거리로만 고르면
+      //    LC 처럼 원래 평균이 높은 항목이 앞으로 나와, 진단과 처방이 서로 다른 곳을 가리킨다.
+      var fRow = null;
+      if(focus){ for(var fi=0; fi<cmp.length; fi++) if(cmp[fi].key===focus) fRow=cmp[fi]; }
+      // 영역을 지목했으면 그 영역만 남긴다. 남는 게 없으면 원래대로(빈 처방보다는 낫다).
+      var pool = onlyArea ? ranked.filter(function(r){ return r.area===onlyArea; }) : ranked;
+      var use = pool.length ? pool : ranked;
+      var order = fRow ? [fRow].concat(use.filter(function(r){ return r.key!==focus; })) : use;
+      var thin = order.slice(0,2);
+
+      thin.forEach(function(t){
+        var how = advHow(t.key, vocab ? vocab.v : null); if(!how) return;
+        // 🚨 3%p 안쪽은 「낮다」고 말하지 않는다. 한 문제도 안 되는 차이다.
+        var tag = (Math.abs(t.gap)<=3) ? '평균과 거의 같습니다'
+                : (t.gap<0) ? ('평균보다 '+(-t.gap)+'%p 낮습니다')
+                            : ('평균과 '+t.gap+'%p 차이로 이 영역에서 가장 얇습니다');
+        out.todo.push({ t:(t.label+' '+t.v+'% — '+tag), b:how });
+      });
+
+      // 🚨 「하지 마세요」가 「하세요」보다 점수를 더 만드는 구간이 있다.
+      if(gram && gram.v>=88)
+        out.avoid.push({ t:'문법책을 새로 사지 마세요',
+          b:'문법 '+gram.v+'% 입니다. 한 권 더 봐도 한두 문제 늘어납니다. 그 시간을 Part 7 에 쓰는 편이 훨씬 남습니다.' });
+      if(vocab && vocab.v>=90)
+        out.avoid.push({ t:'기초 단어책을 또 돌지 마세요',
+          b:'어휘 '+vocab.v+'% 입니다. 단어는 개수가 아니라 종류를 바꿔야 합니다 — '
+           +'Part 7 의 바꿔 쓰기(지문의 말 → 보기의 말)를 모으세요.' });
+      if(vocab && vocab.v<60)
+        out.avoid.push({ t:'Part 7 전략은 아직 이릅니다',
+          b:'어휘 '+vocab.v+'% 로는 읽어도 못 고릅니다. 긴 지문을 붙잡으면 시간만 갑니다. 단어가 먼저입니다.' });
+      if(lc!=null && rc!=null && lc-rc>=90)
+        out.avoid.push({ t:'듣기 공부 시간을 늘리지 마세요',
+          b:'듣기 '+lc+' 는 이미 잘 나옵니다. 놓지만 않으면 됩니다. 늘린 시간은 읽기에서 훨씬 큰 점수가 됩니다.' });
+
+      // 🚨 목표가 없으면 지어내지 않는다.
+      var total=(typeof cur.total==='number')?cur.total:null;
+      if(goal!=null && total!=null && goal>total){
+        out.todo.push({ t:('목표 '+goal+'점까지 '+(goal-total)+'점'),
+          b:(lc!=null && rc!=null && lc-rc>=60)
+              ? ('오르는 '+(goal-total)+'점의 대부분이 읽기에서 나옵니다. 듣기는 유지만 합니다.')
+              : '듣기와 읽기 양쪽에서 나눠 올립니다.' });
+      }
+      return out;
+    }
+
+    /** 위 진단을 화면에 그린다. 🚨 못 만들면 **왜 못 만드는지**를 보여 준다. */
+    function adviceHtml(cur, goal){
+      var a = examAdvice(cur, goal);
+      if(!a.headline){
+        return a.reason ? ('<div class="adv"><div class="b">'+esc(a.reason)+'</div></div>') : '';
+      }
+      function items(list, no){
+        return list.map(function(x,i){
+          return '<div class="it"><div class="n'+(no?' no':'')+'">'+(no?'×':(i+1))+'</div>'
+               + '<div><div class="t">'+esc(x.t)+'</div><div class="b">'+esc(x.b)+'</div></div></div>';
+        }).join('');
+      }
+      return '<div class="adv"><div class="k">이 성적으로 보면</div>'
+           + '<div class="hl">'+esc(a.headline)+'</div>'
+           + (a.todo.length ? '<div class="sb">무엇을 공부할지</div>'+items(a.todo,false) : '')
+           + (a.avoid.length ? '<div class="sb">지금 하지 않아도 되는 것</div>'+items(a.avoid,true) : '')
+           + '<div class="ft2">숫자만 보고 자동으로 만든 것입니다. 실제 공부 계획은 담당 선생님이 '
+           + '이 진단을 보고 전용 커리큘럼으로 만들어 드립니다.</div></div>';
     }
 
     /**
@@ -16077,7 +16353,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         try{
           var r=await window.sb.from('exam_scores').select('*')
             .eq('student_id', p.id).order('exam_date',{ascending:false}).limit(6);
-          drawExams(ex, (!r.error && r.data) ? r.data : []);
+          drawExams(ex, (!r.error && r.data) ? r.data : [], { goal: window.wtGoalNum(p.goal_score) });
         }catch(e){ ex.style.display='none'; }
       }
 
