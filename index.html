@@ -6939,7 +6939,37 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
    *    그래서 5건 이상만 올린다.
    * 🚨 담당쌤이 없는 학생의 숙제는 뺀다 — 누구를 부를지 알 수 없는 줄은
    *    화면에 있어 봐야 할 수 있는 일이 없다.
+   *
+   * 🚨🚨 **휴강·결석한 수업의 숙제는 세지 않는다** (2026-09-12 원장님 지적).
+   *    선생님은 다음 수업에서 숙제를 확인한다. 그 수업이 휴강·결석이면
+   *    확인할 자리 자체가 없었다. 그걸 밀렸다고 세면 없는 잘못을 만든다.
    */
+  /**
+   * 학생별 「마지막으로 실제 진행된 수업」 시각 (2026-09-12).
+   * 🚨 휴강·결석·승인대기는 뺀다. 만난 것이 아니다.
+   * 🚨 못 읽으면 **빈 것**을 돌려준다 → 아무도 「밀렸다」로 안 잡힌다.
+   *    모르면서 선생님 이름을 올리는 것보다 안 올리는 쪽이 낫다.
+   */
+  async function _hwLastDone(ids){
+    var out={};
+    if(!ids.length || !sb) return out;
+    try{
+      var r=await sb.from('schedules').select('student_id, ends_at, status')
+              .in('student_id', ids)
+              .lt('ends_at', new Date().toISOString())
+              .order('ends_at', { ascending:false }).limit(3000);
+      if(r.error || !r.data) return out;
+      r.data.forEach(function(x){
+        var st=x.status||'confirmed';
+        if(st==='canceled'||st==='noshow'||st==='pending') return;
+        if(!x.ends_at) return;
+        var k=String(x.student_id);
+        if(!out[k]) out[k]=x.ends_at;      // 내림차순이라 처음 것이 가장 최근
+      });
+    }catch(e){}
+    return out;
+  }
+
   async function renderHwLate(){
     var box=$('waHwLate'); if(!box) return;
     box.innerHTML='';
@@ -6963,9 +6993,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(u.teacher_id) tOf[String(u.id)]=String(u.teacher_id);
     });
 
+    // 🚨 학생별 「마지막으로 실제 진행된 수업」 시각.
+    //    숙제가 그보다 먼저 나왔으면 그사이에 만난 것 = 확인할 기회가 있었다.
+    var met = await _hwLastDone(Object.keys(tOf));
+
     var by={};
     r.data.forEach(function(x){
       var t=tOf[String(x.student_id)]; if(!t) return;
+      var m=met[String(x.student_id)];
+      // 숙제 뒤에 진행된 수업이 없으면 아직 못 만난 것이다. 세지 않는다.
+      if(!m || !x.created_at || m <= x.created_at) return;
       by[t]=(by[t]||0)+1;
     });
 
@@ -6988,6 +7025,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + '<ul>'+lis+'</ul>'
       + '<div style="font-size:12.5px;color:var(--muted);margin-top:6px">'
       + HW_LATE_DAYS+'일이 지나도 확인되지 않은 숙제가 '+HW_LATE_MIN+'건 이상인 선생님만 나옵니다. '
+      + '<b>휴강·결석으로 수업을 못 만난 숙제는 빠집니다</b> — 확인할 자리가 없었으니까요. '
       + '월례 결산의 「강사 근태·평가」에 그대로 쓰실 수 있습니다.</div></div>';
   }
 
