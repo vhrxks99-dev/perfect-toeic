@@ -6951,7 +6951,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
    *    모르면서 선생님 이름을 올리는 것보다 안 올리는 쪽이 낫다.
    */
   async function _hwLastDone(ids){
-    var out={};
+    var out={ last:{}, all:{} };
     if(!ids.length || !sb) return out;
     try{
       var r=await sb.from('schedules').select('student_id, ends_at, status')
@@ -6960,14 +6960,28 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
               .order('ends_at', { ascending:false }).limit(3000);
       if(r.error || !r.data) return out;
       r.data.forEach(function(x){
-        var st=x.status||'confirmed';
-        if(st==='canceled'||st==='noshow'||st==='pending') return;
         if(!x.ends_at) return;
-        var k=String(x.student_id);
-        if(!out[k]) out[k]=x.ends_at;      // 내림차순이라 처음 것이 가장 최근
+        var k=String(x.student_id), st=x.status||'confirmed';
+        // 🚨 전부 모아 둔다. 숙제 뒤에 **무슨 일이 있었는지**를 보여 주려면
+        //    진행된 수업만으로는 모자라다 — 결석·휴강이 곧 답이기 때문이다.
+        (out.all[k]=out.all[k]||[]).push({ at:x.ends_at, st:st });
+        if(st==='canceled'||st==='noshow'||st==='pending') return;
+        if(!out.last[k]) out.last[k]=x.ends_at;   // 내림차순이라 처음 것이 가장 최근
       });
     }catch(e){}
     return out;
+  }
+
+  /** 숙제가 나온 뒤 그 학생에게 무슨 수업이 있었는지 센다. */
+  function _hwAfter(list, since){
+    var n={ done:0, noshow:0, canceled:0 };
+    (list||[]).forEach(function(x){
+      if(!x.at || x.at <= since) return;
+      if(x.st==='noshow') n.noshow++;
+      else if(x.st==='canceled') n.canceled++;
+      else if(x.st!=='pending') n.done++;
+    });
+    return n;
   }
 
   async function renderHwLate(){
@@ -6997,13 +7011,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     //    숙제가 그보다 먼저 나왔으면 그사이에 만난 것 = 확인할 기회가 있었다.
     var met = await _hwLastDone(Object.keys(tOf));
 
-    var by={};
+    // 선생님별 합계 + 그 아래 학생별 상세.
+    // 🚨 숫자만 보여 주면 「진짜 안 누른 건지, 결석이라 못 누른 건지」를 알 수 없다.
+    //    원장님이 보고 바로 판단하시도록 학생·수업 상태까지 같이 만든다.
+    var by={}, det={};
     r.data.forEach(function(x){
-      var t=tOf[String(x.student_id)]; if(!t) return;
-      var m=met[String(x.student_id)];
+      var sid=String(x.student_id), t=tOf[sid]; if(!t) return;
+      var m=met.last[sid];
       // 숙제 뒤에 진행된 수업이 없으면 아직 못 만난 것이다. 세지 않는다.
       if(!m || !x.created_at || m <= x.created_at) return;
       by[t]=(by[t]||0)+1;
+      var d=(det[t]=det[t]||{});
+      var e=(d[sid]=d[sid]||{ n:0, first:x.created_at });
+      e.n++;
+      if(x.created_at < e.first) e.first=x.created_at;
     });
 
     var rows=Object.keys(by).filter(function(t){ return by[t]>=HW_LATE_MIN; })
@@ -7015,8 +7036,32 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!rows.length) return;
 
     var lis=rows.map(function(x){
+      // 그 선생님의 학생별 상세 — 숙제 건수 + 숙제 이후 수업이 어땠는지
+      var d=det[x.id]||{};
+      var subs=Object.keys(d).map(function(sid){
+        var e=d[sid];
+        var mm=(window.__wtMembers||[]).filter(function(u){ return String(u.id)===sid; })[0];
+        var a=_hwAfter(met.all[sid], e.first);
+        var bits=[];
+        if(a.done)     bits.push('출석 '+a.done);
+        if(a.noshow)   bits.push('<b style="color:#c0342b">결석 '+a.noshow+'</b>');
+        if(a.canceled) bits.push('<b style="color:#c0342b">휴강 '+a.canceled+'</b>');
+        return { name:(mm&&mm.name)||'(이름 없음)', n:e.n, first:e.first,
+                 txt:(bits.length?bits.join(' · '):'수업 없음'), done:a.done };
+      }).sort(function(p,q){ return q.n-p.n; });
+
+      var sub=subs.map(function(v){
+        return '<div style="font-size:12.5px;color:var(--muted);margin:3px 0 0 26px">'
+          + '· <b style="color:var(--ink)">'+esc(v.name)+'</b> 숙제 '+v.n+'건'
+          + ' <span style="color:var(--line-strong)">|</span> 가장 오래된 것 '
+          + esc(String(v.first).slice(5,10).replace('-','/'))
+          + ' <span style="color:var(--line-strong)">|</span> 그 뒤 ' + v.txt
+          + '</div>';
+      }).join('');
+
       return '<li><span class="wa-al-tag t-hw">숙제</span><b>'+esc(x.name)+'</b> 선생님 — '
-        + '<b>'+x.n+'건</b>이 '+HW_LATE_DAYS+'일 넘게 확인 전입니다</li>';
+        + '<b>'+x.n+'건</b>이 '+HW_LATE_DAYS+'일 넘게 확인 전입니다'
+        + sub + '</li>';
     }).join('');
 
     box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
@@ -7025,8 +7070,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + '<ul>'+lis+'</ul>'
       + '<div style="font-size:12.5px;color:var(--muted);margin-top:6px">'
       + HW_LATE_DAYS+'일이 지나도 확인되지 않은 숙제가 '+HW_LATE_MIN+'건 이상인 선생님만 나옵니다. '
-      + '<b>휴강·결석으로 수업을 못 만난 숙제는 빠집니다</b> — 확인할 자리가 없었으니까요. '
-      + '월례 결산의 「강사 근태·평가」에 그대로 쓰실 수 있습니다.</div></div>';
+      + '<b>「그 뒤 출석 N」이면 학생을 만나고도 안 누른 것</b>이고, '
+      + '<b>결석·휴강만 있으면 누를 자리가 없었던 것</b>입니다. 보시고 판단하세요.<br>'
+      + '숙제가 나온 뒤 한 번도 만나지 못한 건은 아예 빠져 있습니다.</div></div>';
   }
 
   async function parkCopy(text, msg){
