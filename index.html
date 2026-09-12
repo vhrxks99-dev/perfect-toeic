@@ -5386,6 +5386,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             <input type="file" id="ntFiles" accept="image/*" multiple></label>
         </div>
         <div id="ntThumbs" style="display:flex;gap:8px;flex-wrap:wrap;margin:2px 0"></div>
+        <!-- 고치는 중 표시 (2026-09-12). 안 보이면 남의 공지를 덮어쓴다. -->
+        <div id="ntEditBar" style="display:none;align-items:center;gap:10px;margin:2px 0 6px;
+             padding:8px 12px;border-radius:9px;background:#eef3fc;border:1.5px solid #c9d2e0">
+          <b style="font-size:13px;color:var(--accent)" id="ntEditWho"></b>
+          <a class="wa-link" id="ntEditCancel" style="font-size:12.5px">취소하고 새로 쓰기</a>
+        </div>
         <div class="dash-row">
           <button class="btn btn-primary" id="ntSave" type="button">공지 올리기</button>
           <span id="ntMsg" style="align-self:center;font-size:13px;font-weight:700"></span>
@@ -8893,6 +8899,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // ══════════════════════════════════════════════════════════════
   var NT_BUCKET = 'notice-images';
   var _ntShots = [];     // 이번에 올린 사진 주소들
+  // 🚨 불러온 공지를 들고 있는다. 「수정」을 누르면 그 내용을 폼에 실어야 하는데,
+  //    그릴 때만 쓰고 버리면 다시 찾을 수가 없다.
+  var _ntRows = [];
 
   function ntAudLabel(a){
     if(a==='public') return '전체 공개';
@@ -8955,6 +8964,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       return;
     }
     var rows=r.data||[];
+    _ntRows = rows;
+    if(typeof ntEditBar==='function') ntEditBar();
     if(!rows.length){ box.innerHTML='<div class="wa-empty">아직 공지가 없습니다.</div>'; return; }
 
     box.innerHTML=rows.map(function(n){
@@ -8979,11 +8990,53 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +   '<div style="font-size:11.5px;color:var(--muted);margin-top:5px">누가 보나 &nbsp;'+auds+'</div>'
         +   '<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'+esc(String(n.created_at||'').slice(0,10))
         +     (n.author_name?(' · '+esc(n.author_name)):'')
+        +     ' &nbsp; <a class="wa-link" data-ntedit="'+esc(n.id)+'" style="font-weight:800">수정</a>'
         +     ' &nbsp; <a class="wa-link" data-ntoff="'+esc(n.id)+'">'+(n.is_open?'내리기':'다시 올리기')+'</a>'
         +     ' &nbsp; <a class="wa-link" data-ntdel="'+esc(n.id)+'" style="color:#c0342b">지우기</a></div>'
         + '</div></div>';
     }).join('');
   }
+
+  // ── 공지 수정 (2026-09-12 원장님 지시) ─────────────────────────
+  //    🚨 새 폼을 따로 만들지 않는다. 같은 폼을 쓰고 단추 글자만 바꾼다.
+  var _ntEdit = null;              // 고치는 중인 공지 id. null 이면 새로 쓰는 중
+
+  /** 그 공지를 위 폼에 싣는다. */
+  function ntStartEdit(id){
+    var n=(_ntRows||[]).filter(function(x){ return String(x.id)===String(id); })[0];
+    if(!n) return;
+    _ntEdit = String(n.id);
+    if($('ntTitle')) $('ntTitle').value = n.title||'';
+    if($('ntBody'))  $('ntBody').value  = n.body||'';
+    if($('ntPin'))   $('ntPin').value   = n.pinned ? '1' : '';
+    // 🚨 대상(누가 보나)은 폼에 싣기만 하고 저장 때 쓰지 않는다. 목록 단추가 따로 바꾼다.
+    if($('ntAud'))   $('ntAud').value   = n.audience||'all';
+    _ntShots = ntImages(n).slice();
+    ntDrawThumbs();
+    ntEditBar();
+    if($('ntMsg')) $('ntMsg').textContent='';
+    var f=$('ntForm'); if(f && f.scrollIntoView) f.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  /** 폼을 비우고 새로 쓰는 상태로 되돌린다. */
+  function ntClearForm(){
+    _ntEdit=null;
+    if($('ntTitle')) $('ntTitle').value='';
+    if($('ntBody')) $('ntBody').value='';
+    if($('ntPin')) $('ntPin').value='';
+    if($('ntFiles')) $('ntFiles').value='';
+    _ntShots=[]; ntDrawThumbs(); ntEditBar();
+  }
+
+  /** 고치는 중 띠와 단추 글자를 상태에 맞춘다. */
+  function ntEditBar(){
+    var bar=$('ntEditBar'), who=$('ntEditWho'), btn=$('ntSave');
+    var n=_ntEdit ? (_ntRows||[]).filter(function(x){ return String(x.id)===String(_ntEdit); })[0] : null;
+    if(bar) bar.style.display = n ? 'flex' : 'none';
+    if(who && n) who.textContent = '「'+(n.title||'')+'」 고치는 중';
+    if(btn) btn.textContent = n ? '수정 저장' : '공지 올리기';
+  }
+  if($('ntEditCancel')) $('ntEditCancel').onclick=function(e){ e.preventDefault(); ntClearForm(); };
 
   async function ntSave(){
     var msg=$('ntMsg');
@@ -9002,6 +9055,28 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       image_url: _ntShots[0] || null
     };
     if(profile){ row.author_id=profile.id; row.author_name=profile.name||null; }
+
+    // 🚨 고치는 중이면 새로 올리지 않고 **그 줄을 고친다.**
+    //    대상(audience)과 올린 날짜는 건드리지 않는다 —
+    //    날짜가 바뀌면 학생에게 새 공지가 온 것처럼 보인다.
+    if(_ntEdit){
+      var up={ title: title,
+               body: (($('ntBody')&&$('ntBody').value)||'').trim() || null,
+               pinned: !!($('ntPin')&&$('ntPin').value),
+               image_urls: _ntShots.slice(),
+               image_url: _ntShots[0] || null };
+      var ur=await sb.from('notices').update(up).eq('id', _ntEdit);
+      if(ur.error && /image_urls/.test(ur.error.message||'')){
+        delete up.image_urls;
+        ur=await sb.from('notices').update(up).eq('id', _ntEdit);
+      }
+      if(ur.error) return bad('고치지 못했습니다: '+ur.error.message);
+      if(msg){ msg.textContent='고쳤습니다.'; msg.style.color='#1a7a4a'; }
+      ntClearForm();
+      ntLoad();
+      if(typeof myNoticeLoad==='function') myNoticeLoad();
+      return;
+    }
 
     if(row.audience==='public' &&
        !confirm('전체 공개로 올릴까요?\n\n로그인하지 않은 사람도 봅니다. 홈페이지 공지사항에 그대로 걸립니다.\n수업료·학생 이름처럼 밖에 나가면 안 되는 내용이 없는지 확인해주세요.')) return;
@@ -9059,6 +9134,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       ntLoad(); if(typeof myNoticeLoad==='function') myNoticeLoad();
       return;
     }
+    var ed=t.closest?t.closest('[data-ntedit]'):null;
+    if(ed){ ntStartEdit(ed.getAttribute('data-ntedit')); return; }
     var off=t.closest?t.closest('[data-ntoff]'):null;
     if(off){
       var id=off.getAttribute('data-ntoff');
@@ -15957,7 +16034,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     // ETS 성적표에 찍히는 전체 수험자 평균. 앱 lib/bench.ts 와 같은 값이다.
     var ETS_AVG = { locate:68, connect:67, infer:66, vocab:72, gram:80 };
-    // 목표 점수를 낸 학생들이 실제로 냈던 수준 (2026-09-12 · 26명, 이예은 825까지)
+    // 목표 점수를 낸 학생들이 실제로 냈던 수준 (2026-09-12 · 27명, 김진욱 495까지)
     // 🚨 앱 lib/bench.ts 와 **같은 숫자**여야 한다. 한쪽만 고치지 말 것.
     // 🚨 850 줄은 **4명**뿐이다. 한 사람 들어오면 이만큼 움직인다 — 단정해서 쓰지 말 것.
     var TARGET = [
