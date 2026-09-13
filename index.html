@@ -1911,6 +1911,11 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
 #voca{background:var(--surface-2)}
 .vt{max-width:760px;margin:38px auto 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
 .vt-pane{display:none;padding:clamp(22px,4vw,40px)}
+/* 시험 도중 나가는 단추 (2026-09-13). 눈에 띄되 답 고르는 것을 방해하지 않게
+   글자만 흐린 회색으로 둔다. */
+.vt-quit{background:none;border:0;cursor:pointer;padding:6px 8px;margin-left:auto;
+  font-size:13.5px;font-weight:800;color:#8a8a94;font-family:inherit;white-space:nowrap}
+.vt-quit:hover{color:#c0342b}
 .vt-pane.on{display:block;animation:lvtFade .35s ease}
 .vt-set-label{font-size:13px;font-weight:800;color:var(--ink);margin-bottom:10px}
 .vt-set-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap}
@@ -2004,6 +2009,9 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
           <span class="vt-count"><span id="vtNow">1</span> / <span id="vtTot">10</span></span>
           <div class="vt-bar"><div class="vt-bar-fill" id="vtFill"></div></div>
           <span class="vt-tag" id="vtQdir">뜻 고르기</span>
+          <!-- 🚨 나가는 길. 전에는 40문제를 다 풀어야만 빠져나올 수 있었다
+               (2026-09-13 원장님 "닫고 나가기가 있어야해"). -->
+          <button type="button" class="vt-quit" id="vtQuit">그만두기</button>
         </div>
         <div class="vt-q" id="vtQ"></div>
         <div class="vt-opts" id="vtOpts"></div>
@@ -2240,6 +2248,15 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
   $('vtStart').onclick=function(){ if(!vtLoggedIn()){ vtUpdateGate(); return; } start(); };
   $('vtAgain').onclick=function(){ build(); idx=0; correct=0; wrong=[]; $('vtTot').textContent=Q.length; render(); pane('vtQuiz'); };
   $('vtRetry2').onclick=function(){ pane('vtSetup'); };
+
+  // 시험 도중 그만두기 (2026-09-13 원장님 지시).
+  // 🚨 한 문제라도 풀었으면 한 번 물어본다. 잘못 눌러 푼 게 날아가면 다시 안 한다.
+  //    아직 아무것도 안 풀었으면 묻지 않는다 — 물어볼 것이 없다.
+  $('vtQuit').onclick=function(){
+    if(idx>0 && !confirm(idx+'문제까지 푼 것은 저장되지 않습니다.\n시험을 그만둘까요?')) return;
+    idx=0; correct=0; wrong=[];
+    pane('vtSetup');
+  };
   $('vtReviewBtn').onclick=function(){ var r=$('vtReview'); r.classList.toggle('on'); this.textContent=r.classList.contains('on')?'오답노트 닫기':'틀린 단어 · 정답 보기'; };
   function vtLoggedIn(){ return !!window.WT_LOGGED_IN; }
   function vtUpdateGate(){ var s=$('vtSetup'); if(!s) return; if(vtLoggedIn()) s.classList.remove('locked'); else s.classList.add('locked'); }
