@@ -12570,8 +12570,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var rateTxt = isT ? (rl.length===1 ? (rl[0]+'%') : '혼합 '+rl.join('·')+'%') : '-';
       h+='<div class="pr-card'+(k?'':(g.allRefund?'':' pr-none'))+'">';
       // 환불로 담당을 뗀 줄만 모인 묶음은 정상이다. 빨간 '확인 필요' 대신 뭔지 적어 준다.
+      // 🚨 「학원 몫」이라고 분명히 적는다 (2026-09-14 원장님 — 앱에서 이게 「담당
+      //    선생님 없음」으로 보여 담당을 빠뜨린 줄로 오해하셨다). 환불로 담당을 뗀
+      //    줄은 안 들은 회차분이라 강사에게 안 가고 학원이 갖는다.
       var noneLabel = g.allRefund
-        ? '환불 처리분 <span style="font-size:12px;font-weight:700;color:var(--muted)">강사 배분 없음 · 정상</span>'
+        ? '환불 처리분 (학원 몫) <span style="font-size:12px;font-weight:700;color:var(--muted)">강사 배분 없음 · 정상</span>'
         : esc(g.name)+' <span style="font-size:12px;font-weight:700">확인 필요</span>';
       // 스터디는 전액 학원이 갖는다. 배분율·강사 몫·원천징수가 아예 없다.
       var studyLabel = esc(g.name)+' <span style="font-size:12px;font-weight:700;color:var(--muted)">전액 학원 몫 · 강사 배분 없음</span>';
