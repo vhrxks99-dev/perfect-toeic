@@ -5510,6 +5510,27 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         </div>
       </div>
 
+      <!-- 성적표 사진 → 전용 커리큘럼 (2026-09-14 원장 지시).
+           🚨 앱에도 같은 자리(성적 입력 아래)에 있다. 한쪽만 고치지 말 것. -->
+      <div class="dash-form" style="margin-top:12px">
+        <div class="dash-list-head" style="margin:0 0 6px">성적표 사진으로 커리큘럼 만들기</div>
+        <div class="dash-note" style="margin-top:0">
+          ETS 성적표를 찍어 올리면 그 성적표를 보고 <b>전용 커리큘럼</b>을 만들어 드립니다.
+          능력별 항목(열 개)이 다 나오게 찍어 주세요.
+          다 되면 <b>학생 앱</b>과 <b>업무 → 전용 커리큘럼</b>에 올라갑니다.
+        </div>
+        <div class="dash-row" style="margin-top:8px">
+          <label style="flex:2">성적표 사진
+            <input type="file" id="curPhotoFile" accept="image/*"></label>
+          <label style="flex:3">남길 말 (선택)
+            <input type="text" id="curPhotoNote" placeholder="예: LC 를 특히 힘들어합니다"></label>
+        </div>
+        <div class="dash-row" style="margin-top:8px">
+          <button class="btn btn-primary" id="curPhotoUp" type="button">사진 올리기</button>
+          <span id="curPhotoMsg" style="align-self:center;font-size:13px;font-weight:700"></span>
+        </div>
+      </div>
+
       <div class="dash-list-head" style="margin-top:16px">이 학생의 지난 성적</div>
       <!-- 점수 변화 그래프 (2026-09-11 원장 지적) -->
       <!-- 실제 토익 시험 · 완토 진단테스트 (2026-09-11) -->
@@ -8790,6 +8811,61 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
          : '<option value="" disabled>학생 목록을 불러오지 못했습니다. 새로고침을 눌러주세요</option>');
     $('exStudent').innerHTML='<option value="">선택</option>'+opts+none;
   }
+
+  // ══════════════════════════════════════════════════════════════
+  // 성적표 사진 → 전용 커리큘럼 (2026-09-14 원장 지시)
+  //
+  // 🚨 앱과 **같은 표(curriculums) · 같은 저장통(curriculum)** 을 쓴다.
+  //    한쪽만 고치면 둘이 따로 논다.
+  // 🚨 저장통은 비공개다. 올리기만 하고 공개 주소를 만들지 않는다 —
+  //    성적표에는 학생 이름과 점수가 찍혀 있다.
+  // ══════════════════════════════════════════════════════════════
+  if($('curPhotoUp')) $('curPhotoUp').onclick = async function(){
+    var msg = $('curPhotoMsg');
+    function say(t, bad){ if(msg){ msg.textContent=t; msg.style.color = bad ? '#c0342b' : '#12855c'; } }
+    say('');
+
+    if(!sb){ say('로그인이 풀렸습니다. 새로고침해주세요.', true); return; }
+    var sid = $('exStudent') ? $('exStudent').value : '';
+    if(!sid){ say('학생을 먼저 고르세요.', true); return; }
+
+    var f = $('curPhotoFile') && $('curPhotoFile').files ? $('curPhotoFile').files[0] : null;
+    if(!f){ say('사진을 고르세요.', true); return; }
+    // 🚨 너무 큰 사진은 올리다 끊긴다. 폰으로 찍은 성적표는 보통 5MB 안쪽이다.
+    if(f.size > 15*1024*1024){ say('사진이 너무 큽니다(15MB 넘음).', true); return; }
+
+    var btn = this; btn.disabled = true; var old = btn.textContent; btn.textContent='올리는 중…';
+    try{
+      // 🚨 회차마다 새 파일이다. 덮어쓰면 지난 성적표가 사라진다.
+      var ext = (f.name && f.name.indexOf('.')>=0) ? f.name.split('.').pop().toLowerCase() : 'jpg';
+      if(['jpg','jpeg','png','webp','heic'].indexOf(ext)<0) ext='jpg';
+      var path = 'photos/'+sid+'/'+Date.now()+'.'+ext;
+
+      var up = await sb.storage.from('curriculum').upload(path, f, {
+        contentType: f.type || 'image/jpeg', upsert:false
+      });
+      if(up.error) throw new Error(up.error.message);
+
+      var note = ($('curPhotoNote') && $('curPhotoNote').value.trim()) || null;
+      var me = (profile && profile.id) || null;
+      var ins = await sb.from('curriculums').insert({
+        student_id: sid, created_by: me, photo_path: path, note: note, status: 'new'
+      });
+      if(ins.error){
+        // 🚨 줄을 못 넣었으면 올린 파일도 치운다. 주인 없는 사진이 쌓이면 안 된다.
+        try{ await sb.storage.from('curriculum').remove([path]); }catch(e){}
+        throw new Error(ins.error.message);
+      }
+
+      if($('curPhotoFile')) $('curPhotoFile').value='';
+      if($('curPhotoNote')) $('curPhotoNote').value='';
+      say('올렸습니다. 커리큘럼을 만들어 붙이겠습니다.');
+    }catch(e){
+      say('올리지 못했습니다: '+(e&&e.message?e.message:''), true);
+    }finally{
+      btn.disabled=false; btn.textContent=old;
+    }
+  };
 
   function exTotalCalc(){
     var l=exNum('exLc'), r=exNum('exRc');
