@@ -4680,6 +4680,66 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           font-family:inherit;cursor:pointer;border:1.5px solid var(--accent);background:var(--surface);color:var(--accent)}
 .std-join.on{background:var(--accent);color:#fff}
 .std-join:disabled{opacity:.6;cursor:default}
+/* 지출 표 (2026-09-13 원장님 「레이아웃좀 깔끔하게」).
+   🚨 전에는 이름만 있고 모양이 없어 브라우저 기본 표로 그려졌다. 칸 너비가
+      글자 길이에 따라 움직여서 「당근(장진웅)」과 금액이 붙어 보였다. */
+.dash-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.dash-table{width:100%;min-width:720px;border-collapse:collapse;table-layout:fixed;font-size:13.5px}
+.dash-table th{
+  text-align:left;padding:9px 10px;font-size:12.5px;font-weight:800;
+  color:#6b7280;border-bottom:1.5px solid var(--line);white-space:nowrap}
+.dash-table td{padding:10px;border-bottom:1px solid #f1f2f4;vertical-align:middle;
+  word-break:break-word}
+.dash-table tr:last-child td{border-bottom:0}
+.dash-table tbody tr:hover td,.dash-table tr:hover td{background:#fafbfc}
+/* 칸 너비 — 쓴날 / 분류 / 어디에 / 금액 / 결제 / 메모 / 지우기 */
+.dash-table th:nth-child(1),.dash-table td:nth-child(1){width:96px;white-space:nowrap}
+.dash-table th:nth-child(2),.dash-table td:nth-child(2){width:104px}
+.dash-table th:nth-child(3),.dash-table td:nth-child(3){width:118px}
+/* 🚨 금액은 오른쪽 정렬. 숫자는 오른쪽으로 맞춰야 자릿수가 눈에 들어온다 */
+.dash-table th:nth-child(4),.dash-table td:nth-child(4){width:110px;text-align:right;
+  white-space:nowrap;font-variant-numeric:tabular-nums}
+.dash-table th:nth-child(5),.dash-table td:nth-child(5){width:84px;white-space:nowrap}
+.dash-table th:nth-child(7),.dash-table td:nth-child(7){width:56px;text-align:right;
+  white-space:nowrap}
+/* 지출 표 — 좁은 화면에서는 카드로 (2026-09-14 원장님 「레이아웃 깔끔하게 정리」).
+   🚨 칸이 일곱 개라 폰 너비에 다 못 넣는다. 가로로 밀게 해 두었더니 원장님
+      화면에서 결제 칸이 잘린 채였다. 좁으면 표를 버리는 게 맞다.
+   🚨 tr 을 격자로 만들어 칸마다 자리를 준다. 그냥 쌓으면 표의 원래 순서대로
+      놓여서 「· 계좌이체」가 가게 이름 아래로 끼어든다(1차에 그랬다). */
+@media (max-width:768px){
+  .dash-wrap{overflow-x:visible}
+  /* 🚨 표 너비를 확실히 푼다. 이게 안 풀리면 카드가 화면 밖으로 나간다 */
+  .dash-table{display:block;width:100%;min-width:0;table-layout:auto;font-size:14px}
+  .dash-table tr:first-child{display:none}            /* 머리글 줄 */
+  .dash-table tbody{display:block}
+  .dash-table tr{
+    display:grid;width:100%;
+    grid-template-columns:auto auto 1fr auto;
+    grid-template-areas:'d c . .' 'w w w a' 'p p . x' 'm m m m';
+    align-items:baseline;column-gap:6px;
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:10px 13px 11px;margin-bottom:9px}
+  .dash-table td{
+    display:block;width:auto!important;padding:0;border:0;
+    text-align:left!important;white-space:normal}
+  .dash-table td.ex-date{grid-area:d;font-size:12.5px;font-weight:700;color:var(--muted)}
+  .dash-table td.ex-cat{grid-area:c;font-size:12.5px;font-weight:700;color:var(--muted)}
+  .dash-table td.ex-cat::before{content:'· '}
+  /* 어디에 썼나 — 제일 먼저 볼 것이라 제일 크게 */
+  .dash-table td.ex-who{
+    grid-area:w;margin-top:2px;font-size:15.5px;font-weight:800;color:var(--ink);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dash-table td.ex-amt{
+    grid-area:a;margin-top:2px;font-size:15.5px;font-weight:800;color:var(--ink);
+    text-align:right!important;white-space:nowrap}
+  .dash-table td.ex-pay{grid-area:p;margin-top:3px;font-size:12.5px;color:var(--muted)}
+  .dash-table td.ex-del{grid-area:x;margin-top:3px;text-align:right!important;font-size:12.5px}
+  /* 메모는 있을 때만 자리를 차지한다 */
+  .dash-table td.ex-memo{grid-area:m;font-size:12.5px;color:var(--muted);word-break:break-word}
+  .dash-table td.ex-memo:not(:empty){margin-top:6px}
+  .dash-table td.ex-memo:empty{display:none}
+}
 .pr-sum{border:1.5px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:14px;background:var(--accent-wash)}
 /* ── 정산 내역서 (원장 지시 2026-09-03) ─────────────────────────────
    선생님이 로그인해서 본인 것을 보고, 그대로 인쇄하거나 PDF 로 저장한다. */
@@ -12341,18 +12401,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var rows = r.data || [];
     if(!rows.length){ box.innerHTML = '<div class="dash-note">' + esc(m) + ' 에 적힌 지출이 없습니다.</div>'; return; }
     var tot = rows.reduce(function(s, x){ return s + (x.amount || 0); }, 0);
-    var h = '<table class="dash-table"><tr><th>쓴 날</th><th>분류</th><th>어디에</th>'
+    var h = '<div class="dash-wrap"><table class="dash-table"><tr><th>쓴 날</th><th>분류</th><th>어디에</th>'
           + '<th>금액</th><th>결제</th><th>메모</th><th></th></tr>';
     rows.forEach(function(x){
-      h += '<tr><td style="white-space:nowrap">' + esc(x.spent_on || '') + '</td>'
-         + '<td>' + esc(x.category || '') + '</td>'
-         + '<td>' + esc(x.vendor || '-') + '</td>'
-         + '<td style="white-space:nowrap;font-weight:800">' + won(x.amount || 0) + '</td>'
-         + '<td>' + esc(x.method || '-') + '</td>'
-         + '<td>' + esc(x.memo || '') + '</td>'
-         + '<td><a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>';
+      // data-l 은 좁은 화면에서 칸 이름을 앞에 찍는 데 쓴다(표 머리글이 숨으므로).
+      h += '<tr><td data-l="쓴 날" class="ex-date">' + esc(x.spent_on || '') + '</td>'
+         + '<td data-l="분류" class="ex-cat">' + esc(x.category || '') + '</td>'
+         + '<td data-l="어디에" class="ex-who">' + esc(x.vendor || '-') + '</td>'
+         + '<td data-l="금액" class="ex-amt">' + won(x.amount || 0) + '</td>'
+         + '<td data-l="결제" class="ex-pay">' + esc(x.method || '-') + '</td>'
+         + '<td data-l="메모" class="ex-memo">' + esc(x.memo || '') + '</td>'
+         + '<td class="ex-del"><a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>';
     });
-    h += '</table><div class="pr-sum"><div class="pr-sum-row pr-sum-key">'
+    h += '</table></div><div class="pr-sum"><div class="pr-sum-row pr-sum-key">'
        + '<span>' + esc(m) + ' 지출 합계</span><b>' + won(tot) + '</b></div></div>';
     box.innerHTML = h;
     box.querySelectorAll('[data-exdel]').forEach(function(a){
