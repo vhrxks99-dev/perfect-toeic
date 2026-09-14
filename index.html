@@ -14969,7 +14969,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var pr=[];
       if(sb){ var r2=await sb.from('payments').select('*').eq('student_id',profile.id).order('month',{ascending:false}); if(!r2.error&&r2.data) pr=r2.data; }
       if(!pr.length){ $('mypayTable').innerHTML='<tr><td class="wa-empty">결제 내역이 없습니다.</td></tr>'; }
-      else { var h2='<tr class="hw-head"><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td data-l="월">'+esc(p.month)+'</td><td data-l="금액" style="white-space:nowrap">'+won(p.amount)+'</td><td data-l="수단">'+esc(methodLabel(p))+'</td><td data-l="결제일">'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
+      // 🚨 학생에게는 **실제로 낸 돈**을 보인다. payments.amount 는 부가세를 뺀
+      //    금액이라(강사 배분 기준) 그대로 찍으면 58만원 낸 학생에게 527,273원이
+      //    보인다 (2026-09-14 원장님 지적). 앱도 같이 고쳤다.
+      else { var h2='<tr class="hw-head"><th>월</th><th>금액</th><th>수단</th><th>결제일</th></tr>'; pr.forEach(function(p){ h2+='<tr><td data-l="월">'+esc(p.month)+'</td><td data-l="금액" style="white-space:nowrap">'+won((p.amount||0)+(p.vat||0))+'</td><td data-l="수단">'+esc(methodLabel(p))+'</td><td data-l="결제일">'+esc(p.paid_at||'-')+'</td></tr>'; }); $('mypayTable').innerHTML=h2; }
     }
     if($('myPass')){
       // 차감 기준은 '수업이 잡혔는지'다(2026-08-08). 출석은 참고로만 보여준다.
