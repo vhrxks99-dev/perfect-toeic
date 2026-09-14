@@ -5783,7 +5783,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
       <label id="waEPairWrap">2:1 짝 <span style="color:var(--muted);font-weight:600;font-size:12px">(짝을 정하면 한 명이 예약할 때 둘 다 잡힙니다)</span><select id="waEPair"><option value="">짝 없음</option></select><span id="waEPairHint" style="font-weight:600;font-size:12px;color:var(--muted)">담당 선생님과 수업 형태(대면·비대면)가 같은 학생만 고를 수 있습니다.</span></label>
       <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">매니저</option><option value="master">원장님</option></select></label>
-      <label id="waERateWrap" style="display:none">강사 배분율(%)<input type="number" id="waERate" min="0" max="100" step="0.1" placeholder="50"><span style="font-weight:600;font-size:12px;color:var(--muted)">이 강사가 맡은 학생 매출에서 가져가는 비율입니다. 여기서 원천징수 3.3%를 뗀 금액이 실지급액이 됩니다.</span></label>
+      <label id="waERateWrap" style="display:none">강사 배분율(%)<input type="number" id="waERate" min="0" max="100" step="0.1" placeholder="50"><span style="font-weight:600;font-size:12px;color:var(--muted)">이 강사가 맡은 학생 매출에서 가져가는 비율입니다. 여기서 아래 원천징수를 뗀 금액이 실지급액이 됩니다.</span></label>
+      <!-- 원천징수는 사람마다 다르다(2026-09-14 원장님 — 대표 두 분은 0%).
+           전에는 3.3 이 붙박이라 수납을 등록할 때마다 손으로 지우고 0 을 넣으셔야 했다. -->
+      <label id="waEWithholdWrap" style="display:none">원천징수(%)<input type="number" id="waEWithhold" min="0" max="100" step="0.1" placeholder="3.3"><span style="font-weight:600;font-size:12px;color:var(--muted)">사업소득 원천징수율입니다. 대표는 0 으로 둡니다. 수납을 등록할 때 이 값이 자동으로 들어갑니다.</span></label>
       <p class="wa-err" id="waEErr"></p>
       <button class="btn btn-primary" id="waESave" type="button">저장</button>
     </div>
@@ -6356,10 +6359,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // → 남의 배분율은 값 자체가 브라우저에 오지 않는다.
     if(sb){
       try{
-        var rr=await sb.from('teacher_rates').select('teacher_id,pay_rate');
+        // 원천징수도 사람마다 다르다(2026-09-14 원장님 — 두 대표님은 0%).
+        // 🚨 칸이 아직 없는 DB 면 배분율만 가져온다. 화면이 깨지면 안 된다.
+        var rr=await sb.from('teacher_rates').select('teacher_id,pay_rate,withhold_rate');
+        if(rr.error && /withhold_rate/.test(rr.error.message||'')){
+          rr=await sb.from('teacher_rates').select('teacher_id,pay_rate');
+        }
         if(!rr.error && rr.data){
-          var rmap={}; rr.data.forEach(function(x){ rmap[x.teacher_id]=Number(x.pay_rate); });
-          m.forEach(function(u){ if(rmap[u.id]!=null) u.pay_rate=rmap[u.id]; });
+          var rmap={}, wmap={};
+          rr.data.forEach(function(x){
+            rmap[x.teacher_id]=Number(x.pay_rate);
+            if(x.withhold_rate!=null) wmap[x.teacher_id]=Number(x.withhold_rate);
+          });
+          m.forEach(function(u){
+            if(rmap[u.id]!=null) u.pay_rate=rmap[u.id];
+            if(wmap[u.id]!=null) u.withhold_rate=wmap[u.id];
+          });
         }
       }catch(e){}
     }
@@ -7304,6 +7319,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // ---- 회원 수정/삭제 (마스터 전용) ----
   var editingId=null, editingRole='student', editingTeacher='', editingRate=50;
+  // 원천징수도 바뀌었을 때만 보내려고 원래 값을 들고 있는다(2026-09-14).
+  var editingWh=3.3;
   var editingPair = '';   // 창을 열 때 읽어 둔 현재 짝
   if($('waTable')) $('waTable').addEventListener('click', function(e){
     var g=(e.target && e.target.closest)?e.target.closest('a[data-goal-for]'):null;
@@ -7452,6 +7469,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
     editingRate=(u.pay_rate!=null)?Number(u.pay_rate):50;
     if($('waERate')) $('waERate').value=editingRate;
+    editingWh=(u.withhold_rate!=null)?Number(u.withhold_rate):3.3;
+    if($('waEWithhold')) $('waEWithhold').value=editingWh;
     toggleRateField();
     $('waEdit').classList.add('on');
   }
@@ -7459,7 +7478,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function toggleRateField(){
     if(!$('waERateWrap')) return;
     var r=$('waERole')?$('waERole').value:'';
-    $('waERateWrap').style.display=(r==='admin'||r==='master')?'':'none';
+    var on=(r==='admin'||r==='master');
+    $('waERateWrap').style.display=on?'':'none';
+    if($('waEWithholdWrap')) $('waEWithholdWrap').style.display=on?'':'none';
   }
   if($('waERole')) $('waERole').addEventListener('change', toggleRateField);
   // 회원 탈퇴 처리 — 로그인 계정까지 지운다.
@@ -7534,6 +7555,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var newRate=parseFloat($('waERate')?$('waERate').value:'');
       if(isNaN(newRate)||newRate<0||newRate>100){ $('waEErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
       if(newRate!==editingRate){ var rp=await sb.rpc('set_pay_rate',{target:editingId,rate:newRate}); if(rp.error){ $('waEErr').textContent='배분율 변경 실패: '+rp.error.message; return; } }
+      // 원천징수 (2026-09-14). 🚨 바뀌었을 때만 보낸다 — 안 바뀐 값을 매번 보내면
+      //    원장님이 아닌 사람이 저장할 때마다 권한 오류가 난다.
+      var newWh=parseFloat($('waEWithhold')?$('waEWithhold').value:'');
+      if(isNaN(newWh)||newWh<0||newWh>100){ $('waEErr').textContent='원천징수는 0에서 100 사이로 넣어주세요.'; return; }
+      if(newWh!==editingWh){
+        var rpw=await sb.rpc('set_withhold_rate',{target:editingId,rate:newWh});
+        if(rpw.error){ $('waEErr').textContent='원천징수 변경 실패: '+rpw.error.message; return; }
+      }
     }
     // 차량번호 — 바뀌었을 때만 보낸다. 🚨 profiles update 에 실으면 칸 권한에 막힌다.
     if($('waECar') && $('waECarWrap') && $('waECarWrap').style.display!=='none'){
@@ -12043,6 +12072,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var t=(_members||[]).filter(function(m){return m.id===id;})[0];
     return (t && t.pay_rate!=null) ? Number(t.pay_rate) : DEFAULT_PAY_RATE;
   }
+  // 이 사람의 원천징수율. 대표님은 0 이다(2026-09-14 원장님 지시).
+  // 🚨 모르면 3.3 으로 둔다 — 예전과 같은 값이라 더 나빠지지 않는다.
+  function teacherWithhold(id){
+    var t=(_members||[]).filter(function(m){return m.id===id;})[0];
+    return (t && t.withhold_rate!=null) ? Number(t.withhold_rate) : DEFAULT_WITHHOLD;
+  }
   // 환불 건은 금액을 빼는 방향으로 센다. DB에는 항상 양수로 저장하고 kind 로만 구분한다.
   function isRefund(p){ return p && p.kind==='refund'; }
   // 환불 계산기가 일부러 담당을 뗀 줄. 이건 '빠뜨린 것'이 아니라 '뗀 것'이라
@@ -12212,14 +12247,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var keep   = totalAmt - refund;                 // 학원이 쥐는 돈
 
     // 강사 몫은 '한 수업'만. 배분율은 그 학생 결제에 박혀 있는 값을 쓴다.
-    var rate = null, tname = '';
+    var rate = null, tname = '', tid = '';
     for(var i=0;i<_rfRows.length;i++){
-      if(_rfRows[i].teacher_id){ rate=Number(_rfRows[i].pay_rate); tname=_rfRows[i].teacher_name||''; break; }
+      if(_rfRows[i].teacher_id){
+        rate=Number(_rfRows[i].pay_rate); tname=_rfRows[i].teacher_name||'';
+        tid=_rfRows[i].teacher_id;
+        break;
+      }
     }
     if(rate==null || isNaN(rate)) rate = DEFAULT_PAY_RATE;
     var teachBase  = Math.round(per*done);          // 한 수업의 수업료
     var teachGross = Math.round(teachBase*rate/100);
-    var wh = DEFAULT_WITHHOLD;
+    // 🚨 전에는 3.3 이 못 박혀 있어서, 원천징수를 안 떼는 대표님 건도 3.3% 를
+    //    뗀 금액이 적혔다(2026-09-14 원장님 지적). 그 사람 값으로 읽는다.
+    var wh = tid ? teacherWithhold(tid) : DEFAULT_WITHHOLD;
     var teachNet = teachGross - Math.round(teachGross*wh/100);
     var academy  = keep - teachGross;
 
@@ -12246,7 +12287,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     + '학원이 쥐는 돈 '+won(keep)+' = '
       + (tname? esc(tname)+' 선생님 ' : '강사 ')+won(teachGross)+' ('+done+'회 × '+won(Math.round(per))+' × '+rate+'%)'
       + ' + 학원 '+won(academy)+'<br>'
-    + '<span style="color:var(--muted);font-size:12.5px">선생님 실지급은 원천징수 '+wh+'% 떼고 '+won(teachNet)+'입니다.</span>'
+    + '<span style="color:var(--muted);font-size:12.5px">'
+      + (wh ? ('선생님 실지급은 원천징수 '+wh+'% 떼고 '+won(teachNet)+'입니다.')
+            : ('선생님 실지급은 '+won(teachNet)+'입니다. (원천징수 없음)'))
+      + '</span>'
     + ((_rfFuture && _rfFuture.length)
         ? '<div style="margin-top:8px">앞으로 잡혀 있는 수업 <b>'+_rfFuture.length+'회</b> — 등록하면 <b>휴강으로 바꿔 강의장을 비웁니다.</b></div>'
         : '<div style="margin-top:8px;color:var(--muted)">앞으로 잡혀 있는 수업은 없습니다.</div>')
@@ -12801,6 +12845,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function syncPayRate(){
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     if($('pyRate')) $('pyRate').value = tid ? teacherRate(tid) : '';
+    // 원천징수도 그 사람 값으로 채운다(2026-09-14). 전에는 3.3 이 붙박이라
+    // 대표님 건마다 손으로 지우고 0 을 넣으셔야 했다.
+    if($('pyWithhold')) $('pyWithhold').value = tid ? teacherWithhold(tid) : DEFAULT_WITHHOLD;
     drawPayPreview();
   }
   function drawPayPreview(){
@@ -13035,7 +13082,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + (s.fee?(' − 카드수수료 '+s.feeRate+'% <b>'+won(s.fee)+'</b>'):'')
       + ' − 원천징수 '+s.wh+'% <b>'+won(s.tax)+'</b> = 실지급 <b style="color:var(--accent)">'+won(s.net)+'</b>';
   }
-  if($('pyeTeacher')) $('pyeTeacher').onchange=function(){ if($('pyeRate')) $('pyeRate').value=this.value?teacherRate(this.value):''; drawPayEditPreview(); };
+  if($('pyeTeacher')) $('pyeTeacher').onchange=function(){
+    if($('pyeRate')) $('pyeRate').value=this.value?teacherRate(this.value):'';
+    // 담당을 바꾸면 원천징수도 그 사람 값으로 따라간다(2026-09-14).
+    if($('pyeWithhold')) $('pyeWithhold').value=this.value?teacherWithhold(this.value):DEFAULT_WITHHOLD;
+    drawPayEditPreview();
+  };
   ['pyeAmount','pyeRate','pyeWithhold'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayEditPreview); });
   // 고칠 때도 '포함가에서 빼기' 를 쓸 수 있게 한다(입력창과 같은 계산).
   if($('pyeVatIncl')) $('pyeVatIncl').onclick=function(e){
