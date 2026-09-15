@@ -5963,8 +5963,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 카카오에 '닉네임과 이메일을 달라'고 명시해서 부른다.
     // 2026-08-22 카카오 개발자센터에서 이메일을 '필수 동의'로 바꿔놨으므로,
     // 학생이 거부할 수 없고 카카오계정에 이메일이 없으면 그 자리에서 등록하게 된다.
-    // (이름·전화번호는 아직 '권한 없음' — 카카오 심사가 끝나면 여기 scopes 에 name, phone_number 를 더한다)
-    var r=await sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email', redirectTo: window.location.origin + window.location.pathname } });
+    // 🚨 이름·전화번호는 2026-09-15 카카오 심사 승인 뒤 켰다.
+    //    콘솔(앱 1487276)에서도 「필수 동의」여야 값이 온다 —
+    //    한쪽만 켜면 「동의받지 않은 항목」이라며 막힌다.
+    var r=await sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email name phone_number', redirectTo: window.location.origin + window.location.pathname } });
     if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
   };
   renderAuth();
@@ -7630,7 +7632,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 카카오 간편로그인 (활성 인증 블록)
   if($('waKakao')) $('waKakao').onclick=async function(){
     if(!window.sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
-    var r=await window.sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email', redirectTo: window.location.origin + window.location.pathname } });
+    var r=await window.sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email name phone_number', redirectTo: window.location.origin + window.location.pathname } });
     if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
   };
 
