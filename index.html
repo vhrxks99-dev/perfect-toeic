@@ -5906,6 +5906,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     setSession({email:u.email,name:u.name,role:u.role}); closeModal(); $('waLoginForm').reset();
   });
 
+  // 카카오가 준 이름·전화번호를 잠깐 들고 있는다 (2026-09-15).
+  // 🚨 user_metadata 는 **세션에만** 있다. profiles 에는 안 들어온다.
+  //    「필수 정보 입력」 창을 채울 때 쓰려고 여기서 받아 둔다.
+  window._kkMeta = window._kkMeta || {};
+  (async function(){
+    try{
+      if(!window.sb) return;
+      var r = await window.sb.auth.getSession();
+      var u = r && r.data && r.data.session && r.data.session.user;
+      if(u && u.user_metadata) window._kkMeta = u.user_metadata;
+    }catch(e){}
+  })();
+
   function renderAuth(){
     var s=session();
     var a=$('waAuth');
@@ -6247,11 +6260,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!p || p.role!=='student') return false;
     return !!(badName(p.name) || badEmail(p.email) || badPhone(p.phone));
   }
+  // 카카오가 준 전화번호를 우리 꼴로 (2026-09-15).
+  // 🚨 카카오는 '+82 10-1234-5678' 로 준다. 앞의 +82 를 0 으로 되돌린다.
+  function kakaoPhone(v){
+    if(!v) return '';
+    var s = String(v).replace(/[^0-9+]/g, '');
+    if(s.indexOf('+82') === 0) s = '0' + s.slice(3);
+    if(s.length === 11) return s.slice(0,3)+'-'+s.slice(3,7)+'-'+s.slice(7);
+    if(s.length === 10) return s.slice(0,3)+'-'+s.slice(3,6)+'-'+s.slice(6);
+    return s;
+  }
+
   function openNeedInfo(p){
     if(!$('waNeedInfo')) return;
-    $('waNiName').value  = (p.name && p.name!=='회원') ? p.name : '';
+    // 카카오로 들어왔으면 그 값으로 미리 채운다 (2026-09-15).
+    // 🚨 **적어 둔 값이 먼저다.** 카카오 값은 빈칸일 때만 들어간다 —
+    //    원장님이 고쳐 둔 이름을 카카오 닉네임이 밀어내면 안 된다.
+    var k = window._kkMeta || {};
+    $('waNiName').value  = (p.name && p.name!=='회원') ? p.name : (k.name || '');
     $('waNiEmail').value = p.email || '';
-    $('waNiPhone').value = p.phone || '';
+    $('waNiPhone').value = p.phone || kakaoPhone(k.phone_number);
     $('waNiErr').textContent='';
     $('waNeedInfo').classList.add('on');
   }
