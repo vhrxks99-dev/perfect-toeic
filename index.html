@@ -15477,7 +15477,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var date=$('waBookDate')?$('waBookDate').value:'';
     if(!date){ box.innerHTML='<div class="wa-book-empty">날짜를 선택해주세요.</div>'; return; }
     box.innerHTML='<div class="wa-book-empty">불러오는 중…</div>';
-    var r=await sb.rpc('free_slots',{p_date:date});
+    // 🚨 둘러보기 중이면 `profile` 이 그 학생이다. 학생 id 를 같이 보내야
+    //    그 학생의 담당 선생님 기준으로 나온다 (2026-09-16 원장님 지적).
+    //    안 보내면 원장님 빈 시간이 뜬다. 서버가 권한을 확인하므로 안전하다.
+    var r=await sb.rpc('free_slots',{p_date:date,p_student:(profile&&profile.id)||null});
     if(r.error){ box.innerHTML='<div class="wa-book-empty">불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>'; return; }
     var d=r.data||{};
     if(d.error==='no_teacher'){ box.innerHTML='<div class="wa-book-empty">담당 선생님 배정 후 예약할 수 있어요.<br>카카오톡 채널로 문의해주세요.</div>'; if($('waBookSub')) $('waBookSub').textContent='담당 선생님 배정 후 이용할 수 있어요.'; return; }
@@ -15507,10 +15510,26 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var _real = window.WT_REAL_PROFILE;
     var _staff = !!(_real && ['master','admin','manager'].indexOf(_real.role) >= 0);
     if(left===0 && !_staff){
-      box.innerHTML='<div class="wa-book-empty" style="color:#c0342b;font-weight:700;line-height:1.8">'
-        + '지금은 예약할 수 없어요.<br>'
-        + '<span style="font-weight:600;color:var(--ink-soft)">남은 수업 횟수가 없거나, 이미 4건을 잡아두셨습니다.<br>'
-        + '카카오톡 채널로 문의해주세요.</span></div>';
+      // 🚨 막힌 까닭이 둘인데 한 문장으로 뭉쳐 두었더니 학생이 무엇을 해야 할지 몰랐다
+      //    (2026-09-16 원장 지시). 남은 수업 횟수를 따로 물어 갈라서 말해 준다.
+      var _sess=null;
+      try{ var sr=await sb.rpc('sessions_left',{p_student:profile.id}); if(!sr.error) _sess=sr.data; }catch(e){}
+      if(_sess!==null && _sess<=0){
+        box.innerHTML='<div class="wa-book-empty" style="color:#c0342b;font-weight:700;line-height:1.8">'
+          + '수업 횟수를 모두 쓰셨어요.<br>'
+          + '<span style="font-weight:600;color:var(--ink-soft)">수업료를 결제하시면 <b>8회</b>가 추가되고,<br>'
+          + '그때 수업을 다시 잡을 수 있어요.</span><br>'
+          + '<button type="button" class="btn btn-primary" id="waBookToPay" style="margin-top:12px">결제 내역 보러 가기</button>'
+          + '</div>';
+        var _pb=$('waBookToPay');
+        // 🚨 예약 창을 닫고 「내 학습」을 연다. 안 닫으면 두 창이 겹친다.
+        if(_pb) _pb.onclick=function(){ if($('waBooking')) $('waBooking').classList.remove('on'); openLearn(); };
+      }else{
+        box.innerHTML='<div class="wa-book-empty" style="color:#c0342b;font-weight:700;line-height:1.8">'
+          + '이미 4건을 잡아두셨어요.<br>'
+          + '<span style="font-weight:600;color:var(--ink-soft)">수업은 한 번에 <b>4건</b>까지 잡을 수 있어요.<br>'
+          + '잡아 둔 수업은 아래 「내 예약」에 있습니다.</span></div>';
+      }
       return;
     }
     var slots=d.slots||[];
@@ -15650,7 +15669,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var date=$('waSCDate')?$('waSCDate').value:'';
     if(!date){ box.innerHTML='<div class="sc-hint">날짜를 골라주세요.</div>'; return; }
     box.innerHTML='<div class="sc-hint">불러오는 중…</div>';
-    var r=await sb.rpc('free_slots',{p_date:date});
+    // 🚨 둘러보기 중이면 `profile` 이 그 학생이다. 학생 id 를 같이 보내야
+    //    그 학생의 담당 선생님 기준으로 나온다 (2026-09-16 원장님 지적).
+    //    안 보내면 원장님 빈 시간이 뜬다. 서버가 권한을 확인하므로 안전하다.
+    var r=await sb.rpc('free_slots',{p_date:date,p_student:(profile&&profile.id)||null});
     if(r.error){ box.innerHTML='<div class="sc-hint">불러오지 못했어요.</div>'; return; }
     var d=r.data||{}, slots=(d.slots||[]).filter(function(x){ return x.available; });
     if(!slots.length){ box.innerHTML='<div class="sc-hint">이 날은 빈 시간이 없습니다. 다른 날짜를 골라주세요.</div>'; return; }
