@@ -5366,6 +5366,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div id="attDue" class="dash-note" style="margin-top:8px;display:none"></div>
       <!-- 선생님은 본인 담당 학생만 보인다. 원장님·매니저만 이 칸으로 선생님을 골라 본다(2026-08-12 원장 지시). -->
       <div class="mem-filters" style="margin:10px 0 2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <!-- 곧 결제 / 전체 토글 (2026-09-16 원장 지시). 곧 결제가 기본. -->
+        <div id="attTabs" style="display:inline-flex;gap:4px">
+          <button type="button" class="att-tab on" data-atttab="due" style="padding:9px 14px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:13.5px;font-weight:800;background:var(--accent);color:#fff;cursor:pointer">곧 결제</button>
+          <button type="button" class="att-tab" data-atttab="all" style="padding:9px 14px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:13.5px;font-weight:800;background:var(--surface);color:var(--ink);cursor:pointer">전체</button>
+        </div>
         <select id="attTeacherFilter" style="display:none;padding:9px 12px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:13.5px;background:var(--surface);color:var(--ink);font-weight:700"></select>
         <input id="attSearch" type="search" placeholder="🔍 학생 이름 검색" autocomplete="off" style="flex:1;min-width:200px;max-width:320px;padding:10px 13px;border:1.5px solid var(--line-strong);border-radius:10px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)">
         <span id="attScopeNote" class="wa-hint"></span>
@@ -13754,6 +13759,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     var byName=function(list){ return q?list.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):list; };
     var fst=byName(live), fend=byName(done);
+    // 곧 결제 탭이면 남은 1회 이하만, 급한 순(적은 것 먼저 -> 이름) (2026-09-16).
+    if(window.__attTab!=='all'){
+      fst=fst.filter(function(s){ return remainOf(s.id)<=1; })
+             .sort(function(a,b){ return (remainOf(a.id)-remainOf(b.id))
+                                       || (a.name||'').localeCompare(b.name||'','ko'); });
+    }
     var adjSum=window.__wtAdjSum||{};
     // '잡힌 수업'이 차감의 근거다. 결석도 그 안에 들어 있고(안 왔어도 자리는 썼다),
     // 휴강은 빠져 있다. 두 숫자는 선생님이 달력에서 표시한 결과를 그대로 보여준다.
@@ -13786,7 +13797,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!live.length){ $('attTable').innerHTML='<tr><td class="wa-empty">'
       + (isOps() ? '해당하는 학생이 없습니다.' : '담당 학생이 없습니다. 회원 관리에서 학생을 내 담당으로 가져오세요.')
       + '</td></tr>'; }
-    else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">검색 결과가 없습니다.</td></tr>'; }
+    else if(!fst.length){ $('attTable').innerHTML='<tr><td class="wa-empty">'
+      + (q ? '검색 결과가 없습니다.' : (window.__attTab!=='all' ? '곧 결제할 학생이 없습니다.' : '학생이 없습니다.'))
+      + '</td></tr>'; }
     else { $('attTable').innerHTML=attRows(fst, true); }
     // 종료 학생은 횟수를 더 조정할 일이 없으므로 ＋／－ 버튼은 빼고 숫자만 보여준다.
     if($('attEndedBox')){
@@ -13924,6 +13937,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   });
 
   if($('attReload')) $('attReload').onclick=loadAttendance;
+  // 곧 결제 / 전체 토글 (2026-09-16). 기본은 곧 결제.
+  if(window.__attTab===undefined) window.__attTab='due';
+  if($('attTabs')) $('attTabs').addEventListener('click', function(e){
+    var b=e.target && e.target.closest ? e.target.closest('[data-atttab]') : null;
+    if(!b) return;
+    window.__attTab=b.getAttribute('data-atttab');
+    [].forEach.call($('attTabs').querySelectorAll('.att-tab'), function(x){
+      var on=x===b;
+      x.classList.toggle('on', on);
+      x.style.background = on ? 'var(--accent)' : 'var(--surface)';
+      x.style.color = on ? '#fff' : 'var(--ink)';
+    });
+    drawAtt();
+  });
   if($('attSearch')) $('attSearch').addEventListener('input', drawAtt);
   if($('attTeacherFilter')) $('attTeacherFilter').addEventListener('change', drawAtt);
   if($('attHistTable')) $('attHistTable').addEventListener('click', async function(e){
