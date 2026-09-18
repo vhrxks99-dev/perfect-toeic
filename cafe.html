@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>작은카페 × 완벽한토익 · 무료음료 사용내역</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{ --orange:#F2A92A; --blue:#2F6BE8; --ink:#1A1A1F; --muted:#6E6E78; --line:#EAE7E3; --soft:#F5F5F5; }
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--soft);color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,system-ui,"Malgun Gothic",sans-serif;
+    line-height:1.6;letter-spacing:-.01em;}
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 60px;}
+  .top{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 0 18px;}
+  .top b{font-size:18px;font-weight:800;}
+  .top .x{color:var(--muted);}
+  .card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 16px;margin-bottom:14px;}
+
+  /* 비밀번호 화면 */
+  .gate{margin-top:40px;text-align:center;}
+  .gate h1{font-size:20px;font-weight:800;}
+  .gate p{color:var(--muted);font-size:14px;margin-top:6px;}
+  .gate input{margin-top:20px;width:200px;text-align:center;font-size:26px;font-weight:800;letter-spacing:10px;
+    padding:12px 0;border:2px solid var(--blue);border-radius:14px;background:#fff;color:var(--ink);}
+  .gate button{margin-top:14px;width:200px;display:block;margin-left:auto;margin-right:auto;
+    background:var(--blue);color:#fff;border:0;border-radius:999px;padding:13px;font-size:16px;font-weight:800;cursor:pointer;}
+  .err{margin-top:12px;color:#D2483C;font-size:14px;font-weight:700;}
+  .hide{display:none;}
+
+  /* 숫자 카드 3개 */
+  .stats{display:flex;gap:10px;margin-bottom:14px;}
+  .stat{flex:1;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 8px;text-align:center;}
+  .stat .n{font-size:30px;font-weight:900;color:var(--blue);line-height:1.1;}
+  .stat.today .n{color:var(--orange);}
+  .stat .l{font-size:12.5px;color:var(--muted);margin-top:4px;font-weight:700;}
+
+  .sect-t{font-size:14px;font-weight:800;color:var(--ink);margin:2px 0 10px;}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px;}
+  .row:last-child{border-bottom:0;}
+  .row .r{color:var(--muted);font-weight:700;}
+  .muted-empty{color:var(--muted);font-size:14px;text-align:center;padding:14px 0;}
+  .refresh{width:100%;background:#fff;border:1px solid var(--line);border-radius:999px;padding:12px;font-size:14.5px;font-weight:800;color:var(--muted);cursor:pointer;margin-top:6px;}
+  .foot{text-align:center;color:#B4B4BE;font-size:12px;margin-top:22px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><b>작은카페</b><span class="x">×</span><b>완벽한토익</b></div>
+
+  <!-- 비밀번호 화면 -->
+  <div id="gate" class="gate">
+    <h1>무료음료 사용내역</h1>
+    <p>작은카페 확인용 비밀번호 4자리를 넣어 주세요</p>
+    <input id="pw" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off">
+    <button id="go">확인</button>
+    <div id="err" class="err hide">비밀번호가 달라요. 다시 넣어 주세요.</div>
+  </div>
+
+  <!-- 내역 화면 -->
+  <div id="panel" class="hide">
+    <div class="stats">
+      <div class="stat today"><div class="n" id="s-today">0</div><div class="l">오늘</div></div>
+      <div class="stat"><div class="n" id="s-month">0</div><div class="l">이번 달</div></div>
+      <div class="stat"><div class="n" id="s-total">0</div><div class="l">전체</div></div>
+    </div>
+
+    <div class="card">
+      <div class="sect-t">날짜별 (최근 31일)</div>
+      <div id="byday"></div>
+    </div>
+
+    <div class="card">
+      <div class="sect-t">최근 사용</div>
+      <div id="recent"></div>
+    </div>
+
+    <button id="refresh" class="refresh">새로고침</button>
+    <div class="foot">완벽한토익 수강생 무료음료 · 정산용</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  var SB_URL = "https://guaqfsuwrvqjffmbiwpw.supabase.co";
+  var SB_KEY = "sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C";
+  var sb = window.supabase.createClient(SB_URL, SB_KEY);
+  var LS = "cafe_owner_pw";
+
+  var $ = function(id){ return document.getElementById(id); };
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+
+  async function load(pw){
+    var res;
+    try{ res = await sb.rpc('cafe_owner_report', { p_pw: pw }); }
+    catch(e){ res = { error: e }; }
+    if(res.error || !res.data || res.data.ok !== true){
+      return false;
+    }
+    var d = res.data;
+    $('s-today').textContent = d.today || 0;
+    $('s-month').textContent = d.this_month || 0;
+    $('s-total').textContent = d.total || 0;
+
+    var bd = d.by_day || [];
+    $('byday').innerHTML = bd.length
+      ? bd.map(function(x){ return '<div class="row"><span>'+esc(x.day)+'</span><span class="r">'+esc(x.cnt)+'잔</span></div>'; }).join('')
+      : '<div class="muted-empty">아직 사용 내역이 없어요</div>';
+
+    var rc = d.recent || [];
+    $('recent').innerHTML = rc.length
+      ? rc.map(function(x){ return '<div class="row"><span>'+esc(x.name)+'</span><span class="r">'+esc(x.at)+'</span></div>'; }).join('')
+      : '<div class="muted-empty">아직 사용 내역이 없어요</div>';
+    return true;
+  }
+
+  async function tryOpen(pw){
+    var ok = await load(pw);
+    if(ok){
+      try{ localStorage.setItem(LS, pw); }catch(e){}
+      $('gate').classList.add('hide');
+      $('panel').classList.remove('hide');
+    }else{
+      $('err').classList.remove('hide');
+      $('pw').value = '';
+    }
+  }
+
+  $('go').onclick = function(){ var v=($('pw').value||'').replace(/[^0-9]/g,''); if(v.length===4) tryOpen(v); };
+  $('pw').addEventListener('keydown', function(e){ if(e.key==='Enter') $('go').click(); });
+  $('pw').addEventListener('input', function(){ $('err').classList.add('hide'); });
+  $('refresh').onclick = function(){ var pw; try{ pw=localStorage.getItem(LS); }catch(e){} if(pw) load(pw); };
+
+  // 이전에 넣었으면 자동으로 열기
+  (function(){
+    var pw; try{ pw = localStorage.getItem(LS); }catch(e){}
+    if(pw){ tryOpen(pw); }
+  })();
+</script>
+</body>
+</html>
