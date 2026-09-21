@@ -3755,6 +3755,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       </div>
       <p class="wa-match" id="waPwMatch" aria-live="polite"></p>
       <label>휴대폰 번호 <em>*</em><input type="tel" id="waSuPhone" required maxlength="30" placeholder="010-1234-5678"></label>
+      <!-- 휴대폰 문자 인증 (2026-09-21). 인증을 마쳐야 가입된다. -->
+      <div id="waPhoneVerify" style="margin:-2px 0 8px">
+        <button type="button" class="btn" id="waSuSendCode" style="padding:8px 14px">인증번호 전송</button>
+        <span id="waPhoneOk" style="display:none;color:#16a34a;font-weight:800;font-size:13px;margin-left:8px">✓ 인증 완료</span>
+        <div id="waCodeRow" style="display:none;gap:8px;margin-top:8px">
+          <input type="text" id="waSuCode" inputmode="numeric" maxlength="6" placeholder="문자로 받은 6자리 인증번호" style="flex:1">
+          <button type="button" class="btn btn-primary" id="waSuVerify" style="padding:8px 16px;white-space:nowrap">확인</button>
+        </div>
+        <p class="wa-hint" id="waPhoneMsg" aria-live="polite" style="margin-top:4px"></p>
+      </div>
       <div class="wa-row">
         <label>생년월일 <span class="wa-hint">(6자리)</span><input type="text" id="waSuBirth" maxlength="6" inputmode="numeric" placeholder="예: 940107"></label>
         <label>성별<select id="waSuGender"><option value="">선택 안 함</option><option>남성</option><option>여성</option></select></label>
@@ -6056,6 +6066,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var badv = badName(name)||badEmail(email)||badPhone(phone);
     if(badv){ err.textContent=badv; return; }
     phone = fmtPhone(phone);
+    // 휴대폰 문자 인증을 마쳤는지 (2026-09-21). 인증한 번호와 지금 번호가 같아야 한다.
+    if(!window.__waPhoneVerified || window.__waVerifiedPhone!==phone){
+      err.textContent='휴대폰 인증을 완료해 주세요. (인증번호 전송 → 확인)'; return;
+    }
     if(pw.length<6){ err.textContent='비밀번호는 6자 이상이어야 합니다.'; return; }
     if(pw!==pw2){ err.textContent='비밀번호가 일치하지 않습니다.'; return; }
     if(!$('waSuAgree').checked){ err.textContent='개인정보 수집·이용에 동의해주세요.'; return; }
@@ -6098,8 +6112,59 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 폼을 비우기 전에 불러야 한다.
     await storeLoginCred(email, pw, true);
     $('waSignupForm').reset(); closeModal(); await refresh();
+    window.__waPhoneVerified=false; window.__waVerifiedPhone='';
     alert(name+'님, 회원가입이 완료되었습니다!'+teacherMsg);
   });
+
+  // ── 휴대폰 문자 인증 (2026-09-21) — 전송/확인 버튼 ────────────
+  window.__waPhoneVerified=false; window.__waVerifiedPhone='';
+  (function(){
+    var sendBtn=$('waSuSendCode'), verifyBtn=$('waSuVerify'),
+        codeRow=$('waCodeRow'), okBadge=$('waPhoneOk'), msg=$('waPhoneMsg'),
+        phoneInp=$('waSuPhone'), codeInp=$('waSuCode');
+    if(!sendBtn||!phoneInp) return;
+    function reset(){
+      window.__waPhoneVerified=false; window.__waVerifiedPhone='';
+      if(okBadge) okBadge.style.display='none';
+      if(codeRow) codeRow.style.display='none';
+      if(msg) msg.textContent=''; if(codeInp) codeInp.value='';
+      phoneInp.readOnly=false; sendBtn.style.display=''; sendBtn.textContent='인증번호 전송';
+    }
+    phoneInp.addEventListener('input', function(){
+      if(window.__waPhoneVerified || (codeRow && codeRow.style.display!=='none')) reset();
+    });
+    sendBtn.addEventListener('click', async function(){
+      if(msg) msg.textContent=''; var phone=fmtPhone(phoneInp.value.trim());
+      if(!phone){ if(msg) msg.textContent='휴대폰 번호를 먼저 입력해 주세요.'; return; }
+      if(!sb){ if(msg) msg.textContent='서버 연결 중입니다. 잠시 후 다시 시도해 주세요.'; return; }
+      sendBtn.disabled=true; var old=sendBtn.textContent; sendBtn.textContent='전송 중…';
+      var r; try{ var res=await sb.functions.invoke('send-phone-code',{body:{phone:phone}}); r=res.data||{ok:false,reason:'server'}; }catch(e){ r={ok:false,reason:'server'}; }
+      sendBtn.disabled=false; sendBtn.textContent=old;
+      if(r&&r.ok){ if(codeRow) codeRow.style.display='flex'; sendBtn.textContent='인증번호 다시 전송';
+        if(msg) msg.textContent='인증번호를 문자로 보냈어요. 3분 안에 입력해 주세요.'; if(codeInp) codeInp.focus(); return; }
+      var rs=r?r.reason:'server';
+      if(msg) msg.textContent = rs==='taken'?'이 번호로 이미 가입된 계정이 있어요. 로그인해 주세요.'
+        : rs==='too_soon'?'방금 보냈어요. 잠시 후 다시 시도해 주세요.'
+        : rs==='rate'?'인증 요청이 너무 많아요. 잠시 후 다시 시도해 주세요.'
+        : rs==='bad_phone'?'휴대폰 번호를 다시 확인해 주세요.'
+        : '문자 발송에 실패했어요. 잠시 후 다시 시도해 주세요.';
+    });
+    if(verifyBtn) verifyBtn.addEventListener('click', async function(){
+      var phone=fmtPhone(phoneInp.value.trim()), code=(codeInp.value||'').replace(/[^0-9]/g,'');
+      if(code.length!==6){ if(msg) msg.textContent='인증번호 6자리를 입력해 주세요.'; return; }
+      verifyBtn.disabled=true; var old=verifyBtn.textContent; verifyBtn.textContent='확인 중…';
+      var r; try{ var res=await sb.rpc('verify_phone_code',{p_phone:phone,p_code:code}); r=res.data||{ok:false,reason:'server'}; }catch(e){ r={ok:false,reason:'server'}; }
+      verifyBtn.disabled=false; verifyBtn.textContent=old;
+      if(r&&r.ok){ window.__waPhoneVerified=true; window.__waVerifiedPhone=phone;
+        if(okBadge) okBadge.style.display=''; if(codeRow) codeRow.style.display='none';
+        sendBtn.style.display='none'; phoneInp.readOnly=true; if(msg) msg.textContent=''; return; }
+      var rs=r?r.reason:'server';
+      if(msg) msg.textContent = rs==='expired'?'인증번호 시간이 지났어요. 다시 전송해 주세요.'
+        : rs==='locked'?'시도 횟수를 초과했어요. 다시 전송해 주세요.'
+        : rs==='none'?'먼저 인증번호를 전송해 주세요.'
+        : '인증번호가 달라요. 다시 확인해 주세요.';
+    });
+  })();
 
   // 브라우저(크롬·엣지·사파리)의 비밀번호 저장소에 로그인 정보를 맡긴다.
   // 이 사이트는 화면을 새로 불러오지 않고 로그인하므로(모달+ajax) 브라우저가 스스로
