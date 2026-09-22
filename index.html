@@ -5252,7 +5252,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                (2026-08-17 최소 횟수 제한 자체를 없앴다 — 4회만 끊는 학생도 있다.) -->
           <!-- 2026-08-25 「환불」을 뺐다(원장 지시). 아래 「🧾 환불 계산기」가 회차·강사 몫까지
                한 번에 처리하는데, 여기서 금액만 손으로 넣으면 그 계산을 건너뛰게 된다. -->
-          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
+          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option></select><select id="pyRentalItem" style="display:none"><option value="보증금">보증금</option><option value="월 대여료">월 대여료</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"></label>
@@ -5773,7 +5773,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-sub" id="pyeStudent"></div>
     <div class="wa-form on" style="display:flex">
       <div class="wa-row">
-        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="refund">환불</option></select></label>
+        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
         <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"></label>
@@ -6700,6 +6700,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
            + '<option value="0"'+(on?'':' selected')+'>불참</option>'
            + '<option value="1"'+(on?' selected':'')+'>참여</option></select></td>';
     }
+    // 태블릿 대여: 어떤 기기를 빌려줬는지 고른다. '없음'이면 대여 안 함. (기기명이 배지로 보인다)
+    function tabletCell(u){
+      if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
+      if(isEnded(u)) return '<td style="color:var(--muted);white-space:nowrap">-</td>';
+      var dev=(u.tablet_device||'').trim();
+      var st=dev?pickStyle('#e6c9a6','#fbf3e8','#a85b12'):pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
+      var opts=['없음','아이패드 에어3','아이패드 에어','아이패드','갤럭시탭 S9 FE','갤럭시탭 S9','갤럭시탭'];
+      if(dev && opts.indexOf(dev)<0) opts.splice(1,0,dev);   // 목록에 없는 기존 기기명도 유지
+      var o=opts.map(function(d){ var val=(d==='없음')?'':d; return '<option value="'+esc(val)+'"'+((val===dev)?' selected':'')+'>'+esc(d)+'</option>'; }).join('');
+      return '<td style="white-space:nowrap"><select data-tablet-for="'+esc(u.id)+'" style="'+st+'">'+o+'</select></td>';
+    }
     // 수업 형태: 대면 / 비대면. 비워두면 '미지정'.
     function modeCell(u){
       if(u.role!=='student') return '<td style="color:var(--muted)">-</td>';
@@ -6771,7 +6782,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var h='<tr>'+sortableTh('name','이름 <span style="font-weight:600;color:var(--muted);font-size:11px">· 이메일 · 연락처</span>')+'<th>관심과목</th>'
       + sortableTh('teacher','담당강사') + sortableTh('role','구분') + sortableTh('lesson_mode','수업형태')
       + '<th>주차 · 강의장</th>'
-      + sortableTh('score','점수·목표') + sortableTh('status','수강상태') + sortableTh('study','스터디') + sortableTh('created_at','가입일')
+      + sortableTh('score','점수·목표') + sortableTh('status','수강상태') + sortableTh('study','스터디') + '<th>태블릿</th>' + sortableTh('created_at','가입일')
       + (mm?'<th>관리</th>':'')+'</tr>';
     function rowOf(u){
       var ctrl = mm ? '<td style="white-space:nowrap"><a class="wa-link" data-act="edit" data-id="'+esc(u.id)+'">수정</a> &nbsp;<a class="wa-link" data-act="del" data-id="'+esc(u.id)+'" style="color:#c0342b">탈퇴</a></td>' : '';
@@ -6781,11 +6792,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +(u.phone?(' · '+esc(u.phone)):'')+'</div></td>';
       // 수강 종료한 학생은 한 톤 죽여서, 섞여 있어도 눈으로 바로 구분되게 한다.
       var cls = (!isStaffRole(u.role) && isEnded(u)) ? ' class="mem-off"' : '';
-      return '<tr'+cls+'>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+parkCell(u)+goalCell(u)+statusCell(u)+studyCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>';
+      return '<tr'+cls+'>'+idCell+'<td>'+esc(u.interest||'-')+'</td>'+tn+'<td style="white-space:nowrap">'+rt(u.role,u)+'</td>'+modeCell(u)+parkCell(u)+goalCell(u)+statusCell(u)+studyCell(u)+tabletCell(u)+'<td style="white-space:nowrap">'+esc((u.created_at||'').slice(0,10))+'</td>'+ctrl+'</tr>';
     }
     // 전체 보기에서 학생과 선생님이 섞여 보이던 것을 묶어서 나눈다(원장 지시 2026-08-09).
     // '학생만'·'선생님만'으로 걸러 본 상태에서는 한 종류뿐이라 구분줄을 넣지 않는다.
-    var cols = mm ? 11 : 10;   // 2026-08-10 '스터디' 칸이 늘어 하나씩 올림
+    var cols = mm ? 12 : 11;   // 2026-08-10 '스터디' 칸 +1, 2026-09-22 '태블릿' 칸 +1
     function groupHead(txt, n){
       return '<tr class="mem-group"><td colspan="'+cols+'">'+txt+' <span class="mem-group-n">'+n+'명</span></td></tr>';
     }
@@ -7458,13 +7469,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var sid=sel.getAttribute('data-status-for'), mid=sel.getAttribute('data-mode-for');
     var pid=sel.getAttribute('data-park-for'), yid=sel.getAttribute('data-yield-for');
     var tid=sel.getAttribute('data-study-for');
-    var id=sid||mid||pid||yid||tid; if(!id) return;
+    var tabid=sel.getAttribute('data-tablet-for');
+    var id=sid||mid||pid||yid||tid||tabid; if(!id) return;
     var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(id);})[0];
     var v=sel.value;
     var prev = sid ? ((u&&u.status==='ended')?'ended':'active')
              : mid ? ((u&&(u.lesson_mode==='online'||u.lesson_mode==='offline'))?u.lesson_mode:'')
              : pid ? ((u&&u.parking)?'1':'')
              : tid ? ((u&&u.study)?'1':'0')
+             : tabid ? ((u&&u.tablet_device)?u.tablet_device:'')
              :       ((u&&u.room_yield)?'1':'');
     if(v===prev) return;
     if(!sb){ sel.value=prev; return; }
@@ -7474,15 +7487,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             : mid ? await sb.rpc('set_lesson_mode',{target:id,new_mode:v})
             : pid ? await sb.rpc('set_student_parking',{target:id,on_off:(v==='1')})
             : tid ? await sb.rpc('set_study',{target:id,on_off:(v==='1')})
+            : tabid ? await sb.rpc('set_tablet_device',{target:id,device:v})
             :       await sb.rpc('set_room_yield',{target:id,on_off:(v==='1')});
     if(r.error){
       // SQL 을 아직 안 돌렸으면 함수가 없다 — 무슨 일인지 알려 준다.
       var msg = (tid && /set_study/.test(String(r.error.message||'')))
         ? '스터디 기능이 아직 없습니다. study.sql 을 먼저 실행해주세요.'
-        : (sid?'수강 상태':mid?'수업 형태':pid?'주차 표시':tid?'스터디':'강의장 양보')+' 변경 실패: '+r.error.message;
+        : (sid?'수강 상태':mid?'수업 형태':pid?'주차 표시':tid?'스터디':tabid?'태블릿 대여':'강의장 양보')+' 변경 실패: '+r.error.message;
       alert(msg); sel.value=prev; return;
     }
-    if(u){ if(sid) u.status=v; else if(mid) u.lesson_mode=(v||null); else if(pid) u.parking=(v==='1'); else if(tid) u.study=(v==='1'); else u.room_yield=(v==='1'); }
+    if(u){ if(sid) u.status=v; else if(mid) u.lesson_mode=(v||null); else if(pid) u.parking=(v==='1'); else if(tid) u.study=(v==='1'); else if(tabid) u.tablet_device=(v||null); else u.room_yield=(v==='1'); }
     drawMembers();
     if(sid) await loadTeacherAlerts();
   });
@@ -13004,6 +13018,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var otTag = (p.kind==='ot') ? ' <span style="font-size:11px;font-weight:800;color:#8a5a00;background:#fff6e5;border-radius:5px;padding:2px 5px">사전 OT</span>' : '';
       // 스터디비용도 딱지를 붙인다 — 수업료와 섞여 보이면 매출을 잘못 읽는다.
       if(p.kind==='study') otTag = ' <span style="font-size:11px;font-weight:800;color:#0a6b4a;background:#e8f6ef;border-radius:5px;padding:2px 5px">스터디</span>';
+      if(p.kind==='rental') otTag = ' <span style="font-size:11px;font-weight:800;color:#a85b12;background:#fbf3e8;border-radius:5px;padding:2px 5px">태블릿 대여</span>';
       h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td class="tb-memo">'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
@@ -13059,11 +13074,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
   // 구분에서 '사전 OT' 를 고르면 6만원 1회를 미리 채워 준다. 매번 손으로 적지 않게.
   if($('pyKind')) $('pyKind').addEventListener('change', function(){
-    if(this.value!=='ot') return;
+    // 태블릿 대여: 보증금/월 대여료 선택칸을 보이고, 회차칸은 잠근다(수업이 아니라서).
+    var isRent = this.value==='rental';
+    if($('pyRentalItem')) $('pyRentalItem').style.display = isRent ? '' : 'none';
+    var sc=$('pySessions'); if(sc){ sc.disabled=isRent; if(isRent) sc.value=''; }
+    if(isRent){
+      var it=$('pyRentalItem')?$('pyRentalItem').value:'태블릿 대여';
+      if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value=it;
+      drawPayPreview(); return;
+    }
+    if(this.value!=='ot'){ drawPayPreview(); return; }
     if($('pyAmount') && !$('pyAmount').value) $('pyAmount').value=60000;
     if($('pySessions') && !$('pySessions').value) $('pySessions').value=1;
     if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value='사전 OT 선결제';
     drawPayPreview();
+  });
+  // 보증금/월 대여료를 바꾸면 메모도 따라 바뀐다(사용자가 따로 안 적었을 때만).
+  if($('pyRentalItem')) $('pyRentalItem').addEventListener('change', function(){
+    var m=$('pyMemo'); if(m && (!m.value || m.value==='보증금' || m.value==='월 대여료')) m.value=this.value;
   });
   // '10% 넣기' — 금액과 따로 부가세를 받은 경우. 금액의 10%를 부가세 칸에 채운다.
   if($('pyVatAuto')) $('pyVatAuto').onclick=function(e){
@@ -13162,7 +13190,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
     var kv=$('pyKind')?$('pyKind').value:'payment';
     // 아는 종류면 그대로 쓴다. 모르는 값이 오면 수납으로 본다.
-    var kind=(['refund','ot','study'].indexOf(kv)>=0)?kv:'payment';
+    var kind=(['refund','ot','study','rental'].indexOf(kv)>=0)?kv:'payment';
     // 환불은 돌려준 횟수만큼 남은 횟수에서 빼야 한다(원장 지시 2026-08-18).
     // 전에는 0으로 지웠는데, 그러면 결제 때 더한 횟수가 그대로 남는다.
     // 2026-08-18 김지영 건 — 오티 1회를 환불했는데 횟수가 안 빠져서, 나중에 정규 등록을
@@ -13178,13 +13206,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ err.textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
-    if(!tid && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
+    if(!tid && kind!=='rental' && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
     // 횟수권을 빠뜨리면 학생의 남은 수업 횟수가 안 올라가는데, 화면에는 아무 표시가 없어
     // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
     if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
     if(kind==='ot' && !sessions){ err.textContent='사전 OT 는 횟수를 1회로 넣어주세요.'; return; }
     // 스터디비용은 수업 횟수와 상관없다. 회차 계산도 payment·ot 만 세므로 남은 횟수에 영향이 없다.
     if(kind==='study') sessions=0;
+    // 태블릿 대여도 수업 횟수와 무관 → 0. 메모 앞에 보증금/월 대여료를 붙여 구분한다.
+    if(kind==='rental'){
+      sessions=0;
+      var ri=$('pyRentalItem')?$('pyRentalItem').value:'태블릿 대여';
+      var mm0=($('pyMemo').value||'').trim();
+      if(mm0.indexOf(ri)!==0) $('pyMemo').value = ri + (mm0?(' · '+mm0):'');
+    }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
     if(!vatGuardOK(amount, vat)){ if($('pyVat')) $('pyVat').focus(); return; }
@@ -13235,7 +13270,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     editingPayId=p.id;
     if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
     if($('pyeKind')){
-      $('pyeKind').value=(['refund','ot','study'].indexOf(p.kind)>=0)?p.kind:'payment';
+      $('pyeKind').value=(['refund','ot','study','rental'].indexOf(p.kind)>=0)?p.kind:'payment';
       // 이미 환불인 줄은 그대로 고칠 수 있어야 하지만, 멀쩡한 수납을 여기서 환불로
       // 바꾸는 길은 막는다. 새 환불은 환불 계산기로만 만든다(2026-08-25 원장 지시).
       var _ro=$('pyeKind').querySelector('option[value="refund"]');
@@ -13306,8 +13341,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
     var sessions=parseInt($('pyeSessions').value,10)||0;
     var ekv=$('pyeKind')?$('pyeKind').value:'payment';
-    var ekind=(['refund','ot','study'].indexOf(ekv)>=0)?ekv:'payment';
+    var ekind=(['refund','ot','study','rental'].indexOf(ekv)>=0)?ekv:'payment';
     if(ekind==='refund') sessions=-Math.abs(sessions);   // 등록 폼과 같은 규칙(2026-08-18)
+    if(ekind==='study'||ekind==='rental') sessions=0;    // 수업 횟수와 무관
     // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
