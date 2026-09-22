@@ -6706,7 +6706,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(isEnded(u)) return '<td style="color:var(--muted);white-space:nowrap">-</td>';
       var dev=(u.tablet_device||'').trim();
       var st=dev?pickStyle('#e6c9a6','#fbf3e8','#a85b12'):pickStyle('var(--line,#e3e6ea)','#fff','var(--muted,#888)');
-      var opts=['없음','아이패드 에어3','아이패드 에어','아이패드','갤럭시탭 S9 FE','갤럭시탭 S9','갤럭시탭'];
+      var opts=['없음','아이패드 에어3','갤럭시탭 S8 울트라'];
       if(dev && opts.indexOf(dev)<0) opts.splice(1,0,dev);   // 목록에 없는 기존 기기명도 유지
       var o=opts.map(function(d){ var val=(d==='없음')?'':d; return '<option value="'+esc(val)+'"'+((val===dev)?' selected':'')+'>'+esc(d)+'</option>'; }).join('');
       return '<td style="white-space:nowrap"><select data-tablet-for="'+esc(u.id)+'" style="'+st+'">'+o+'</select></td>';
