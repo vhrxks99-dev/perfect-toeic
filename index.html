@@ -5808,9 +5808,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="wa-row">
         <label>현재 점수<input type="text" id="waECurrent"></label>
         <label>목표 점수<input type="text" id="waEGoal"></label>
-        <!-- 선생님 한마디 (2026-09-09). 학생 앱·웹 첫 화면에 그대로 보인다. -->
-        <label style="flex:1 1 100%">선생님 한마디 <span style="color:var(--muted);font-weight:600;font-size:12px">(학생 화면에 그대로 보입니다)</span><textarea id="waENote" rows="2" maxlength="500" placeholder="예: 이번 주 파트5 오답 정리부터 하고 오세요." style="width:100%;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></textarea></label>
       </div>
+      <!-- 선생님 한마디 (2026-09-09). 학생 앱·웹 첫 화면에 그대로 보인다.
+           🚨 wa-row 안에 두면 줄바꿈이 안 돼 점수 두 칸이 한 글자 폭으로 찌그러진다(2026-09-23). -->
+      <label>선생님 한마디 <span style="color:var(--muted);font-weight:600;font-size:12px">(학생 화면에 그대로 보입니다)</span><textarea id="waENote" rows="2" maxlength="500" placeholder="예: 이번 주 파트5 오답 정리부터 하고 오세요." style="width:100%;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></textarea></label>
       <label>목표 기간<input type="text" id="waEPeriod" placeholder="예: 2026년 10월까지 / 3개월"></label>
       <label>가입 경로<input type="text" id="waERoute"></label>
       <!-- 차량번호 (2026-09-11 원장 지시). 학생이 안 넣으면 직원이 대신 넣는다. -->
