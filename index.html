@@ -13084,7 +13084,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var isRent = this.value==='rental';
     if($('pyRentalItem')) $('pyRentalItem').style.display = isRent ? '' : 'none';
     var sc=$('pySessions'); if(sc){ sc.disabled=isRent; if(isRent) sc.value=''; }
-    var tc=$('pyTeacher'); if(tc){ tc.disabled=isRent; if(isRent){ tc.value=''; if($('pyRate')) $('pyRate').value=''; } }
+    // 스터디·태블릿 대여 = 학원 몫 → 담당 강사·배분율·원천징수 칸을 비우고 잠근다(2026-09-23 원장님).
+    var isAcad = isRent || this.value==='study';
+    ['pyTeacher','pyRate','pyWithhold'].forEach(function(id){ var el=$(id); if(!el) return; el.disabled=isAcad; if(isAcad) el.value=''; });
+    // 다시 수납·OT 로 바꾸면 학생 담당쌤·배분율을 도로 채운다
+    if(!isAcad && $('pyTeacher') && !$('pyTeacher').value && typeof syncPayTeacher==='function') syncPayTeacher();
     if(isRent){
       var it=$('pyRentalItem')?$('pyRentalItem').value:'태블릿 대여';
       if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value=it;
@@ -13212,11 +13216,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     // 🚨 태블릿 대여는 학원 몫이다 — 강사 칸에 학생 담당쌤이 자동으로 채워져 있어도 비운다(2026-09-23 원장님 지적:
     //    김예진 보증금·대여료가 이창희 정산 100% 로 들어가 있었다).
-    if(kind==='rental') tid='';
+    if(kind==='rental'||kind==='study') tid='';   // 스터디도 학원 몫(2026-09-23 원장님)
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ err.textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
-    if(!tid && kind!=='rental' && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
+    if(!tid && kind!=='rental' && kind!=='study' && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
     // 횟수권을 빠뜨리면 학생의 남은 수업 횟수가 안 올라가는데, 화면에는 아무 표시가 없어
     // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
     if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
@@ -13356,7 +13360,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(ekind==='study'||ekind==='rental') sessions=0;    // 수업 횟수와 무관
     // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
-    if(ekind==='rental') tid='';   // 태블릿 대여 = 학원 몫(등록 폼과 같은 규칙)
+    if(ekind==='rental'||ekind==='study') tid='';   // 스터디·태블릿 대여 = 학원 몫(등록 폼과 같은 규칙)
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
