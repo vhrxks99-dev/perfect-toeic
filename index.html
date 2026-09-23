@@ -12999,6 +12999,29 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     });
   })();
 
+  // ── 중복 입력 막기 (2026-09-23 원장님 「수납할 때 중복으로 입력될 수도 있으니」) ─────────────
+  // 같은 학생 + 같은 금액 + 같은 구분 + 결제일 앞뒤 3일 = 중복 의심. 막지는 않는다(진짜 두 번 받는 경우도 있다).
+  // 7일로 하면 김수연처럼 일주일 간격 정상 결제까지 걸려서 3일로 했다. 앱(lib/manage.ts)과 같은 기준.
+  var PAY_DUP_DAYS=3;
+  function payDayShift(d, n){ var t=Date.parse(String(d).slice(0,10)+'T00:00:00Z'); return new Date(t+n*86400000).toISOString().slice(0,10); }
+  function paySuspectDups(rows){
+    var out={};
+    for(var i=0;i<rows.length;i++) for(var j=i+1;j<rows.length;j++){
+      var a=rows[i], b=rows[j];
+      var sameWho = a.student_id ? a.student_id===b.student_id : (a.student_name||'')===(b.student_name||'');
+      if(!sameWho || Number(a.amount)!==Number(b.amount) || (a.kind||'payment')!==(b.kind||'payment') || !a.paid_at || !b.paid_at) continue;
+      if(Math.abs(Date.parse(a.paid_at)-Date.parse(b.paid_at)) <= PAY_DUP_DAYS*86400000){ out[String(a.id)]=1; out[String(b.id)]=1; }
+    }
+    return out;
+  }
+  /** 저장 전에 서버에서 비슷한 수납을 찾는다. 있으면 첫 줄, 없으면 null. 조회가 실패하면 그냥 통과(막지 않는다). */
+  async function findSimilarPayment(studentId, amount, kind, paidAt){
+    if(!sb || !studentId) return null;
+    var d=(paidAt||kymd());   // 결제일이 비면 서울 기준 오늘
+    var r=await sb.from('payments').select('id,amount,kind,paid_at,admin_id,method').eq('student_id',studentId).eq('amount',amount).eq('kind',kind)
+      .gte('paid_at',payDayShift(d,-PAY_DUP_DAYS)).lte('paid_at',payDayShift(d,PAY_DUP_DAYS)).limit(1);
+    return (!r.error && r.data && r.data[0]) ? r.data[0] : null;
+  }
   async function loadPayments(month){
     if(!$('pyTable')) return;
     var rows=[];
@@ -13016,6 +13039,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyTotal') && vatSum>0) $('pyTotal').innerHTML=(month||'')+' 합계 '+won(total)
       +' <span style="color:var(--muted);font-weight:700;font-size:12.5px">+ 부가세 '+won(vatSum)+'</span>';
     var h='<tr><th>학생</th><th>금액</th><th>부가세</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+    // 중복 의심(2026-09-23 원장님) — 같은 학생·같은 금액·같은 구분이 3일 안에 두 줄이면 노란 딱지.
+    var dupIds=paySuspectDups(rows);
     rows.forEach(function(p){
       var s=payShare(p);
       var tn = p.teacher_id ? esc(p.teacher_name||'-') : '<span style="color:#b26a00;font-weight:700">미지정</span>';
@@ -13025,6 +13050,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 스터디비용도 딱지를 붙인다 — 수업료와 섞여 보이면 매출을 잘못 읽는다.
       if(p.kind==='study') otTag = ' <span style="font-size:11px;font-weight:800;color:#0a6b4a;background:#e8f6ef;border-radius:5px;padding:2px 5px">스터디</span>';
       if(p.kind==='rental') otTag = ' <span style="font-size:11px;font-weight:800;color:#a85b12;background:#fbf3e8;border-radius:5px;padding:2px 5px">태블릿 대여</span>';
+      if(dupIds[String(p.id)]) otTag += ' <span title="같은 학생·같은 금액이 3일 안에 또 있어요" style="font-size:11px;font-weight:800;color:#7a5b00;background:#fff3b0;border-radius:5px;padding:2px 5px">중복 의심</span>';
       h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td class="tb-memo">'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
@@ -13191,7 +13217,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('pyeSessions')) $('pyeSessions').addEventListener('input', function(){
     applySessionPrice('pyeSessions','pyeAmount',null, editingPayMode, false);
   });
-  if($('pyAdd')) $('pyAdd').onclick=async function(){
+  var _pyAddImpl=async function(){
     var err=$('pyErr'); err.textContent='';
     var student=_members.filter(function(m){return m.id===$('pyStudent').value;})[0];
     var amount=parseInt($('pyAmount').value,10); var month=$('pyMonth').value;
@@ -13243,6 +13269,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 카드면 그때의 수수료율을 박아 둔다(나중에 요율을 바꿔도 지난 정산은 안 흔들리게)
       card_fee_rate:(cardFeeRate(mth)||null),
       teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:kind };
+    var dup=await findSimilarPayment(student.id, amount, kind, payload.paid_at);
+    if(dup){
+      var who=((_members||[]).filter(function(m){return m.id===dup.admin_id;})[0]||{}).name;
+      var kindKo={payment:'수납',ot:'사전 OT',study:'스터디',rental:'태블릿 대여',refund:'환불'}[kind]||'수납';
+      if(!confirm('⚠️ 비슷한 수납이 이미 있어요\n\n'+student.name+' · '+won(amount)+' · '+kindKo+'\n결제일 '+dup.paid_at+(dup.method?' · '+dup.method:'')+(who?' · '+who+' 입력':'')+'\n\n같은 돈을 두 번 넣는 건 아닌지 확인해 주세요.\n그래도 등록할까요?')) return;
+    }
     var r=await sb.from('payments').insert(payload);
     if(r.error){
       err.textContent = /vat/.test(String(r.error.message||''))
@@ -13254,6 +13286,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     syncAddPrice(false);   // 안내 문구만 되돌린다
     drawPayPreview();
     await loadPayments($('pyFilter').value||month); await loadAttendance(); await loadSummary();
+  };
+  // 버튼을 빨리 두 번 누르면 같은 수납이 두 줄 들어간다(인터넷이 느릴 때). 처리 중에는 잠근다.
+  var _pyAddBusy=false;
+  if($('pyAdd')) $('pyAdd').onclick=async function(){
+    if(_pyAddBusy) return;
+    _pyAddBusy=true; var btn=this; btn.disabled=true;
+    try{ await _pyAddImpl.call(this); } finally { _pyAddBusy=false; btn.disabled=false; }
   };
   if($('pyFilter')) $('pyFilter').onchange=function(){ loadPayments($('pyFilter').value); };
   // 수수료는 '어느 통로로 받았나'로 갈린다(원장 2026-08-24). 그래서 통로를 고르게 한다.
