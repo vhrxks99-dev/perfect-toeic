@@ -12717,7 +12717,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     renderPayroll(rows, month);
   }
   // 강사에게 돈이 나가는 묶음인가. 담당 미지정('')과 스터디(학원 몫)는 아니다.
-  function isTeacherKey(k){ return !!k && k!=='__study__'; }
+  // 태블릿 대여도 스터디처럼 전액 학원 몫(2026-09-23 원장님 — 보증금·대여료가 강사 정산에 들어가 있었다).
+  function isAcademyKey(k){ return k==='__study__' || k==='__rental__'; }
+  function isTeacherKey(k){ return !!k && !isAcademyKey(k); }
   function renderPayroll(rows, month){
     var box=$('prBox'); if(!box) return;
     var ops=isOps();
@@ -12730,8 +12732,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     rows.forEach(function(p){
       // 스터디비용은 학원 몫이다. 강사 정산에 섞이면 안 되고,
       // 담당이 비어 있다고 '담당 빠뜨림' 경고에 잡혀서도 안 된다(원장 지적 2026-09-03).
-      var key=(p.kind==='study') ? '__study__' : (p.teacher_id||'');
-      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
+      var key=(p.kind==='study') ? '__study__' : (p.kind==='rental') ? '__rental__' : (p.teacher_id||'');
+      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':key==='__rental__'?'태블릿 대여 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
       if(!isRefundSide(p)) groups[key].allRefund=false;
       var s=payShare(p);
       // 담당 미지정·스터디는 배분 자체를 안 하므로 '배분율 없음' 경고 대상이 아니다.
@@ -12746,12 +12748,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 담당이 정해지지 않은 건은 누구 몫인지 모르므로 강사 몫을 계산하지 않는다.
     if(groups['']){ groups[''].gross=0; groups[''].fee=0; groups[''].tax=0; groups[''].net=0; }
     // 스터디비용도 마찬가지 — 학원이 갖는 돈이라 강사 몫·원천징수가 없다.
-    if(groups['__study__']){ var _st=groups['__study__']; _st.gross=0; _st.fee=0; _st.tax=0; _st.net=0; }
+    ['__study__','__rental__'].forEach(function(ak){ if(groups[ak]){ var _st=groups[ak]; _st.gross=0; _st.fee=0; _st.tax=0; _st.net=0; } });
     var totAmount=0, totGross=0, totTax=0, totNet=0;
     order.forEach(function(k){ totAmount+=groups[k].amount; totGross+=groups[k].gross; totTax+=groups[k].tax; totNet+=groups[k].net; });
     // 강사 먼저, 미지정은 맨 뒤로
     // 강사 먼저, 그다음 스터디(학원 몫), 담당 미지정은 맨 뒤
-    function _rank(k){ return !k ? 2 : (k==='__study__' ? 1 : 0); }
+    function _rank(k){ return !k ? 2 : (isAcademyKey(k) ? 1 : 0); }
     order.sort(function(a,b){
       if(_rank(a)!==_rank(b)) return _rank(a)-_rank(b);
       return groups[b].net-groups[a].net;
@@ -12760,7 +12762,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var h='';
     order.forEach(function(k){
       var g=groups[k], rl=Object.keys(g.rates);
-      var isT=isTeacherKey(k), isStudy=(k==='__study__');
+      var isT=isTeacherKey(k), isStudy=isAcademyKey(k);   // isStudy = 학원 몫 묶음(스터디·태블릿 대여)
       var rateTxt = isT ? (rl.length===1 ? (rl[0]+'%') : '혼합 '+rl.join('·')+'%') : '-';
       h+='<div class="pr-card'+(k?'':(g.allRefund?'':' pr-none'))+'">';
       // 환불로 담당을 뗀 줄만 모인 묶음은 정상이다. 빨간 '확인 필요' 대신 뭔지 적어 준다.
@@ -13082,6 +13084,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var isRent = this.value==='rental';
     if($('pyRentalItem')) $('pyRentalItem').style.display = isRent ? '' : 'none';
     var sc=$('pySessions'); if(sc){ sc.disabled=isRent; if(isRent) sc.value=''; }
+    var tc=$('pyTeacher'); if(tc){ tc.disabled=isRent; if(isRent){ tc.value=''; if($('pyRate')) $('pyRate').value=''; } }
     if(isRent){
       var it=$('pyRentalItem')?$('pyRentalItem').value:'태블릿 대여';
       if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value=it;
@@ -13207,6 +13210,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         + (sessions ? '\n남은 횟수도 '+Math.abs(sessions)+'회 줄어듭니다.'
                     : '\n\n※ 횟수 칸이 비어 있어 남은 횟수는 그대로입니다.\n수업 횟수까지 돌려주는 환불이면 횟수를 적어주세요.'))) return;
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
+    // 🚨 태블릿 대여는 학원 몫이다 — 강사 칸에 학생 담당쌤이 자동으로 채워져 있어도 비운다(2026-09-23 원장님 지적:
+    //    김예진 보증금·대여료가 이창희 정산 100% 로 들어가 있었다).
+    if(kind==='rental') tid='';
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ err.textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
@@ -13350,6 +13356,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(ekind==='study'||ekind==='rental') sessions=0;    // 수업 횟수와 무관
     // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
+    if(ekind==='rental') tid='';   // 태블릿 대여 = 학원 몫(등록 폼과 같은 규칙)
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
