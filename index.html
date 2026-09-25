@@ -6003,21 +6003,6 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var r=await sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email name phone_number', redirectTo: window.location.origin + window.location.pathname } });
     if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
   };
-  // 🆕 2026-09-25 구글 로그인(구글 클라우드 perfect-toeic 프로젝트 OAuth 클라이언트 → Supabase Google provider)
-  if($('waGoogle')) $('waGoogle').onclick=async function(){
-    if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
-    var r=await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin + window.location.pathname } });
-    if(r && r.error){ alert('구글 로그인 실패: '+r.error.message); }
-  };
-  // 🆕 2026-09-25 Apple 로그인(웹). 🚨 애플 개발자 사이트에서 Services ID + Sign in with Apple 키를 만들고
-  //    Supabase Apple 칸에 Services ID·비밀키를 넣어야 작동한다. 그 전엔 false 로 두고 안내만 한다.
-  var WEB_APPLE_READY=true;
-  if($('waApple')) $('waApple').onclick=async function(){
-    if(!WEB_APPLE_READY){ alert('Apple 로그인은 곧 열려요. 지금은 카카오·구글로 시작해 주세요.'); return; }
-    if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
-    var r=await sb.auth.signInWithOAuth({ provider:'apple', options:{ redirectTo: window.location.origin + window.location.pathname } });
-    if(r && r.error){ alert('Apple 로그인 실패: '+r.error.message); }
-  };
   renderAuth();
 })();
 </script>
@@ -7770,6 +7755,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!window.sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
     var r=await window.sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email name phone_number', redirectTo: window.location.origin + window.location.pathname } });
     if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
+  };
+  // 🆕 2026-09-25 구글 로그인 — 🚨 반드시 이 「활성 인증 블록」에 둘 것(옛 블록에 두면 눌러도 반응 없음)(구글 클라우드 perfect-toeic 프로젝트 OAuth 클라이언트 → Supabase Google provider)
+  if($('waGoogle')) $('waGoogle').onclick=async function(){
+    if(!window.sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var r=await window.sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(r && r.error){ alert('구글 로그인 실패: '+r.error.message); }
+  };
+  // 🆕 2026-09-25 Apple 로그인(웹). 🚨 애플 개발자 사이트에서 Services ID + Sign in with Apple 키를 만들고
+  //    Supabase Apple 칸에 Services ID·비밀키를 넣어야 작동한다. 그 전엔 false 로 두고 안내만 한다.
+  var WEB_APPLE_READY=true;
+  if($('waApple')) $('waApple').onclick=async function(){
+    if(!WEB_APPLE_READY){ alert('Apple 로그인은 곧 열려요. 지금은 카카오·구글로 시작해 주세요.'); return; }
+    if(!window.sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var r=await window.sb.auth.signInWithOAuth({ provider:'apple', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(r && r.error){ alert('Apple 로그인 실패: '+r.error.message); }
   };
 
   // ================= 관리 대시보드 (원장님/선생님) =================
