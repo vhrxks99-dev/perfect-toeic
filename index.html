@@ -3722,6 +3722,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-naver{background:#03C75A;color:#fff}
 .wa-naver b{font-family:Arial,sans-serif;font-weight:900;font-size:16px}
 .wa-kakao{background:#FEE500;color:#3A1D1D}
+.wa-google{background:#fff;color:#1f1f1f;border:1px solid #dadce0}
+.wa-apple{background:#000;color:#fff}
 .wa-toggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:8px 0 0;cursor:pointer}
 .wa-find{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:14px;font-size:13.5px}
 .wa-find a{color:var(--accent,#1F62E0);font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
@@ -3781,6 +3783,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-social">
       <div class="wa-or"><span>또는 간편하게</span></div>
       <button type="button" class="wa-soc wa-kakao" id="waKakao"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex:0 0 18px"><path d="M12 3.2c-5 0-9.1 3.2-9.1 7.1 0 2.5 1.7 4.7 4.2 6l-1 3.6c-.1.3.2.6.5.4l4.3-2.8c.4 0 .7.1 1.1.1 5 0 9.1-3.2 9.1-7.2S17 3.2 12 3.2z"/></svg>카카오로 시작하기</button>
+      <!-- 🆕 2026-09-25 원장님 「웹에 구글로 시작하기 애플로 시작하기 둘 다」 — 디자인은 그대로, 버튼만 추가 -->
+      <button type="button" class="wa-soc wa-google" id="waGoogle"><svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true" style="flex:0 0 18px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>구글로 시작하기</button>
+      <button type="button" class="wa-soc wa-apple" id="waApple"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true" style="flex:0 0 18px"><path d="M16.37 12.62c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.41 1.2-2.47-.03-.01-2.3-.88-2.32-3.52zM14.2 6.16c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.67-.92 2.66.97.08 1.96-.49 2.56-1.21z"/></svg>Apple로 시작하기</button>
     </div>
   </div>
 </div>
@@ -5997,6 +6002,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     //    한쪽만 켜면 「동의받지 않은 항목」이라며 막힌다.
     var r=await sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email name phone_number', redirectTo: window.location.origin + window.location.pathname } });
     if(r && r.error){ alert('카카오 로그인 실패: '+r.error.message); }
+  };
+  // 🆕 2026-09-25 구글 로그인(구글 클라우드 perfect-toeic 프로젝트 OAuth 클라이언트 → Supabase Google provider)
+  if($('waGoogle')) $('waGoogle').onclick=async function(){
+    if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var r=await sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(r && r.error){ alert('구글 로그인 실패: '+r.error.message); }
+  };
+  // 🆕 2026-09-25 Apple 로그인(웹). 🚨 애플 개발자 사이트에서 Services ID + Sign in with Apple 키를 만들고
+  //    Supabase Apple 칸에 Services ID·비밀키를 넣어야 작동한다. 그 전엔 false 로 두고 안내만 한다.
+  var WEB_APPLE_READY=false;
+  if($('waApple')) $('waApple').onclick=async function(){
+    if(!WEB_APPLE_READY){ alert('Apple 로그인은 곧 열려요. 지금은 카카오·구글로 시작해 주세요.'); return; }
+    if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
+    var r=await sb.auth.signInWithOAuth({ provider:'apple', options:{ redirectTo: window.location.origin + window.location.pathname } });
+    if(r && r.error){ alert('Apple 로그인 실패: '+r.error.message); }
   };
   renderAuth();
 })();
