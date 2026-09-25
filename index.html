@@ -6011,7 +6011,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   };
   // 🆕 2026-09-25 Apple 로그인(웹). 🚨 애플 개발자 사이트에서 Services ID + Sign in with Apple 키를 만들고
   //    Supabase Apple 칸에 Services ID·비밀키를 넣어야 작동한다. 그 전엔 false 로 두고 안내만 한다.
-  var WEB_APPLE_READY=false;
+  var WEB_APPLE_READY=true;
   if($('waApple')) $('waApple').onclick=async function(){
     if(!WEB_APPLE_READY){ alert('Apple 로그인은 곧 열려요. 지금은 카카오·구글로 시작해 주세요.'); return; }
     if(!sb){ alert('서버 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
