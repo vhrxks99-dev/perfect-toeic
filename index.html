@@ -10128,9 +10128,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       p_reason: lreason||null, p_note: ($('waSeNote')&&$('waSeNote').value.trim())||null});
     if(r.error){
       // 실패도 성공만큼 눈에 띄어야 한다 — 이 자리는 창을 내려야 보이는 곳이다(2026-08-16).
-      var m = /request_lesson_result|set_lesson_result/.test(String(r.error.message||''))
-        ? '수업 결과 기능이 아직 없습니다. lesson_result.sql / schedule_change_log.sql 을 먼저 실행해주세요.'
-        : ('처리 실패: '+r.error.message);
+      // 🚨 2026-09-26 원장님 폰에서 「기능이 아직 없습니다」가 떴는데 실제 원인은 로그인 풀림이었다
+      //    (Postgres: permission denied for function request_lesson_result = 비로그인 요청).
+      //    함수 이름이 들어 있다고 「없다」로 보지 말고, 권한·로그인 오류를 먼저 가린다.
+      var em = String(r.error.message||''), ec = String(r.error.code||'');
+      var m = (/permission denied|JWT|not authenticated/i.test(em) || ec==='42501' || ec==='PGRST301')
+        ? '로그인이 풀렸어요. 새로고침(또는 다시 로그인) 후 한 번 더 눌러 주세요.'
+        : (ec==='PGRST202' || /could not find the function/i.test(em))
+          ? '수업 결과 기능이 아직 없습니다. lesson_result.sql / schedule_change_log.sql 을 먼저 실행해주세요.'
+          : ('처리 실패: '+em);
       err.textContent = m; alert(m);
       return;
     }
