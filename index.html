@@ -5305,7 +5305,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           <label>담당 강사<select id="pyTeacher"></select></label>
           <!-- 사업자 (2026-09-29 원장님 「수납 입력할 때 김태완 사업자로 할지 이창희 사업자로 할지 칸을 만들어」)
                담당 강사를 고르면 그 선생님 사업자로 자동으로 맞춰지고, 손으로 바꿀 수도 있다. -->
-          <label>사업자<select id="pyBiz"><option value="wanto">김태완 사업자 · 완벽한토익</option><option value="ajlabs">이창희 사업자 · 퍼펙트웍스</option></select><span class="wa-hint">담당 강사를 고르면 자동으로 맞춰져요</span></label>
+          <label>사업자<select id="pyBiz"><option value="">— 사업자 고르기 —</option><option value="wanto">김태완 사업자 · 완벽한토익</option><option value="ajlabs">이창희 사업자 · 퍼펙트웍스</option></select><span class="wa-hint">담당 강사를 고르면 자동으로 맞춰져요</span></label>
           <label>배분율(%)<input type="number" id="pyRate" min="0" max="100" step="0.1" placeholder="50"><span class="wa-hint" id="pyRateNote" style="display:none;color:#b26a00">원장님만 변경</span></label>
           <label>원천징수(%)<input type="number" id="pyWithhold" min="0" max="100" step="0.1" value="3.3"></label>
           <label style="flex:2">강사 실지급<input type="text" id="pyPreview" readonly tabindex="-1" style="background:var(--surface-2);font-weight:800;color:var(--accent)"></label>
@@ -5353,7 +5353,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             <option>세금</option><option>수수료</option><option>기타</option></select></label>
           <label>금액(원)<input type="number" id="exAmt" min="0" step="1000" placeholder="예: 1430000"></label>
           <label>정산 월<input type="month" id="exMonth"></label>
-          <label>사업자<select id="exBiz"><option value="">공통 (두 사업자)</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option></select></label>
+          <label>사업자<select id="exBiz"><option value="">— 사업자 고르기 —</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option><option value="common">공통 (두 사업자)</option></select></label>
         </div>
         <div class="dash-row">
           <label>어디에<input type="text" id="exVendor" placeholder="건물주 · 네이버 · 쿠팡 …"></label>
@@ -12972,6 +12972,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!d){ say('쓴 날을 골라주세요.'); return; }
     if(!m){ say('정산 월을 골라주세요.'); return; }
     if(!(amt > 0)){ say('금액을 넣어주세요.'); return; }
+    // 🚨 사업자를 안 고르면 저장하지 않는다 (2026-09-29 원장님)
+    if($('exBiz') && !$('exBiz').value){ say('사업자를 골라주세요. (김태완 / 이창희 / 공통)'); $('exBiz').focus(); return; }
     var btn = this; btn.disabled = true;
     try{
       var r = await sb.from('expenses').insert({
@@ -12981,7 +12983,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         vendor: (($('exVendor') && $('exVendor').value) || '').trim() || null,
         method: ($('exMethod') && $('exMethod').value) || null,
         memo: (($('exMemo') && $('exMemo').value) || '').trim() || null,
-        biz: (($('exBiz') && $('exBiz').value) || null),
+        biz: ((($('exBiz') && $('exBiz').value) || '') === 'common' ? null : (($('exBiz') && $('exBiz').value) || null)),
         admin_id: (profile ? profile.id : null)
       });
       if(r.error){ say('넣지 못했습니다: ' + r.error.message); return; }
@@ -13440,7 +13442,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       try{ var rb=await sb.from('teacher_biz').select('teacher_id,biz'); (rb.data||[]).forEach(function(x){ _tbMap[x.teacher_id]=x.biz; }); }catch(e){}
     }
     var t=$('pyTeacher').value;
-    $('pyBiz').value=(t&&_tbMap[t])||'wanto';
+    // 담당 강사가 없으면(스터디·대여 등) 비워 둔다 → 사람이 직접 골라야 저장된다(2026-09-29 원장님)
+    $('pyBiz').value=(t&&_tbMap[t])||'';
   }
   if($('pyTeacher')) $('pyTeacher').onchange=function(){ syncPayRate(); pyBizSync(); };
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
@@ -13600,6 +13603,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var mm0=($('pyMemo').value||'').trim();
       if(mm0.indexOf(ri)!==0) $('pyMemo').value = ri + (mm0?(' · '+mm0):'');
     }
+    // 🚨 사업자를 안 고르면 저장하지 않는다 (2026-09-29 원장님 「사업자 체크 안 되어 있으면 저장 안 되게」)
+    if($('pyBiz') && !$('pyBiz').value){ err.textContent='사업자를 골라주세요. (김태완 사업자 / 이창희 사업자)'; $('pyBiz').focus(); return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
     if(!vatGuardOK(amount, vat)){ if($('pyVat')) $('pyVat').focus(); return; }
