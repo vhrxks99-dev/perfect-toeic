@@ -5303,6 +5303,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                두 번째를 안 쓰고 640,000 을 그대로 넣으면 부가세까지 강사와 나누게 된다. -->
           <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"><span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a> · <a class="wa-link" id="pyVatIncl">포함가에서 빼기</a></span></label>
           <label>담당 강사<select id="pyTeacher"></select></label>
+          <!-- 사업자 (2026-09-29 원장님 「수납 입력할 때 김태완 사업자로 할지 이창희 사업자로 할지 칸을 만들어」)
+               담당 강사를 고르면 그 선생님 사업자로 자동으로 맞춰지고, 손으로 바꿀 수도 있다. -->
+          <label>사업자<select id="pyBiz"><option value="wanto">김태완 사업자 · 완벽한토익</option><option value="ajlabs">이창희 사업자 · 퍼펙트웍스</option></select><span class="wa-hint">담당 강사를 고르면 자동으로 맞춰져요</span></label>
           <label>배분율(%)<input type="number" id="pyRate" min="0" max="100" step="0.1" placeholder="50"><span class="wa-hint" id="pyRateNote" style="display:none;color:#b26a00">원장님만 변경</span></label>
           <label>원천징수(%)<input type="number" id="pyWithhold" min="0" max="100" step="0.1" value="3.3"></label>
           <label style="flex:2">강사 실지급<input type="text" id="pyPreview" readonly tabindex="-1" style="background:var(--surface-2);font-weight:800;color:var(--accent)"></label>
@@ -5350,6 +5353,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             <option>세금</option><option>수수료</option><option>기타</option></select></label>
           <label>금액(원)<input type="number" id="exAmt" min="0" step="1000" placeholder="예: 1430000"></label>
           <label>정산 월<input type="month" id="exMonth"></label>
+          <label>사업자<select id="exBiz"><option value="">공통 (두 사업자)</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option></select></label>
         </div>
         <div class="dash-row">
           <label>어디에<input type="text" id="exVendor" placeholder="건물주 · 네이버 · 쿠팡 …"></label>
@@ -5392,8 +5396,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="dash-pane" data-dpane="payroll">
       <div class="dash-list-head">
         <label style="font-weight:700;font-size:13px">정산 월 <input type="month" id="prMonth" style="margin-left:6px;padding:7px 9px;border:1.5px solid var(--line-strong);border-radius:8px"></label>
+        <!-- 사업자 분리 (2026-09-29 원장님): 김태완 사업자 / 이창희 사업자. 10/1 결제부터 나뉜다. -->
+        <label style="font-weight:700;font-size:13px">사업자 <select id="prBiz" style="margin-left:6px;padding:7px 9px;border:1.5px solid var(--line-strong);border-radius:8px">
+          <option value="">전체</option><option value="wanto">김태완 사업자 · 완벽한토익</option><option value="ajlabs">이창희 사업자 · 퍼펙트웍스</option><option value="none">분리 전 (9월까지 결제)</option></select></label>
         <span id="prTotal" class="dash-total"></span>
       </div>
+      <div id="prBizInfo"></div>
       <div id="prNote" class="dash-note">이 달에 받은 수강료를 담당 강사별로 나눈 결과입니다. <b>실지급액</b>이 강사에게 실제로 드릴 금액입니다.</div>
       <div id="prBox"></div>
     </div>
@@ -5866,6 +5874,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <!-- 원천징수는 사람마다 다르다(2026-09-14 원장님 — 대표 두 분은 0%).
            전에는 3.3 이 붙박이라 수납을 등록할 때마다 손으로 지우고 0 을 넣으셔야 했다. -->
       <label id="waEWithholdWrap" style="display:none">원천징수(%)<input type="number" id="waEWithhold" min="0" max="100" step="0.1" placeholder="3.3"><span style="font-weight:600;font-size:12px;color:var(--muted)">사업소득 원천징수율입니다. 대표는 0 으로 둡니다. 수납을 등록할 때 이 값이 자동으로 들어갑니다.</span></label>
+      <!-- 사업자 (2026-09-29 원장님): 이 선생님 학생의 결제·카톡 계좌가 어느 사업자로 가는지. 원장님만 바꾼다. -->
+      <label id="waEBizWrap" style="display:none">사업자 <span style="font-weight:600;font-size:12px;color:var(--muted)">(이 선생님 학생의 결제·정산·카톡 계좌가 이 사업자로 갑니다 · 10/1 결제부터)</span>
+        <select id="waEBiz"><option value="wanto">김태완 사업자 (완벽한토익)</option><option value="ajlabs">이창희 사업자 (퍼펙트웍스)</option></select></label>
       <p class="wa-err" id="waEErr"></p>
       <button class="btn btn-primary" id="waESave" type="button">저장</button>
     </div>
@@ -7538,6 +7549,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   var editingId=null, editingRole='student', editingTeacher='', editingRate=50;
   // 원천징수도 바뀌었을 때만 보내려고 원래 값을 들고 있는다(2026-09-14).
   var editingWh=3.3, editingRateKnown=false, editingWhKnown=false;
+  var editingBiz = null;  // 선생님 사업자(2026-09-29)
   var editingPair = '';   // 창을 열 때 읽어 둔 현재 짝
   if($('waTable')) $('waTable').addEventListener('click', function(e){
     var g=(e.target && e.target.closest)?e.target.closest('a[data-goal-for]'):null;
@@ -7815,6 +7827,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 차량번호 (2026-09-11). 학생일 때만. 값은 전용 RPC 로 읽는다 —
     // profiles 를 직접 select 하면 칸 권한에 걸려 늘 빈칸으로 보인다.
     waECarLoad(u);
+    // 사업자 (2026-09-29) — 원장님이 선생님을 열 때만
+    editingBiz = null;
+    if($('waEBizWrap')){
+      var _bz = isMasterNow() && (u.role==='admin' || u.role==='master');
+      $('waEBizWrap').style.display = _bz ? '' : 'none';
+      if(_bz){
+        $('waEBiz').value = 'wanto';
+        sb.from('teacher_biz').select('biz').eq('teacher_id', u.id).maybeSingle().then(function(r){
+          editingBiz = (r && r.data && r.data.biz) || 'wanto';
+          if(editingId === u.id) $('waEBiz').value = editingBiz;
+        });
+      }
+    }
     // 2:1 짝 (2026-09-10). 원장님만 보이고, 학생일 때만 뜬다.
     if($('waEPairWrap')){
       var _canPair = isMasterNow() && u.role==='student';
@@ -7954,6 +7979,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         }
         if(rc.data && rc.data.ok===false){ $('waEErr').textContent=rc.data.msg||'차량번호를 저장하지 못했습니다.'; return; }
       }
+    }
+    if($('waEBizWrap') && $('waEBizWrap').style.display!=='none' && editingBiz!==null && $('waEBiz').value!==editingBiz){
+      var rbz = await sb.rpc('set_teacher_biz', { p_teacher: editingId, p_biz: $('waEBiz').value });
+      if(rbz.error){ $('waEErr').textContent='사업자 변경 실패: '+rbz.error.message; return; }
     }
     $('waEdit').classList.remove('on');
     await renderTable();
@@ -9744,7 +9773,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function teacherList(){ return (_members||[]).filter(function(m){ return m.role==='admin'||m.role==='master'; }); }
   function fillPayTeachers(){
     var opts='<option value="">(미지정)</option>'+teacherList().map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>'; }).join('');
-    if($('pyTeacher')){ var keep=$('pyTeacher').value; $('pyTeacher').innerHTML=opts; $('pyTeacher').value=keep; }
+    if($('pyTeacher')){ var keep=$('pyTeacher').value; $('pyTeacher').innerHTML=opts; $('pyTeacher').value=keep; try{ pyBizSync(); }catch(e){} }
     if($('pyeTeacher')){ var keep2=$('pyeTeacher').value; $('pyeTeacher').innerHTML=opts; $('pyeTeacher').value=keep2; }
   }
   if($('scStudentSearch')) $('scStudentSearch').oninput=function(){ fillScStudent(); };
@@ -12884,9 +12913,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   async function exSumOf(month){
     if(!sb || !month || !exCanSee()) return 0;
-    var r = await sb.from('expenses').select('amount').eq('month', month);
+    var r = await sb.from('expenses').select('amount,biz').eq('month', month);
     if(r.error || !r.data) return 0;
-    return r.data.reduce(function(s, x){ return s + (x.amount || 0); }, 0);
+    // 사업자를 골랐으면 그 사업자 지출만(「공통」은 빼고 따로 알려 준다) · 2026-09-29
+    var bz = ($('prBiz') && $('prBiz').value) || '';
+    var list = (bz==='wanto' || bz==='ajlabs') ? r.data.filter(function(x){ return x.biz===bz; }) : r.data;
+    _exCommon = (bz==='wanto' || bz==='ajlabs') ? r.data.filter(function(x){ return !x.biz; }).reduce(function(s,x){ return s+(x.amount||0); },0) : 0;
+    return list.reduce(function(s, x){ return s + (x.amount || 0); }, 0);
   }
   async function exLoad(){
     if(!exSyncBox() || !sb) return;
@@ -12948,6 +12981,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         vendor: (($('exVendor') && $('exVendor').value) || '').trim() || null,
         method: ($('exMethod') && $('exMethod').value) || null,
         memo: (($('exMemo') && $('exMemo').value) || '').trim() || null,
+        biz: (($('exBiz') && $('exBiz').value) || null),
         admin_id: (profile ? profile.id : null)
       });
       if(r.error){ say('넣지 못했습니다: ' + r.error.message); return; }
@@ -12962,6 +12996,33 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // ================= 정산 = 강사 급여 =================
   // 수납(학생이 낸 돈)과 화면을 나눴다. 여기는 '누구에게 얼마를 드리나'만 본다.
+  // ── 사업자 정보 (2026-09-29) ─────────────────────────────
+  var _bizInfo = null, _exCommon = 0;
+  async function bizInfoAll(force){
+    if(_bizInfo && !force) return _bizInfo;
+    var r = await sb.from('kakao_biz').select('*').order('sort');
+    _bizInfo = (!r.error && r.data) ? r.data : [];
+    return _bizInfo;
+  }
+  async function prBizInfo(bz){
+    var box=$('prBizInfo'); if(!box) return;
+    if(!isOps() || !(bz==='wanto' || bz==='ajlabs')){ box.innerHTML=''; return; }
+    var b=(await bizInfoAll()).filter(function(x){ return x.code===bz; })[0]; if(!b){ box.innerHTML=''; return; }
+    box.innerHTML='<div class="dash-note" style="background:#f4f7fc;border:1px solid #d8e2f2;border-radius:10px;padding:10px 12px;line-height:1.8">'
+      +'<b>'+esc(b.owner_name||'')+' 사업자</b> · 상호 <b>'+esc(b.trade_name||b.name||'')+'</b>'
+      +' · 사업자등록번호 <b>'+(b.biz_no?esc(b.biz_no):'<span style="color:#c0342b">미입력</span>')+'</b>'
+      +'<br>입금 계좌 '+esc(b.bank_line||'-')
+      +(isMasterNow()?' <a class="wa-link" id="prBizEdit" style="margin-left:8px">사업자 정보 고치기</a>':'')
+      +'</div>';
+    if($('prBizEdit')) $('prBizEdit').onclick=async function(){
+      var tn=window.prompt('상호', b.trade_name||''); if(tn===null) return;
+      var no=window.prompt('사업자등록번호 (예: 123-45-67890)', b.biz_no||''); if(no===null) return;
+      var u=await sb.from('kakao_biz').update({ trade_name:tn.trim()||null, biz_no:no.trim()||null }).eq('code', b.code).select();
+      if(u.error || !u.data || !u.data.length){ alert('저장하지 못했습니다'+(u.error?(': '+u.error.message):' (권한 확인)')); return; }
+      await bizInfoAll(true); await prBizInfo(bz);
+    };
+  }
+  if($('prBiz')) $('prBiz').addEventListener('change', function(){ loadPayroll(); });
   async function loadPayroll(){
     var box=$('prBox'); if(!box||!sb) return;
     var month=($('prMonth')&&$('prMonth').value)||'';
@@ -12972,9 +13033,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!r.error&&r.data) rows=r.data;
     // 선생님은 본인 담당 건만. 서버(RLS)에서도 막지만 화면에서도 한 번 더 거른다.
     if(!isOps() && profile) rows=rows.filter(function(p){ return p.teacher_id===profile.id; });
+    // 사업자 거르기 (2026-09-29) — biz 가 비어 있는 것 = 10/1 전(분리 전) 결제
+    var bz=($('prBiz')&&$('prBiz').value)||'';
+    if(bz==='none') rows=rows.filter(function(p){ return !p.biz; });
+    else if(bz) rows=rows.filter(function(p){ return p.biz===bz; });
+    await prBizInfo(bz);
     // 학원 몫에서 뺄 지출을 먼저 구해 둔다. 선생님이면 0 이 돌아온다(못 본다).
     _exTotal = await exSumOf(month);
     renderPayroll(rows, month);
+    if(_exCommon && $('prBox')) $('prBox').insertAdjacentHTML('beforeend','<div class="ps-warn">※ 「공통」으로 넣은 지출 '+won(_exCommon)+'은 사업자별 화면에서 빼지 않았습니다. 전체 화면에서 보입니다.</div>');
   }
   // 강사에게 돈이 나가는 묶음인가. 담당 미지정('')과 스터디(학원 몫)는 아니다.
   // 태블릿 대여도 스터디처럼 전액 학원 몫(2026-09-23 원장님 — 보증금·대여료가 강사 정산에 들어가 있었다).
@@ -13311,6 +13378,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(p.kind==='study') otTag = ' <span style="font-size:11px;font-weight:800;color:#0a6b4a;background:#e8f6ef;border-radius:5px;padding:2px 5px">스터디</span>';
       if(p.kind==='rental') otTag = ' <span style="font-size:11px;font-weight:800;color:#a85b12;background:#fbf3e8;border-radius:5px;padding:2px 5px">태블릿 대여</span>';
       if(dupIds[String(p.id)]) otTag += ' <span title="같은 학생·같은 금액이 3일 안에 또 있어요" style="font-size:11px;font-weight:800;color:#7a5b00;background:#fff3b0;border-radius:5px;padding:2px 5px">중복 의심</span>';
+      // 사업자 딱지 (2026-09-29 · 10/1 결제부터 붙는다)
+      if(p.biz) otTag += ' <span style="font-size:11px;font-weight:800;border-radius:5px;padding:2px 5px;'+(p.biz==='ajlabs'?'color:#6b21a8;background:#f3e8ff':'color:#154fbe;background:#eaf1fe')+'">'+(p.biz==='ajlabs'?'이창희':'김태완')+'</span>';
       h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won(p.amount)+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td class="tb-memo">'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
@@ -13362,7 +13431,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + ' − 원천징수 '+won(s.tax)+' = '+won(s.net);
   }
   if($('pyStudent')) $('pyStudent').onchange=syncPayTeacher;
-  if($('pyTeacher')) $('pyTeacher').onchange=syncPayRate;
+  // 선생님 → 사업자 (2026-09-29). 담당 강사를 바꾸면 사업자 칸도 따라간다.
+  var _tbMap=null;
+  async function pyBizSync(){
+    if(!$('pyBiz')||!$('pyTeacher')||!sb) return;
+    if(!_tbMap){
+      _tbMap={};
+      try{ var rb=await sb.from('teacher_biz').select('teacher_id,biz'); (rb.data||[]).forEach(function(x){ _tbMap[x.teacher_id]=x.biz; }); }catch(e){}
+    }
+    var t=$('pyTeacher').value;
+    $('pyBiz').value=(t&&_tbMap[t])||'wanto';
+  }
+  if($('pyTeacher')) $('pyTeacher').onchange=function(){ syncPayRate(); pyBizSync(); };
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
   // 구분에서 '사전 OT' 를 고르면 6만원 1회를 미리 채워 준다. 매번 손으로 적지 않게.
   if($('pyKind')) $('pyKind').addEventListener('change', function(){
@@ -13528,7 +13608,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       vat:(vat>0?vat:null),
       // 카드면 그때의 수수료율을 박아 둔다(나중에 요율을 바꿔도 지난 정산은 안 흔들리게)
       card_fee_rate:(cardFeeRate(mth)||null),
-      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:kind };
+      teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:kind,
+      biz:(($('pyBiz')&&$('pyBiz').value)||null) };
     var dup=await findSimilarPayment(student.id, amount, kind, payload.paid_at);
     if(dup){
       var who=((_members||[]).filter(function(m){return m.id===dup.admin_id;})[0]||{}).name;
