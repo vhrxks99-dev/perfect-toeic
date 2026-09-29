@@ -5658,8 +5658,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       </div>
       <div class="dash-list-head">선생님별 지표</div>
       <div class="dash-note" style="margin-top:0">
+        <b>숙제 확인</b> = 확인한 숙제 ÷ 확인할 수 있었던 숙제(숙제 뒤에 실제 수업이 있었던 것, 휴강·결석 제외) &nbsp;·&nbsp;
+        <b>확인 속도</b> = 숙제 낸 뒤 확인까지 평균 일수 &nbsp;·&nbsp;
+        <b>숙제 내줌</b> = 출석한 수업 중 그날·다음 날 숙제가 나간 수업 &nbsp;·&nbsp;
+        <b>선생님 휴강</b> = 사유 「선생님 사정」 휴강 횟수<br>
         <b>출석률</b> = 출석 체크된 수업 ÷ 학생이 연결된 지난 수업 &nbsp;·&nbsp;
-        <b>재등록률</b> = 결제한 학생 중 2번 이상 결제한 학생 &nbsp;·&nbsp;
+        <b>점수 향상</b> = 성적이 2번 이상 있는 학생의 첫 성적 → 최근 성적 평균 &nbsp;·&nbsp;
+        <b>목표 달성</b> = 원장님이 승인한 수료 중 목표 점수를 넘은 비율<br>
+        <b>재등록률</b> = 다시 결제할 차례가 온 학생(결제 2번 이상·남은 횟수 0·종료) 중 2번 이상 결제한 학생 &nbsp;·&nbsp;
         <b>상담 전환율</b> = 등록함 ÷ (등록함＋등록 안 함) &nbsp;·&nbsp;
         <b>퇴원율</b> = (중도 퇴원 + 옛 「기타」) ÷ 담당 학생 전체 &nbsp;·&nbsp; <b>종료 내역</b> = 원장님이 승인한 수료(목표 달성)·개인 사정과 퇴원<br>
         ※ 학생 회원과 연결되지 않은 수업(구글 캘린더에 이름만 적힌 것 포함)은 누구 출석인지 알 수 없어 계산에서 빠집니다.
@@ -15240,125 +15246,304 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                            : (v>=80?'#0f7a52':(v>=50?'var(--ink,#222)':'#c0342b'));
     return '<b style="color:'+col+';font-size:15px">'+v+'%</b> <span style="color:var(--muted);font-size:11.5px">('+n+'/'+d+')</span>';
   }
+  // ══════════════════════════════════════════════════════════════
+  // 선생님 평가 (2026-09-29 원장님 「전부 넣어」로 다시 만듦)
+  //  「출석·퇴원·재등록·상담 넷으로는 누가 잘하고 못하는지 판별이 어렵다. 숙제 확인까지 전부 반영」
+  //  세 묶음으로 나눈다:
+  //   A 성실도(선생님이 직접 한 일) — 숙제 확인율 · 확인 속도 · 숙제 내준 비율 · 선생님 사정 휴강
+  //   B 결과(학생) — 출석률 · 점수 향상 · 목표 달성률 · 퇴원율(낮을수록 좋음)
+  //   C 학원 기여 — 재등록률(다시 결제할 차례가 온 학생만) · 상담 전환율
+  //  종합 = A 40% + B 40% + C 20%  ← EV_W 만 바꾸면 비율이 바뀐다(원장님이 정할 몫)
+  //  🚨 자료가 없는 칸은 0점이 아니라 빼고, 남은 칸끼리 비율을 다시 나눈다.
+  //  🚨 담당 학생 5명 미만이면 「표본 적음」 — 한 명만 그만둬도 퇴원율이 확 튄다.
+  //  🚨 후기 별점은 후기 표에 별점·담당쌤 칸이 없어 아직 못 넣는다.
+  // ══════════════════════════════════════════════════════════════
+  var EV_W = { A:40, B:40, C:20 };
+  var EV_MIN_STU = 5;
+  function evClamp(v){ return Math.max(0, Math.min(100, v)); }
+  function evAvg(list){   // [[점수0~100|null, 가중치]] → 가중 평균(없는 칸은 빼고)
+    var s=0, w=0; list.forEach(function(x){ if(x[0]==null||isNaN(x[0])) return; s+=x[0]*x[1]; w+=x[1]; });
+    return w>0 ? s/w : null;
+  }
+  async function evPaged(build){   // PostgREST 1,000행 제한 — 끝까지 받는다
+    var out=[], pg=0;
+    while(pg<30){
+      var r=await build().range(pg*1000, pg*1000+999);
+      if(r.error||!r.data||!r.data.length) break;
+      out=out.concat(r.data);
+      if(r.data.length<1000) break;
+      pg++;
+    }
+    return out;
+  }
+  function evNum(v, unit, good, digits){
+    if(v==null||isNaN(v)) return '<span style="color:var(--muted)">-</span>';
+    var t=(digits?v.toFixed(digits):Math.round(v))+unit;
+    return '<b style="font-size:14.5px'+(good===false?';color:#c0342b':'')+'">'+t+'</b>';
+  }
+  function evScoreTxt(v, thin){
+    if(v==null) return '<span style="color:var(--muted)">-</span>';
+    var col = thin ? 'var(--muted)' : (v>=75?'#0f7a52':(v>=55?'var(--ink,#222)':'#c0342b'));
+    return '<b style="font-size:17px;color:'+col+'">'+Math.round(v)+'</b><span style="color:var(--muted);font-size:11px">점</span>';
+  }
+
   async function loadEval(){
     if(!$('evTable')) return;
     if(!sb){ $('evTable').innerHTML='<tr><td class="wa-empty">연결이 필요합니다.</td></tr>'; return; }
+    $('evTable').innerHTML='<tr><td class="wa-empty">계산 중…</td></tr>';
     var scope=$('evScope')?$('evScope').value:'month';
     var mv=($('evMonth')&&$('evMonth').value)||kymd().slice(0,7);
     var from=null, to=null;
     if(scope==='month'){
-      var p=mv.split('-'); from=kwall(kISO(mv+'-01','00:00'));   // 서울 기준 그 달 1일
+      from=kwall(kISO(mv+'-01','00:00'));   // 서울 기준 그 달 1일
       to=new Date(from); to.setMonth(to.getMonth()+1);
     }
+    var inR=function(iso){ if(!from) return true; if(!iso) return false; var d=kwall(iso); return d>=from && d<to; };
     var now=new Date();
     var teachers=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';});
     if(!teachers.length){ $('evTable').innerHTML='<tr><td class="wa-empty">선생님으로 등록된 회원이 없습니다.</td></tr>'; return; }
+    var stuTeacher={}, nameOf={};
+    (_members||[]).forEach(function(m){ nameOf[String(m.id)]=m.name||''; if(m.role==='student'&&m.teacher_id) stuTeacher[m.id]=m.teacher_id; });
 
-    // 1) 지난 수업 (출석률 분모) — 학생 회원이 연결된 것만
-    //    2026-08-09부터 출석은 등원 기록이 아니라 수업의 status 로 본다(키오스크를 없앴다).
-    //      confirmed = 출석 · noshow = 결석 · canceled = 휴강(분모에서 빠진다) · pending = 승인 전
-    //    ⚠️ 구글 캘린더에서 온 수업도 **학생 회원과 연결돼 있으면 센다**(2026-08-13 원장 지적
-    //       "이창희 김태완 출석률 반영이 안 되고 있어"). 두 분 수업은 전부 구글에서 넘어오는데
-    //       예전에는 구글발을 통째로 뺐던 탓에 두 분만 출석률이 비어 있었다.
-    //       (횟수 차감은 여전히 웹 수업만 — 그건 결제 회차 얘기라 별개다.)
-    //    ⚠️ PostgREST 는 한 번에 1,000행까지만 준다. 지금은 학생 연결된 수업이 그보다 적지만
-    //       늘어나면 조용히 잘려 출석률이 틀려지므로 1,000건씩 끝까지 받아 온다.
-    var scheds=[], _page=0;
-    while(true){
-      var sq=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source')
-               .not('student_id','is',null).order('starts_at',{ascending:true})
-               .range(_page*1000, _page*1000+999);
-      if(from){ sq=sq.gte('starts_at',kBack(from).toISOString()).lt('starts_at',kBack(to).toISOString()); }
-      var sr=await sq;
-      if(sr.error||!sr.data||!sr.data.length) break;
-      scheds=scheds.concat(sr.data);
-      if(sr.data.length<1000) break;
-      _page++;
-      if(_page>20) break;   // 안전장치
-    }
+    // ── 1) 지난 수업 (출석률 · 숙제 내준 비율) ──
+    //    confirmed = 출석 · noshow = 결석 · canceled = 휴강(빠짐) · pending = 승인 전(빠짐)
+    //    구글 수업은 2026-08-12 14:00 이후 것만(그 전은 통통통 시절 기록).
+    var scheds=await evPaged(function(){
+      var q=sb.from('schedules').select('teacher_id,student_id,starts_at,ends_at,status,source')
+              .not('student_id','is',null).order('starts_at',{ascending:true});
+      if(from) q=q.gte('starts_at',kBack(from).toISOString()).lt('starts_at',kBack(to).toISOString());
+      return q;
+    });
     scheds=scheds.filter(function(s){
       if(new Date(s.ends_at)>=now) return false;
-      // 구글 수업은 횟수와 같은 기준 — 2026-08-12 14:00 이후 것만 본다(2026-08-13 원장 지시).
-      // 그 전 구글 수업은 통통통 시절 기록이라 회원 연결도 안 돼 있고 출석 표시도 없다.
       if((s.source||'web')==='gcal' && !(Date.parse(s.starts_at)>GCAL_CUT)) return false;
       var st=s.status||'confirmed';
       return st==='confirmed' || st==='noshow';
     });
 
-    // 3) 결제 (재등록률) — 기간과 무관하게 누적으로 본다. 두 번 이상 결제 = 재등록.
-    //    담당강사가 안 찍힌 예전 결제는 그 학생의 현재 담당강사로 본다.
-    var stuTeacher={};
-    (_members||[]).forEach(function(m){ if(m.role==='student'&&m.teacher_id) stuTeacher[m.id]=m.teacher_id; });
-    var pr=await sb.from('payments').select('student_id,teacher_id,month,paid_at');
-    var pays=(!pr.error&&pr.data)?pr.data.map(function(p){
-      return { student_id:p.student_id, teacher_id:(p.teacher_id||stuTeacher[p.student_id]||null) };
-    }):[];
+    // ── 2) 학생별 마지막으로 실제 진행된 수업(숙제 확인 기회가 있었나) ──
+    //    🚨 숙제 밀림 박스(renderHwLate)와 같은 기준: 숙제 뒤에 실제 수업이 있었어야 「확인할 수 있었던」 숙제다.
+    var lastMet={};
+    var allDone=await evPaged(function(){
+      return sb.from('schedules').select('student_id,ends_at,status').not('student_id','is',null)
+               .lt('ends_at', now.toISOString()).order('ends_at',{ascending:false});
+    });
+    allDone.forEach(function(x){
+      var st=x.status||'confirmed';
+      if(st!=='confirmed' || !x.ends_at) return;
+      var k=String(x.student_id); if(!lastMet[k]) lastMet[k]=x.ends_at;
+    });
 
-    // 4) 상담
-    var cr=await sb.from('consults').select('teacher_id,result,consulted_on');
-    // 5) 승인된 수료 요청 — 목표 달성 여부 (2026-09-29). 표가 없으면 조용히 비운다.
-    var goalMet={};
+    // ── 3) 숙제 ──
+    var hws=await evPaged(function(){
+      var q=sb.from('homeworks').select('id,student_id,teacher_id,created_at,teacher_checked,teacher_checked_at,content')
+              .order('created_at',{ascending:true});
+      if(from) q=q.gte('created_at',kBack(from).toISOString()).lt('created_at',kBack(to).toISOString());
+      return q;
+    });
+    // 학생·날짜별 숙제 — 수업 당일이나 다음 날 낸 숙제가 있으면 「숙제 낸 수업」
+    var hwDay={};
+    hws.forEach(function(h){ hwDay[String(h.student_id)+'|'+kymd(h.created_at)]=true; });
+
+    // ── 4) 선생님 사정 휴강 ──
+    var tCancels=[];
     try{
-      var gq=await sb.from('end_requests').select('student_id,goal_met,decided_at').eq('status','approved').eq('reason','graduated');
-      if(!gq.error&&gq.data) gq.data.forEach(function(x){ goalMet[String(x.student_id)]=x.goal_met; });
+      tCancels=await evPaged(function(){
+        var q=sb.from('schedule_changes').select('teacher_id,student_name,old_starts_at,reason,kind,created_at')
+                .eq('kind','cancel').eq('reason','teacher').order('created_at',{ascending:true});
+        if(from) q=q.gte('created_at',kBack(from).toISOString()).lt('created_at',kBack(to).toISOString());
+        return q;
+      });
     }catch(e){}
+
+    // ── 5) 시험 성적 — 학생별 첫 성적 → 최근 성적 (2개 이상 있는 학생만) ──
+    var exams=[];
+    try{ exams=await evPaged(function(){ return sb.from('exam_scores').select('student_id,exam_date,total').not('total','is',null).order('exam_date',{ascending:true}); }); }catch(e){}
+    var exBy={};
+    exams.forEach(function(x){ var k=String(x.student_id); (exBy[k]=exBy[k]||[]).push(x); });
+
+    // ── 6) 결제 · 남은 횟수 (새 재등록률) ──
+    var pays=[];
+    try{ pays=await evPaged(function(){ return sb.from('payments').select('student_id,teacher_id,kind,paid_at'); }); }catch(e){}
+    var leftOf={};
+    try{
+      var la=await sb.rpc('sessions_left_all');
+      if(!la.error&&la.data) la.data.forEach(function(x){ leftOf[String(x.student_id)]=x.left_n; });
+    }catch(e){}
+
+    // ── 7) 상담 · 승인된 수료(목표 달성) ──
+    var cr=await sb.from('consults').select('teacher_id,result,consulted_on');
     var cons=(!cr.error&&cr.data)?cr.data:[];
+    var grads=[];
+    try{
+      var gq=await sb.from('end_requests').select('student_id,teacher_id,goal_met,decided_at').eq('status','approved').eq('reason','graduated');
+      if(!gq.error&&gq.data) grads=gq.data.filter(function(x){ return inR(x.decided_at); });
+    }catch(e){}
 
     var rows=teachers.map(function(t){
-      // 출석률
-      var mySch=scheds.filter(function(s){ return s.teacher_id===t.id; });
-      var att=mySch.filter(function(s){ return (s.status||'confirmed')==='confirmed'; }).length;
+      var tid=t.id;
+      var myStu=(_members||[]).filter(function(m){ return m.role==='student' && m.teacher_id===tid; });
+      var stuIds={}; myStu.forEach(function(m){ stuIds[String(m.id)]=true; });
+      var hwTeacher=function(h){ return h.teacher_id || stuTeacher[h.student_id] || null; };
 
-      // 재등록률: 이 선생님 담당으로 결제된 학생별 결제 건수
-      var cnt={};
-      pays.forEach(function(p){ if(p.teacher_id!==t.id||!p.student_id) return; cnt[p.student_id]=(cnt[p.student_id]||0)+1; });
-      var ids=Object.keys(cnt), again=ids.filter(function(k){ return cnt[k]>=2; }).length;
+      // A1 숙제 확인율 · A2 확인 속도
+      var myHw=hws.filter(function(h){ return hwTeacher(h)===tid; });
+      var eligible=myHw.filter(function(h){
+        if(h.teacher_checked) return true;
+        var m=lastMet[String(h.student_id)];
+        return !!(m && h.created_at && m > h.created_at);
+      });
+      var checked=eligible.filter(function(h){ return h.teacher_checked; });
+      var unchecked=eligible.filter(function(h){ return !h.teacher_checked; });
+      var days=checked.filter(function(h){ return h.teacher_checked_at; }).map(function(h){
+        return (Date.parse(h.teacher_checked_at)-Date.parse(h.created_at))/86400000;
+      });
+      var avgDays=days.length? days.reduce(function(a,b){return a+b;},0)/days.length : null;
 
-      // 상담 전환율
+      // A3 숙제 내준 비율 — 출석한 수업 중 그날·다음 날 숙제가 나간 수업
+      var mySch=scheds.filter(function(s){ return s.teacher_id===tid; });
+      var att=mySch.filter(function(s){ return (s.status||'confirmed')==='confirmed'; });
+      var withHw=att.filter(function(s){
+        var d=kymd(s.starts_at), k=String(s.student_id);
+        return hwDay[k+'|'+d] || hwDay[k+'|'+ymdShift(d,1)];
+      });
+
+      // A4 선생님 사정 휴강
+      var myCancel=tCancels.filter(function(c){ return c.teacher_id===tid; });
+
+      // B2 점수 향상
+      var gains=[];
+      Object.keys(stuIds).forEach(function(k){
+        var ex=exBy[k]; if(!ex||ex.length<2) return;
+        var last=ex[ex.length-1]; if(!inR(last.exam_date+'T12:00:00+09:00') && from) return;
+        gains.push({ id:k, first:ex[0].total, last:last.total, g:last.total-ex[0].total });
+      });
+      var avgGain=gains.length? gains.reduce(function(a,b){return a+b.g;},0)/gains.length : null;
+
+      // B3 목표 달성 · B4 퇴원
+      var myGrad=grads.filter(function(g){ return g.teacher_id===tid; });
+      var met=myGrad.filter(function(g){ return g.goal_met===true; }).length;
+      var endedIn=function(m){ return m.status==='ended' && inR(m.ended_at); };
+      var quitList=myStu.filter(function(m){ return endedIn(m) && (m.end_reason==='quit'||m.end_reason==='etc'||!m.end_reason); });
+      var gradN=myStu.filter(function(m){ return endedIn(m) && m.end_reason==='graduated'; }).length;
+      var persN=myStu.filter(function(m){ return endedIn(m) && m.end_reason==='personal'; }).length;
+      var active=myStu.filter(function(m){ return m.status!=='ended'; }).length;
+
+      // C1 재등록률 — 🚨 다시 결제할 차례가 온 학생만 센다(첫 결제분을 아직 쓰는 중인 학생은 뺀다).
+      //    차례가 왔다 = 결제 2번 이상 · 남은 횟수 0 이하 · 종료됨 중 하나
+      var payCnt={};
+      pays.forEach(function(p){
+        if(!p.student_id) return;
+        if((p.kind||'payment')!=='payment') return;          // 환불·대여·스터디·OT 는 빼고 수업 결제만
+        if((p.teacher_id||stuTeacher[p.student_id])!==tid) return;
+        payCnt[p.student_id]=(payCnt[p.student_id]||0)+1;
+      });
+      var renewTurn=[], renewed=[];
+      Object.keys(payCnt).forEach(function(k){
+        var m=(_members||[]).filter(function(x){ return String(x.id)===String(k); })[0];
+        var left=leftOf[String(k)];
+        var turn = payCnt[k]>=2 || (left!=null && left<=0) || (m && m.status==='ended');
+        if(!turn) return;
+        renewTurn.push(k); if(payCnt[k]>=2) renewed.push(k);
+      });
+
+      // C2 상담 전환율
       var myCons=cons.filter(function(c){
-        if(c.teacher_id!==t.id) return false;
+        if(c.teacher_id!==tid) return false;
         if(!from) return true;
         var d=new Date(c.consulted_on+'T00:00'); return d>=from && d<to;
       });
       var reg=myCons.filter(function(c){return c.result==='registered';}).length;
       var lost=myCons.filter(function(c){return c.result==='lost';}).length;
 
-      // 퇴원율: 담당 학생 전체 중 '중도 퇴원'
-      //  🚨 2026-09-29: 옛 '기타'(증빙 없이 고른 것)도 퇴원으로 센다. 수료·개인 사정은 원장님 승인을 거친 것만 있다.
-      var myStu=(_members||[]).filter(function(m){ return m.role==='student' && m.teacher_id===t.id; });
-      var inRange=function(m){
-        if(!from) return true;
-        if(!m.ended_at) return false;
-        var d=kwall(m.ended_at); return d>=from && d<to;
-      };
-      var quitList=myStu.filter(function(m){
-        return m.status==='ended' && (m.end_reason==='quit'||m.end_reason==='etc'||!m.end_reason) && inRange(m);
-      });
-      var gradN=myStu.filter(function(m){ return m.status==='ended' && m.end_reason==='graduated' && inRange(m); });
-      var persN=myStu.filter(function(m){ return m.status==='ended' && m.end_reason==='personal' && inRange(m); }).length;
-      var metN=gradN.filter(function(m){ return goalMet[String(m.id)]===true; }).length;
-      var active=myStu.filter(function(m){ return m.status!=='ended'; }).length;
+      // ── 0~100 점수로 바꿔 종합 ──
+      var sA=evAvg([
+        [pct(checked.length, eligible.length), 1],
+        [avgDays==null?null:evClamp(100-(avgDays-1)*100/12), 1],     // 1일 이내 100점 · 13일 0점
+        [pct(withHw.length, att.length), 1],
+        [(att.length+myCancel.length)>0 ? evClamp(100-myCancel.length/(att.length+myCancel.length)*500) : null, 1]  // 휴강 20%면 0점
+      ]);
+      var quitRate=pct(quitList.length, myStu.length);
+      var sB=evAvg([
+        [pct(att.length, mySch.length), 1],
+        [avgGain==null?null:evClamp(avgGain/150*100), 1],              // 평균 +150점이면 100점
+        [pct(met, myGrad.length), 1],
+        [quitRate==null?null:evClamp(100-quitRate*2), 1]               // 퇴원율 50%면 0점
+      ]);
+      var sC=evAvg([
+        [pct(renewed.length, renewTurn.length), 1],
+        [pct(reg, reg+lost), 1]
+      ]);
+      var total=evAvg([[sA,EV_W.A],[sB,EV_W.B],[sC,EV_W.C]]);
 
-      return { t:t, sch:mySch.length, att:att, payStu:ids.length, again:again,
-               reg:reg, lost:lost, stu:myStu.length, active:active, quit:quitList.length,
-               grad:gradN.length, met:metN, pers:persN };
+      return { t:t, stu:myStu.length, active:active, thin:myStu.length<EV_MIN_STU,
+               elig:eligible.length, chk:checked.length, unchecked:unchecked, avgDays:avgDays,
+               att:att.length, sch:mySch.length, withHw:withHw.length, cancels:myCancel,
+               gains:gains, avgGain:avgGain, grad:myGrad.length, met:met,
+               quit:quitList, gradN:gradN, persN:persN,
+               renewTurn:renewTurn, renewed:renewed, reg:reg, lost:lost,
+               sA:sA, sB:sB, sC:sC, total:total };
     });
+    rows.sort(function(a,b){ return (b.total==null?-1:b.total)-(a.total==null?-1:a.total); });
+    window.__evRows=rows;
 
-    var h='<tr><th>선생님</th><th>담당 학생</th><th>수업/출석</th><th>출석률</th><th>재등록률</th><th>상담 전환율</th><th>퇴원율</th><th>종료 내역</th></tr>';
-    rows.forEach(function(r){
-      h+='<tr><td><b>'+esc(r.t.name)+'</b></td>'
-       + '<td style="white-space:nowrap">'+r.stu+'명 <span style="color:var(--muted);font-size:11.5px">(수강중 '+r.active+')</span></td>'
-       + '<td style="white-space:nowrap">'+r.sch+'회 / '+r.att+'회</td>'
+    var th='style="font-size:11px;color:var(--muted);font-weight:700"';
+    var h='<tr><th rowspan="2">선생님</th><th rowspan="2">종합</th>'
+      + '<th colspan="4" '+th+'>A 성실도 ('+EV_W.A+'%)</th><th colspan="4" '+th+'>B 학생 결과 ('+EV_W.B+'%)</th><th colspan="2" '+th+'>C 학원 기여 ('+EV_W.C+'%)</th><th rowspan="2">종료 내역</th></tr>'
+      + '<tr><th>숙제 확인</th><th>확인 속도</th><th>숙제 내줌</th><th>선생님 휴강</th>'
+      + '<th>출석률</th><th>점수 향상</th><th>목표 달성</th><th>퇴원율</th>'
+      + '<th>재등록률</th><th>상담 전환</th></tr>';
+    rows.forEach(function(r, i){
+      h+='<tr class="ev-row" data-ev="'+i+'" style="cursor:pointer" title="눌러서 자세히 보기">'
+       + '<td style="white-space:nowrap"><b>'+esc(r.t.name)+'</b><div style="font-size:11.5px;color:var(--muted)">학생 '+r.stu+'명 (수강중 '+r.active+')'
+       + (r.thin?' · <b style="color:#b45309">표본 적음</b>':'')+'</div></td>'
+       + '<td style="white-space:nowrap">'+evScoreTxt(r.total, r.thin)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.chk,r.elig,true)+'</td>'
+       + '<td style="white-space:nowrap">'+evNum(r.avgDays,'일',r.avgDays!=null&&r.avgDays>7?false:null,1)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.withHw,r.att,true)+'</td>'
+       + '<td style="white-space:nowrap">'+(r.cancels.length?'<b style="color:#c0342b">'+r.cancels.length+'회</b>':'0회')+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.att,r.sch,true)+'</td>'
-       + '<td style="white-space:nowrap">'+pctTxt(r.again,r.payStu,true)+'</td>'
+       + '<td style="white-space:nowrap">'+(r.avgGain==null?'<span style="color:var(--muted)">-</span>':'<b style="font-size:14.5px;color:'+(r.avgGain>=0?'#0f7a52':'#c0342b')+'">'+(r.avgGain>=0?'+':'')+Math.round(r.avgGain)+'점</b> <span style="color:var(--muted);font-size:11.5px">('+r.gains.length+'명)</span>')+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.met,r.grad,true)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.quit.length,r.stu,false)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.renewed.length,r.renewTurn.length,true)+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.reg,r.reg+r.lost,true)+'</td>'
-       + '<td style="white-space:nowrap">'+pctTxt(r.quit,r.stu,false)+'</td>'
-       // 수료(목표 달성) · 개인 사정 · 퇴원 — 승인된 것만 (2026-09-29)
-       + '<td style="white-space:nowrap;font-size:12.5px">수료 '+r.grad+(r.grad?' <span style="color:var(--muted)">(달성 '+r.met+')</span>':'')
-       + ' · 개인 '+r.pers+' · 퇴원 '+r.quit+'</td></tr>';
+       + '<td style="white-space:nowrap;font-size:12.5px">수료 '+r.gradN+' · 개인 '+r.persN+' · 퇴원 '+r.quit.length+'</td></tr>'
+       + '<tr class="ev-det" data-evd="'+i+'" style="display:none"><td colspan="13"></td></tr>';
     });
     $('evTable').innerHTML=h;
-    if($('evNote')) $('evNote').innerHTML='기준: <b>'+(from?(mv+' 한 달'):'전체 기간')+'</b>. 재등록률은 기간과 상관없이 <b>누적 결제 기록</b>으로 계산합니다(같은 학생이 2번 이상 결제하면 재등록).';
+    $('evTable').onclick=function(e){
+      var tr=e.target.closest && e.target.closest('tr.ev-row'); if(!tr) return;
+      var i=tr.getAttribute('data-ev'), det=$('evTable').querySelector('tr[data-evd="'+i+'"]');
+      if(det.style.display!=='none'){ det.style.display='none'; return; }
+      det.firstChild.innerHTML=evDetail(window.__evRows[+i]);
+      det.style.display='';
+    };
+    if($('evNote')) $('evNote').innerHTML='기준: <b>'+(from?(mv+' 한 달'):'전체 기간')+'</b>. '
+      + '선생님 줄을 누르면 숫자 뒤의 학생·숙제가 펼쳐집니다. '
+      + '종합 = 성실도 '+EV_W.A+'% + 학생 결과 '+EV_W.B+'% + 학원 기여 '+EV_W.C+'% (자료 없는 칸은 빼고 나머지로 계산). '
+      + '점수 향상은 성적이 2번 이상 입력된 학생의 첫 성적 → 최근 성적입니다.';
+  }
+
+  // 선생님 한 명 자세히 — 숫자 뒤에 누가 있는지
+  function evDetail(r){
+    var li=function(title, arr){
+      return '<div style="margin:6px 0"><b style="font-size:12.5px">'+title+'</b>'
+        + (arr.length? '<div style="font-size:12.5px;color:#444;line-height:1.7;margin-top:2px">'+arr.join('<br>')+'</div>'
+                     : ' <span style="color:var(--muted);font-size:12px">없음</span>')+'</div>';
+    };
+    var nm=function(id){ var m=(_members||[]).filter(function(x){ return String(x.id)===String(id); })[0]; return esc((m&&m.name)||'(이름 없음)'); };
+    var unchk=r.unchecked.slice().sort(function(a,b){ return a.created_at<b.created_at?-1:1; }).slice(0,15).map(function(h){
+      return kymd(h.created_at).slice(5)+' · '+nm(h.student_id)+' · '+esc(String(h.content||'').replace(/\s+/g,' ').slice(0,40));
+    });
+    if(r.unchecked.length>15) unchk.push('…외 '+(r.unchecked.length-15)+'건');
+    return '<div style="padding:6px 4px 10px;background:#fafbfc">'
+      + li('확인 안 한 숙제 ('+r.unchecked.length+'건, 오래된 순)', unchk)
+      + li('선생님 사정 휴강 ('+r.cancels.length+'회)', r.cancels.map(function(c){ return kymd(c.old_starts_at||c.created_at)+' · '+esc(c.student_name||''); }))
+      + li('점수 향상 ('+r.gains.length+'명)', r.gains.map(function(g){ return nm(g.id)+' '+g.first+' → '+g.last+' ('+(g.g>=0?'+':'')+g.g+')'; }))
+      + li('중도 퇴원 ('+r.quit.length+'명)', r.quit.map(function(m){ return esc(m.name||'')+(m.end_reason==='etc'?' <span style="color:var(--muted)">(옛 기타)</span>':''); }))
+      + li('재등록 안 한 학생 ('+(r.renewTurn.length-r.renewed.length)+'명)', r.renewTurn.filter(function(k){ return r.renewed.indexOf(k)<0; }).map(nm))
+      + '</div>';
   }
   if($('evReload')) $('evReload').onclick=function(){ loadEval(); };
   if($('evScope')) $('evScope').addEventListener('change', loadEval);
