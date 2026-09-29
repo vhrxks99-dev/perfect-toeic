@@ -4931,6 +4931,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-alerts li .wa-al-tag{flex:none;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px}
 .wa-alerts li .t-next{background:#eaf1fe;color:#154fbe}
 .wa-alerts li .t-hw{background:#fdeaea;color:#c0342b}
+/* 수강 종료 — 증빙·원장님 승인 (2026-09-29) */
+.endrv-opt{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;font-weight:700;padding:4px 0}
+.endrv-opt input{width:auto!important;margin:0}
+.endrv-opt span{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted)}
+.endrv-opt.off{opacity:.4;pointer-events:none}
+.endrv-box{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fafbfc}
+.endrv-note{font-size:12px;color:var(--muted);font-weight:600}
+.endrv-lock{padding:10px 12px;border-radius:10px;background:#fdeaea;color:#a02820;font-size:13px;font-weight:700;line-height:1.55}
+.endrv-pend{padding:10px 12px;border-radius:10px;background:#fff5e0;color:#8a5a00;font-size:13px;font-weight:700;line-height:1.55}
+.endrv-req{padding:10px 0;border-top:1px solid #f0dcaa}
+.endrv-req:first-child{border-top:0}
+.endrv-req .endrv-meta{font-size:12.5px;color:#555;line-height:1.6;margin-top:3px}
+.endrv-req .endrv-ev{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.endrv-req .endrv-ev a{display:block;width:72px;height:72px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#fff}
+.endrv-req .endrv-ev img{width:100%;height:100%;object-fit:cover}
+.endrv-req .endrv-btns{display:flex;gap:6px;margin-top:8px}
+.endrv-req .endrv-btns button{padding:6px 14px;font-size:13px}
 /* 숙제 확인 밀림 — 줄을 누르면 어떤 숙제인지 펼침 (2026-09-29) */
 .wa-alerts li.hwlate-li{display:block}
 .hwlate-li summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;flex-wrap:wrap}
@@ -4979,6 +4996,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div id="waAlerts" class="wa-alerts" style="display:none"></div>
     <!-- 숙제 확인이 밀린 선생님 (2026-09-12 원장 지시). 원장·매니저만 보인다. -->
     <div id="waHwLate"></div>
+    <!-- 수강 종료 승인 대기 (2026-09-29) — 원장님만 보인다 -->
+    <div id="waEndReq"></div>
       <!-- 자료실 관리 (원장 지시 2026-08-17). 올린 직후는 '닫힘' — 아무도 못 받는다. -->
       <div class="dash-pane" data-dpane="lib">
         <div class="dash-list-head" style="margin-top:6px">📂 자료실
@@ -5642,7 +5661,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <b>출석률</b> = 출석 체크된 수업 ÷ 학생이 연결된 지난 수업 &nbsp;·&nbsp;
         <b>재등록률</b> = 결제한 학생 중 2번 이상 결제한 학생 &nbsp;·&nbsp;
         <b>상담 전환율</b> = 등록함 ÷ (등록함＋등록 안 함) &nbsp;·&nbsp;
-        <b>퇴원율</b> = 중도 퇴원 ÷ 담당 학생 전체<br>
+        <b>퇴원율</b> = (중도 퇴원 + 옛 「기타」) ÷ 담당 학생 전체 &nbsp;·&nbsp; <b>종료 내역</b> = 원장님이 승인한 수료(목표 달성)·개인 사정과 퇴원<br>
         ※ 학생 회원과 연결되지 않은 수업(구글 캘린더에 이름만 적힌 것 포함)은 누구 출석인지 알 수 없어 계산에서 빠집니다.
       </div>
       <div class="wa-table-wrap"><table class="wa-table" id="evTable"></table></div>
@@ -5853,18 +5872,39 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-head">수강 종료</div>
     <div class="wa-sub" id="waEndWho"></div>
     <div class="wa-form on" style="display:flex">
-      <div style="font-weight:800;font-size:13.5px;margin-bottom:2px">종료 사유를 골라주세요</div>
-      <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="graduated" checked style="width:auto;margin:0">목표 달성 · 수료</label>
-      <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="quit" style="width:auto;margin:0">중도 퇴원</label>
-      <label style="flex-direction:row;align-items:center;gap:8px;font-weight:700"><input type="radio" name="waEndReason" value="etc" style="width:auto;margin:0">기타 / 미기재</label>
-      <!-- 원장 요청(2026-08-10): "기타 입력하면 내용 입력할 수 있게 해줘."
-           '기타'를 고를 때만 펼친다. 세 항목에 안 들어가는 사유를 적어 두면
-           나중에 왜 그만뒀는지 찾아볼 수 있다. -->
-      <label id="waEndMemoWrap" style="display:none">기타 사유
-        <input type="text" id="waEndMemo" maxlength="100" placeholder="예: 군 입대, 지방 이사, 취업으로 중단"></label>
-      <span style="font-size:12px;color:var(--muted);font-weight:600">‘중도 퇴원’만 선생님 평가의 퇴원율에 들어갑니다. 종료하면 다음수업·숙제 알림에서 빠져요.</span>
+      <!-- 🚨 2026-09-29 원장님 지시로 통째로 바꿈 (end_review.sql 과 짝).
+           · 사유는 셋: 수료 / 개인 사정 / 중도 퇴원. 옛 '기타'는 없앴다(증거 없이 빠져나가는 구멍이었다).
+           · 남은 수업이 있거나 이번 등록 뒤 환불이 있으면 → 중도 퇴원만 된다(서버도 같이 막는다).
+           · 수료·개인 사정은 카톡 캡처(수료는 성적표·점수도)를 올려 「원장님 승인 요청」만 된다.
+             원장님이 승인해야 종료되고, 그 전까지 학생은 수강 중이다. -->
+      <div id="waEndLock" class="endrv-lock" style="display:none"></div>
+      <div id="waEndPend" class="endrv-pend" style="display:none"></div>
+      <div id="waEndPick">
+        <div style="font-weight:800;font-size:13.5px;margin-bottom:6px">종료 사유를 골라주세요</div>
+        <label class="endrv-opt"><input type="radio" name="waEndReason" value="graduated" checked>목표 달성 · 수료 <span>원장님 승인 필요</span></label>
+        <label class="endrv-opt"><input type="radio" name="waEndReason" value="personal">개인 사정 (군입대·이사·취업 등) <span>원장님 승인 필요</span></label>
+        <label class="endrv-opt"><input type="radio" name="waEndReason" value="quit">중도 퇴원 <span>바로 종료</span></label>
+      </div>
+      <div id="waEndGrad" class="endrv-box">
+        <label>최종 점수 <input type="number" id="waEndScore" min="0" max="990" placeholder="예: 785"></label>
+        <div id="waEndGoalTxt" class="endrv-note"></div>
+        <label>성적표 사진 <input type="file" id="waEndCard" accept="image/*"></label>
+      </div>
+      <div id="waEndPers" class="endrv-box" style="display:none">
+        <label>개인 사정 종류
+          <select id="waEndCat"><option value="">골라 주세요</option><option>군 입대</option><option>이사</option><option>취업</option><option>건강</option><option>비용</option><option>그 밖의 사정</option></select></label>
+        <label>한 줄 설명 <input type="text" id="waEndMemo" maxlength="100" placeholder="예: 11월 입대 예정이라 중단"></label>
+      </div>
+      <div id="waEndKakaoWrap" class="endrv-box">
+        <label>카톡 대화 캡처 <span class="endrv-note">(학생과 나눈 대화, 여러 장 가능)</span>
+          <input type="file" id="waEndKakao" accept="image/*" multiple></label>
+      </div>
+      <div id="waEndQuitWrap" class="endrv-box" style="display:none">
+        <label>메모 (선택) <input type="text" id="waEndQuitMemo" maxlength="100" placeholder="예: 연락 두절"></label>
+      </div>
+      <span class="endrv-note">수료·개인 사정은 원장님이 승인해야 종료됩니다. 그 전까진 수강 중으로 남아요. 승인 안 된 종료는 선생님 평가에서 퇴원으로 셉니다.</span>
       <p class="wa-err" id="waEndErr"></p>
-      <button class="btn btn-primary" id="waEndSave" type="button">저장</button>
+      <button class="btn btn-primary" id="waEndSave" type="button">원장님께 승인 요청</button>
     </div>
   </div>
 </div>
@@ -6698,8 +6738,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var ended=(u.status==='ended');
       var st=ended?pickStyle('#e5b4b0','#fdf0ef','#c0342b'):pickStyle('var(--line,#e3e6ea)','#fff','var(--ink,#222)');
       // 기타로 종료한 학생은 적어 둔 사유까지 같이 보여 준다(원장 요청 2026-08-10).
-      var whyTxt = u.end_reason==='quit' ? '중도 퇴원' : (u.end_reason==='graduated' ? '수료' : '기타');
-      if(u.end_reason==='etc' && u.end_memo) whyTxt += ' · ' + u.end_memo;
+      // 2026-09-29: 개인 사정 추가. 옛 '기타'는 증빙 없이 고른 것이라 「기타(옛 기록)」로 구분해 보인다.
+      var whyTxt = u.end_reason==='quit' ? '중도 퇴원' : u.end_reason==='graduated' ? '수료'
+                 : u.end_reason==='personal' ? '개인 사정' : '기타(옛 기록)';
+      if((u.end_reason==='etc'||u.end_reason==='personal') && u.end_memo) whyTxt += ' · ' + u.end_memo;
       var why = ended ? ('<br><span style="color:var(--muted);font-size:11.5px">'+esc(whyTxt)+'</span>') : '';
       return '<td style="white-space:nowrap"><select data-status-for="'+esc(u.id)+'" style="'+st+'">'
            + '<option value="active"'+(ended?'':' selected')+'>수강 중</option>'
@@ -7537,45 +7579,199 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     drawMembers();
     if(sid) await loadTeacherAlerts();
   });
-  // ---- 수강 종료 사유 ----
-  var endId=null;
-  function openEnd(u){
-    endId=u.id;
-    if($('waEndWho')) $('waEndWho').textContent=(u.name||'')+' 학생을 수강 종료로 바꿉니다.';
-    var pick=(u.end_reason==='quit'||u.end_reason==='etc')?u.end_reason:'graduated';
-    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ r.checked=(r.value===pick); });
-    if($('waEndMemo')) $('waEndMemo').value=u.end_memo||'';
-    endMemoToggle();
-    if($('waEndErr')) $('waEndErr').textContent='';
-    $('waEnd').classList.add('on');
+  // ---- 수강 종료 (2026-09-29 원장님 지시로 다시 만듦 · end_review.sql 과 짝) ----
+  //  🚨 선생님이 사유를 골라 자기 평가를 피하던 구멍을 막는다.
+  //     · 남은 수업·환불 → 중도 퇴원만(서버 request_student_end 도 자동으로 그렇게 바꾼다)
+  //     · 수료·개인 사정 → 카톡 캡처(+성적표·점수) 올려 「요청」 → 원장님 승인해야 종료
+  var endId=null, endLocked=false, endPendReq=null;
+  function endReasonNow(){
+    var v='graduated';
+    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ if(r.checked) v=r.value; });
+    return v;
   }
-  // '기타'일 때만 사유 칸을 보여 준다(원장 요청 2026-08-10).
   function endMemoToggle(){
-    var wrap=$('waEndMemoWrap'); if(!wrap) return;
-    var etc=false;
-    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ if(r.checked && r.value==='etc') etc=true; });
-    wrap.style.display = etc ? '' : 'none';
+    var v=endReasonNow();
+    if($('waEndGrad')) $('waEndGrad').style.display = v==='graduated' ? '' : 'none';
+    if($('waEndPers')) $('waEndPers').style.display = v==='personal' ? '' : 'none';
+    if($('waEndKakaoWrap')) $('waEndKakaoWrap').style.display = v==='quit' ? 'none' : '';
+    if($('waEndQuitWrap')) $('waEndQuitWrap').style.display = v==='quit' ? '' : 'none';
+    if($('waEndSave')) $('waEndSave').textContent = v==='quit' ? '중도 퇴원으로 종료' : '원장님께 승인 요청';
   }
   document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ r.addEventListener('change', endMemoToggle); });
+  async function openEnd(u){
+    endId=u.id; endLocked=false; endPendReq=null;
+    if($('waEndWho')) $('waEndWho').textContent=(u.name||'')+' 학생을 수강 종료로 바꿉니다.';
+    ['waEndScore','waEndMemo','waEndQuitMemo','waEndCard','waEndKakao','waEndCat'].forEach(function(k){ if($(k)) $(k).value=''; });
+    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ r.checked=(r.value==='graduated'); r.closest('label').classList.remove('off'); });
+    if($('waEndGoalTxt')) $('waEndGoalTxt').textContent = u.goal_score ? ('목표 점수: '+u.goal_score+' — 비교해서 「목표 달성 / 미달」이 자동으로 붙어요') : '목표 점수가 비어 있어요(회원 정보에서 먼저 적으면 달성 여부가 자동으로 붙어요)';
+    $('waEndLock').style.display='none'; $('waEndPend').style.display='none';
+    $('waEndPick').style.display=''; $('waEndSave').disabled=false;
+    if($('waEndErr')) $('waEndErr').textContent='';
+    endMemoToggle();
+    $('waEnd').classList.add('on');
+
+    // 서버와 같은 기준으로 확인한다(화면 계산과 어긋나지 않게)
+    try{
+      var rs=await Promise.all([
+        sb.rpc('sessions_left',{p_student:u.id}),
+        sb.rpc('end_has_refund',{p_student:u.id}),
+        sb.from('end_requests').select('*').eq('student_id',u.id).order('created_at',{ascending:false}).limit(1)
+      ]);
+      if(endId!==u.id) return;
+      var left=(rs[0]&&!rs[0].error)?Number(rs[0].data||0):0;
+      var refund=!!(rs[1]&&!rs[1].error&&rs[1].data);
+      var last=(rs[2]&&!rs[2].error&&rs[2].data&&rs[2].data[0])||null;
+      if(last && last.status==='pending'){
+        endPendReq=last;
+        $('waEndPend').innerHTML='⏳ '+(last.reason==='graduated'?'수료':'개인 사정')+' 종료 요청이 원장님 승인을 기다리고 있어요 ('+esc(kymd(last.created_at))+').'
+          +' <button type="button" class="btn" id="waEndCancel" style="padding:3px 10px;font-size:12px;margin-left:6px">요청 취소</button>';
+        $('waEndPend').style.display='';
+        $('waEndPick').style.display='none';
+        ['waEndGrad','waEndPers','waEndKakaoWrap','waEndQuitWrap'].forEach(function(k){ $(k).style.display='none'; });
+        $('waEndSave').disabled=true;
+        $('waEndCancel').onclick=async function(){
+          var r=await sb.rpc('cancel_student_end',{req:last.id});
+          if(r.error){ $('waEndErr').textContent='취소 실패: '+r.error.message; return; }
+          closeEnd(); await renderEndReq();
+        };
+        return;
+      }
+      if(last && last.status==='rejected' && last.decide_note){
+        $('waEndPend').innerHTML='↩️ 지난 요청이 반려됐어요: '+esc(last.decide_note);
+        $('waEndPend').style.display='';
+      }
+      if(left>0 || refund){
+        endLocked=true;
+        $('waEndLock').innerHTML='🔒 '+(left>0?'결제한 수업이 <b>'+left+'회</b> 남아 있어요':'')
+          +(left>0&&refund?' · ':'')+(refund?'이번 등록 뒤 <b>환불</b> 기록이 있어요':'')
+          +'<br>이 경우 규칙상 <b>중도 퇴원</b>으로만 종료할 수 있어요.';
+        $('waEndLock').style.display='';
+        document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){
+          r.checked=(r.value==='quit'); if(r.value!=='quit') r.closest('label').classList.add('off');
+        });
+        endMemoToggle();
+      }
+    }catch(e){}
+  }
   function closeEnd(){ if($('waEnd')) $('waEnd').classList.remove('on'); endId=null; }
   if($('waEndClose')) $('waEndClose').onclick=closeEnd;
   if($('waEnd')) $('waEnd').addEventListener('click',function(e){ if(e.target===$('waEnd')) closeEnd(); });
+
+  // 증빙 사진 올리기 → [{kind, path}]
+  async function endUpload(sid, kind, files){
+    var out=[];
+    for(var i=0;i<files.length;i++){
+      var f=files[i];
+      var ext=((f.name||'').split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+      var path=sid+'/'+Date.now()+'_'+kind+'_'+i+'.'+ext;
+      var up=await sb.storage.from('end-evidence').upload(path, f, { contentType:f.type||'image/jpeg', upsert:false });
+      if(up.error) throw new Error('사진 올리기 실패: '+up.error.message);
+      out.push({kind:kind, path:path});
+    }
+    return out;
+  }
+
   if($('waEndSave')) $('waEndSave').onclick=async function(){
     if(!endId||!sb) return;
-    var picked='etc';
-    document.querySelectorAll('input[name="waEndReason"]').forEach(function(r){ if(r.checked) picked=r.value; });
-    // 기타일 때만 적어 둔 내용을 같이 보낸다. 다른 사유면 남아 있던 메모를 지운다.
-    var memo=(picked==='etc' && $('waEndMemo')) ? String($('waEndMemo').value||'').trim() : '';
-    var r=await sb.rpc('set_student_status',{target:endId,new_status:'ended',reason:picked,memo:memo});
-    if(r.error){ $('waEndErr').textContent='저장 실패: '+r.error.message; return; }
-    var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(endId);})[0];
-    // 서버(set_student_status)가 스터디 자격도 같이 끄므로 화면 쪽도 맞춰 준다.
-    if(u){ u.status='ended'; u.end_reason=picked; u.end_memo=memo||null; u.study=false; if(!u.ended_at) u.ended_at=new Date().toISOString(); }
-    closeEnd();
-    drawMembers();
-    await loadTeacherAlerts();
+    var sid=endId, why=endReasonNow(), err=$('waEndErr'), btn=$('waEndSave');
+    err.textContent='';
+    var u=(window.__wtMembers||[]).filter(function(x){return String(x.id)===String(sid);})[0];
+
+    if(why==='quit'){
+      if(!confirm((u&&u.name||'')+' 학생을 중도 퇴원으로 종료할까요?')) return;
+      var rq=await sb.rpc('end_student_quit',{target:sid, memo:($('waEndQuitMemo').value||'').trim()});
+      if(rq.error){ err.textContent='저장 실패: '+rq.error.message; return; }
+      if(u){ u.status='ended'; u.end_reason='quit'; u.study=false; if(!u.ended_at) u.ended_at=new Date().toISOString(); }
+      closeEnd(); drawMembers(); await loadTeacherAlerts(); return;
+    }
+
+    var kak=$('waEndKakao').files||[];
+    if(!kak.length){ err.textContent='카톡 대화 캡처를 올려 주세요.'; return; }
+    var score=null, cat='', memo='';
+    if(why==='graduated'){
+      score=parseInt($('waEndScore').value,10);
+      if(isNaN(score)){ err.textContent='최종 점수를 적어 주세요.'; return; }
+      if(!($('waEndCard').files||[]).length){ err.textContent='성적표 사진을 올려 주세요.'; return; }
+    }else{
+      cat=$('waEndCat').value; memo=($('waEndMemo').value||'').trim();
+      if(!cat){ err.textContent='개인 사정 종류를 골라 주세요.'; return; }
+      if(!memo){ err.textContent='한 줄 설명을 적어 주세요.'; return; }
+    }
+    btn.disabled=true; var old=btn.textContent; btn.textContent='올리는 중…';
+    try{
+      var files=await endUpload(sid,'kakao',kak);
+      if(why==='graduated') files=files.concat(await endUpload(sid,'scorecard',$('waEndCard').files));
+      var r=await sb.rpc('request_student_end',{target:sid, reason:why, category:cat||null, memo:memo||null, score:score, files:files});
+      if(r.error) throw new Error(r.error.message);
+      if(r.data && r.data.result==='auto_quit'){
+        alert('결제한 수업이 남아 있거나 환불 기록이 있어 규칙에 따라 「중도 퇴원」으로 종료됐습니다.');
+        if(u){ u.status='ended'; u.end_reason='quit'; u.study=false; }
+      }else{
+        alert('원장님께 승인 요청을 보냈어요. 승인되면 종료됩니다.');
+      }
+      closeEnd(); drawMembers(); await loadTeacherAlerts(); await renderEndReq();
+    }catch(e){
+      err.textContent=String(e.message||e);
+    }finally{ btn.disabled=false; btn.textContent=old; }
   };
 
+  // ---- 원장님: 수강 종료 승인 대기 (2026-09-29) ----
+  async function renderEndReq(){
+    var box=$('waEndReq'); if(!box) return;
+    box.innerHTML='';
+    if(!sb || !isMasterNow()) return;
+    var r;
+    try{ r=await sb.from('end_requests').select('*').eq('status','pending').order('created_at',{ascending:true}); }catch(e){ return; }
+    if(r.error || !r.data || !r.data.length) return;
+    var byId={}; (window.__wtMembers||[]).forEach(function(m){ byId[String(m.id)]=m; });
+    var CAT={graduated:'수료', personal:'개인 사정'};
+    var html=r.data.map(function(q){
+      var st=byId[String(q.student_id)]||{}, tc=byId[String(q.teacher_id)]||{}, rq=byId[String(q.requested_by)]||{};
+      var meta = q.reason==='graduated'
+        ? ('최종 <b>'+(q.score==null?'-':q.score)+'점</b> / 목표 '+(q.goal==null?'(없음)':q.goal+'점')
+           +(q.goal_met===true?' · <b style="color:#0a7d3f">목표 달성</b>':q.goal_met===false?' · <b style="color:#c0342b">목표 미달</b>':''))
+        : ('<b>'+esc(q.category||'')+'</b> · '+esc(q.memo||''));
+      return '<div class="endrv-req" data-req="'+q.id+'">'
+        + '<div><span class="wa-al-tag t-hw" style="background:#fff0d6;color:#8a5a00">'+CAT[q.reason]+'</span> '
+        + '<b>'+esc(st.name||'(학생)')+'</b> · 담당 '+esc(tc.name||'-')+'</div>'
+        + '<div class="endrv-meta">'+meta+'<br>요청: '+esc(rq.name||'-')+' · '+esc(kymd(q.created_at))+'</div>'
+        + '<div class="endrv-ev" data-ev="'+q.id+'">증빙 불러오는 중…</div>'
+        + '<div class="endrv-btns"><button type="button" class="btn btn-primary" data-ok="'+q.id+'">승인 (종료)</button>'
+        + '<button type="button" class="btn" data-no="'+q.id+'">반려</button></div></div>';
+    }).join('');
+    box.innerHTML='<div class="wa-alerts" style="display:block;margin:12px 0 4px">'
+      + '<div class="wa-al-head">🎓 수강 종료 승인 대기 <span class="wa-al-badge">'+r.data.length+'</span></div>'
+      + html
+      + '<div style="font-size:12.5px;color:var(--muted);margin-top:6px">카톡 캡처·성적표를 눌러 크게 보고 승인해 주세요. 승인해야 종료되고, 반려하면 수강 중으로 남아요.</div></div>';
+    // 증빙은 비공개 저장통이라 10분짜리 주소를 받아 띄운다
+    r.data.forEach(async function(q){
+      var el=box.querySelector('[data-ev="'+q.id+'"]'); if(!el) return;
+      var files=Array.isArray(q.files)?q.files:[];
+      var parts=await Promise.all(files.map(async function(f){
+        try{ var s=await sb.storage.from('end-evidence').createSignedUrl(f.path, 600);
+             if(s.error) return '';
+             return '<a href="'+s.data.signedUrl+'" target="_blank" rel="noopener" title="'+(f.kind==='scorecard'?'성적표':'카톡 캡처')+'"><img src="'+s.data.signedUrl+'" alt=""></a>';
+        }catch(e){ return ''; }
+      }));
+      el.innerHTML=parts.join('')||'<span class="endrv-note">증빙을 불러오지 못했어요</span>';
+    });
+    box.onclick=async function(e){
+      var ok=e.target.getAttribute('data-ok'), no=e.target.getAttribute('data-no');
+      if(!ok && !no) return;
+      var note=null;
+      if(no){ note=window.prompt('반려 사유를 적어 주세요 (선생님께 보여요)',''); if(note===null) return; }
+      else if(!confirm('승인하면 이 학생이 수강 종료됩니다. 승인할까요?')) return;
+      var d=await sb.rpc('decide_student_end',{req:ok||no, approve:!!ok, note:note});
+      if(d.error){ alert('처리 실패: '+d.error.message); return; }
+      if(ok){
+        var q=r.data.filter(function(x){ return String(x.id)===String(ok); })[0];
+        var m=q && (window.__wtMembers||[]).filter(function(x){ return String(x.id)===String(q.student_id); })[0];
+        if(m){ m.status='ended'; m.end_reason=q.reason; m.study=false; if(!m.ended_at) m.ended_at=new Date().toISOString(); }
+        drawMembers();
+      }
+      await renderEndReq();
+    };
+  }
   // ---- 점수·목표 빠른 입력 (선생님·원장님) ----
   var goalId=null;
   function openGoal(u){
@@ -10498,6 +10694,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 여기서 안 그리면 예약이 0건일 때 스케줄 탭의 옛 목록이 지워지지 않는다.
     drawSchedPending(pend);
     try{ await renderHwLate(); }catch(e){}
+    try{ await renderEndReq(); }catch(e){}
     try{ await renderParkNow(); }catch(e){}
     try{ await renderParking(); }catch(e){}
     try{ await renderStudentReqs(); }catch(e){}
@@ -15099,6 +15296,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     // 4) 상담
     var cr=await sb.from('consults').select('teacher_id,result,consulted_on');
+    // 5) 승인된 수료 요청 — 목표 달성 여부 (2026-09-29). 표가 없으면 조용히 비운다.
+    var goalMet={};
+    try{
+      var gq=await sb.from('end_requests').select('student_id,goal_met,decided_at').eq('status','approved').eq('reason','graduated');
+      if(!gq.error&&gq.data) gq.data.forEach(function(x){ goalMet[String(x.student_id)]=x.goal_met; });
+    }catch(e){}
     var cons=(!cr.error&&cr.data)?cr.data:[];
 
     var rows=teachers.map(function(t){
@@ -15121,20 +15324,27 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var lost=myCons.filter(function(c){return c.result==='lost';}).length;
 
       // 퇴원율: 담당 학생 전체 중 '중도 퇴원'
+      //  🚨 2026-09-29: 옛 '기타'(증빙 없이 고른 것)도 퇴원으로 센다. 수료·개인 사정은 원장님 승인을 거친 것만 있다.
       var myStu=(_members||[]).filter(function(m){ return m.role==='student' && m.teacher_id===t.id; });
-      var quitList=myStu.filter(function(m){
-        if(m.status!=='ended'||m.end_reason!=='quit') return false;
+      var inRange=function(m){
         if(!from) return true;
         if(!m.ended_at) return false;
         var d=kwall(m.ended_at); return d>=from && d<to;
+      };
+      var quitList=myStu.filter(function(m){
+        return m.status==='ended' && (m.end_reason==='quit'||m.end_reason==='etc'||!m.end_reason) && inRange(m);
       });
+      var gradN=myStu.filter(function(m){ return m.status==='ended' && m.end_reason==='graduated' && inRange(m); });
+      var persN=myStu.filter(function(m){ return m.status==='ended' && m.end_reason==='personal' && inRange(m); }).length;
+      var metN=gradN.filter(function(m){ return goalMet[String(m.id)]===true; }).length;
       var active=myStu.filter(function(m){ return m.status!=='ended'; }).length;
 
       return { t:t, sch:mySch.length, att:att, payStu:ids.length, again:again,
-               reg:reg, lost:lost, stu:myStu.length, active:active, quit:quitList.length };
+               reg:reg, lost:lost, stu:myStu.length, active:active, quit:quitList.length,
+               grad:gradN.length, met:metN, pers:persN };
     });
 
-    var h='<tr><th>선생님</th><th>담당 학생</th><th>수업/출석</th><th>출석률</th><th>재등록률</th><th>상담 전환율</th><th>퇴원율</th></tr>';
+    var h='<tr><th>선생님</th><th>담당 학생</th><th>수업/출석</th><th>출석률</th><th>재등록률</th><th>상담 전환율</th><th>퇴원율</th><th>종료 내역</th></tr>';
     rows.forEach(function(r){
       h+='<tr><td><b>'+esc(r.t.name)+'</b></td>'
        + '<td style="white-space:nowrap">'+r.stu+'명 <span style="color:var(--muted);font-size:11.5px">(수강중 '+r.active+')</span></td>'
@@ -15142,7 +15352,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
        + '<td style="white-space:nowrap">'+pctTxt(r.att,r.sch,true)+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.again,r.payStu,true)+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.reg,r.reg+r.lost,true)+'</td>'
-       + '<td style="white-space:nowrap">'+pctTxt(r.quit,r.stu,false)+'</td></tr>';
+       + '<td style="white-space:nowrap">'+pctTxt(r.quit,r.stu,false)+'</td>'
+       // 수료(목표 달성) · 개인 사정 · 퇴원 — 승인된 것만 (2026-09-29)
+       + '<td style="white-space:nowrap;font-size:12.5px">수료 '+r.grad+(r.grad?' <span style="color:var(--muted)">(달성 '+r.met+')</span>':'')
+       + ' · 개인 '+r.pers+' · 퇴원 '+r.quit+'</td></tr>';
     });
     $('evTable').innerHTML=h;
     if($('evNote')) $('evNote').innerHTML='기준: <b>'+(from?(mv+' 한 달'):'전체 기간')+'</b>. 재등록률은 기간과 상관없이 <b>누적 결제 기록</b>으로 계산합니다(같은 학생이 2번 이상 결제하면 재등록).';
