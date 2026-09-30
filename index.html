@@ -5441,12 +5441,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <summary style="cursor:pointer;font-weight:800;font-size:13.5px;color:var(--ink-soft)" id="attEndedSum">🏁 수강 종료</summary>
         <div class="wa-table-wrap" style="margin-top:8px"><table class="wa-table" id="attEndedTable"></table></div>
       </details>
-      <div class="dash-list-head">✏️ 횟수 조정 내역 <span id="adjCount" style="color:var(--muted);font-weight:700"></span></div>
+      <!-- 2026-09-30 원장님 「조정 내역 8월 따로 9월 따로 볼 수 있게」 — 달을 고르는 칸. 기본은 이번 달. -->
+      <div class="dash-list-head" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">✏️ 횟수 조정 내역 <select id="adjMonth" style="padding:6px 10px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:13px;font-weight:700;background:var(--surface);color:var(--ink)"></select> <span id="adjCount" style="color:var(--muted);font-weight:700"></span></div>
       <div class="dash-note" style="margin-top:0">표에서 <b>＋</b>／<b>−</b> 를 누르면 날짜와 사유를 적어 넣을 수 있습니다. 잘못 넣었으면 여기서 지우세요(고치기는 없습니다 — 지우고 다시 넣어야 이력이 정확합니다).</div>
       <div class="wa-table-wrap"><table class="wa-table" id="adjTable"></table></div>
 
-      <div class="dash-list-head">지난 등원 기록 <span style="color:var(--muted);font-weight:700;font-size:12.5px">(아이패드 등원기를 쓰던 시절 기록입니다. 지금은 새로 쌓이지 않습니다.)</span></div>
-      <div class="wa-table-wrap"><table class="wa-table" id="attHistTable"></table></div>
+      <!-- 「지난 등원 기록」(아이패드 등원기 시절) 칸은 2026-09-30 원장님 지시로 화면에서 뺐다.
+           자료(attendance 표)는 지우지 않았다. 다시 보려면 이 자리에 #attHistTable 표를 되살리면 된다. -->
     </div>
 
     <div class="dash-pane" data-dpane="work">
@@ -14345,7 +14346,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var rows=q?adjs.filter(function(a){ return String(a.student_name||'').toLowerCase().indexOf(q)>=0; }):adjs;
     var scA=attScopeSet();
     rows=rows.filter(function(a){ return attInScope(scA, a.student_id, a.student_name); });
-    if($('adjCount')) $('adjCount').textContent='('+rows.length+'건)';
+    // 달 고르기 — 있는 달만 칸에 넣는다(이번 달은 비어 있어도 넣는다). 고른 값은 다시 그려도 유지.
+    var ms=$('adjMonth');
+    if(ms){
+      var cur=kymd().slice(0,7), pick=ms.value||cur, seen={}; seen[cur]=1;
+      adjs.forEach(function(a){ var m=String(a.happened_on||'').slice(0,7); if(m) seen[m]=1; });
+      var months=Object.keys(seen).sort().reverse();
+      if(pick!=='all' && !seen[pick]) pick=cur;
+      ms.innerHTML=months.map(function(m){ return '<option value="'+m+'">'+m.slice(0,4)+'년 '+Number(m.slice(5,7))+'월</option>'; }).join('')
+        + '<option value="all">전체</option>';
+      ms.value=pick;
+      if(!ms.__wired){ ms.__wired=true; ms.addEventListener('change', drawAdjTable); }
+      if(pick!=='all') rows=rows.filter(function(a){ return String(a.happened_on||'').slice(0,7)===pick; });
+    }
+    var plus=0, minus=0; rows.forEach(function(a){ var d=a.delta||0; if(d>0) plus+=d; else minus+=d; });
+    if($('adjCount')) $('adjCount').textContent='('+rows.length+'건'+(rows.length?(' · +'+plus+'회 / '+minus+'회'):'')+')';
     if(!rows.length){ $('adjTable').innerHTML='<tr><td class="wa-empty">조정한 내역이 없습니다.</td></tr>'; return; }
     var h='<tr><th>날짜</th><th>학생</th><th>증감</th><th>사유</th><th>관리</th></tr>';
     rows.slice(0,80).forEach(function(a){
