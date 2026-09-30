@@ -5761,6 +5761,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <!-- 성적 그래프·진단 리포트 (2026-09-09). 앱 「내 학습」과 같은 그림이다.
          자료가 없으면 자리도 안 만든다. -->
     <div id="myExam" style="display:none"></div>
+    <!-- 전용 커리큘럼 PDF (2026-09-30). 앱 「내 학습」과 같은 표(curriculums)·저장통(curriculum).
+         다 만든 것(status=done)만 보인다. 없으면 자리도 없다. -->
+    <div id="myCurPdf" style="display:none"></div>
     <div id="myDiag" style="display:none"></div>
     <div id="myTeacher"></div>
     <div class="dash-list-head">🎫 내 수강권 (남은 수업 횟수)</div>
@@ -17487,6 +17490,46 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             .eq('student_id', p.id).order('exam_date',{ascending:false}).limit(6);
           drawExams(ex, (!r.error && r.data) ? r.data : [], { goal: window.wtGoalNum(p.goal_score) });
         }catch(e){ ex.style.display='none'; }
+      }
+
+      // 전용 커리큘럼 PDF (2026-09-30 원장님: 「앱이랑 웹 각자 아이디에 올려놔」)
+      // 🚨 저장통이 비공개라 누를 때마다 5분짜리 주소를 새로 받는다. 주소를 화면에 박아 두지 않는다.
+      var cu=document.getElementById('myCurPdf');
+      if(cu){
+        try{
+          var c=await window.sb.from('curriculums').select('id,title,pdf_path,done_at')
+            .eq('student_id', p.id).eq('status','done').not('pdf_path','is',null)
+            .order('done_at',{ascending:false}).limit(5);
+          var cl=(!c.error && c.data) ? c.data : [];
+          if(!cl.length){ cu.style.display='none'; cu.innerHTML=''; }
+          else{
+            var ce=function(v){ return String(v==null?'':v).replace(/[&<>"']/g,function(k){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]; }); };
+            cu.innerHTML='<div class="dash-list-head">📘 내 전용 커리큘럼</div>'
+              + cl.map(function(r,i){
+                  var d = r.done_at ? new Date(r.done_at).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'}) : '';
+                  return '<button type="button" data-cur="'+i+'" style="display:flex;width:100%;align-items:center;gap:10px;'
+                    + 'padding:12px 14px;margin:0 0 8px;border:1px solid var(--line,#e3e6ec);border-radius:12px;background:#fff;'
+                    + 'cursor:pointer;text-align:left;font:inherit">'
+                    + '<span style="font-size:20px">📄</span>'
+                    + '<span style="flex:1"><b>'+ce(r.title||'전용 커리큘럼')+'</b>'
+                    + (d?'<br><span style="font-size:12px;color:var(--muted)">'+ce(d)+' 완성</span>':'')+'</span>'
+                    + '<span style="font-size:13px;font-weight:700;color:var(--accent)">열기 ›</span></button>';
+                }).join('');
+            cu.querySelectorAll('button[data-cur]').forEach(function(bt){
+              bt.onclick=async function(){
+                var r=cl[Number(bt.getAttribute('data-cur'))]; if(!r) return;
+                // 🚨 창을 먼저 연다. 주소를 받은 뒤에 열면 브라우저가 팝업으로 막는다.
+                var w=window.open('about:blank','_blank');
+                try{
+                  var sg=await window.sb.storage.from('curriculum').createSignedUrl(r.pdf_path, 300);
+                  if(sg.error || !sg.data) throw new Error(sg.error ? sg.error.message : '');
+                  if(w) w.location.href=sg.data.signedUrl; else location.href=sg.data.signedUrl;
+                }catch(e){ if(w) w.close(); alert('커리큘럼을 열지 못했습니다. 잠시 뒤 다시 눌러 주세요.'); }
+              };
+            });
+            cu.style.display='';
+          }
+        }catch(e){ cu.style.display='none'; }
       }
 
       if(dg){
