@@ -14144,14 +14144,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
        + '</div></div>';
     }
     if(auto.length){
-      h+='<div style="margin-top:8px"><b style="color:#8a5a00">📤 곧 자동으로 나갑니다 · '+auto.length+'명</b>'
+      // 2026-09-30 원장님: 솔라피 자동 알림톡 멈춤(cron notify-send-30min active=false) → 「보내기」 버튼으로만 나간다.
+      h+='<div style="margin-top:8px"><b style="color:#8a5a00">📤 결제 안내 보낼 학생 · '+auto.length+'명</b>'
        + '<div style="margin-top:4px;line-height:1.9">'
        + auto.map(function(x){
            var n=sentBy[x.s.id];
            return '<span style="display:inline-block;margin-right:14px"><b>'+esc(x.s.name||'-')+'</b> '
                 + '<span style="color:#8a5a00;font-weight:800">남은 1회</span>'
-                + '<span style="color:var(--muted);font-weight:700"> · '+(n?'대기 중':'곧 대기열에 올라감')+'</span>'
-                + kkBtn(x.s.id,x.s.name,true)+'</span>';
+                + kkBtn(x.s.id,x.s.name)+'</span>';
          }).join('')
        + '</div></div>';
     }
@@ -14161,7 +14161,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
        + manual.map(function(x){
            // 자동 발송은 '딱 1회'만 잡는다. 0회 이하는 이미 지나가서 영영 안 나간다.
            var why = !hasPhoneOf(x.s) ? '휴대폰 번호가 없어요'
-                   : '남은 횟수가 이미 지나가 자동 발송 대상이 아니에요';
+                   : '남은 횟수가 이미 지났어요';
            return '<span style="display:inline-block;margin-right:14px"><b>'+esc(x.s.name||'-')+'</b> '
                 + '<span style="color:#c0342b;font-weight:800">'+x.rem+'회</span>'
                 + '<span style="color:var(--muted);font-weight:700"> · '+why+'</span>'
@@ -14170,10 +14170,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
        + '</div></div>';
     }
     h+=sentLine;
-    h+='<div style="margin-top:8px;color:var(--muted);font-weight:700">안내는 남은 수업이 <b>딱 1회</b>가 됐을 때 나갑니다. '
-     + '2회 남은 학생은 미리 알려드리는 것이고 아직 안 나갑니다.<br>'
-     + '30분마다 확인해서 <b>오전 10시 13분 ~ 오후 8시 43분</b> 사이에 발송하고, '
-     + '안내가 나갔거나 결제가 들어오면 이 목록에서 저절로 빠집니다.</div>';
+    h+='<div style="margin-top:8px;color:var(--muted);font-weight:700">자동 알림톡은 멈췄습니다(2026-09-30). '
+     + '남은 수업이 <b>1회 이하</b>인 학생 옆 <b>「보내기」</b>를 누르면 완벽한토익 카카오톡 채널로 결제 안내가 나갑니다.<br>'
+     + '2회 남은 학생은 미리 보여 드리는 것이고, 결제가 들어오면 이 목록에서 저절로 빠집니다.</div>';
     // 실제로 나갈 문구를 그대로 보여준다(원장님 확인용).
     var last=notif&&notif.length?notif[0]:null;
     if(last&&last.body){
