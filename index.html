@@ -6361,11 +6361,35 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           // 카카오로 들어오면 이름이 카카오 닉네임(하트 같은 것)이고 번호가 없어서,
           // 행부터 만들면 반쪽짜리 회원이 목록에 남는다. 실제로 그렇게 들어온 계정이 있었다.
           // '필수 정보 입력' 창을 다 채워야 그때 행을 만든다.
+          // ── 같은 휴대폰 번호의 기존 계정에 묶기 (2026-10-01 원장님 「같은 이메일이 아니더라도 같은 핸드폰번호면 하나로」) ──
+          // 🚨 Supabase 카카오 연동은 전화번호를 저장하지 않는다(user_metadata 에 phone_number 가 한 번도 온 적 없음).
+          //    → 로그인 직후 세션에만 잠깐 있는 카카오 토큰(provider_token)을 서버 함수 kakao-merge 에 넘긴다.
+          //      서버가 카카오에 직접 번호를 물어, 기존 회원 1명과 같으면 카카오를 그 계정에 옮겨 붙이고 새 빈 계정은 지운다.
+          //    묶이면 지금 세션은 지워진 계정 것이라 → 로그아웃 후 카카오로 한 번 더 로그인(이번엔 기존 계정으로 들어간다).
+          //    안 묶여도 서버가 돌려준 카카오 번호로 「필수 정보」 칸을 채운다.
+          var kkPhoneSrv='';
+          try{
+            var ptok = s.data.session.provider_token;
+            var provs = (user.app_metadata && user.app_metadata.providers) || [];
+            if(ptok && provs.indexOf('kakao')>=0 && !window._kkMergeTried){
+              window._kkMergeTried = true;
+              var mr = await sb.functions.invoke('kakao-merge', { body:{ provider_token: ptok } });
+              var md = mr && mr.data;
+              if(md && md.ok){
+                alert('이 휴대폰 번호로 이미 가입된 계정' + (md.name?('('+md.name+')'):'') + '이 있어서 그 계정에 카카오를 연결했어요.'
+                  + ' / 카카오로 한 번 더 로그인할게요.');
+                await sb.auth.signOut();
+                await sb.auth.signInWithOAuth({ provider:'kakao', options:{ scopes:'profile_nickname account_email name phone_number', redirectTo: window.location.origin + window.location.pathname } });
+                return;
+              }
+              if(md && md.phone) kkPhoneSrv = md.phone;
+            }
+          }catch(e){}
           var meta=user.user_metadata||{};
           var nm=meta.name||meta.full_name||meta.nickname||meta.user_name||'';
           // 카카오가 준 값이 있으면 미리 채워 넣는다. 학생이 다시 칠 필요가 없다.
           // 전화번호는 +82 10-1234-5678 로 오므로 010-1234-5678 로 바꾼다.
-          var kph=meta.phone_number||meta.phone||'';
+          var kph=kkPhoneSrv||meta.phone_number||meta.phone||'';
           if(kph) kph=fmtPhone(String(kph).replace(/^\+82\s*/,'0').replace(/^0?10/,'010'));
           window.WT_PENDING = { id:user.id, email:(user.email||meta.email||''), name:(badName(nm)?'':nm), phone:(badPhone(kph)?'':kph) };
           profile = null;
