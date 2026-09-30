@@ -4938,6 +4938,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .endrv-opt.off{opacity:.4;pointer-events:none}
 .endrv-box{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fafbfc}
 .endrv-note{font-size:12px;color:var(--muted);font-weight:600}
+/* 2026-09-30 원장님 「파일 첨부 칸이 옆으로 삐져나간다」 — 상자 안 칸은 .wa-form>label 규칙이 안 닿아
+   파일 칸이 제 폭대로 늘어났다. 상자 안 칸은 모두 상자 폭에 맞춘다. */
+.endrv-box{min-width:0}
+.endrv-box label>input,.endrv-box label>select{display:block;width:100%;max-width:100%;min-width:0;margin-top:6px;box-sizing:border-box}
+.endrv-box input[type=file]{font-size:13px;padding:9px 10px}
 .endrv-lock{padding:10px 12px;border-radius:10px;background:#fdeaea;color:#a02820;font-size:13px;font-weight:700;line-height:1.55}
 .endrv-pend{padding:10px 12px;border-radius:10px;background:#fff5e0;color:#8a5a00;font-size:13px;font-weight:700;line-height:1.55}
 .endrv-req{padding:10px 0;border-top:1px solid #f0dcaa}
