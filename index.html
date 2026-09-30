@@ -5306,7 +5306,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                · 10% 넣기      = 금액과 '따로' 부가세를 받은 경우 (기존 48만원 카드 건)
                · 포함가에서 빼기 = 받은 돈 안에 부가세가 들어 있는 경우 (64만원 건)
                두 번째를 안 쓰고 640,000 을 그대로 넣으면 부가세까지 강사와 나누게 된다. -->
-          <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"><span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a> · <a class="wa-link" id="pyVatIncl">포함가에서 빼기</a></span></label>
+          <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"><span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a> · <a class="wa-link" id="pyVatIncl">포함가에서 빼기</a></span><span class="wa-hint" id="pyVat3Hint" style="display:none;color:#0f7a52;font-weight:700"></span></label>
           <label>담당 강사<select id="pyTeacher"></select></label>
           <!-- 사업자 (2026-09-29 원장님 「수납 입력할 때 김태완 사업자로 할지 이창희 사업자로 할지 칸을 만들어」)
                담당 강사를 고르면 그 선생님 사업자로 자동으로 맞춰지고, 손으로 바꿀 수도 있다. -->
@@ -13432,10 +13432,36 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyWithhold')) $('pyWithhold').value = tid ? teacherWithhold(tid) : DEFAULT_WITHHOLD;
     drawPayPreview();
   }
+  // ══════════════════════════════════════════════════════════════
+  // 부가세 3% (2026-09-30 원장님 「10월 수업료부터 모든 결제건은 3프로 부가세 잡아」 → 「맞아」)
+  //  · 정산 월이 2026-10 이후면 **금액 칸 = 받은 돈 그대로**. 저장할 때 3% 를 떼어
+  //    부가세(vat) = 받은 돈 × 3% (반올림), 금액(amount, 강사 배분 기준) = 받은 돈 − 부가세.
+  //    예) 640,000 → 부가세 19,200 · 금액 620,800
+  //  · 카드·현금·이체 상관없이, 수납·사전 OT·스터디·태블릿 대여 전부. 두 사업자 모두.
+  //  · 9월까지(정산 월 2026-09 이전)는 예전 방식 그대로(10% 넣기 / 포함가에서 빼기).
+  // ══════════════════════════════════════════════════════════════
+  var VAT3_FROM_MONTH = '2026-10', VAT3_RATE = 0.03;
+  function vat3On(){ var m=$('pyMonth')?$('pyMonth').value:''; return !!m && m >= VAT3_FROM_MONTH; }
+  function vat3Split(total){ var v=Math.round(total*VAT3_RATE); return { vat:v, net:total-v }; }
+  function vat3Ui(){
+    var on=vat3On(), h=$('pyVat3Hint'), old=$('pyVatHint'), v=$('pyVat');
+    if(old) old.style.display = on ? 'none' : '';
+    if(v){ v.disabled = on; if(on) v.value=''; v.placeholder = on ? '자동 3%' : '따로 받았으면 입력'; }
+    if(h){
+      var t=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
+      h.style.display = on ? '' : 'none';
+      if(on) h.textContent = t>0
+        ? ('받은 돈 '+t.toLocaleString()+'원 → 부가세 3% '+vat3Split(t).vat.toLocaleString()+'원 · 매출 '+vat3Split(t).net.toLocaleString()+'원')
+        : '10월부터: 금액 칸에 받은 돈 그대로 넣으면 부가세 3% 를 자동으로 뗍니다';
+    }
+  }
+  if($('pyMonth')) $('pyMonth').addEventListener('change', function(){ vat3Ui(); drawPayPreview(); });
   function drawPayPreview(){
     if(!$('pyPreview')) return;
+    vat3Ui();
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     var amount=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
+    if(amount && vat3On()) amount=vat3Split(amount).net;   // 강사 몫은 부가세 뺀 금액으로
     if(!tid||!amount){ $('pyPreview').value=tid?'금액 입력 시 계산':'담당 강사 미지정'; return; }
     var s=payShare({ amount:amount, pay_rate:parseFloat($('pyRate').value), withhold_rate:parseFloat($('pyWithhold').value) });
     $('pyPreview').value=won(s.gross)
@@ -13617,7 +13643,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('pyBiz') && !$('pyBiz').value){ err.textContent='사업자를 골라주세요. (김태완 사업자 / 이창희 사업자)'; $('pyBiz').focus(); return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
-    if(!vatGuardOK(amount, vat)){ if($('pyVat')) $('pyVat').focus(); return; }
+    if(vat3On()){
+      // 🚨 10월부터는 금액 칸 = 받은 돈. 여기서 3% 를 떼어 나눈다(부가세 칸 입력은 무시).
+      var sp3=vat3Split(amount); vat=sp3.vat; amount=sp3.net;
+    } else if(!vatGuardOK(amount, vat)){ if($('pyVat')) $('pyVat').focus(); return; }
     var mth=payMethodVal('pyMethod');
     var payload={ student_id:student.id, student_name:student.name, admin_id:(profile?profile.id:null), amount:amount, month:month, method:mth, card_issuer:payIssuerVal('pyMethod','pyCard'), paid_at:($('pyPaid').value||null), memo:($('pyMemo').value.trim()||null), sessions:(sessions>0?sessions:null),
       vat:(vat>0?vat:null),
