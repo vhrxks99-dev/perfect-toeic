@@ -5659,7 +5659,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           <label>기준 월<input type="month" id="evMonth"></label>
           <label>집계 범위<select id="evScope">
             <option value="month">선택한 달</option>
-            <option value="all">전체 기간</option>
+            <option value="all">전체 기간 (10/1 정식 평가부터)</option>
           </select></label>
         </div>
         <button class="btn btn-primary" id="evReload" type="button">🔄 다시 계산</button>
@@ -15342,12 +15342,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   //   A 성실도(선생님이 직접 한 일) — 숙제 확인율 · 확인 속도 · 숙제 내준 비율 · 선생님 사정 휴강
   //   B 결과(학생) — 출석률 · 점수 향상 · 목표 달성률 · 퇴원율(낮을수록 좋음)
   //   C 학원 기여 — 재등록률(다시 결제할 차례가 온 학생만) · 상담 전환율
-  //  종합 = A 40% + B 40% + C 20%  ← EV_W 만 바꾸면 비율이 바뀐다(원장님이 정할 몫)
+  //  종합 = A 성실도 40% + B 학생 결과 20% + C 학원 기여 40%  (2026-09-30 원장님 확정)
+  //  🚨 2026-10-01 부터 정식 평가(EV_START). 그 전 달은 「시범 기간 · 참고용」으로만 보인다.
   //  🚨 자료가 없는 칸은 0점이 아니라 빼고, 남은 칸끼리 비율을 다시 나눈다.
   //  🚨 담당 학생 5명 미만이면 「표본 적음」 — 한 명만 그만둬도 퇴원율이 확 튄다.
   //  🚨 후기 별점은 후기 표에 별점·담당쌤 칸이 없어 아직 못 넣는다.
   // ══════════════════════════════════════════════════════════════
-  var EV_W = { A:40, B:40, C:20 };
+  var EV_W = { A:40, B:20, C:40 };
+  var EV_START = '2026-10-01';   // 정식 평가 시작일(서울). 「전체 기간」도 여기서부터 센다.
   var EV_MIN_STU = 5;
   function evClamp(v){ return Math.max(0, Math.min(100, v)); }
   function evAvg(list){   // [[점수0~100|null, 가중치]] → 가중 평균(없는 칸은 빼고)
@@ -15383,9 +15385,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var scope=$('evScope')?$('evScope').value:'month';
     var mv=($('evMonth')&&$('evMonth').value)||kymd().slice(0,7);
     var from=null, to=null;
+    var evTrial = (scope==='month' && mv < EV_START.slice(0,7));   // 10월 전 = 시범 기간
     if(scope==='month'){
       from=kwall(kISO(mv+'-01','00:00'));   // 서울 기준 그 달 1일
       to=new Date(from); to.setMonth(to.getMonth()+1);
+    }else{
+      // 「전체 기간」 = 정식 평가 시작일부터 지금까지. 그 전 기록은 기준이 달라 섞지 않는다.
+      from=kwall(kISO(EV_START,'00:00'));
+      to=new Date(from); to.setFullYear(to.getFullYear()+50);
     }
     var inR=function(iso){ if(!from) return true; if(!iso) return false; var d=kwall(iso); return d>=from && d<to; };
     var now=new Date();
@@ -15608,8 +15615,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       det.firstChild.innerHTML=evDetail(window.__evRows[+i]);
       det.style.display='';
     };
-    if($('evNote')) $('evNote').innerHTML='기준: <b>'+(from?(mv+' 한 달'):'전체 기간')+'</b>. '
+    if($('evNote')) $('evNote').innerHTML='기준: <b>'+(scope==='month'?(mv+' 한 달'):'전체 기간 (2026-10-01 부터)')+'</b>. '
       + '선생님 줄을 누르면 숫자 뒤의 학생·숙제가 펼쳐집니다. '
+      + (evTrial?'<b style="color:#b45309">⚠️ 시범 기간(참고용) — 정식 평가는 2026년 10월 1일부터입니다.</b><br>':'')
       + '종합 = 성실도 '+EV_W.A+'% + 학생 결과 '+EV_W.B+'% + 학원 기여 '+EV_W.C+'% (자료 없는 칸은 빼고 나머지로 계산). '
       + '점수 향상은 성적이 2번 이상 입력된 학생의 첫 성적 → 최근 성적입니다.';
   }
