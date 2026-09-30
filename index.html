@@ -5287,6 +5287,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     <div class="dash-pane" data-dpane="pay">
       <div class="dash-form" id="pyAddForm">
+        <!-- 상품 버튼 (2026-09-30 원장님 「수납·OT 금액이랑 횟수 입력할 때 계속 실수가 나온다」→「이어서 넣어」)
+             누르면 구분·금액(받은 돈)·횟수가 한 번에 채워진다. 사전 OT 낸 학생이면 OT 몫을 빼고 채운다. -->
+        <div id="pyPresets" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <span style="font-size:12.5px;font-weight:800;color:var(--muted)">빠른 입력</span>
+          <button type="button" data-pp="payment|640000|8|대면 8회" style="padding:7px 12px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);font-family:var(--font-sans);font-size:13px;font-weight:800;cursor:pointer">대면 8회 64만</button>
+          <button type="button" data-pp="payment|480000|8|비대면 8회" style="padding:7px 12px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);font-family:var(--font-sans);font-size:13px;font-weight:800;cursor:pointer">비대면 8회 48만</button>
+          <button type="button" data-pp="payment|500000|8|2:1 8회" style="padding:7px 12px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);font-family:var(--font-sans);font-size:13px;font-weight:800;cursor:pointer">2:1 8회 50만</button>
+          <button type="button" data-pp="ot|60000|1|사전 OT 선결제" style="padding:7px 12px;border:1.5px solid var(--line-strong);border-radius:9px;background:var(--surface);font-family:var(--font-sans);font-size:13px;font-weight:800;cursor:pointer">사전 OT 6만</button>
+          <span class="wa-hint">주3회(12회)·할인 등은 채운 뒤 숫자만 고치세요</span>
+        </div>
         <div class="dash-row">
           <!-- '사전 OT' 를 따로 둔다(원장 지적 2026-08-13 "OT 받을 때 1회로 한 줄이 어딨어?").
                그때는 수업 횟수권이 8회부터라 1회짜리 OT 선결제를 넣을 수가 없었다.
@@ -13502,6 +13512,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   if($('pyStudent')) $('pyStudent').onchange=function(){ syncPayTeacher(); pyOtCheck(); };
   if($('pyKind')) $('pyKind').addEventListener('change', pyOtCheck);
+  // 상품 버튼 — 구분·금액(받은 돈)·횟수를 한 번에. OT 낸 학생이면 OT 몫(1회·낸 돈)을 뺀다.
+  if($('pyPresets')) $('pyPresets').querySelectorAll('button[data-pp]').forEach(function(b){
+    b.onclick=async function(){
+      var a=b.getAttribute('data-pp').split('|'), kind=a[0], amt=Number(a[1]), n=Number(a[2]), memo=a[3];
+      if($('pyKind') && $('pyKind').value!==kind){ $('pyKind').value=kind; $('pyKind').dispatchEvent(new Event('change')); }
+      if(kind==='payment'){ await pyOtCheck(); if(_pyOt){ amt=Math.max(0, amt-_pyOt.paid); n=n-1; memo=memo+' (OT 1회·'+_pyOt.paid.toLocaleString()+'원 차감)'; } }
+      if($('pyAmount')) $('pyAmount').value=amt;
+      if($('pySessions')) $('pySessions').value=n;
+      if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value=memo;
+      drawPayPreview();
+    };
+  });
   // 선생님 → 사업자 (2026-09-29). 담당 강사를 바꾸면 사업자 칸도 따라간다.
   var _tbMap=null;
   async function pyBizSync(){
@@ -13679,6 +13701,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 🚨 사업자를 안 고르면 저장하지 않는다 (2026-09-29 원장님 「사업자 체크 안 되어 있으면 저장 안 되게」)
     if($('pyBiz') && !$('pyBiz').value){ err.textContent='사업자를 골라주세요. (김태완 사업자 / 이창희 사업자)'; $('pyBiz').focus(); return; }
     var teacher=(_members||[]).filter(function(m){return m.id===tid;})[0];
+    // ── 저장 전 한 줄 확인 + 회당 금액 이상 경고 (2026-09-30 원장님) ──
+    //    받은 돈 ÷ 횟수가 회당 4.5만~8.5만 원 밖이면 빨간 줄로 먼저 짚는다(64만을 6.4만, 8회를 80회로 친 경우).
+    {
+      var recv=amount + (vat3On()?0:(parseInt($('pyVat')?$('pyVat').value:'',10)||0));
+      var unit=(sessions>0 && (kind==='payment'||kind==='ot')) ? Math.round(recv/sessions) : null;
+      var odd=(unit!=null && (unit<45000 || unit>85000));
+      var kindKo2={payment:'수납',ot:'사전 OT',study:'스터디',rental:'태블릿 대여'}[kind]||'수납';
+      var bizKo=($('pyBiz')&&$('pyBiz').value==='ajlabs')?'이창희 사업자':'김태완 사업자';
+      var v3=vat3On()?vat3Split(amount):null;
+      var line=student.name+' · '+kindKo2+(sessions?(' · '+sessions+'회'):'')+' · 받은 돈 '+won(recv)
+        + (v3?(' (부가세 3% '+won(v3.vat)+' · 매출 '+won(v3.net)+')'):'')
+        + ' · '+bizKo+' · '+month+' 정산';
+      if(!confirm((odd?('⚠️ 회당 '+unit.toLocaleString()+'원이에요. 금액이나 횟수를 잘못 넣지 않았는지 확인해 주세요.\n\n'):'')
+          + line + '\n\n이대로 저장할까요?')) return;
+    }
     var vat=parseInt($('pyVat')?$('pyVat').value:'',10)||0;
     if(vat3On()){
       // 🚨 10월부터는 금액 칸 = 받은 돈. 여기서 3% 를 떼어 나눈다(부가세 칸 입력은 무시).
