@@ -5318,7 +5318,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                · 10% 넣기      = 금액과 '따로' 부가세를 받은 경우 (기존 48만원 카드 건)
                · 포함가에서 빼기 = 받은 돈 안에 부가세가 들어 있는 경우 (64만원 건)
                두 번째를 안 쓰고 640,000 을 그대로 넣으면 부가세까지 강사와 나누게 된다. -->
-          <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="따로 받았으면 입력"><span class="wa-hint" id="pyVatHint">카드결제 때만 · <a class="wa-link" id="pyVatAuto">10% 넣기</a> · <a class="wa-link" id="pyVatIncl">포함가에서 빼기</a></span><span class="wa-hint" id="pyVat3Hint" style="display:none;color:#0f7a52;font-weight:700"></span></label>
+          <label>부가세(원)<input type="number" id="pyVat" min="0" step="100" placeholder="9월 이전 정산분만"><span class="wa-hint" id="pyVatHint"><a class="wa-link" id="pyVatAuto">10% 넣기</a> · <a class="wa-link" id="pyVatIncl">포함가에서 빼기</a></span><span class="wa-hint" id="pyVat3Hint" style="display:none;color:#0f7a52;font-weight:700"></span></label>
           <label>담당 강사<select id="pyTeacher"></select></label>
           <!-- 사업자 (2026-09-29 원장님 「수납 입력할 때 김태완 사업자로 할지 이창희 사업자로 할지 칸을 만들어」)
                담당 강사를 고르면 그 선생님 사업자로 자동으로 맞춰지고, 손으로 바꿀 수도 있다. -->
@@ -13458,7 +13458,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function vat3Ui(){
     var on=vat3On(), h=$('pyVat3Hint'), old=$('pyVatHint'), v=$('pyVat');
     if(old) old.style.display = on ? 'none' : '';
-    if(v){ v.disabled = on; if(on) v.value=''; v.placeholder = on ? '자동 3%' : '따로 받았으면 입력'; }
+    if(v){ v.disabled = on; if(on) v.value=''; v.placeholder = on ? '자동 3%' : '9월 이전 정산분만'; }
     if(h){
       var t=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
       h.style.display = on ? '' : 'none';
