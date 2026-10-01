@@ -5673,7 +5673,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <button class="btn btn-primary" id="csAdd" type="button">＋ 상담 등록</button>
       </div>
       <div class="dash-list-head">상담 목록 <button class="btn btn-ghost" id="csReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
-      <div class="dash-note" style="margin-top:0">상담 결과를 <b>등록함 / 등록 안 함</b>으로 바꾸면 선생님 평가의 <b>상담 전환율</b>에 반영됩니다. ‘대기’인 건은 아직 결과가 안 나온 것으로 보고 계산에서 빼요.</div>
+      <div class="dash-note" style="margin-top:0">선생님 평가의 <b>상담 전환율</b>은 2026-10-01 부터 <b>OT 학생</b>으로 자동 계산합니다(OT 뒤 정규 결제 = 전환). 이 상담 기록은 참고용으로 남겨 두세요.</div>
       <div id="csSummary" class="dash-note" style="margin-top:8px"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="csTable"></table></div>
     </div>
@@ -5699,7 +5699,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <b>점수 향상</b> = 성적이 2번 이상 있는 학생의 첫 성적 → 최근 성적 평균 &nbsp;·&nbsp;
         <b>목표 달성</b> = 원장님이 승인한 수료 중 목표 점수를 넘은 비율<br>
         <b>재등록률</b> = 고른 기간(10/1 정식 평가부터)에 다시 결제할 차례가 온 학생(남은 횟수 0·종료) 중 기간 안에 다시 결제한 학생 &nbsp;·&nbsp;
-        <b>상담 전환율</b> = 등록함 ÷ (등록함＋등록 안 함) &nbsp;·&nbsp;
+        <b>상담 전환율</b> = OT 뒤 정규 결제한 학생 ÷ (그 학생＋OT 끝나고 14일 지나도 결제 안 한 학생) · OT 수업한 선생님 몫 · 14일 안은 대기로 안 셈 &nbsp;·&nbsp;
         <b>퇴원율</b> = (중도 퇴원 + 옛 「기타」) ÷ 담당 학생 전체 &nbsp;·&nbsp; <b>종료 내역</b> = 원장님이 승인한 수료(목표 달성)·개인 사정과 퇴원<br>
         ※ 학생 회원과 연결되지 않은 수업(구글 캘린더에 이름만 적힌 것 포함)은 누구 출석인지 알 수 없어 계산에서 빠집니다.
       </div>
@@ -15654,6 +15654,38 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!gq.error&&gq.data) grads=gq.data.filter(function(x){ return inR(x.decided_at); });
     }catch(e){}
 
+    // ── 8) OT → 정규 전환 (2026-10-01 원장님 「OT 로 표시된 애들은 상담전환 되는 거 맞지?」→「바꿔」) ──
+    //    상담 기록 대신 OT 학생으로 센다. OT 수업(is_ot)을 한 선생님 몫.
+    //    · OT 수업이 끝난 뒤 정규 결제(kind=payment)가 있으면 전환
+    //    · OT 끝나고 14일이 지나도 정규 결제가 없으면 미전환, 14일 안이면 아직 대기(안 셈)
+    //    · OT 수업 기록 없이 등록한 학생(OT 결제 + 정규 결제)은 OT 결제 선생님 몫으로 전환
+    //    · 날짜는 OT 수업 날(없으면 정규 결제일)로 기간을 가른다 — 수납일이 아니라 실제로 만난 날(ot-newcomer-count)
+    var otConv={};
+    try{
+      var otS=await evPaged(function(){ return sb.from('schedules').select('student_id,teacher_id,ends_at,status').eq('is_ot',true).not('student_id','is',null).order('ends_at',{ascending:true}); });
+      var otFirst={};
+      otS.forEach(function(s){ var st=s.status||'confirmed'; if(st!=='confirmed'||!s.ends_at||new Date(s.ends_at)>=now) return; var k=String(s.student_id); if(!otFirst[k]) otFirst[k]=s; });
+      var otPay={}, regPay={};
+      pays.forEach(function(p){ if(!p.student_id) return; var k=String(p.student_id); var d=String(p.paid_at||'');
+        if(p.kind==='ot'){ if(!otPay[k]||d<otPay[k].paid_at) otPay[k]=p; }
+        else if((p.kind||'payment')==='payment'){ (regPay[k]=regPay[k]||[]).push(p); } });
+      var otIds={}; Object.keys(otPay).forEach(function(k){ otIds[k]=1; }); Object.keys(otFirst).forEach(function(k){ otIds[k]=1; });
+      Object.keys(otIds).forEach(function(k){
+        var s=otFirst[k], op=otPay[k];
+        var since = s ? kymd(s.ends_at) : (op ? String(op.paid_at||'').slice(0,10) : '');
+        var regs=(regPay[k]||[]).filter(function(p){ return String(p.paid_at||'').slice(0,10) >= (op?String(op.paid_at||'').slice(0,10):since); });
+        var tid2, when;
+        if(s){ tid2=s.teacher_id || (op&&op.teacher_id) || stuTeacher[k]; when=s.ends_at; }
+        else if(regs.length){ tid2=(op&&op.teacher_id) || stuTeacher[k]; when=kISO(String(regs[0].paid_at).slice(0,10),'12:00'); }
+        else return;                                   // OT 결제만 있고 만난 기록·정규 결제 없음 → 아직 모름
+        if(!tid2 || !inR(when)) return;
+        var o=otConv[tid2]=otConv[tid2]||{reg:0,lost:0,wait:0};
+        if(regs.length) o.reg++;
+        else if((now-new Date(when))/86400000 > 14) o.lost++;
+        else o.wait++;
+      });
+    }catch(e){ otConv={}; }
+
     var rows=teachers.map(function(t){
       var tid=t.id;
       var myStu=(_members||[]).filter(function(m){ return m.role==='student' && m.teacher_id===tid; });
@@ -15735,8 +15767,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         if(!from) return true;
         var d=new Date(c.consulted_on+'T00:00'); return d>=from && d<to;
       });
-      var reg=myCons.filter(function(c){return c.result==='registered';}).length;
-      var lost=myCons.filter(function(c){return c.result==='lost';}).length;
+      //    🚨 2026-10-01 부터 상담 기록이 아니라 OT 전환(otConv)으로 센다. myCons 는 참고로만 남긴다.
+      var oc=otConv[tid]||{reg:0,lost:0,wait:0};
+      var reg=oc.reg, lost=oc.lost;
 
       // ── 0~100 점수로 바꿔 종합 ──
       var sA=evAvg([
