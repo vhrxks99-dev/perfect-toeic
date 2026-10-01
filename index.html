@@ -5691,7 +5691,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <b>출석률</b> = 출석 체크된 수업 ÷ 학생이 연결된 지난 수업 &nbsp;·&nbsp;
         <b>점수 향상</b> = 성적이 2번 이상 있는 학생의 첫 성적 → 최근 성적 평균 &nbsp;·&nbsp;
         <b>목표 달성</b> = 원장님이 승인한 수료 중 목표 점수를 넘은 비율<br>
-        <b>재등록률</b> = 다시 결제할 차례가 온 학생(결제 2번 이상·남은 횟수 0·종료) 중 2번 이상 결제한 학생 &nbsp;·&nbsp;
+        <b>재등록률</b> = 고른 기간(10/1 정식 평가부터)에 다시 결제할 차례가 온 학생(남은 횟수 0·종료) 중 기간 안에 다시 결제한 학생 &nbsp;·&nbsp;
         <b>상담 전환율</b> = 등록함 ÷ (등록함＋등록 안 함) &nbsp;·&nbsp;
         <b>퇴원율</b> = (중도 퇴원 + 옛 「기타」) ÷ 담당 학생 전체 &nbsp;·&nbsp; <b>종료 내역</b> = 원장님이 승인한 수료(목표 달성)·개인 사정과 퇴원<br>
         ※ 학생 회원과 연결되지 않은 수업(구글 캘린더에 이름만 적힌 것 포함)은 누구 출석인지 알 수 없어 계산에서 빠집니다.
@@ -15673,22 +15673,27 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var persN=myStu.filter(function(m){ return endedIn(m) && m.end_reason==='personal'; }).length;
       var active=myStu.filter(function(m){ return m.status!=='ended'; }).length;
 
-      // C1 재등록률 — 🚨 다시 결제할 차례가 온 학생만 센다(첫 결제분을 아직 쓰는 중인 학생은 뺀다).
-      //    차례가 왔다 = 결제 2번 이상 · 남은 횟수 0 이하 · 종료됨 중 하나
-      var payCnt={};
+      // C1 재등록률 — 🚨 2026-10-01 원장님 「재등록률도 초기화」 → **고르는 기간(10/1 정식 평가부터) 안의 일만** 센다.
+      //    재등록 = 기간 안에 수업 결제가 있고, 그 전에 수업 결제가 한 번이라도 있던 학생(첫 결제·OT 뒤 첫 등록은 재등록 아님)
+      //    차례가 온 학생 = 재등록한 학생 + (전에 결제한 적 있는데) 기간 안에 종료됐거나 지금 남은 횟수 0 이하인데 기간 안 결제가 없는 학생
+      var payBy={};
       pays.forEach(function(p){
         if(!p.student_id) return;
         if((p.kind||'payment')!=='payment') return;          // 환불·대여·스터디·OT 는 빼고 수업 결제만
         if((p.teacher_id||stuTeacher[p.student_id])!==tid) return;
-        payCnt[p.student_id]=(payCnt[p.student_id]||0)+1;
+        (payBy[p.student_id]=payBy[p.student_id]||[]).push(p.paid_at||p.created_at||'');
       });
       var renewTurn=[], renewed=[];
-      Object.keys(payCnt).forEach(function(k){
+      Object.keys(payBy).forEach(function(k){
+        var ds=payBy[k].filter(Boolean).sort();
+        var inP=ds.filter(function(d){ return inR(d.length<=10 ? d+'T12:00:00+09:00' : d); });
+        var before=ds.filter(function(d){ return inP.length && d < inP[0]; });
         var m=(_members||[]).filter(function(x){ return String(x.id)===String(k); })[0];
         var left=leftOf[String(k)];
-        var turn = payCnt[k]>=2 || (left!=null && left<=0) || (m && m.status==='ended');
-        if(!turn) return;
-        renewTurn.push(k); if(payCnt[k]>=2) renewed.push(k);
+        if(inP.length && before.length){ renewTurn.push(k); renewed.push(k); return; }
+        if(inP.length) return;                                 // 기간 안 결제가 첫 결제 → 신규(재등록 대상 아님)
+        var ended = m && m.status==='ended' && inR(m.ended_at);
+        if(ds.length && (ended || (m && m.status!=='ended' && left!=null && left<=0))) renewTurn.push(k);
       });
 
       // C2 상담 전환율
