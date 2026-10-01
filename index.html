@@ -3656,6 +3656,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-form input:focus,.wa-form textarea:focus{outline:2px solid var(--accent);border-color:var(--accent)}
 .wa-row{display:flex;gap:10px}
 .wa-row>label{flex:1;min-width:0}
+/* 정산 수정 칸 — 폰에서 날짜·월 칸이 옆 칸을 덮어서 2칸씩 줄바꿈 (2026-10-01 원장님) */
+.pye-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.pye-grid.pye-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pye-grid>label{min-width:0}
+.pye-grid input,.pye-grid select{min-width:0;max-width:100%}
+.pye-grid input[type=date],.pye-grid input[type=month]{-webkit-appearance:none;appearance:none;min-height:46px;text-align:left}
+@media (max-width:640px){.pye-grid,.pye-grid.pye-3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .wa-form select{padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:10px;font-size:15px;font-family:var(--font-sans);background:var(--surface);color:var(--ink);width:100%}
 .wa-form select:focus{outline:2px solid var(--accent);border-color:var(--accent)}
 .wa-form label em{color:#c0342b;font-style:normal;font-weight:800}
@@ -5843,19 +5850,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-head">정산 수정</div>
     <div class="wa-sub" id="pyeStudent"></div>
     <div class="wa-form on" style="display:flex">
-      <div class="wa-row">
+      <div class="wa-row pye-grid">
         <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
         <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"></label>
       </div>
-      <div class="wa-row">
+      <div class="wa-row pye-grid pye-3">
         <label>결제수단<select id="pyeMethod"></select></label>
         <label id="pyeCardWrap" style="display:none">카드사 <span class="wa-hint">선택</span><select id="pyeCard"></select></label>
         <label>결제일<input type="date" id="pyePaid"></label>
         <label>부가세(원) <span class="wa-hint">따로 받은 경우만 · <a class="wa-link" id="pyeVatIncl">포함가에서 빼기</a></span><input type="number" id="pyeVat" min="0" step="100"></label>
       </div>
-      <div class="wa-row">
+      <div class="wa-row pye-grid pye-3">
         <label>담당 강사<select id="pyeTeacher"></select></label>
         <label>배분율(%)<input type="number" id="pyeRate" min="0" max="100" step="0.1"><span class="wa-hint" id="pyeRateNote" style="display:none;color:#b26a00">원장님만 변경</span></label>
         <label>원천징수(%)<input type="number" id="pyeWithhold" min="0" max="100" step="0.1"></label>
