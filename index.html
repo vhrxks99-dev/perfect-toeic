@@ -13197,6 +13197,35 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     });
     var feeRateLabel=Object.keys(usedRates)
       .sort(function(a,b){ return Number(a)-Number(b); }).join('% · ');
+    // ── 부가세·카드수수료 선생님별 (2026-10-01 원장님) ─────────────────────
+    //    「매달 정산할 때 각 선생님마다 부가세 몇 건·얼마, 카드수수료 몇 건·얼마」를 본다.
+    //    카드 = 수수료가 붙는 결제(카드결제·결제선생·카드사). 카드수수료는 별도 「잉여금」 통장으로 모은다.
+    //    환불 줄은 세지 않는다. 학원 몫(스터디·대여)도 카드로 받았으면 수수료를 센다.
+    if(ops){
+      var vf=[], vfT={vatN:0,vat:0,cardN:0,cardAmt:0,fee:0};
+      order.forEach(function(k){
+        var g=groups[k], o={name:(k?g.name:'담당 미지정'), vatN:0, vat:0, cardN:0, cardAmt:0, fee:0};
+        g.items.forEach(function(it){
+          if(isRefund(it.p)) return;
+          var v=Number(it.p.vat)||0; if(v>0){ o.vatN++; o.vat+=v; }
+          var fr=(it.p.card_fee_rate!=null)?Number(it.p.card_fee_rate):cardFeeRate(it.p.method);
+          if(fr>0){ o.cardN++; o.cardAmt+=(Number(it.p.amount)||0)+v; o.fee+=Math.round((Number(it.p.amount)||0)*fr/100); }
+        });
+        if(o.vatN||o.cardN){ vf.push(o); ['vatN','vat','cardN','cardAmt','fee'].forEach(function(x){ vfT[x]+=o[x]; }); }
+      });
+      if(vf.length){
+        h+='<div class="pr-card" style="margin-top:12px"><div class="pr-top"><div class="pr-name">부가세 · 카드수수료 (선생님별)</div></div>'
+          + '<table class="wa-table"><tr><th>선생님</th><th>부가세 건수</th><th>부가세</th><th>카드 건수</th><th>카드 결제액</th><th>카드수수료</th></tr>';
+        vf.forEach(function(o){
+          h+='<tr><td>'+esc(o.name)+'</td><td>'+o.vatN+'건</td><td style="white-space:nowrap">'+won(o.vat)+'</td>'
+            + '<td>'+o.cardN+'건</td><td style="white-space:nowrap">'+won(o.cardAmt)+'</td><td style="white-space:nowrap">'+won(o.fee)+'</td></tr>';
+        });
+        h+='<tr style="font-weight:800"><td>합계</td><td>'+vfT.vatN+'건</td><td style="white-space:nowrap">'+won(vfT.vat)+'</td>'
+          + '<td>'+vfT.cardN+'건</td><td style="white-space:nowrap">'+won(vfT.cardAmt)+'</td><td style="white-space:nowrap">'+won(vfT.fee)+'</td></tr></table>'
+          + '<div class="dash-note" style="margin-top:8px">💰 <b>잉여금 통장으로 모을 카드수수료 '+won(vfT.fee)+'</b> · 부가세 합계 '+won(vfT.vat)+'</div></div>';
+      }
+    }
+
     h+='<div class="pr-sum"><div class="pr-sum-row"><span>이 달 총 수납</span><b>'+won(totAmount)+'</b></div>'
       + '<div class="pr-sum-row"><span>강사 몫 합계</span><b>'+won(totGross)+'</b></div>'
       + (totFee?('<div class="pr-sum-row"><span>카드 수수료 합계'+(feeRateLabel?(' ('+feeRateLabel+'%)'):'')+'</span><b>−'+won(totFee)+'</b></div>'):'')
@@ -13485,7 +13514,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // ══════════════════════════════════════════════════════════════
   var VAT3_FROM_MONTH = '2026-10', VAT3_RATE = 0.03;
   // 🚨 2026-10-01 원장님 「김태완 이창희는 부가세 3프로 적용하지 마」 → 담당 강사가 대표 두 분이면 3% 를 떼지 않는다.
-  var VAT3_EXEMPT_NAMES = ['김태완','이창희'];
+  // 🚨 2026-10-01 저녁 원장님 「앞으로 모든 선생님·창희·태완 전부 부가세 3프로, 카드수수료 1.5프로」 → 면제 없음(빈 목록).
+  var VAT3_EXEMPT_NAMES = [];
   function vat3Exempt(){
     var sel=$('pyTeacher'); if(!sel || !sel.value) return false;
     var t=(_members||[]).filter(function(m){ return m.id===sel.value; })[0];
