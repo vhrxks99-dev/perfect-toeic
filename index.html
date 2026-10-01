@@ -15638,7 +15638,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
     // ── 6) 결제 · 남은 횟수 (새 재등록률) ──
     var pays=[];
-    try{ pays=await evPaged(function(){ return sb.from('payments').select('student_id,teacher_id,kind,paid_at'); }); }catch(e){}
+    try{ pays=await evPaged(function(){ return sb.from('payments').select('student_id,teacher_id,kind,paid_at,amount,student_name'); }); }catch(e){}
     var leftOf={};
     try{
       var la=await sb.rpc('sessions_left_all');
@@ -15685,6 +15685,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         else o.wait++;
       });
     }catch(e){ otConv={}; }
+
+    // ── 9) 환불 (2026-10-01 원장님 「환불도 넣어, 큰 문제야」→「10점, OT 전 환불은 빼」) ──
+    //    기간 안의 환불(kind=refund) 1건마다 종합에서 10점을 바로 뺀다(0점 아래로는 안 내려감).
+    //    · 선생님 = 환불 기록의 담당(없으면 학생 담당쌤)
+    //    · OT 전 환불은 뺀다 = 환불 날까지 그 학생이 실제로 끝낸 수업(confirmed)이 한 번도 없으면 안 셈
+    //    · 회원이 아닌(학생 연결 없는) 환불은 만났는지 알 수 없어 안 셈
+    var EV_REFUND_PENALTY=10;
+    var firstMet={};
+    allDone.forEach(function(x){ if((x.status||'confirmed')!=='confirmed'||!x.ends_at) return; var k=String(x.student_id); if(!firstMet[k]||x.ends_at<firstMet[k]) firstMet[k]=x.ends_at; });
+    var refundBy={};
+    pays.forEach(function(p){
+      if(p.kind!=='refund' || !p.student_id || !p.paid_at) return;
+      var d=String(p.paid_at).slice(0,10);
+      if(!inR(kISO(d,'12:00'))) return;
+      var fm=firstMet[String(p.student_id)];
+      if(!fm || kymd(fm) > d) return;                 // OT 전(만나기 전) 환불 → 뺌
+      var tid3=p.teacher_id || stuTeacher[p.student_id]; if(!tid3) return;
+      (refundBy[tid3]=refundBy[tid3]||[]).push({ name:(p.student_name||nameOf[String(p.student_id)]||'?'), date:d, amount:Math.abs(+p.amount||0) });
+    });
 
     var rows=teachers.map(function(t){
       var tid=t.id;
@@ -15790,6 +15809,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         [pct(reg, reg+lost), 1]
       ]);
       var total=evAvg([[sA,EV_W.A],[sB,EV_W.B],[sC,EV_W.C]]);
+      var refunds=refundBy[tid]||[];
+      if(total!=null && refunds.length) total=Math.max(0, total - EV_REFUND_PENALTY*refunds.length);
 
       return { t:t, stu:myStu.length, active:active, thin:myStu.length<EV_MIN_STU,
                elig:eligible.length, chk:checked.length, unchecked:unchecked, avgDays:avgDays,
@@ -15797,14 +15818,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                gains:gains, avgGain:avgGain, grad:myGrad.length, met:met,
                quit:quitList, gradN:gradN, persN:persN,
                renewTurn:renewTurn, renewed:renewed, reg:reg, lost:lost,
-               sA:sA, sB:sB, sC:sC, total:total };
+               refunds:refunds, sA:sA, sB:sB, sC:sC, total:total };
     });
     rows.sort(function(a,b){ return (b.total==null?-1:b.total)-(a.total==null?-1:a.total); });
     window.__evRows=rows;
 
     var th='style="font-size:11px;color:var(--muted);font-weight:700"';
     var h='<tr><th rowspan="2">선생님</th><th rowspan="2">종합</th>'
-      + '<th colspan="4" '+th+'>A 성실도 ('+EV_W.A+'%)</th><th colspan="4" '+th+'>B 학생 결과 ('+EV_W.B+'%)</th><th colspan="2" '+th+'>C 학원 기여 ('+EV_W.C+'%)</th><th rowspan="2">종료 내역</th></tr>'
+      + '<th colspan="4" '+th+'>A 성실도 ('+EV_W.A+'%)</th><th colspan="4" '+th+'>B 학생 결과 ('+EV_W.B+'%)</th><th colspan="2" '+th+'>C 학원 기여 ('+EV_W.C+'%)</th><th rowspan="2">환불<br><span style="font-size:11px;color:var(--muted);font-weight:700">1건 −'+EV_REFUND_PENALTY+'점</span></th><th rowspan="2">종료 내역</th></tr>'
       + '<tr><th>숙제 확인</th><th>확인 속도</th><th>숙제 내줌</th><th>선생님 휴강</th>'
       + '<th>출석률</th><th>점수 향상</th><th>목표 달성</th><th>퇴원율</th>'
       + '<th>재등록률</th><th>상담 전환</th></tr>';
@@ -15823,8 +15844,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
        + '<td style="white-space:nowrap">'+pctTxt(r.quit.length,r.stu,false)+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.renewed.length,r.renewTurn.length,true)+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.reg,r.reg+r.lost,true)+'</td>'
+       + '<td style="white-space:nowrap" title="'+esc(r.refunds.map(function(x){ return x.date+' '+x.name+' '+x.amount.toLocaleString()+'원'; }).join('\n'))+'">'
+         + (r.refunds.length?'<b style="color:#c0342b">'+r.refunds.length+'건</b><div style="font-size:11px;color:#c0342b">'+esc(r.refunds.map(function(x){return x.name;}).join(', '))+'</div>':'0건')+'</td>'
        + '<td style="white-space:nowrap;font-size:12.5px">수료 '+r.gradN+' · 개인 '+r.persN+' · 퇴원 '+r.quit.length+'</td></tr>'
-       + '<tr class="ev-det" data-evd="'+i+'" style="display:none"><td colspan="13"></td></tr>';
+       + '<tr class="ev-det" data-evd="'+i+'" style="display:none"><td colspan="14"></td></tr>';
     });
     $('evTable').innerHTML=h;
     $('evTable').onclick=function(e){
@@ -15837,7 +15860,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('evNote')) $('evNote').innerHTML='기준: <b>'+(scope==='month'?(mv+' 한 달'):'전체 기간 (2026-10-01 부터)')+'</b>. '
       + '선생님 줄을 누르면 숫자 뒤의 학생·숙제가 펼쳐집니다. '
       + (evTrial?'<b style="color:#b45309">⚠️ 시범 기간(참고용) — 정식 평가는 2026년 10월 1일부터입니다.</b><br>':'')
-      + '종합 = 성실도 '+EV_W.A+'% + 학생 결과 '+EV_W.B+'% + 학원 기여 '+EV_W.C+'% (자료 없는 칸은 빼고 나머지로 계산). '
+      + '종합 = 성실도 '+EV_W.A+'% + 학생 결과 '+EV_W.B+'% + 학원 기여 '+EV_W.C+'% (자료 없는 칸은 빼고 나머지로 계산) − 환불 1건당 '+EV_REFUND_PENALTY+'점(OT 전 환불은 제외). '
       + '점수 향상은 성적이 2번 이상 입력된 학생의 첫 성적 → 최근 성적입니다.';
   }
 
