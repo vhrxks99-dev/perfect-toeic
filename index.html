@@ -4455,6 +4455,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .pr-line b{color:var(--ink);font-weight:800}
 .pr-line .pr-more{margin-left:auto}
 .pr-items{margin-top:10px}
+/* 정산 상세·요약 — 넓은 표 대신 두 줄 (2026-10-01 폰에서 옆으로 잘림) */
+.pr-it{border-top:1px solid var(--line);padding:9px 2px}
+.pr-it-h{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;font-size:13.5px}
+.pr-it-h span{font-size:12px;color:var(--muted)}
+.pr-it-l{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:4px;font-size:12.5px;color:var(--ink-soft)}
+.pr-it-l span{white-space:nowrap}
 .pr-items .wa-table{font-size:12.5px}
 /* ---- 숙제 탭: 모바일에서 입력칸이 좁아 글이 잘게 쪼개지고 글씨가 작던 문제 ---- */
 #hwContent{line-height:1.65}
@@ -13115,7 +13121,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 스터디비용은 학원 몫이다. 강사 정산에 섞이면 안 되고,
       // 담당이 비어 있다고 '담당 빠뜨림' 경고에 잡혀서도 안 된다(원장 지적 2026-09-03).
       var key=(p.kind==='study') ? '__study__' : (p.kind==='rental') ? '__rental__' : (p.teacher_id||'');
-      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':key==='__rental__'?'태블릿 대여 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
+      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':key==='__rental__'?'태블릿 대여 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, vat:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
       if(!isRefundSide(p)) groups[key].allRefund=false;
       var s=payShare(p);
       // 담당 미지정·스터디는 배분 자체를 안 하므로 '배분율 없음' 경고 대상이 아니다.
@@ -13123,6 +13129,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!key){ unassigned+=s.amount; unassignedCnt++; }
       var g=groups[key];
       g.amount+=s.amount; g.gross+=s.gross; g.fee+=s.fee; g.tax+=s.tax; g.net+=s.net;
+      if(!isRefund(p)) g.vat+=(Number(p.vat)||0);
       // 스터디는 전부 학원 몫이라 배분율이라는 게 없다(원장 지적 2026-09-03).
       if(isTeacherKey(key)) g.rates[s.rate]=1;
       g.items.push({ p:p, s:s });
@@ -13163,6 +13170,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       //    원장님·매니저는 그대로 다 본다.
       var hideSales = !isOps();
       h+='<div class="pr-line">'
+        + (hideSales ? '' : ('<span>결제 <b>'+won(g.amount+g.vat)+'</b></span>'))
+        + (hideSales || !g.vat ? '' : ('<span>부가세 <b>−'+won(g.vat)+'</b></span>'))
         + (hideSales ? '' : ('<span>'+(isT?'담당 매출':'매출')+' <b>'+won(g.amount)+'</b></span>'))
         + (hideSales ? '' : ('<span>배분율 <b>'+rateTxt+'</b></span>'))
         + '<span>'+(hideSales?'정산 대상':'강사 몫')+' <b>'+(isT?won(g.gross):'-')+'</b></span>'
@@ -13171,22 +13180,29 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         + '<span class="pr-more"><a class="wa-link" data-prdetail="'+esc(k||'none')+'">상세 '+g.items.length+'건 ▸</a></span>'
         + (isT?('<span class="pr-more"><a class="wa-link" data-prsheet="'+esc(k)+'">내역서 ▸</a></span>'):'')
         + '</div>';
-      h+='<div class="pr-items" data-prfor="'+esc(k||'none')+'" style="display:none"><table class="wa-table">'
-        // 🚨 학생별 금액을 다 더하면 담당 매출이다. 배분율과 함께 감춘다.
-        //    학생 이름과 강사 몫은 남긴다 — 어느 수업이 내 정산에 들어갔는지는
-        //    선생님이 알아야 한다.
-        + '<tr><th>학생</th>'
-        + (hideSales ? '' : '<th>금액</th><th>배분율</th>')
-        + '<th>'+(hideSales?'정산 대상':'강사 몫')+'</th><th>카드수수료</th><th>결제일</th><th>수단</th></tr>';
+      // 상세 — 2026-10-01 원장님 「옆으로 잘리는 레이아웃 고치고, 금액은 결제금액으로(480,000), 부가세 얼마, 최종 얼마」
+      //   넓은 표 대신 학생마다 두 줄: 이름·날짜·수단 / 결제 − 부가세 = 매출 → 강사 몫 − 카드 − 원천 = 최종
+      //   🚨 선생님 화면(hideSales)에는 결제·부가세·매출·배분율을 감춘다(학원 몫이 계산되면 안 됨, 2026-09-14).
+      h+='<div class="pr-items" data-prfor="'+esc(k||'none')+'" style="display:none">';
       g.items.forEach(function(it){
-        h+='<tr><td>'+esc(it.p.student_name||'-')+'</td>'
-          + (hideSales ? '' : ('<td style="white-space:nowrap">'+(isRefund(it.p)?('<b style="color:#c0342b">−'+won(it.p.amount)+'</b>'):won(it.p.amount))+'</td>'))
-          + (hideSales ? '' : ('<td>'+(isT?(it.s.rate+'%'):'-')+'</td>'))
-          + '<td style="white-space:nowrap">'+(isT?won(it.s.gross):'-')+'</td>'
-          + '<td style="white-space:nowrap">'+(isT&&it.s.fee?('−'+won(it.s.fee)):'-')+'</td>'
-          + '<td>'+esc(it.p.paid_at||'-')+'</td><td>'+esc(methodLabel(it.p))+'</td></tr>';
+        var rf=isRefund(it.p), vv=rf?0:(Number(it.p.vat)||0), paid=(Number(it.p.amount)||0)+vv;
+        var parts=[];
+        if(!hideSales){
+          parts.push((rf?'환불 ':'결제 ')+'<b'+(rf?' style="color:#c0342b"':'')+'>'+(rf?'−':'')+won(paid)+'</b>');
+          if(vv) parts.push('부가세 <b>−'+won(vv)+'</b>');
+          if(vv) parts.push('매출 <b>'+won(it.p.amount)+'</b>');
+          if(isT) parts.push('배분율 <b>'+it.s.rate+'%</b>');
+        }
+        if(isT){
+          parts.push((hideSales?'정산 대상':'강사 몫')+' <b>'+won(it.s.gross)+'</b>');
+          if(it.s.fee) parts.push('카드수수료 <b>−'+won(it.s.fee)+'</b>');
+          if(it.s.tax) parts.push('원천징수 <b>−'+won(it.s.tax)+'</b>');
+          parts.push('최종 <b style="color:#154fbe">'+won(it.s.net)+'</b>');
+        }
+        h+='<div class="pr-it"><div class="pr-it-h"><b>'+esc(it.p.student_name||'-')+'</b><span>'+esc(it.p.paid_at||'-')+' · '+esc(methodLabel(it.p))+'</span></div>'
+          + '<div class="pr-it-l">'+parts.map(function(x){ return '<span>'+x+'</span>'; }).join('')+'</div></div>';
       });
-      h+='</table></div></div>';
+      h+='</div></div>';
     });
 
     // 요율이 통로마다 달라졌으므로(2026-08-24) 합계 옆에는 실제로 쓰인 요율만 적는다.
@@ -13214,15 +13230,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         if(o.vatN||o.cardN){ vf.push(o); ['vatN','vat','cardN','cardAmt','fee'].forEach(function(x){ vfT[x]+=o[x]; }); }
       });
       if(vf.length){
-        h+='<div class="pr-card" style="margin-top:12px"><div class="pr-top"><div class="pr-name">부가세 · 카드수수료 (선생님별)</div></div>'
-          + '<table class="wa-table"><tr><th>선생님</th><th>부가세 건수</th><th>부가세</th><th>카드 건수</th><th>카드 결제액</th><th>카드수수료</th></tr>';
-        vf.forEach(function(o){
-          h+='<tr><td>'+esc(o.name)+'</td><td>'+o.vatN+'건</td><td style="white-space:nowrap">'+won(o.vat)+'</td>'
-            + '<td>'+o.cardN+'건</td><td style="white-space:nowrap">'+won(o.cardAmt)+'</td><td style="white-space:nowrap">'+won(o.fee)+'</td></tr>';
+        h+='<div class="pr-card" style="margin-top:12px"><div class="pr-top"><div class="pr-name">부가세 · 카드수수료 (선생님별)</div></div>';
+        vf.concat([{name:'합계', vatN:vfT.vatN, vat:vfT.vat, cardN:vfT.cardN, cardAmt:vfT.cardAmt, fee:vfT.fee, _sum:1}]).forEach(function(o){
+          h+='<div class="pr-it"'+(o._sum?' style="font-weight:800"':'')+'><div class="pr-it-h"><b>'+esc(o.name)+'</b></div>'
+            + '<div class="pr-it-l"><span>부가세 <b>'+o.vatN+'건 · '+won(o.vat)+'</b></span>'
+            + '<span>카드 <b>'+o.cardN+'건 · '+won(o.cardAmt)+'</b></span>'
+            + '<span>카드수수료 <b>'+won(o.fee)+'</b></span></div></div>';
         });
-        h+='<tr style="font-weight:800"><td>합계</td><td>'+vfT.vatN+'건</td><td style="white-space:nowrap">'+won(vfT.vat)+'</td>'
-          + '<td>'+vfT.cardN+'건</td><td style="white-space:nowrap">'+won(vfT.cardAmt)+'</td><td style="white-space:nowrap">'+won(vfT.fee)+'</td></tr></table>'
-          + '<div class="dash-note" style="margin-top:8px">💰 <b>잉여금 통장으로 모을 카드수수료 '+won(vfT.fee)+'</b> · 부가세 합계 '+won(vfT.vat)+'</div></div>';
+        h+='<div class="dash-note" style="margin-top:8px">💰 <b>잉여금 통장으로 모을 카드수수료 '+won(vfT.fee)+'</b> · 부가세 합계 '+won(vfT.vat)+'</div></div>';
       }
     }
 
