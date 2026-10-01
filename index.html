@@ -13486,7 +13486,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   var VAT3_FROM_MONTH = '2026-10', VAT3_RATE = 0.03;
   // 🚨 2026-10-01 원장님 「김태완 이창희는 부가세 3프로 적용하지 마」 → 담당 강사가 대표 두 분이면 3% 를 떼지 않는다.
   var VAT3_EXEMPT_NAMES = ['김태완','이창희'];
+  // 🚨 2026-10-01 원장님 「태블릿 대여도 3프로 빼야지」 → 구분이 태블릿 대여면 3% 를 떼지 않는다.
+  function vat3RentalExempt(){ return !!$('pyKind') && $('pyKind').value==='rental'; }
   function vat3Exempt(){
+    if(vat3RentalExempt()) return true;
     var sel=$('pyTeacher'); if(!sel || !sel.value) return false;
     var t=(_members||[]).filter(function(m){ return m.id===sel.value; })[0];
     var nm=String((t&&t.name)||(sel.options[sel.selectedIndex]&&sel.options[sel.selectedIndex].text)||'');
@@ -13502,13 +13505,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(h){
       var t=parseInt($('pyAmount')?$('pyAmount').value:'',10)||0;
       h.style.display = on ? '' : 'none';
-      if(ex) h.textContent = '김태완·이창희 담당 결제는 부가세 3%를 떼지 않아요 (받은 돈 그대로 매출)';
+      if(ex) h.textContent = vat3RentalExempt() ? '태블릿 대여는 부가세 3%를 떼지 않아요 (받은 돈 그대로)' : '김태완·이창희 담당 결제는 부가세 3%를 떼지 않아요 (받은 돈 그대로 매출)';
       else if(on) h.textContent = t>0
         ? ('받은 돈 '+t.toLocaleString()+'원 → 부가세 3% '+vat3Split(t).vat.toLocaleString()+'원 · 매출 '+vat3Split(t).net.toLocaleString()+'원')
         : '10월부터: 금액 칸에 받은 돈 그대로 넣으면 부가세 3% 를 자동으로 뗍니다';
     }
   }
   if($('pyMonth')) $('pyMonth').addEventListener('change', function(){ vat3Ui(); drawPayPreview(); });
+  if($('pyKind')) $('pyKind').addEventListener('change', function(){ vat3Ui(); drawPayPreview(); });
   function drawPayPreview(){
     if(!$('pyPreview')) return;
     vat3Ui();
