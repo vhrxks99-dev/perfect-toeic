@@ -13218,26 +13218,32 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     //    카드 = 수수료가 붙는 결제(카드결제·결제선생·카드사). 카드수수료는 별도 「잉여금」 통장으로 모은다.
     //    환불 줄은 세지 않는다. 학원 몫(스터디·대여)도 카드로 받았으면 수수료를 센다.
     if(ops){
-      var vf=[], vfT={vatN:0,vat:0,cardN:0,cardAmt:0,fee:0};
+      // 🚨 잉여금 = 정산에서 뗀 카드수수료(1.5%, 매출 기준) − 실제 카드사 수수료(0.4%, 결제액 기준)
+      //    (2026-10-01 원장님 — 48만원 결제 → 478,080원 입금 = 0.4%)
+      var ACTUAL_CARD_FEE=0.4;
+      var vf=[], vfT={vatN:0,vat:0,cardN:0,cardAmt:0,fee:0,real:0,surplus:0};
       order.forEach(function(k){
-        var g=groups[k], o={name:(k?g.name:'담당 미지정'), vatN:0, vat:0, cardN:0, cardAmt:0, fee:0};
+        var g=groups[k], o={name:(k?g.name:'담당 미지정'), vatN:0, vat:0, cardN:0, cardAmt:0, fee:0, real:0, surplus:0};
         g.items.forEach(function(it){
           if(isRefund(it.p)) return;
           var v=Number(it.p.vat)||0; if(v>0){ o.vatN++; o.vat+=v; }
           var fr=(it.p.card_fee_rate!=null)?Number(it.p.card_fee_rate):cardFeeRate(it.p.method);
-          if(fr>0){ o.cardN++; o.cardAmt+=(Number(it.p.amount)||0)+v; o.fee+=Math.round((Number(it.p.amount)||0)*fr/100); }
+          if(fr>0){ var _paid=(Number(it.p.amount)||0)+v, _fee=Math.round((Number(it.p.amount)||0)*fr/100), _real=Math.round(_paid*ACTUAL_CARD_FEE/100);
+            o.cardN++; o.cardAmt+=_paid; o.fee+=_fee; o.real+=_real; o.surplus+=_fee-_real; }
         });
-        if(o.vatN||o.cardN){ vf.push(o); ['vatN','vat','cardN','cardAmt','fee'].forEach(function(x){ vfT[x]+=o[x]; }); }
+        if(o.vatN||o.cardN){ vf.push(o); ['vatN','vat','cardN','cardAmt','fee','real','surplus'].forEach(function(x){ vfT[x]+=o[x]; }); }
       });
       if(vf.length){
         h+='<div class="pr-card" style="margin-top:12px"><div class="pr-top"><div class="pr-name">부가세 · 카드수수료 (선생님별)</div></div>';
-        vf.concat([{name:'합계', vatN:vfT.vatN, vat:vfT.vat, cardN:vfT.cardN, cardAmt:vfT.cardAmt, fee:vfT.fee, _sum:1}]).forEach(function(o){
+        vf.concat([{name:'합계', vatN:vfT.vatN, vat:vfT.vat, cardN:vfT.cardN, cardAmt:vfT.cardAmt, fee:vfT.fee, real:vfT.real, surplus:vfT.surplus, _sum:1}]).forEach(function(o){
           h+='<div class="pr-it"'+(o._sum?' style="font-weight:800"':'')+'><div class="pr-it-h"><b>'+esc(o.name)+'</b></div>'
             + '<div class="pr-it-l"><span>부가세 <b>'+o.vatN+'건 · '+won(o.vat)+'</b></span>'
             + '<span>카드 <b>'+o.cardN+'건 · '+won(o.cardAmt)+'</b></span>'
-            + '<span>카드수수료 <b>'+won(o.fee)+'</b></span></div></div>';
+            + '<span>뗀 수수료(1.5%) <b>'+won(o.fee)+'</b></span>'
+            + '<span>카드사 실제(0.4%) <b>−'+won(o.real)+'</b></span>'
+            + '<span>잉여금 <b style="color:#154fbe">'+won(o.surplus)+'</b></span></div></div>';
         });
-        h+='<div class="dash-note" style="margin-top:8px">💰 <b>잉여금 통장으로 모을 카드수수료 '+won(vfT.fee)+'</b> · 부가세 합계 '+won(vfT.vat)+'</div></div>';
+        h+='<div class="dash-note" style="margin-top:8px">💰 <b>잉여금 통장으로 모을 돈 '+won(vfT.surplus)+'</b> (뗀 카드수수료 '+won(vfT.fee)+' − 카드사 실제 수수료 0.4% '+won(vfT.real)+') · 부가세 합계 '+won(vfT.vat)+'</div></div>';
       }
     }
 
