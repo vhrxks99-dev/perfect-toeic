@@ -5004,6 +5004,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <button class="dash-tab" data-dtab="att">수업 횟수</button>
       <button class="dash-tab" data-dtab="work">출퇴근</button>
       <button class="dash-tab" data-dtab="oplog">운영일지</button>
+      <button class="dash-tab" data-dtab="task">업무 지시</button>
       <button class="dash-tab" data-dtab="diag">진단결과</button>
       <button class="dash-tab" data-dtab="exam">성적</button>
       <button class="dash-tab" data-dtab="hw">숙제</button><button class="dash-tab" data-dtab="lib">자료실</button>
@@ -5507,6 +5508,27 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="wa-table-wrap"><table class="wa-table" id="opTable"></table></div>
     </div>
 
+    <!-- 업무 지시 (2026-10-02 원장님) — 직원끼리(원장·부원장·실장·선생님) 일을 내리고 받는다.
+         앱 「업무 → 업무 지시」와 같은 표(staff_tasks). 카드마다 「쓴이 → 받는이」. -->
+    <div class="dash-pane" data-dpane="task">
+      <div class="dash-form">
+        <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">받는 사람 <span class="wa-hint">(여러 명 골라도 돼요)</span></label>
+        <div id="tkTo" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px"></div>
+        <label>제목<input type="text" id="tkTitle" placeholder="예: 10월 시간표 정리해서 올리기"></label>
+        <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">내용 <span class="wa-hint">(없어도 돼요)</span><textarea id="tkBody" rows="3" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></textarea></label>
+        <div class="dash-row"><label>마감 <span class="wa-hint">(없으면 비워 두세요)</span><input type="date" id="tkDue"></label></div>
+        <p class="wa-err" id="tkErr"></p>
+        <button class="btn btn-primary" id="tkAdd" type="button">＋ 업무 보내기</button>
+      </div>
+      <div class="dash-list-head">
+        <select id="tkView" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--line-strong)">
+          <option value="mine">받은 업무</option><option value="sent">보낸 업무</option><option value="all">전체 (원장·부원장)</option>
+        </select>
+        <button class="btn btn-ghost" id="tkReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button>
+      </div>
+      <div id="tkList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+
     <div class="dash-pane" data-dpane="diag">
       <div class="dash-list-head" style="margin-top:6px">🎯 진단 테스트 결과 <button class="btn btn-ghost" id="diagReload" type="button" style="padding:6px 11px;font-size:12.5px">새로고침</button></div>
       <div class="dash-note" style="margin-top:0">학생이 완토 진단 테스트를 풀고 상담 신청한 결과입니다. 능력별 정답률(%)이 <b>낮을수록 약한 영역</b>이에요. (🔴&lt;60 · 🟡60~74 · 🟢75+) · 행의 <b>상세 ▸</b>를 누르면 능력별 그래프와 분석이 나옵니다.</div>
@@ -5903,7 +5925,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <input type="text" id="waECar" maxlength="20" placeholder="예: 12가 3456"></label>
       <label>담당 선생님<select id="waETeacher"><option value="">미배정</option></select></label>
       <label id="waEPairWrap">2:1 짝 <span style="color:var(--muted);font-weight:600;font-size:12px">(짝을 정하면 한 명이 예약할 때 둘 다 잡힙니다)</span><select id="waEPair"><option value="">짝 없음</option></select><span id="waEPairHint" style="font-weight:600;font-size:12px;color:var(--muted)">담당 선생님과 수업 형태(대면·비대면)가 같은 학생만 고를 수 있습니다.</span></label>
-      <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">매니저</option><option value="master">원장님</option></select></label>
+      <label>구분(권한)<select id="waERole"><option value="student">학생</option><option value="admin">선생님</option><option value="manager">실장</option><option value="master">원장님</option></select></label>
       <label id="waERateWrap" style="display:none">강사 배분율(%)<input type="number" id="waERate" min="0" max="100" step="0.1" placeholder="50"><span style="font-weight:600;font-size:12px;color:var(--muted)">이 강사가 맡은 학생 매출에서 가져가는 비율입니다. 여기서 아래 원천징수를 뗀 금액이 실지급액이 됩니다.</span></label>
       <!-- 원천징수는 사람마다 다르다(2026-09-14 원장님 — 대표 두 분은 0%).
            전에는 3.3 이 붙박이라 수납을 등록할 때마다 손으로 지우고 0 을 넣으셔야 했다. -->
@@ -6531,7 +6553,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     await refresh();
   });
 
-  function roleTag(r){ return r==='master'?'원장님':(r==='manager'?'매니저':(r==='admin'?'선생님':'학생')); }
+  // 직책 호칭 — 2026-10-02 원장님: 김태완 원장 · 이창희 부원장(권한은 원장과 같음) · 김효민 실장(옛 매니저) · 선생님.
+  //   profiles.title 이 있으면 그것, 없으면 role 로 정한다. 권한은 언제나 role 이 정한다.
+  function titleOf(r,t){ if(t) return t; return r==='master'?'원장':(r==='manager'?'실장':(r==='admin'?'선생님':'학생')); }
+  function roleTag(r,t){ var x=titleOf(r,t); return (x==='학생'||/님$/.test(x))?x:x+'님'; }
 
 
   // 이름 대신 이메일이 들어와 있는 계정도 있다(가입 방식에 따라). @ 앞만 보여 칸을 아끼자.
@@ -6602,7 +6627,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   function doLogout(){ if(sb) sb.auth.signOut().then(refresh); }
 
-  async function openAdmin(){ $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role); dashTab('members'); await renderTable(); await dashInit(); }
+  async function openAdmin(){ $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role, profile&&profile.title); dashTab('members'); await renderTable(); await dashInit(); }
   function isMasterNow(){ return profile && profile.role==='master'; }
   function isOps(){ return profile && (profile.role==='master'||profile.role==='manager'); }
   async function renderTable(){
@@ -6794,7 +6819,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!all.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">'+(q?'검색 결과가 없습니다.':'해당하는 회원이 없습니다.')+'</td></tr>'; return; }
     function rt(r,u){
-      var tag = r==='master'?'<b style="color:#c0342b">원장님</b>':(r==='manager'?'<b style="color:#7c3aed">매니저</b>':(r==='admin'?'<b style="color:var(--accent)">선생님</b>':'학생'));
+      var tt = titleOf(r, u&&u.title);
+      var tag = r==='master'?'<b style="color:#c0342b">'+esc(tt)+'</b>':(r==='manager'?'<b style="color:#7c3aed">'+esc(tt)+'</b>':(r==='admin'?'<b style="color:var(--accent)">'+esc(tt)+'</b>':'학생'));
       // 배분율은 값을 아는 경우에만 보여준다. 선생님에게는 본인 것만 내려오므로
       // 다른 강사·원장님 행에는 아무것도 뜨지 않는다. (모를 때 50%로 추측해 보여주면 안 됨)
       if((r==='admin'||r==='master'||r==='manager') && u && u.pay_rate!=null){
@@ -6943,7 +6969,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var gStaff=m.filter(function(u){ return isStaffRole(u.role); });
       if(gStu.length){ h+=groupHead('🎓 수강중', gStu.length); gStu.forEach(function(u){ h+=rowOf(u); }); }
       if(gEnd.length){ h+=groupHead('🏁 수강 종료', gEnd.length); gEnd.forEach(function(u){ h+=rowOf(u); }); }
-      if(gStaff.length){ h+=groupHead('👩‍🏫 선생님 · 원장님 · 매니저', gStaff.length); gStaff.forEach(function(u){ h+=rowOf(u); }); }
+      if(gStaff.length){ h+=groupHead('👩‍🏫 원장 · 부원장 · 실장 · 선생님', gStaff.length); gStaff.forEach(function(u){ h+=rowOf(u); }); }
     } else {
       m.forEach(function(u){ h+=rowOf(u); });
     }
@@ -8094,6 +8120,96 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   };
 
   // ================= 관리 대시보드 (원장님/선생님) =================
+  // ---- 업무 지시 (2026-10-02) — 직원끼리 주고받기. 서버 규칙: 2_DB 설정 SQL/staff_tasks.sql ----
+  var tkStaff=[];
+  function tkName(id, fb){
+    if(profile && id===profile.id) return '나';
+    var p=tkStaff.filter(function(x){return x.id===id;})[0];
+    return p ? (p.name||'')+' '+titleOf(p.role,p.title) : (fb||'');
+  }
+  function tkMd(d){ return String(d||'').slice(5,10).replace('-','/'); }
+  async function taskLoad(){
+    if(!sb||!profile) return;
+    var isM = profile.role==='master';
+    var opt=$('tkView') && $('tkView').querySelector('option[value="all"]'); if(opt) opt.style.display=isM?'':'none';
+    if(!tkStaff.length){
+      var d=await sb.rpc('staff_directory'); tkStaff=(d&&d.data)||[];
+      var box=$('tkTo'); if(box) box.innerHTML=tkStaff.filter(function(p){return p.id!==profile.id;}).map(function(p){
+        return '<label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid var(--line-strong);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer"><input type="checkbox" value="'+esc(p.id)+'" data-name="'+esc(p.name||'')+'"> '+esc(p.name||'')+' '+esc(titleOf(p.role,p.title))+'</label>';
+      }).join('');
+    }
+    var view=($('tkView')&&$('tkView').value)||'mine';
+    var q=sb.from('staff_tasks').select('id,group_id,title,body,due_date,from_id,from_name,to_id,to_name,done,done_at,done_memo,created_at');
+    if(view==='mine') q=q.eq('to_id',profile.id).order('done',{ascending:true});
+    else if(view==='sent') q=q.eq('from_id',profile.id);
+    var r=await q.order('created_at',{ascending:false}).limit(300);
+    var el=$('tkList'); if(!el) return;
+    if(r&&r.error){ el.innerHTML='<p class="wa-err">'+esc(r.error.message)+'</p>'; return; }
+    var rows=(r&&r.data)||[], today=kymd();
+    if(view==='mine'){
+      if(!rows.length){ el.innerHTML='<p class="dash-note">받은 업무가 없습니다.</p>'; return; }
+      el.innerHTML=rows.map(function(t){
+        var late=!t.done&&t.due_date&&t.due_date<today;
+        return '<div class="dash-form" style="'+(t.done?'opacity:.65':'')+'">'
+          +'<div style="display:flex;gap:8px;align-items:flex-start"><b style="flex:1;'+(t.done?'text-decoration:line-through':'')+'">'+esc(t.title)+'</b>'
+          +(t.due_date?'<span style="font-size:12.5px;font-weight:700;color:'+(late?'#c0342b':'var(--accent)')+'">'+esc(tkMd(t.due_date))+'까지</span>':'')+'</div>'
+          +(t.body?'<div style="white-space:pre-wrap;color:var(--ink-soft);margin-top:4px">'+esc(t.body)+'</div>':'')
+          +'<div class="wa-hint" style="margin-top:6px">쓴이 '+esc(tkName(t.from_id,t.from_name))+' → 받는이 나 · '+esc(tkMd(t.created_at))+'</div>'
+          +(t.done?'<div style="margin-top:6px;font-weight:700;color:#12855C">✓ 완료'+(t.done_memo?' · '+esc(t.done_memo):'')+' <button class="btn btn-ghost" data-tkundo="'+t.id+'" type="button" style="padding:3px 8px;font-size:12px;margin-left:6px">완료 취소</button></div>'
+                  :'<button class="btn btn-primary" data-tkdone="'+t.id+'" type="button" style="margin-top:8px">완료</button>')
+          +'</div>';
+      }).join('');
+      return;
+    }
+    var groups={}, order=[];
+    rows.forEach(function(t){ if(!groups[t.group_id]){ groups[t.group_id]=[]; order.push(t.group_id); } groups[t.group_id].push(t); });
+    if(!order.length){ el.innerHTML='<p class="dash-note">'+(view==='all'?'주고받은 업무가 없습니다.':'보낸 업무가 없습니다.')+'</p>'; return; }
+    el.innerHTML=order.map(function(g){
+      var list=groups[g], t=list[0], dn=list.filter(function(x){return x.done;}).length;
+      var canDel = t.from_id===profile.id || profile.role==='master';
+      return '<div class="dash-form">'
+        +'<div style="display:flex;gap:8px;align-items:flex-start"><b style="flex:1">'+esc(t.title)+'</b><span style="font-size:12.5px;font-weight:700;color:var(--accent)">'+dn+'/'+list.length+' 완료</span></div>'
+        +(t.body?'<div style="white-space:pre-wrap;color:var(--ink-soft);margin-top:4px">'+esc(t.body)+'</div>':'')
+        +'<div class="wa-hint" style="margin-top:6px">쓴이 '+esc(tkName(t.from_id,t.from_name))+' · '+esc(tkMd(t.created_at))+(t.due_date?' · '+esc(tkMd(t.due_date))+'까지':'')+'</div>'
+        +list.map(function(x){ return '<div style="font-size:13.5px;margin-top:3px;'+(x.done?'font-weight:700':'color:var(--ink-soft)')+'">'+(x.done?'✓':'○')+' 받는이 '+esc(tkName(x.to_id,x.to_name))+(x.done&&x.done_memo?' — '+esc(x.done_memo):'')+'</div>'; }).join('')
+        +(canDel?'<button class="btn btn-ghost" data-tkdel="'+esc(g)+'" type="button" style="padding:4px 9px;font-size:12px;margin-top:8px">지우기</button>':'')
+        +'</div>';
+    }).join('');
+  }
+  if($('tkView')) $('tkView').onchange=taskLoad;
+  if($('tkReload')) $('tkReload').onclick=taskLoad;
+  if($('tkAdd')) $('tkAdd').onclick=async function(){
+    var err=$('tkErr'); if(err) err.textContent='';
+    var to=[].slice.call(document.querySelectorAll('#tkTo input:checked')).map(function(i){ return {id:i.value, name:i.getAttribute('data-name')}; });
+    var title=($('tkTitle').value||'').trim(), body=($('tkBody').value||'').trim(), due=$('tkDue').value||null;
+    if(!to.length){ if(err) err.textContent='받는 사람을 골라 주세요.'; return; }
+    if(!title){ if(err) err.textContent='제목을 넣어 주세요.'; return; }
+    var gid=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16);});
+    var rows=to.map(function(t){ return {group_id:gid,title:title,body:body||null,due_date:due,from_id:profile.id,from_name:profile.name||null,to_id:t.id,to_name:t.name||null}; });
+    var r=await sb.from('staff_tasks').insert(rows);
+    if(r.error){ if(err) err.textContent='보내지 못했어요: '+r.error.message; return; }
+    $('tkTitle').value=''; $('tkBody').value=''; $('tkDue').value='';
+    document.querySelectorAll('#tkTo input:checked').forEach(function(i){ i.checked=false; });
+    if($('tkView')) $('tkView').value='sent';
+    taskLoad();
+  };
+  if($('tkList')) $('tkList').addEventListener('click', async function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    var r;
+    if(b.getAttribute('data-tkdone')){
+      var memo=prompt('완료했어요. 한마디 남길까요? (안 적어도 돼요)','');
+      if(memo===null) return;
+      r=await sb.rpc('staff_task_done',{p_id:+b.getAttribute('data-tkdone'),p_done:true,p_memo:memo||null});
+    } else if(b.getAttribute('data-tkundo')){
+      r=await sb.rpc('staff_task_done',{p_id:+b.getAttribute('data-tkundo'),p_done:false,p_memo:null});
+    } else if(b.getAttribute('data-tkdel')){
+      if(!confirm('이 업무를 지울까요? 받은 사람 모두에게서 사라집니다.')) return;
+      r=await sb.from('staff_tasks').delete().eq('group_id',b.getAttribute('data-tkdel'));
+    } else return;
+    if(r&&r.error){ alert(r.error.message); return; }
+    taskLoad();
+  });
+
   function dashTab(name){
     var card=$('waAdmin'); if(!card) return;
     card.querySelectorAll('.dash-tab').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-dtab')===name); });
@@ -8105,6 +8221,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     // 달력은 탭이 숨어 있는 동안 폭이 0이라 스크롤 계산이 안 먹는다. 열릴 때 다시 맞춘다.
     if(name==='sched' && typeof centerToday==='function') setTimeout(centerToday, 0);
+    if(name==='task') taskLoad();
     // 학생별 화면 — 열 때 학생 목록을 채운다.
     // 🚨 회원을 아직 안 읽었으면 여기서 읽는다(2026-09-11). 전에는 비어 있었다.
     if(name==='student' && typeof sdFillStudents==='function'){
@@ -9839,6 +9956,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('scTeacher')) $('scTeacher').onchange=function(){ if($('scStudentSearch')) $('scStudentSearch').value=''; fillScStudent(); };
   if($('pyStudentSearch')) $('pyStudentSearch').oninput=function(){ if($('pyStudent')) $('pyStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
   if($('hwStudentSearch')) $('hwStudentSearch').oninput=function(){ if($('hwStudent')) $('hwStudent').innerHTML='<option value="">선택</option>'+studentOpts(this.value); };
+  // 학생을 고르면 지난 숙제를 내용 칸에 채운다 — 테스트 번호만 고쳐서 내면 된다 (2026-10-02 원장님, 앱과 같음)
+  // 🚨 고치는 중(hwEditId)이거나 이미 적어 둔 칸은 덮어쓰지 않는다
+  if($('hwStudent')) $('hwStudent').onchange=async function(){
+    var sid=this.value, box=$('hwContent'); if(!sid||!box||(typeof hwEditId!=='undefined'&&hwEditId)||box.value.trim()) return;
+    var r=await sb.from('homeworks').select('content,created_at').eq('student_id',sid).order('created_at',{ascending:false}).limit(1);
+    var last=r&&r.data&&r.data[0]; if(!last||!last.content||box.value.trim()||$('hwStudent').value!==sid) return;
+    box.value=last.content;
+    var hint=$('hwErr'); if(hint){ hint.textContent='지난 숙제('+last.created_at.slice(5,10).replace('-','/')+')를 불러왔어요. 바뀐 부분만 고쳐 주세요.'; hint.style.color='var(--brand)'; }
+  };
 
   // ---- 강의장 ----
   // 강의장 탭은 없앴지만(2026-08-08 원장 지시) _rooms 자체는 달력 칸·스케줄 폼·배정에서
@@ -14783,7 +14909,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var el=$('opAuthor'); if(!el) return;
     var keep = sel || el.value || (profile?profile.id:'');
     var staff=(_members||[]).filter(function(m){return m.role==='master'||m.role==='manager'||m.role==='admin';});
-    el.innerHTML = staff.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+' ('+esc(roleTag(m.role))+')</option>'; }).join('');
+    el.innerHTML = staff.map(function(m){ return '<option value="'+esc(m.id)+'">'+esc(m.name)+' ('+esc(roleTag(m.role, m.title))+')</option>'; }).join('');
     if(keep) el.value=keep;
   }
   async function loadOplog(){
@@ -15265,7 +15391,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     $('hwTable').innerHTML=h;
   }
   var hwEditId=null;
-  function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')) $('hwErr').textContent=''; }
+  function hwReset(){ hwEditId=null; if($('hwContent')) $('hwContent').value=''; if($('hwAdd')) $('hwAdd').textContent='＋ 숙제 등록'; if($('hwErr')){ $('hwErr').textContent=''; $('hwErr').style.color=''; } }
   // 새로고침은 수업 일정 캐시도 같이 버린다(그 사이 스케줄이 바뀌었을 수 있다).
   if($('hwReload')) $('hwReload').onclick=function(){ _hwDayCache={}; return loadHomework(); };
   if($('hwListSearch')) $('hwListSearch').addEventListener('input', drawHw);
@@ -15293,7 +15419,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   if($('hwAdd')) $('hwAdd').onclick=async function(){
     if(!sb||!profile) return;
-    var err=$('hwErr'); if(err) err.textContent='';
+    var err=$('hwErr'); if(err){ err.textContent=''; err.style.color=''; }
     var content=$('hwContent').value.trim();
     var r;
     // 마감일 칸은 2026-08-11에 없앴다(원장 지시). 목록을 '그날 수업 있는 학생'으로 거르므로 쓸 일이 없다.
@@ -15949,7 +16075,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // ================= 학생 대시보드 =================
   async function renderMy(){
-    if($('waMyName')) $('waMyName').textContent=roleTag(profile.role);
+    if($('waMyName')) $('waMyName').textContent=roleTag(profile.role, profile.title);
     if($('myEmail')) $('myEmail').textContent=profile.email+' (이메일은 변경 불가)';
     if($('myName')) $('myName').value=profile.name||'';
     if($('myPhone')) $('myPhone').value=profile.phone||'';
@@ -16030,7 +16156,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
   // 내 학습 — 수강권·숙제·일정·결제·출석. '내 정보'와 분리된 별도 창.
   async function renderLearn(){
-    if($('waLearnName')) $('waLearnName').textContent=roleTag(profile.role);
+    if($('waLearnName')) $('waLearnName').textContent=roleTag(profile.role, profile.title);
     // 담당강사 — 학생은 남의 프로필을 읽을 수 없어 my_teacher() RPC로 이름만 받는다.
     if($('myTeacher')){
       var tbox=$('myTeacher'), tname='';
