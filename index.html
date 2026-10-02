@@ -15772,7 +15772,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     //    🚨 숙제 밀림 박스(renderHwLate)와 같은 기준: 숙제 뒤에 실제 수업이 있었어야 「확인할 수 있었던」 숙제다.
     var lastMet={};
     var allDone=await evPaged(function(){
-      return sb.from('schedules').select('student_id,ends_at,status').not('student_id','is',null)
+      return sb.from('schedules').select('student_id,starts_at,ends_at,status').not('student_id','is',null)
                .lt('ends_at', now.toISOString()).order('ends_at',{ascending:false});
     });
     allDone.forEach(function(x){
@@ -15800,6 +15800,35 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         });
       }catch(e){ hwsCarry=[]; }
     }
+    // 🆕 2026-10-02 원장님 「숙제 확인 기준이 뭔지 모르겠다 — 그날 수업하는 애들 숙제 확인이 다 되면 높아야」
+    //    → 수업 한 번마다 「그 수업에 해 올 숙제」(바로 앞 수업 시작 뒤 ~ 이번 수업 전에 낸 숙제)를 다 확인했는지 본다.
+    //    기간 첫 수업의 숙제는 기간 전에 냈을 수 있어 45일 앞까지 받는다. (앱 lib/teachereval.ts 와 같은 식)
+    var hwsWide=hws;
+    if(from){
+      try{
+        hwsWide=await evPaged(function(){
+          return sb.from('homeworks').select('id,student_id,teacher_id,created_at,teacher_checked,teacher_checked_at,content')
+                   .order('created_at',{ascending:true})
+                   .gte('created_at',new Date(kBack(from).getTime()-45*86400000).toISOString()).lt('created_at',kBack(to).toISOString());
+        });
+      }catch(e){ hwsWide=hws; }
+    }
+    var hwBy={}; hwsWide.forEach(function(h){ (hwBy[String(h.student_id)]=hwBy[String(h.student_id)]||[]).push(h); });
+    var metStarts={};   // 학생별 실제 진행(출석) 수업 시작 시각(ms), 오름차순
+    allDone.forEach(function(x){
+      if((x.status||'confirmed')!=='confirmed' || !x.starts_at) return;
+      (metStarts[String(x.student_id)]=metStarts[String(x.student_id)]||[]).push(Date.parse(x.starts_at));
+    });
+    Object.keys(metStarts).forEach(function(k){ metStarts[k].sort(function(a,b){return a-b;}); });
+    function dueAt(stu, startsAt){
+      var t=Date.parse(startsAt), prev=null;
+      (metStarts[stu]||[]).forEach(function(v){ if(v<t) prev=v; });
+      return (hwBy[stu]||[]).filter(function(h){ var c=Date.parse(h.created_at); return c<t && (prev==null || c>=prev); });
+    }
+    // 퇴원(수강 종료) 학생의 마지막 수업 — 다음 수업이 없으니 숙제를 낼 일이 없다(숙제 내준 비율에서 뺀다)
+    var endedIds={}; (_members||[]).forEach(function(m){ if(m.role==='student' && m.status==='ended') endedIds[String(m.id)]=true; });
+    var lastStart={}; Object.keys(metStarts).forEach(function(k){ lastStart[k]=metStarts[k][metStarts[k].length-1]; });
+
     // 학생·날짜별 숙제 — 수업 당일이나 다음 날 낸 숙제가 있으면 「숙제 낸 수업」
     var hwDay={};
     hws.forEach(function(h){ hwDay[String(h.student_id)+'|'+kymd(h.created_at)]=true; });
@@ -15904,10 +15933,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         return !!(m && h.created_at && m > h.created_at);
       });
       var checkedIn=eligible.filter(function(h){ return h.teacher_checked; });   // 기간 안에 낸 숙제 중 확인한 것(속도 계산용)
-      var carry=hwsCarry.filter(function(h){ return hwTeacher(h)===tid; });       // 지난달 숙제를 이번 기간에 확인한 것
-      eligible=eligible.concat(carry);
-      var checked=checkedIn.concat(carry);
-      var unchecked=eligible.filter(function(h){ return !h.teacher_checked; });
+      // A1 숙제 확인율(수업 기준, 2026-10-02): 이 선생님이 실제로 한 수업 중 해 올 숙제가 있던 수업 → 그 숙제를 다 확인했나
+      void hwsCarry;
+      eligible=[]; var checked=[], uncheckedMap={};
+      scheds.forEach(function(s){
+        if(s.teacher_id!==tid || (s.status||'confirmed')!=='confirmed') return;
+        var due=dueAt(String(s.student_id), s.starts_at);
+        if(!due.length) return;
+        eligible.push(s.starts_at);
+        if(due.every(function(h){ return h.teacher_checked; })) checked.push(s.starts_at);
+        else due.forEach(function(h){ if(!h.teacher_checked) uncheckedMap[String(h.id)]=h; });
+      });
+      var unchecked=Object.keys(uncheckedMap).map(function(k){ return uncheckedMap[k]; });
       var days=checkedIn.filter(function(h){ return h.teacher_checked_at; }).map(function(h){
         return (Date.parse(h.teacher_checked_at)-Date.parse(h.created_at))/86400000;
       });
@@ -15916,7 +15953,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // A3 숙제 내준 비율 — 출석한 수업 중 그날·다음 날 숙제가 나간 수업
       var mySch=scheds.filter(function(s){ return s.teacher_id===tid; });
       var att=mySch.filter(function(s){ return (s.status||'confirmed')==='confirmed'; });
-      var withHw=att.filter(function(s){
+      var attForHw=att.filter(function(s){ var k=String(s.student_id); return !(endedIds[k] && lastStart[k]===Date.parse(s.starts_at)); });
+      var withHw=attForHw.filter(function(s){
         var d=kymd(s.starts_at), k=String(s.student_id);
         return hwDay[k+'|'+d] || hwDay[k+'|'+ymdShift(d,1)];
       });
@@ -15979,7 +16017,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var sA=evAvg([
         [pct(checked.length, eligible.length), 1],
         [avgDays==null?null:evClamp(100-(avgDays-1)*100/12), 1],     // 1일 이내 100점 · 13일 0점
-        [pct(withHw.length, att.length), 1],
+        [pct(withHw.length, attForHw.length), 1],
         [(att.length+myCancel.length)>0 ? evClamp(100-myCancel.length/(att.length+myCancel.length)*500) : null, 1]  // 휴강 20%면 0점
       ]);
       var quitRate=pct(quitList.length, myStu.length);
@@ -15999,7 +16037,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
       return { t:t, stu:myStu.length, active:active, thin:myStu.length<EV_MIN_STU,
                elig:eligible.length, chk:checked.length, unchecked:unchecked, avgDays:avgDays,
-               att:att.length, sch:mySch.length, withHw:withHw.length, cancels:myCancel,
+               att:att.length, sch:mySch.length, withHw:withHw.length, hwBase:attForHw.length, cancels:myCancel,
                gains:gains, avgGain:avgGain, grad:myGrad.length, met:met,
                quit:quitList, gradN:gradN, persN:persN,
                renewTurn:renewTurn, renewed:renewed, reg:reg, lost:lost,
@@ -16021,7 +16059,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
        + '<td style="white-space:nowrap">'+evScoreTxt(r.total, r.thin)+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.chk,r.elig,true)+'</td>'
        + '<td style="white-space:nowrap">'+evNum(r.avgDays,'일',r.avgDays!=null&&r.avgDays>7?false:null,1)+'</td>'
-       + '<td style="white-space:nowrap">'+pctTxt(r.withHw,r.att,true)+'</td>'
+       + '<td style="white-space:nowrap">'+pctTxt(r.withHw,r.hwBase,true)+'</td>'
        + '<td style="white-space:nowrap">'+(r.cancels.length?'<b style="color:#c0342b">'+r.cancels.length+'회</b>':'0회')+'</td>'
        + '<td style="white-space:nowrap">'+pctTxt(r.att,r.sch,true)+'</td>'
        + '<td style="white-space:nowrap">'+(r.avgGain==null?'<span style="color:var(--muted)">-</span>':'<b style="font-size:14.5px;color:'+(r.avgGain>=0?'#0f7a52':'#c0342b')+'">'+(r.avgGain>=0?'+':'')+Math.round(r.avgGain)+'점</b> <span style="color:var(--muted);font-size:11.5px">('+r.gains.length+'명)</span>')+'</td>'
