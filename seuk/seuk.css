@@ -1,0 +1,27 @@
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:#000;color:#ececec;line-height:1.7;word-break:keep-all}
+main{max-width:760px;margin:0 auto;padding:40px 20px 80px}
+a{color:#fff}
+.back{display:inline-block;margin-bottom:24px;color:#9a9a9a;text-decoration:none;font-size:15px}
+h1{font-size:30px;font-weight:800;color:#fff;letter-spacing:-.5px}
+.meta{color:#8a8a8a;font-size:14px;margin:6px 0 28px}
+h2{font-size:18px;font-weight:800;color:#fff;margin:34px 0 10px}
+p,li,td,th{font-size:15.5px}
+p{margin:8px 0}
+ul,ol{padding-left:20px;margin:8px 0}
+li{margin:4px 0}
+table{width:100%;border-collapse:collapse;margin:12px 0;background:#141414;border-radius:12px;overflow:hidden}
+th,td{padding:10px 14px;border-bottom:1px solid #262626;text-align:left;vertical-align:top}
+th{width:30%;color:#bdbdbd;font-weight:700;white-space:nowrap}
+tr:last-child th,tr:last-child td{border-bottom:0}
+.note{background:#141414;border-radius:12px;padding:14px 16px;color:#cfcfcf}
+.home{text-align:center;padding-top:80px}
+.home .logo{width:120px;height:auto}
+.home .big{font-size:52px;margin-top:10px}
+.home .tag{color:#9a9a9a;font-size:16px;margin-top:-4px}
+.home .lead{font-size:19px;color:#fff;margin:28px 0}
+.home .feat{list-style:none;padding:0;display:inline-block;text-align:left;color:#cfcfcf}
+.home .feat li:before{content:"✓ ";color:#4ade80}
+.home .links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:44px}
+.home .links a{color:#bdbdbd;font-size:14.5px}
+.home .foot{color:#6a6a6a;font-size:13.5px;margin-top:18px}
