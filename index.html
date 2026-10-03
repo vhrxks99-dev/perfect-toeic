@@ -5688,7 +5688,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div class="dash-form">
         <div class="dash-row">
           <label>상담일<input type="date" id="csDate"></label>
-          <label>이름<input type="text" id="csName" placeholder="상담받은 분 이름"></label>
+          <label>이름<input type="text" id="csName" placeholder="상담받은 분 이름" list="csNameList" autocomplete="off"><datalist id="csNameList"></datalist></label>
           <label>연락처<input type="tel" id="csPhone" placeholder="010-1234-5678"></label>
         </div>
         <div class="dash-row">
@@ -11329,6 +11329,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         if($('csDate'))    $('csDate').value=g.getAttribute('data-csday')||kymd();
         if($('csChannel')) $('csChannel').value=$('csChannel').value||'사전 OT';
         drawCsLink();
+        try{ csAutoPhone(); }catch(e){}
         if($('csName')) $('csName').focus();
       }
       // '다음 수업 안 잡힘' 알림에서 넘어온 경우 스케줄 폼의 학생을 미리 골라 준다.
@@ -15579,7 +15580,31 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var ts=(_members||[]).filter(function(m){return m.role==='admin'||m.role==='master';});
     $('csTeacher').innerHTML='<option value="">미지정</option>'+ts.map(function(t){ return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>'; }).join('');
     if(profile && ts.some(function(t){return t.id===profile.id;})) $('csTeacher').value=profile.id;
+    fillCsNameList();
   }
+  // 🆕 2026-10-03 원장님 「상담 학생은 다 회원가입한 애들이니 이름 고르면 전화번호 자동으로」
+  //    → 이름 칸에 가입한 학생 목록을 띄우고, 고르면 연락처를 채운다.
+  //    동명이인이 있을 수 있어 목록 값은 「이름 · 번호」로 두고, 고른 뒤 이름 칸에는 이름만 남긴다.
+  var _csAutoPhone='';
+  function fillCsNameList(){
+    if(!$('csNameList')) return;
+    var st=(_members||[]).filter(function(m){ return m.role==='student' && m.name; });
+    $('csNameList').innerHTML=st.map(function(m){
+      return '<option value="'+esc(m.name+(m.phone?' · '+m.phone:''))+'"></option>';
+    }).join('');
+  }
+  function csAutoPhone(){
+    var el=$('csName'), ph=$('csPhone'); if(!el||!ph) return;
+    var v=(el.value||'').trim(), mm=v.match(/^(.+?) · (0[0-9-]{8,})$/), name=v, phone='';
+    if(mm){ name=mm[1].trim(); phone=mm[2]; el.value=name; }
+    else {
+      var hit=(_members||[]).filter(function(m){ return m.role==='student' && m.phone && normName(m.name)===normName(name); });
+      if(hit.length===1) phone=hit[0].phone;   // 동명이인이면 자동으로 안 채운다(목록에서 번호 보고 고르게)
+    }
+    // 손으로 적은 번호는 덮지 않는다. 비었거나 방금 자동으로 넣은 번호일 때만 바꾼다.
+    if(phone && (!ph.value || ph.value===_csAutoPhone)){ ph.value=phone; _csAutoPhone=phone; }
+  }
+  if($('csName')){ $('csName').addEventListener('input', csAutoPhone); $('csName').addEventListener('change', csAutoPhone); }
   if($('csAdd')) $('csAdd').onclick=async function(){
     if(!sb) return;
     var name=($('csName').value||'').trim();
@@ -15598,7 +15623,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!r.error) alert('상담은 등록됐지만 OT 수업과 연결되지 않았습니다. ot_schedule.sql 을 먼저 실행해주세요.');
     }
     if(r.error){ $('csErr').textContent='등록 실패: '+r.error.message; return; }
-    $('csErr').textContent=''; $('csName').value=''; $('csPhone').value=''; $('csChannel').value=''; $('csMemo').value='';
+    $('csErr').textContent=''; $('csName').value=''; $('csPhone').value=''; $('csChannel').value=''; $('csMemo').value=''; _csAutoPhone='';
     _csScheduleId=null; drawCsLink();
     await loadConsults();
     try{ await loadTeacherAlerts(); }catch(e){}   // OT 상담 알림을 바로 지운다
