@@ -14133,7 +14133,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       window.__wtNotify=(!r3.error&&r3.data)?r3.data:null;
       // 카톡 채널 보내기 대기줄. 2026-09-10_카톡채널_보내기.sql 을 아직 안 돌렸으면
       // 표가 없어 오류가 나는데, 그때는 버튼만 안 보이고 나머지는 그대로 돌아가야 한다.
-      var r3b=await sb.from('kakao_queue').select('student_id,status,biz,requested_at,sent_at').eq('kind','payment_due').order('requested_at',{ascending:false});
+      var r3b=await sb.from('kakao_queue').select('student_id,status,biz,requested_at,sent_at,body').eq('kind','payment_due').order('requested_at',{ascending:false});
       window.__wtKakao=(!r3b.error&&r3b.data)?r3b.data:null;
     }
     // 2026-08-08 원장 지시로 차감 기준이 '출석'에서 '스케줄'로 바뀌었다.
@@ -14341,7 +14341,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 안 나간 채로 남는 것 = 번호 없음 / 대기 중 / 아직 대기열에 없음.
     function alreadyHandled(sid){
       var n=sentBy[sid];
-      return !!n && (!!n.sent_at || (n.tries||0) >= 3);
+      return !!n && !!n.sent_at;   // 2026-10-03: 솔라피 tries>=3 제외는 뺐다(이제 「보내기」로 손으로 보낸다)
     }
     // 2회 남은 학생까지 잡는다(원장 요청 2026-08-14). 발송은 그대로 1회일 때만 나가고,
     // 2회는 '곧 대상이 됩니다'로 미리 알려 주기만 한다.
@@ -14359,7 +14359,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var todayStr=kymd();
     var since7=kwallNow(); since7.setDate(since7.getDate()-6); since7.setHours(0,0,0,0);
     var sinceStr=ymd(since7);
-    var sentRecent=(notif||[]).filter(function(n){
+    // 🔄 2026-10-03 원장님 「솔라피 안 쓰니 고쳐야」 — 카톡 채널로 보낸 것(kakao_queue)을 같이 센다.
+    var sentRecent=(notif||[]).concat((window.__wtKakao||[]).filter(function(r){ return r.status==='sent'; }))
+      .filter(function(n){
       return n.sent_at && kymd(n.sent_at)>=sinceStr;
     }).sort(function(a,b){ return String(b.sent_at).localeCompare(String(a.sent_at)); });
     var sentLine='';
@@ -14401,7 +14403,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var nm=nameById[String(n.student_id)]||n.student_name||'-';
       return { n:n, name:nm, rem:remainDoneOf(n.student_id) };
     }).filter(function(x){ return x.rem<=1; });
-    if(stuck.length){
+    if(false && stuck.length){   // 2026-10-03: 솔라피 발송기를 껐으므로 「멈춘 안내」는 더 생기지 않는다 — 칸을 숨긴다
       sentLine += '<div style="margin-top:8px;background:#fff4f4;border:1px solid #f0c8c8;border-radius:9px;padding:9px 12px">'
         + '<b style="color:#c0342b">⚠️ 안 나간 채로 멈춘 안내 · '+stuck.length+'명</b>'
         + '<div style="margin-top:3px;line-height:1.9">'
@@ -14458,7 +14460,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var h='💳 <b>결제 안내 '+due.length+'명</b>';
     if(notif===null) h+=' <span style="color:#c0342b;font-weight:700">(안내 대기열이 아직 없습니다 — payment_alert.sql 을 먼저 실행하세요)</span>';
     if(soon2.length){
-      h+='<div style="margin-top:8px"><b>⏳ 곧 전송될 학생 · '+soon2.length+'명</b>'
+      h+='<div style="margin-top:8px"><b>⏳ 곧 1회 남는 학생 · '+soon2.length+'명</b> <span style="color:var(--muted);font-weight:700;font-size:12px">미리 보기 — 1회가 되면 「보내기」가 생겨요</span>'
        + '<div style="margin-top:4px;line-height:1.9">'
        + soon2.map(function(x){
            var e=nextEnd[x.s.id];
@@ -14506,7 +14508,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
      + '남은 수업이 <b>1회 이하</b>인 학생 옆 <b>「보내기」</b>를 누르면 완벽한토익 카카오톡 채널로 결제 안내가 나갑니다.<br>'
      + '2회 남은 학생은 미리 보여 드리는 것이고, 결제가 들어오면 이 목록에서 저절로 빠집니다.</div>';
     // 실제로 나갈 문구를 그대로 보여준다(원장님 확인용).
-    var last=notif&&notif.length?notif[0]:null;
+    var last=(window.__wtKakao||[]).filter(function(r){ return r.body; })[0] || (notif&&notif.length?notif[0]:null);
     if(last&&last.body){
       h+='<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:800">보낼 문구 미리보기</summary>'
        + '<pre style="white-space:pre-wrap;font-family:var(--font-sans);font-size:13px;line-height:1.7;margin:8px 0 0;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface)">'
