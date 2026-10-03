@@ -1316,10 +1316,13 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
   //  ① 4지선다라 찍어도 25%는 맞는다 → 그만큼 빼고 시작(추측 보정)
   //  ② 30문항은 표본이 작아 1문항이 16점씩 흔든다 → 평균(300)쪽으로 20% 당김
   //  ③ 자체 문항은 실전보다 쉬워 만점이 495를 뜻하지 않는다 → 상한 470
+  // 🔄 2026-10-03 원장님 「진단 예상 점수가 실제 토익이랑 최대한 비슷하게 — 커리큘럼 만든 학생 데이터로 맞춰」
+  //    커리큘럼 학생 34명의 실제 성적표 「RC 능력별 정답률 5개 평균」 ↔ 「실제 RC 점수」를 직선으로 맞춘 식
+  //    (RC = -102.6 + 5.69 × 평균정답률, r=0.98, 오차 ±14점). 진단은 같은 다섯 능력을 6문항씩 재므로
+  //    전체 정답률 p(=다섯 능력 평균)를 그대로 넣는다. 옛 식은 고득점을 낮게 봤다(정희경 24/30 → 335, 실제 415).
+  //    갱신: 커리큘럼 _소스\_scores.json 이 늘면 다시 맞출 것.
   function rcScore(p){
-    var m   = Math.max(0, (p - 0.25) / 0.75);
-    var raw = 5 + m * 465;
-    var sh  = 300 + 0.80 * (raw - 300);
+    var sh = -102.6 + 5.69 * (p * 100);
     return Math.min(495, Math.max(5, Math.round(sh/5)*5));
   }
   var Q=[], idx=0, ans=[], lastReportText='', lastDiag=null;
@@ -17546,7 +17549,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 🚨 앱 lib/bench.ts 와 **같은 숫자**여야 한다. 한쪽만 고치지 말 것.
     // 🚨 850 줄은 **4명**뿐이다. 한 사람 들어오면 이만큼 움직인다 — 단정해서 쓰지 말 것.
     var TARGET = [
-      { band:850, label:'850 이상', need:{ gram:94, vocab:87, connect:79, infer:80, locate:74 } },
+      { band:850, label:'850 이상', need:{ gram:94, vocab:88, connect:81, infer:81, locate:76 } },
       { band:750, label:'700점대', need:{ gram:83, vocab:80, connect:71, infer:68, locate:75 } },
       { band:650, label:'600점대', need:{ gram:80, vocab:63, connect:61, infer:53, locate:66 } }
     ];
