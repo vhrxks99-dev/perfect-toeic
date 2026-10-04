@@ -15134,9 +15134,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var meId=profile&&profile.id;
       var mineStu={}, hasMembers=false;
       (_members||[]).forEach(function(m){ hasMembers=true; if(m.teacher_id&&m.teacher_id===meId) mineStu[m.id]=1; });
-      rows = hasMembers
-        ? rows.filter(function(x){ return mineStu[x.student_id]; })
-        : rows.filter(function(x){ return x.teacher_id===meId; });  // 회원 명단이 아직 안 왔을 때의 안전장치
+      // 🆕 2026-10-04 원장님 「다른 선생님들이 어떤 숙제를 내줬는지 볼 수 있게」 — 다 받아 두고
+      //    내 담당이 아닌 숙제는 __notMine 표시(보기만). 기본 화면은 그대로 '내 담당 학생'.
+      rows.forEach(function(x){ x.__notMine = hasMembers ? !mineStu[x.student_id] : (x.teacher_id!==meId); });
     }
     window.__wtHw=rows;
     drawHw();
@@ -15150,7 +15150,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // (새 선생님이 생겨도 자동 반영). 선생님 본인에게는 어차피 담당 학생 것만 내려오므로 숨긴다.
   function hwFillTeacherFilter(){
     var tf=$('hwTeacherFilter'); if(!tf) return '';
-    if(!isOps()){ tf.style.display='none'; tf.value=''; return ''; }
+    if(!isOps()){
+      // 선생님: 내 담당 학생 / 전체 학생(보기만) 두 가지
+      if(tf.getAttribute('data-mode')!=='t'){
+        tf.innerHTML='<option value="">내 담당 학생</option><option value="all">전체 학생 (보기만)</option>';
+        tf.setAttribute('data-mode','t');
+      }
+      tf.style.display='';
+      return tf.value;
+    }
     tf.style.display='';
     var keep=tf.value;
     var staff=(_members||[]).filter(function(m){ return isStaffRole(m.role); })
@@ -15316,6 +15324,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var rows=window.__wtHw||[];
     // 숙제를 '쓴 사람'이 아니라 그 학생의 담당강사로 거른다(담당이 바뀌면 같이 따라간다).
     var tsel=hwFillTeacherFilter();
+    if(!isOps()){
+      if(tsel!=='all') rows=rows.filter(function(x){ return !x.__notMine; });
+      tsel='';
+    }
     if(tsel){
       var owner={};
       (_members||[]).forEach(function(m){ if(m.role==='student') owner[m.id]=m.teacher_id||''; });
@@ -15386,13 +15398,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var items=hwItems(x.content), d=hwDoneArr(x);
       // 선생님도 직접 체크를 고칠 수 있다 — 학생이 안 하고 눌러놨을 수 있기 때문(원장 지시 2026-08-11).
       // 단 '선생님 확인'을 찍은 뒤에는 잠긴다(원장 지시 2026-08-17). 고치려면 확인을 먼저 뺀다.
-      var hwLock = !!x.teacher_checked;
+      var hwLock = !!x.teacher_checked || !!x.__notMine;   // 남의 담당 학생 숙제는 보기만
       var itemHtml = items.length
         ? (items.map(function(it,i){ return '<label class="hw-item'+(hwLock?' locked':'')+'"><input type="checkbox" data-thw="'+x.id+'" data-i="'+i+'"'+(d[i]?' checked':'')+(hwLock?' disabled':'')+'> '+esc(it)+'</label>'; }).join('')
-          + (hwLock?'<div class="hw-lock-note">확인 완료 — 고치려면 \'선생님 확인\'을 먼저 빼세요</div>':''))
+          + ((x.teacher_checked&&!x.__notMine)?'<div class="hw-lock-note">확인 완료 — 고치려면 \'선생님 확인\'을 먼저 빼세요</div>':''))
         : esc(x.content||'').replace(/\n/g,'<br>');
       // data-l 은 모바일 카드에서 각 칸 위에 붙는 이름표다(폰에서는 머리글 줄을 숨긴다).
-      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+hwChkCell(x)+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap"><a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a></td></tr>';
+      h+='<tr><td data-l="등록일" style="white-space:nowrap">'+esc((x.created_at||'').slice(0,10))+'</td><td data-l="학생" style="white-space:nowrap">'+esc(stuTag(x.student_id, x.student_name))+'</td><td data-l="숙제">'+itemHtml+'</td><td data-l="진행" style="white-space:nowrap">'+hwProgTag(x)+'</td><td data-l="선생님 확인" style="white-space:nowrap">'+(x.__notMine?(x.teacher_checked?'담당쌤 확인함':'-'):hwChkCell(x))+'</td><td data-l="숙제율" style="white-space:nowrap">'+hwRateTwo(_hwRateMap[hwStuKey(x)])+'</td><td data-l="관리" style="white-space:nowrap">'+(x.__notMine?('<span style="opacity:.6">'+esc(x.teacher_name||'다른 쌤')+'</span>'):('<a class="wa-link" data-hwedit="'+x.id+'">수정</a> <a class="wa-link del" data-hwdel="'+x.id+'">삭제</a>'))+'</td></tr>';
     });
     $('hwTable').innerHTML=h;
   }
