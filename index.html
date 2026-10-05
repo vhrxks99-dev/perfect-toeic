@@ -4028,6 +4028,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 /* 내 수업 일정 표의 상태 딱지 */
 #myschedTable .ms-tag{display:inline-block;margin-left:6px;font-size:11px;font-weight:800;
   border-radius:999px;padding:1px 8px;vertical-align:middle}
+#myschedTable .ms-room{display:block;width:96px;height:64px;object-fit:cover;border-radius:8px;margin-top:6px;border:1px solid var(--line)}
 #myschedTable .ms-canceled{background:#f1efe9;color:#8a5a00}
 #myschedTable .ms-noshow{background:#fbeae8;color:#c0342b}
 #myschedTable .ms-pending{background:#fff3df;color:#b26a00}
@@ -16419,6 +16420,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           var rn = off ? '—'
                  : s.room_id ? (roomMap[String(s.room_id)]||'배정됨')
                              : (String(profile.lesson_mode||'')==='online' ? '비대면' : '미배정');
+          // 강의장 사진을 작게 (2026-10-05 원장님 「수업 칸에 강의장 A면 A 사진을 조그맣게」). 누르면 크게.
+          var _ri=(!off && s.room_id) ? _roomInfo[String(s.room_id)] : null;
+          var _roomThumb=(_ri && _ri.photo_url) ? '<br><a href="'+esc(_ri.photo_url)+'" target="_blank" rel="noopener"><img class="ms-room" src="'+esc(_ri.photo_url)+'" alt="'+esc(_ri.name||'강의장')+' 사진" loading="lazy"></a>' : '';
           var c=chgMap[String(s.id)], ch='';
           if(c){
             ch='<span style="color:#8a5a00;font-weight:700">'+esc(fmtDT(c.first.old_starts_at))+' 에서 옮김</span>'
@@ -16426,7 +16430,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
              + (c.n>1 ? ' · '+c.n+'번 변경' : '') + '</span>'
              + (c.last.note ? '<br><span style="font-size:12.5px;color:var(--muted)">'+esc(c.last.note)+'</span>' : '');
           }
-          h+='<tr'+(off?' class="ms-off"':'')+'><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+tag+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="강의장">'+esc(rn)+'</td><td data-l="변경">'+ch+'</td></tr>';
+          h+='<tr'+(off?' class="ms-off"':'')+'><td data-l="일시" style="white-space:nowrap">'+fmtDT(s.starts_at)+'~'+hm(s.ends_at)+tag+'</td><td data-l="과목">'+esc(s.subject||'-')+'</td><td data-l="선생님">'+esc(s.teacher_name||'-')+'</td><td data-l="강의장">'+esc(rn)+_roomThumb+'</td><td data-l="변경">'+ch+'</td></tr>';
         });
         $('myschedTable').innerHTML=h; }
       drawNextPlace(rows, _roomInfo);
