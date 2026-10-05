@@ -5225,7 +5225,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           <label>강의장<select id="scRoom"></select></label>
           <label>선생님<select id="scTeacher"></select></label>
           <label>학생<input type="text" id="scStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="scStudent"></select></label>
-          <label id="scModeWrap" style="display:none">이번 수업 형태 <span style="color:#6b21a8;font-weight:800;font-size:12px">(혼합 학생)</span><select id="scMode"><option value="">— 고르세요 —</option><option value="offline">대면</option><option value="online">비대면</option></select></label>
+          <label id="scModeWrap" style="display:none">이번 수업 형태 <span style="color:var(--muted);font-weight:700;font-size:12px">(기본은 회원 수업형태 · 혼합은 꼭 고르기)</span><select id="scMode"><option value="">— 고르세요 —</option><option value="offline">대면</option><option value="online">비대면</option></select></label>
         </div>
         <div class="dash-row">
           <label>과목<select id="scSubject"><option>토익</option><option>토익스피킹</option><option>오픽</option><option>영어회화</option></select></label>
@@ -8141,6 +8141,28 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     return p ? (p.name||'')+' '+titleOf(p.role,p.title) : (fb||'');
   }
   function tkMd(d){ return String(d||'').slice(5,10).replace('-','/'); }
+  // ── 답글 (2026-10-05 원장님 「이건 안 된다 저건 된다 — 서로 답변을 남길 수 있게」) ──
+  //    서버: staff_task_comments.sql. 업무 한 줄(받는이 한 명)마다 쓴이 ↔ 받는이 대화. 답글이 달리면 상대에게 푸시.
+  var tkCmt={}, tkOpen={};
+  function tkHm(iso){ var d=kwall(iso); return isNaN(d.getTime())?'':(kp2(d.getHours())+':'+kp2(d.getMinutes())); }
+  function tkThread(id, label){
+    var list=tkCmt[id]||[], open=!!tkOpen[id];
+    var h='<div style="margin-top:8px"><a class="wa-link" data-tkthr="'+id+'" style="cursor:pointer;font-weight:800;font-size:13px;color:'+(list.length?'var(--accent)':'var(--muted)')+'">💬 '+(label?esc(label)+' ':'')+'답글 '+list.length+(open?' ▴':' ▾')+'</a>';
+    if(open){
+      h+='<div style="background:var(--bg-soft,#f5f6f8);border-radius:10px;padding:10px;margin-top:6px;display:flex;flex-direction:column;gap:6px">';
+      h+=list.map(function(c){
+        var me=profile&&c.author_id===profile.id, canDel=me||(profile&&profile.role==='master');
+        return '<div style="background:'+(me?'#eaf1fe':'#fff')+';border-radius:9px;padding:7px 10px;'+(me?'margin-left:28px':'margin-right:28px')+'">'
+          +'<div style="font-size:12px;font-weight:700;color:var(--muted)">'+esc(me?'나':(c.author_name||''))+' · '+esc(tkMd(kymd(c.created_at)))+' '+esc(tkHm(c.created_at))
+          +(canDel?' <a class="wa-link del" data-tkcdel="'+c.id+'" style="cursor:pointer;margin-left:6px">지우기</a>':'')+'</div>'
+          +'<div style="white-space:pre-wrap">'+esc(c.body)+'</div></div>';
+      }).join('');
+      if(!list.length) h+='<div class="wa-hint">아직 답글이 없어요.</div>';
+      h+='<div style="display:flex;gap:6px;align-items:flex-end"><textarea id="tkc-'+id+'" rows="2" placeholder="답글 남기기 (예: 이건 어렵고 이건 할게요)" style="flex:1;padding:8px 10px;border:1.5px solid var(--line-strong);border-radius:9px;font:inherit;resize:vertical"></textarea>'
+        +'<button class="btn btn-primary" type="button" data-tksend="'+id+'" style="padding:8px 14px">보내기</button></div></div>';
+    }
+    return h+'</div>';
+  }
   async function taskLoad(){
     if(!sb||!profile) return;
     var isM = profile.role==='master';
@@ -8159,6 +8181,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var el=$('tkList'); if(!el) return;
     if(r&&r.error){ el.innerHTML='<p class="wa-err">'+esc(r.error.message)+'</p>'; return; }
     var rows=(r&&r.data)||[], today=kymd();
+    tkCmt={};
+    if(rows.length){
+      var cr=await sb.from('staff_task_comments').select('id,task_id,author_id,author_name,body,created_at')
+        .in('task_id', rows.map(function(t){ return t.id; })).order('created_at',{ascending:true}).limit(2000);
+      // 표가 아직 없으면(SQL 전) 답글 없이 그대로 보여 준다
+      if(cr && !cr.error) (cr.data||[]).forEach(function(c){ (tkCmt[c.task_id]=tkCmt[c.task_id]||[]).push(c); });
+    }
     if(view==='mine'){
       if(!rows.length){ el.innerHTML='<p class="dash-note">받은 업무가 없습니다.</p>'; return; }
       el.innerHTML=rows.map(function(t){
@@ -8170,6 +8199,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           +'<div class="wa-hint" style="margin-top:6px">쓴이 '+esc(tkName(t.from_id,t.from_name))+' → 받는이 나 · '+esc(tkMd(t.created_at))+'</div>'
           +(t.done?'<div style="margin-top:6px;font-weight:700;color:#12855C">✓ 완료'+(t.done_memo?' · '+esc(t.done_memo):'')+' <button class="btn btn-ghost" data-tkundo="'+t.id+'" type="button" style="padding:3px 8px;font-size:12px;margin-left:6px">완료 취소</button></div>'
                   :'<button class="btn btn-primary" data-tkdone="'+t.id+'" type="button" style="margin-top:8px">완료</button>')
+          +tkThread(t.id)
           +'</div>';
       }).join('');
       return;
@@ -8184,7 +8214,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +'<div style="display:flex;gap:8px;align-items:flex-start"><b style="flex:1">'+esc(t.title)+'</b><span style="font-size:12.5px;font-weight:700;color:var(--accent)">'+dn+'/'+list.length+' 완료</span></div>'
         +(t.body?'<div style="white-space:pre-wrap;color:var(--ink-soft);margin-top:4px">'+esc(t.body)+'</div>':'')
         +'<div class="wa-hint" style="margin-top:6px">쓴이 '+esc(tkName(t.from_id,t.from_name))+' · '+esc(tkMd(t.created_at))+(t.due_date?' · '+esc(tkMd(t.due_date))+'까지':'')+'</div>'
-        +list.map(function(x){ return '<div style="font-size:13.5px;margin-top:3px;'+(x.done?'font-weight:700':'color:var(--ink-soft)')+'">'+(x.done?'✓':'○')+' 받는이 '+esc(tkName(x.to_id,x.to_name))+(x.done&&x.done_memo?' — '+esc(x.done_memo):'')+'</div>'; }).join('')
+        +list.map(function(x){ return '<div style="font-size:13.5px;margin-top:3px;'+(x.done?'font-weight:700':'color:var(--ink-soft)')+'">'+(x.done?'✓':'○')+' 받는이 '+esc(tkName(x.to_id,x.to_name))+(x.done&&x.done_memo?' — '+esc(x.done_memo):'')+'</div>'
+          // 받는이마다 따로 대화한다(다른 받는이 답글은 서로 안 보인다)
+          +tkThread(x.id, list.length>1 ? (tkName(x.to_id,x.to_name)+'과') : ''); }).join('')
         +(canDel?'<button class="btn btn-ghost" data-tkdel="'+esc(g)+'" type="button" style="padding:4px 9px;font-size:12px;margin-top:8px">지우기</button>':'')
         +'</div>';
     }).join('');
@@ -8207,6 +8239,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     taskLoad();
   };
   if($('tkList')) $('tkList').addEventListener('click', async function(e){
+    var th=e.target.closest('[data-tkthr]');
+    if(th){ var tid=th.getAttribute('data-tkthr'); tkOpen[tid]=!tkOpen[tid]; taskLoad(); return; }
+    var cd=e.target.closest('[data-tkcdel]');
+    if(cd){
+      if(!confirm('이 답글을 지울까요?')) return;
+      var dr=await sb.from('staff_task_comments').delete().eq('id',+cd.getAttribute('data-tkcdel'));
+      if(dr.error){ alert(dr.error.message); return; }
+      taskLoad(); return;
+    }
+    var sd=e.target.closest('[data-tksend]');
+    if(sd){
+      var sid=sd.getAttribute('data-tksend'), ta=$('tkc-'+sid), txt=ta?ta.value.trim():'';
+      if(!txt) return;
+      sd.disabled=true;
+      var ir=await sb.from('staff_task_comments').insert({task_id:+sid, author_id:profile.id, author_name:profile.name||null, body:txt});
+      sd.disabled=false;
+      if(ir.error){ alert('답글을 남기지 못했어요: '+ir.error.message); return; }
+      tkOpen[sid]=true; taskLoad(); return;
+    }
     var b=e.target.closest('button'); if(!b) return;
     var r;
     if(b.getAttribute('data-tkdone')){
@@ -10314,13 +10365,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(target && target.scrollIntoView) target.scrollIntoView({behavior:'smooth', block:'center'});
     if(ok){ clearTimeout(window.__scOkT); window.__scOkT=setTimeout(function(){ if(o) o.classList.remove('on'); }, 8000); }
   }
-  // 혼합 학생을 고르면 「이번 수업 형태」 칸을 띄운다 (2026-10-05).
+  // 학생을 고르면 「이번 수업 형태」 칸을 띄운다 (2026-10-05 원장님 「선생님이 수업 잡을 때도 대면·비대면 선택」).
+  //   기본값은 그 학생의 회원 수업형태. 혼합 학생은 비워 둬서 꼭 고르게 한다.
   function scSyncMode(){
     var w=$('scModeWrap'); if(!w) return;
     var st=(_members||[]).filter(function(m){ return $('scStudent') && m.id===$('scStudent').value; })[0];
-    var mixed=!!(st && st.lesson_mode==='mixed');
-    w.style.display = mixed ? '' : 'none';
-    if(!mixed && $('scMode')) $('scMode').value='';
+    w.style.display = st ? '' : 'none';
+    if($('scMode')) $('scMode').value = (st && (st.lesson_mode==='online'||st.lesson_mode==='offline')) ? st.lesson_mode : '';
   }
   if($('scStudent')) $('scStudent').addEventListener('change', scSyncMode);
   if($('scAdd')) $('scAdd').onclick=async function(){
@@ -10338,9 +10389,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 학생을 안 고른 경우도 대면으로 본다(수업형태를 알 수 없으므로 안전한 쪽).
     // 🚨 2026-10-05 혼합 학생은 이번 수업 형태를 고른 대로 본다.
     var isMixed = !!(student && student.lesson_mode==='mixed');
-    var pickMode = isMixed ? ($('scMode') ? $('scMode').value : '') : '';
+    var pickMode = (student && $('scMode') && $('scModeWrap') && $('scModeWrap').style.display!=='none') ? $('scMode').value : '';
     if(isMixed && !pickMode){ scSyncMode(); scSay(false,'혼합(대면·비대면) 학생이에요. 이번 수업이 대면인지 비대면인지 골라주세요.'); return; }
-    var isOnline = isMixed ? (pickMode==='online') : !!(student && student.lesson_mode==='online');
+    var isOnline = pickMode ? (pickMode==='online') : !!(student && student.lesson_mode==='online');
     if(roomId==null && !isOnline){
       scSay(false, student
         ? '대면 수업은 강의장을 골라주세요. (미배정은 비대면 학생만 가능합니다)'
@@ -10381,7 +10432,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       }
       var isOt=!!($('scIsOt') && $('scIsOt').checked);
       var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null), is_ot:isOt };
-      if(isMixed) payload.lesson_mode = pickMode;   // 혼합 학생만 수업에 형태를 적는다
+      if(pickMode) payload.lesson_mode = pickMode;   // 이번 수업 형태를 수업에 적는다
       var r=await sb.from('schedules').insert(payload);
       // ot_schedule.sql 을 아직 안 돌렸으면 is_ot 칸이 없어 통째로 거부된다 → 그 칸만 빼고 다시.
       if(r.error && /is_ot/.test(r.error.message||'')){
@@ -10394,14 +10445,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       scSay(true, '✅ <b>수업이 잡혔습니다.</b><br>'
         + esc(d) + ' ' + esc(s) + '~' + esc(en)
         + ' · ' + esc(roomId ? roomName(roomId) : (isOnline ? '미배정(비대면)' : '미배정'))
-        + (isMixed ? ' · ' + (isOnline ? '비대면' : '대면') : '')
+        + (pickMode ? ' · ' + (isOnline ? '비대면' : '대면') : '')
         + '<br>' + esc(student ? student.name : '학생 미지정')
         + ' · ' + esc(teacher ? teacher.name : '선생님 미지정')
         + ' · ' + esc($('scSubject').value || '토익')
         + (isOt ? '<br><b style="color:#b26a00">사전 OT — 수강권 차감 안 함</b>' : ''));
       $('scMemo').value='';
       if($('scIsOt')) $('scIsOt').checked=false;   // 다음 수업이 실수로 OT 로 들어가지 않게 되돌린다
-      if($('scMode')) $('scMode').value='';         // 혼합 학생 형태도 매번 새로 고르게
+      try{ scSyncMode(); }catch(e){}                 // 이번 수업 형태를 학생 기본값으로 되돌린다
       // 목록 표('다가오는 수업')는 2026-08-08에 없앴다 → loadSchedules 는 첫 줄에서 그냥 빠져나간다.
       // 그래서 예전에는 추가해도 화면이 아무것도 안 변했다. 달력을 반드시 다시 그린다.
       await loadSchedules(); await renderCalendar();
@@ -16771,14 +16822,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(r.error){ box.innerHTML='<div class="wa-book-empty">불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>'; return; }
     var d=r.data||{};
     // 혼합 학생 — 고른 형태로 다시 받는다. 아직 안 골랐으면 버튼만 보여 준다.
+    // 🚨 같은 날 원장님 「수업 예약할 때 대면·비대면 선택할 수 있게」 → 모든 학생(choose)이 버튼. 기본 = 회원 형태, 혼합은 꼭 고른다.
     var _mixBar='';
-    if(d.mixed){
+    var _isMixed=!!d.mixed;
+    if(d.choose||_isMixed){
+      if(!_bookMode && !_isMixed) _bookMode = d.online ? 'online' : 'offline';   // 기본 = 회원 수업형태
       _mixBar='<div class="wa-book-mode">이번 수업은 <button type="button" data-bmode="offline" class="'+(_bookMode==='offline'?'on':'')+'">🏫 대면</button>'
              +'<button type="button" data-bmode="online" class="'+(_bookMode==='online'?'on':'')+'">💻 비대면</button></div>';
       if(!_bookMode){ box.innerHTML=_mixBar+'<div class="wa-book-empty">먼저 <b>대면</b>인지 <b>비대면</b>인지 골라주세요.<br><span style="font-size:12px">대면 120분 · 비대면 90분이라 고른 대로 빈 시간이 달라져요.</span></div>'; return; }
       var r2=await sb.rpc('free_slots',{p_date:date,p_student:(profile&&profile.id)||null,p_mode:_bookMode});
       if(r2.error){ box.innerHTML=_mixBar+'<div class="wa-book-empty">불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>'; return; }
-      d=r2.data||{}; d.mixed=true;
+      d=r2.data||{}; d.mixed=_isMixed; d.choose=true;
     }
     if(d.error==='no_teacher'){ box.innerHTML='<div class="wa-book-empty">담당 선생님 배정 후 예약할 수 있어요.<br>카카오톡 채널로 문의해주세요.</div>'; if($('waBookSub')) $('waBookSub').textContent='담당 선생님 배정 후 이용할 수 있어요.'; return; }
     if(d.error){ box.innerHTML='<div class="wa-book-empty">로그인 후 이용해주세요.</div>'; return; }
@@ -16897,6 +16951,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       await loadBookSlots(); return;
     }
     alert(res.msg||'예약이 요청되었어요.');
+    _bookMode=null;   // 다음 신청 때 다시 고른다(혼합은 꼭, 대면 학생은 기본 대면)
     await loadBookSlots(); await loadMyBookings();
   });
 
@@ -16977,7 +17032,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var r=await sb.rpc('free_slots',{p_date:date,p_student:(profile&&profile.id)||null});
     if(r.error){ box.innerHTML='<div class="sc-hint">불러오지 못했어요.</div>'; return; }
     // 혼합 학생 — 옮기는 수업의 형태(대면 120분 / 비대면 90분)로 다시 본다 (2026-10-05).
-    if(r.data && r.data.mixed){
+    if(r.data && (r.data.mixed||r.data.choose)){
       var _m=(_scSched && _scSched.lesson_mode==='online') ? 'online' : 'offline';
       var r3=await sb.rpc('free_slots',{p_date:date,p_student:(profile&&profile.id)||null,p_mode:_m});
       if(!r3.error) r=r3;
