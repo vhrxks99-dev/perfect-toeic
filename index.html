@@ -4683,6 +4683,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .sc-otbox span{display:block;margin:3px 0 0 23px;font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.55}
 .cal-ev .cal-ot{display:inline-block;margin-left:4px;font-size:10px;font-weight:800;background:#fff5e9;color:#b26a00;border-radius:5px;padding:0 4px}
 /* 비대면 수업 표 (2026-10-05 원장 「비대면인 사람 따로 표시」). 앱 LessonBadges 와 같은 색 */
+.pay-methods{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.pay-m{display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface);text-align:left;font:inherit;width:100%}
+.pay-m.off{background:var(--bg-soft,#f5f6f8);cursor:default}
+.pay-m.on{cursor:pointer}
+.pay-m .ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.pay-m .tx{flex:1;min-width:0}.pay-m .tx b{display:block;font-size:15px}.pay-m .tx span{display:block;font-size:12.5px;color:var(--muted)}
+.pay-m .soon{font-size:12px;font-weight:800;color:var(--muted);background:#eef1f6;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.pay-note{font-size:12.5px;color:var(--muted);margin:2px 2px 0}
 .wa-book-mode{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;font-weight:800;font-size:14px}
 .wa-book-mode button{border:1.5px solid var(--line-strong,#cfd6e0);background:#fff;border-radius:999px;padding:8px 16px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit}
 .wa-book-mode button.on{background:#1F62E0;border-color:#1F62E0;color:#fff}
@@ -5846,6 +5854,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div id="myNextPlace"></div>
     <div class="dash-list-head">📅 내 수업 일정</div>
     <div class="wa-table-wrap"><table class="wa-table" id="myschedTable"></table></div>
+    <!-- 수업료 결제 (2026-10-05 원장님 — 가상계좌·카드 링크 받기 전까지 「준비 중」). 값은 아래 PAY_VACCOUNT·PAY_CARD_LINK, 앱 PayMethodsCard 와 같이 -->
+    <div class="dash-list-head">💳 수업료 결제</div>
+    <div id="myPayMethods" class="pay-methods"></div>
     <div class="dash-list-head">💳 결제 내역</div>
     <div class="wa-table-wrap"><table class="wa-table" id="mypayTable"></table></div>
     <!-- 옛 '출석 내역'(등원기 기록)을 지우고 지난 수업 내역으로 바꿨다 — 2026-08-12 원장 지시.
@@ -16789,6 +16800,34 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   });
 
   // ==== 학생 수업 예약 (선생님 승인제, 2시간 단위) ====
+  // ── 수업료 결제 칸 (2026-10-05 원장님) ──
+  //    아래 두 값을 채우면 버튼이 켜진다. 비어 있으면 「준비 중」. 앱 screens/student/PayMethodsCard.tsx 와 같은 값으로.
+  var PAY_VACCOUNT=null;   // 예: {bank:'기업은행', number:'000-000000-00-000', holder:'완벽한토익'}
+  var PAY_CARD_LINK=null;  // 예: 'https://...' (비대면 카드 결제 링크)
+  function drawPayMethods(){
+    var el=$('myPayMethods'); if(!el) return;
+    var va=PAY_VACCOUNT, cl=PAY_CARD_LINK;
+    function row(id, ic, bg, title, sub, on){
+      return '<button type="button" class="pay-m '+(on?'on':'off')+'" '+(on?'data-paym="'+id+'"':'disabled')+'>'
+        +'<span class="ic" style="background:'+bg+'">'+ic+'</span>'
+        +'<span class="tx"><b>'+title+'</b><span>'+sub+'</span></span>'
+        +(on?'<span style="color:var(--muted)">›</span>':'<span class="soon">준비 중</span>')+'</button>';
+    }
+    el.innerHTML = row('va','🏦','#e8f0fe','가상계좌로 입금', va?(esc(va.bank)+' '+esc(va.number)+' · 눌러서 복사'):'계좌번호를 바로 받아 입금해요', !!va)
+      + row('card','💳','#f1ebfe','카드로 결제', cl?'눌러서 결제 창 열기':'휴대폰에서 바로 카드로 결제해요', !!cl)
+      + ((!va||!cl)?'<div class="pay-note">지금은 결제 안내 카톡으로 보내드린 계좌로 입금해 주세요.</div>':'');
+  }
+  document.addEventListener('click', function(e){
+    var b=(e.target&&e.target.closest)?e.target.closest('[data-paym]'):null; if(!b) return;
+    if(b.getAttribute('data-paym')==='va' && PAY_VACCOUNT){
+      try{ navigator.clipboard.writeText(PAY_VACCOUNT.number); }catch(x){}
+      alert('계좌번호를 복사했어요.\n'+PAY_VACCOUNT.bank+' '+PAY_VACCOUNT.number+'\n예금주 '+PAY_VACCOUNT.holder);
+    } else if(b.getAttribute('data-paym')==='card' && PAY_CARD_LINK){
+      window.open(PAY_CARD_LINK,'_blank','noopener');
+    }
+  });
+  drawPayMethods();
+
   // 🚨 2026-10-05 혼합(대면·비대면) 학생은 예약 창을 열 때마다 형태를 새로 고른다(원장님 지시).
   var _bookMode=null;
   function openBooking(){
