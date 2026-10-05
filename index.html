@@ -1983,7 +1983,7 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
     <div class="sec-head reveal">
       <span class="eyebrow">완토 VOCA <b>· 단어 테스트</b></span>
       <h2>완토 VOCA 단어 테스트</h2>
-      <p>「완벽한토익 VOCA All-in-One」 30일 · 1,266단어 (듣기 10일 + 읽기 20일). 듣기 빈출 500은 LC DAY로 따로 골라 볼 수 있어요. 원하는 DAY를 골라 실전 단어 시험을 보고, 틀린 단어는 오답노트로 확인하세요.</p>
+      <p>「완벽한토익 VOCA All-in-One」 30일 · 1,266단어 (듣기 DAY 1~10 + 읽기 DAY 11~30). 원하는 DAY를 골라 실전 단어 시험을 보고, 틀린 단어는 오답노트로 확인하세요.</p>
     </div>
     <div class="vt reveal">
       <div class="vt-pane on" id="vtSetup">
@@ -2042,10 +2042,12 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
   var $=function(id){return document.getElementById(id);};
   var selDays={}, count=20, dir='e2k', Q=[], idx=0, correct=0, wrong=[];
   var GROUPS=[
-    {p:'',  name:'VOCA 단어책',   tag:'DAY',    cls:'',   data:VOCA},
-    {p:'L', name:'듣기 빈출 500', tag:'LC DAY', cls:'lc', data:VOCA_LC}
+    // 2026-10-05 원장님 「LC 는 DAY 1~10, RC 는 DAY 11부터인데 왜 RC 에도 1~10 이 있어?」
+    // 예전엔 30일 전체 + 듣기 빈출 500(= DAY 1~10 과 같은 단어) 두 묶음을 그려 1~10 이 두 번 나왔다 → 듣기/읽기로 나눈다(앱과 같음)
+    {p:'', name:'듣기 (LC)', tag:'DAY', cls:'lc', data:VOCA, from:1,  to:10},
+    {p:'', name:'읽기 (RC)', tag:'DAY', cls:'',   data:VOCA, from:11, to:30}
   ];
-  function daysOf(g){ return Object.keys(g.data).sort(function(a,b){return (a*1)-(b*1);}); }
+  function daysOf(g){ return Object.keys(g.data).filter(function(d){return d*1>=g.from && d*1<=g.to;}).sort(function(a,b){return (a*1)-(b*1);}); }
   var BANK={}, dayKeys=[], dayLabel={}, dayBtn={};
   var box=$('vtDays');
   GROUPS.forEach(function(g){
@@ -2054,7 +2056,7 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
     var h=document.createElement('div'); h.className='vt-daygrp';
     h.innerHTML='<b></b><span></span>';
     h.querySelector('b').textContent=g.name;
-    h.querySelector('span').textContent=g.tag+' 01~'+('0'+ds.length).slice(-2)+' · '+tot.toLocaleString('en-US')+'단어';
+    h.querySelector('span').textContent=g.tag+' '+('0'+ds[0]).slice(-2)+'~'+('0'+ds[ds.length-1]).slice(-2)+' · '+tot.toLocaleString('en-US')+'단어';
     box.appendChild(h);
     ds.forEach(function(d){
       var k=g.p+d, nn=('0'+d).slice(-2);
