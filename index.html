@@ -1951,6 +1951,15 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
 .vt-count{font-family:var(--font-num);font-weight:800;font-size:15px;white-space:nowrap}.vt-count span{color:var(--accent)}
 .vt-bar{flex:1;height:7px;background:var(--line);border-radius:99px;overflow:hidden}
 .vt-bar-fill{height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .3s}
+/* 단어 유형 · 주관식 (2026-10-06 앱과 같게) */
+.vt-kinds{margin:-6px 0 20px}.vt-kinds button{flex:0 1 auto;padding:10px 14px}
+.vt-kinds button:disabled{opacity:.4;cursor:default}
+.vt-qtag{display:block;width:max-content;margin:0 auto 6px;font-size:12px;font-weight:800;padding:4px 11px;border-radius:999px;background:var(--accent-wash);color:var(--accent)}
+.vt-reveal{text-align:center;background:var(--surface-2,#f4f6fa);border-radius:14px;padding:16px;margin-bottom:12px}
+.vt-reveal small{display:block;font-size:12px;font-weight:700;color:var(--muted)}
+.vt-reveal b{display:block;font-size:20px;margin-top:4px;word-break:keep-all}
+.vt-self{display:flex;gap:10px}.vt-self button{flex:1;padding:14px 0;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;border:1.5px solid}
+.vt-self .x{border-color:#e5484d;background:#fdecec;color:#c0342b}.vt-self .o{border-color:#0a7d3f;background:#e8f6ef;color:#0a7d3f}
 .vt-tag{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:6px;background:var(--accent-wash);color:var(--accent);white-space:nowrap}
 .vt-q{text-align:center;font-weight:800;letter-spacing:-.01em;margin:8px 0 24px;font-size:clamp(26px,4.4vw,38px);word-break:keep-all}
 .vt-q.small{font-size:clamp(17px,2.4vw,23px);font-weight:700;line-height:1.5}
@@ -1999,9 +2008,16 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
           <div class="vt-set-actions"><button type="button" id="vtAll">전체 선택</button><button type="button" id="vtNone">해제</button></div>
         </div>
         <div class="vt-days" id="vtDays"></div>
+        <!-- 🚨 2026-10-06 원장님 「웹에도 만점완성단어 시험 · 앱이랑 똑같이」 — 앱 ⑤(해커스식)와 같은 고르기.
+             파생어·동의어·반의어·만점 완성은 책에서 따로 뽑은 voca_extra.json 을 읽는다(앱 assets/voca/extra.json 과 같은 파일). -->
+        <div class="vt-set-row"><div class="vt-set-label">② 단어 유형 <span style="color:var(--muted);font-weight:600;font-size:12px">여러 개 골라도 돼요</span></div></div>
+        <div class="vt-opts2 vt-kinds" id="vtKinds"><button type="button" data-k="all">전체</button><button type="button" data-k="head" class="on">표제어</button><button type="button" data-k="der">파생어</button><button type="button" data-k="side">동의어·반의어</button><button type="button" data-k="plus">만점 완성 단어</button><button type="button" data-k="wrong">❌ 내가 틀린 단어<span id="vtWrongN"></span></button></div>
         <div class="vt-set-row2">
-          <div><div class="vt-set-label">② 문항 수</div><div class="vt-opts2" id="vtCount"><button data-n="20" class="on">20</button><button data-n="30">30</button><button data-n="40">40</button><button data-n="0">전체</button></div></div>
-          <div><div class="vt-set-label">③ 출제 방향</div><div class="vt-opts2" id="vtDir"><button data-d="e2k" class="on">영어 → 뜻</button><button data-d="k2e">뜻 → 영어</button></div></div>
+          <div><div class="vt-set-label">③ 문항 수</div><div class="vt-opts2" id="vtCount"><button data-n="10">10</button><button data-n="20" class="on">20</button><button data-n="30">30</button><button data-n="40">40</button></div></div>
+          <div><div class="vt-set-label">④ 문제 유형 <span style="color:var(--muted);font-weight:600;font-size:12px">동의어·반의어는 영어로만</span></div><div class="vt-opts2" id="vtDir"><button data-d="e2k" class="on">우리말 뜻</button><button data-d="k2e">영어 단어</button></div></div>
+        </div>
+        <div class="vt-set-row2">
+          <div><div class="vt-set-label">⑤ 출제 방식 <span style="color:var(--muted);font-weight:600;font-size:12px">시험지 인쇄는 주관식</span></div><div class="vt-opts2" id="vtStyle"><button data-s="choice" class="on">객관식 (4지선다)</button><button data-s="write">주관식 (스스로 채점)</button></div></div>
         </div>
         <div class="vt-actions"><button class="btn btn-primary" id="vtStart" style="flex:1 1 190px">단어 시험 시작 <span class="arrow">→</span></button><button class="btn btn-ghost" id="vtPrint" style="flex:1 1 190px">📄 시험지 인쇄 · PDF 저장</button></div>
         <p class="vt-hint" id="vtHint">DAY를 1개 이상 선택한 뒤 시작하세요.</p>
@@ -2041,6 +2057,39 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
   var VOCA_LC = {"1":[{"w":"lean","m":"기대다, 몸을 숙이다"},{"w":"stack","m":"쌓다, 쌓여 있다"},{"w":"carry","m":"나르다, 들고 가다"},{"w":"hold","m":"(회의·행사를) 개최하다, 잡다, 보유하다 / 보유, 잡기"},{"w":"reach","m":"이르다, 도달하다 / (전화로) 연락이 닿다"},{"w":"lift","m":"들어 올리다"},{"w":"pull","m":"당기다"},{"w":"push","m":"밀다"},{"w":"arrange","m":"준비하다, 마련하다 / (일을) 처리하다, 정리하다"},{"w":"rearrange","m":"재배치하다, 다시 정리하다"},{"w":"display","m":"진열하다, 전시하다 / 진열, 전시"},{"w":"pour","m":"붓다, 따르다"},{"w":"wipe","m":"닦다"},{"w":"sweep","m":"쓸다, 청소하다"},{"w":"install","m":"설치하다"},{"w":"load","m":"~에 짐을 싣다 / 짐, 적재량"},{"w":"remove","m":"제거하다, 없애다"},{"w":"attach","m":"첨부하다, 붙이다"},{"w":"tie","m":"~을 묶다, 매다 / 관계, 유대; 끈, 매듭"},{"w":"unpack","m":"꺼내다, 풀다"},{"w":"ride","m":"타다"},{"w":"board","m":"이사회, 위원회 / 판, 게시판 / 탑승하다"},{"w":"cart","m":"카트, 손수레"},{"w":"basket","m":"바구니"},{"w":"shelf","m":"선반 (복수 shelves)"},{"w":"cabinet","m":"수납장, 캐비닛"},{"w":"drawer","m":"서랍"},{"w":"bench","m":"벤치, 긴 의자"},{"w":"pole","m":"기둥, 장대"},{"w":"fence","m":"울타리"},{"w":"tool","m":"공구, 도구"},{"w":"container","m":"용기, 통"},{"w":"suitcase","m":"여행 가방"},{"w":"luggage","m":"짐, 수하물"},{"w":"bin","m":"쓰레기통"},{"w":"apron","m":"앞치마"},{"w":"canvas","m":"캔버스 천, 천막"},{"w":"cord","m":"전선, 줄"},{"w":"path","m":"길, 오솔길"},{"w":"walkway","m":"보도, 통로"},{"w":"entrance","m":"입구"},{"w":"hallway","m":"복도"},{"w":"doorway","m":"출입구"},{"w":"lawn","m":"잔디밭"},{"w":"dock","m":"부두, 하역장"},{"w":"fountain","m":"분수"},{"w":"warehouse","m":"창고"},{"w":"against","m":"~에 기대어, ~에 맞대어 / ~에 반대하여"},{"w":"along","m":"~을 따라서"},{"w":"across","m":"~을 가로질러, ~ 건너편에 / ~ 전역에 걸쳐"}],"2":[{"w":"beside","m":"~옆에, ~ 가까이에"},{"w":"empty","m":"비어 있는"},{"w":"outdoors","m":"야외에서"},{"w":"location","m":"지점, 장소, 위치"},{"w":"colleague","m":"동료"},{"w":"promote","m":"승진시키다 / 홍보(판촉)하다"},{"w":"representative","m":"(명) 대표자, 직원 / (형) 대표하는"},{"w":"resident","m":"주민, 거주자 / 거주하는"},{"w":"crew","m":"작업팀, 조"},{"w":"candidate","m":"후보자, 지원자"},{"w":"supply","m":"공급(하다) / (복수) 비품, 용품"},{"w":"supervisor","m":"감독관, 관리자, 상사"},{"w":"supplier","m":"공급업체"},{"w":"headquarters","m":"본사, 본부"},{"w":"council","m":"의회, 위원회"},{"w":"patient","m":"환자"},{"w":"organization","m":"단체, 조직"},{"w":"assistant","m":"보조, 조수"},{"w":"retirement","m":"은퇴, 퇴직"},{"w":"retire","m":"은퇴하다, 퇴직하다"},{"w":"charity","m":"자선활동, 자선 단체"},{"w":"competitor","m":"경쟁사, 경쟁자"},{"w":"celebrity","m":"유명 인사"},{"w":"associate","m":"직원, 동료"},{"w":"committee","m":"위원회"},{"w":"branch","m":"지점, 지사 / 나뭇가지"},{"w":"agent","m":"직원, 대리인"},{"w":"owner","m":"소유주, 주인"},{"w":"participant","m":"참가자"},{"w":"expert","m":"전문가 / 숙련된, 노련한"},{"w":"vendor","m":"판매업체, 납품업체"},{"w":"applicant","m":"지원자, 신청자"},{"w":"represent","m":"대표하다, 나타내다"},{"w":"coworker","m":"직장 동료"},{"w":"employment","m":"고용, 취업"},{"w":"loyalty program","m":"고객 보상 프로그램"},{"w":"target audience","m":"목표 고객, 주 대상"},{"w":"retailer","m":"소매업체"},{"w":"budget","m":"예산 / 저가의, 알뜰한"},{"w":"contract","m":"계약(서) / 계약하다 / 수축하다"},{"w":"approve","m":"승인하다, 인가하다 / (approve of로) 찬성하다"},{"w":"shift","m":"옮기다, 이동하다 / 변화, 교대 근무"},{"w":"review","m":"검토하다 / 검토 / 논평, 후기"},{"w":"present","m":"보여주다, 제시하다 / 선물 / 출석한, 참석한"},{"w":"proposal","m":"제안(서), 기획안"},{"w":"estimate","m":"견적(서) / 추정하다"},{"w":"form","m":"양식, 서식 / 형태 / 형성하다"},{"w":"submit","m":"제출하다"},{"w":"deadline","m":"마감일, 기한"},{"w":"assignment","m":"업무, 임무, 일"}],"3":[{"w":"timeline","m":"스케줄, 일정, 시각표"},{"w":"agenda","m":"안건, 의제 (= a list of things to do or discuss)"},{"w":"attendance","m":"출석, 참석, 출석률 (불가산) / 출석 횟수 (가산)"},{"w":"attend","m":"참석하다 / (attend to) 처리하다, 응대하다"},{"w":"position","m":"직책, 일자리 / 위치 / 배치하다"},{"w":"accounting","m":"회계"},{"w":"suggestion","m":"제안, 의견"},{"w":"lease","m":"임대계약 / 임대하다, 임차하다"},{"w":"management","m":"경영, 관리 / 경영진"},{"w":"strategy","m":"전략"},{"w":"propose","m":"제안하다"},{"w":"finance","m":"재정, 금융 / ~에 자금을 조달(공급)하다, 융자하다"},{"w":"conference call","m":"전화 회의"},{"w":"task","m":"업무, 직무, 과업"},{"w":"reschedule","m":"일정을 변경하다, 일정을 다시 잡다"},{"w":"control","m":"통제, 관리"},{"w":"negotiate","m":"협의하다, 협상하다"},{"w":"workstation","m":"업무 자리, 작업대"},{"w":"quote","m":"견적(서)"},{"w":"draft","m":"초안 / 초안을 쓰다"},{"w":"paperwork","m":"문서 (작업)"},{"w":"approval","m":"승인"},{"w":"bookkeeping","m":"회계, 부기"},{"w":"delay","m":"~을 연기하다, 지연시키다 / 지연, 지체, 연기"},{"w":"inspection","m":"점검, 검사"},{"w":"complaint","m":"불만, 항의, 고충"},{"w":"replace","m":"교체하다, 대신하다"},{"w":"fix","m":"고치다, 수리하다"},{"w":"repair","m":"수리하다 / 수리, 보수"},{"w":"refund","m":"환불(하다)"},{"w":"inspect","m":"점검하다, 검사하다, 조사하다"},{"w":"warranty","m":"보증, 보증서 (보증 기간)"},{"w":"issue","m":"발행하다, 발급하다, 공표하다 / 문제(점), (정기 간행물의)호"},{"w":"replacement","m":"후임자, 대체품, 교체 부품, 교체(하기)"},{"w":"shortage","m":"부족, 결핍"},{"w":"alternative","m":"대체재, 대안 / 대체의, 양자택일인"},{"w":"broken","m":"고장 난, 망가진"},{"w":"complain","m":"불만을 제기하다"},{"w":"deposit","m":"예금, 보증금, 계약금 / 예금하다, 맡기다"},{"w":"lack","m":"~이 부족하다 / 부족"},{"w":"malfunction","m":"오작동, 고장 / 오작동하다"},{"w":"decline","m":"감소하다 / 거절하다 / 감소"},{"w":"concerned","m":"걱정하는"},{"w":"damaged","m":"손상된, 피해를 입은"},{"w":"reject","m":"거절하다, 거부하다"},{"w":"inconvenience","m":"불편 / 불편하게 하다"},{"w":"resolve","m":"해결하다 =solve"},{"w":"cancel","m":"취소하다"},{"w":"alternate","m":"대체의, 대안의"},{"w":"expense","m":"지출 (비용), 경비"}],"4":[{"w":"account","m":"계좌, 계정, 거래(처), 설명 / (account for) 설명하다, 차지하다"},{"w":"charge","m":"요금, 청구액 / ~을 청구하다, 부과하다, (외상으로) 달아놓다 / 책임, 담당"},{"w":"merchandise","m":"상품 (불가산명사)"},{"w":"inventory","m":"재고, 재고 목록"},{"w":"supplies","m":"용품, 물품"},{"w":"shipment","m":"배송(품), 수송(품)"},{"w":"rate","m":"(동) 평가하다 / (명) 비율, 속도, 가격"},{"w":"invoice","m":"청구서, 송장"},{"w":"funding","m":"자금 (제공)"},{"w":"payment","m":"지불, 결제"},{"w":"package","m":"소포, 꾸러미"},{"w":"stock","m":"재고"},{"w":"demand","m":"수요, 요구 (= need)"},{"w":"receipt","m":"영수증"},{"w":"manufacturing","m":"제조, 제조업 / 제조의"},{"w":"investor","m":"투자자"},{"w":"loan","m":"대출"},{"w":"voucher","m":"상품권, 교환권"},{"w":"fee","m":"요금, 수수료 (서비스 이용에 관한 요금: 입장료, 수업료, 학비)"},{"w":"ship","m":"발송하다"},{"w":"manufacture","m":"제조하다"},{"w":"shipping","m":"배송, 운송 / 배송비"},{"w":"investment","m":"투자(금)"},{"w":"manufacturer","m":"제조사"},{"w":"cash register","m":"계산대"},{"w":"affordable","m":"(가격이) 저렴한, 감당할 만한"},{"w":"dealership","m":"대리점, 판매점"},{"w":"reasonable","m":"합리적인, 가격이 알맞은"},{"w":"equipment","m":"장비 (셀 수 없음)"},{"w":"facility","m":"시설, 설비"},{"w":"set up","m":"설치하다, 마련하다"},{"w":"vehicle","m":"차량, 탈것"},{"w":"maintenance","m":"유지, 보수, 관리"},{"w":"renovation","m":"개조, 보수"},{"w":"firm","m":"회사, 사무소 / 단단한, 확고한"},{"w":"traffic","m":"교통(량)"},{"w":"site","m":"현장, 부지"},{"w":"route","m":"경로, 노선"},{"w":"transportation","m":"교통(수단), 운송"},{"w":"storage","m":"보관, 저장"},{"w":"rental","m":"대여 / 대여의"},{"w":"property","m":"부동산, 재산, 자산 / 특성, 속성"},{"w":"practice","m":"(의사·변호사의) 사무실"},{"w":"departure","m":"출발, 떠남"},{"w":"destination","m":"목적지, 도착지"},{"w":"renovate","m":"개조하다, 보수하다"},{"w":"layout","m":"배치, 배열, 설계"},{"w":"patio","m":"테라스"},{"w":"set","m":"정하다, 설정하다, 놓다 / 세트, 한 벌"},{"w":"garage","m":"차고"}],"5":[{"w":"depart","m":"출발하다, 떠나다"},{"w":"hands-on","m":"현장의, 실무의"},{"w":"parking garage","m":"주차장"},{"w":"traffic cone","m":"원뿔형의 교통 표지"},{"w":"installation","m":"설치"},{"w":"commuter","m":"통근자"},{"w":"remodel","m":"리모델링하다, 개조하다"},{"w":"demonstration","m":"시연(회), 시범"},{"w":"notice","m":"알아차리다 / 주목, 알림, 통지"},{"w":"sign up","m":"신청하다, 등록하다"},{"w":"volunteer","m":"자원하다, 자원봉사하다 / 자원봉사자"},{"w":"brochure","m":"안내 책자"},{"w":"exhibit","m":"전시, 전시품 / 전시하다"},{"w":"venue","m":"행사 장소"},{"w":"manual","m":"설명서, 안내서"},{"w":"celebration","m":"축하 행사"},{"w":"registration","m":"등록"},{"w":"competition","m":"대회"},{"w":"fund-raising","m":"모금"},{"w":"trade show","m":"무역 박람회"},{"w":"press conference","m":"기자 회견"},{"w":"invitation","m":"초대(장)"},{"w":"beverage","m":"음료"},{"w":"sponsor","m":"후원하다 / 후원자, 후원 업체"},{"w":"celebrate","m":"축하하다, 기념하다"},{"w":"donate","m":"기부하다, 기증하다"},{"w":"retreat","m":"야유회, 짧은 여행"},{"w":"bulletin board","m":"게시판"},{"w":"attendant","m":"안내원"},{"w":"anniversary","m":"기념일"},{"w":"donation","m":"기부(금)"},{"w":"register","m":"등록하다"},{"w":"instructions","m":"안내문, 설명서"},{"w":"exhibition","m":"전시회"},{"w":"performer","m":"연기자, 연주자"},{"w":"advertising","m":"광고(활동), 광고업"},{"w":"feature","m":"~을 특징으로 삼다, ~을 포함하다 / 특징, 특집기사"},{"w":"launch","m":"출시하다, 개시하다, 시작하다 / 출시, 발표, 출판"},{"w":"promotional","m":"홍보의, 판촉의"},{"w":"promotion","m":"판촉, 홍보 / 승진"},{"w":"release","m":"출시하다, 공개·발표하다 / 출시, 개봉, 발매"},{"w":"limited","m":"제한된, 한정된 (+ 시간, 예산, 숫자, 자금, 좌석)"},{"w":"trend","m":"경향, 추세 (= tendency)"},{"w":"renew","m":"~을 갱신하다, 연장하다"},{"w":"subscription","m":"구독(권)"},{"w":"policy","m":"정책, 방침 / 보험 증권"},{"w":"survey","m":"설문조사(하다) / 조사, 측량"},{"w":"permit","m":"허가증"},{"w":"feedback","m":"의견, 반응, 피드백"},{"w":"qualified","m":"자격을 갖춘, 적격의"}],"6":[{"w":"certification","m":"자격(증)"},{"w":"identification","m":"신분 증명(서)"},{"w":"regulation","m":"규제, 규정"},{"w":"procedure","m":"절차"},{"w":"standard","m":"기준, 표준 / 표준의, 일반적인"},{"w":"certificate","m":"증명서, 수료증"},{"w":"expand","m":"확장하다, 확대하다 / (사업이) 발전·성장하다"},{"w":"extend","m":"연장하다"},{"w":"reserve","m":"예약하다, 보존하다 / 비축(량)"},{"w":"post","m":"게시하다, 올리다 / 직위 / 우편"},{"w":"confirm","m":"~을 확인하다, 확정하다, 입증하다"},{"w":"process","m":"과정, 처리 / 처리하다, 가공하다"},{"w":"agree","m":"동의하다"},{"w":"emphasize","m":"강조하다"},{"w":"contact","m":"연락하다 / 연락, 접촉"},{"w":"share","m":"공유하다, 나누다 / 주식, 점유율, 몫"},{"w":"consider","m":"~을 생각하다, 고려하다"},{"w":"reduce","m":"[수량·가격·힘·강도 따위]를 줄이다, 감소시키다, 축소하다"},{"w":"accept","m":"~을 받아들이다, 수락하다"},{"w":"operate","m":"운영하다 / 작동시키다, 가동되다"},{"w":"finalize","m":"최종 확정하다, 마무리하다"},{"w":"justify","m":"정당화하다"},{"w":"increase","m":"~을 증가시키다 / 증가"},{"w":"publish","m":"출간하다, 펴내다, 싣다"},{"w":"cover","m":"➀ ~을 덮다 / ➁ ~을 다루다(= deal with), 보도·취재하다, 보상하다 / ➂ (비용을) 대다 / 덮개, 표지"},{"w":"express","m":"표현하다, 나타내다 / 급행의, 신속한"},{"w":"develop","m":"개발하다"},{"w":"lead","m":"이끌다, 지휘하다 / (lead to) ~을 초래하다"},{"w":"appear","m":"나타나다, 출현하다 / ~인 것 같다"},{"w":"resume","m":"다시 시작하다, 재개하다 / 이력서"},{"w":"analyze","m":"분석하다"},{"w":"maintain","m":"유지하다"},{"w":"mention","m":"언급하다 / 언급"},{"w":"include","m":"~을 포함하다"},{"w":"cause","m":"~을 야기하다, 초래하다 / 원인, 이유"},{"w":"host","m":"주최하다"},{"w":"postpone","m":"연기하다, 미루다, 지연시키다"},{"w":"respond","m":"응답하다, 반응을 보이다"},{"w":"decrease","m":"감소하다, 줄다 / 감소, 하락"},{"w":"predict","m":"예상하다, 예측하다"},{"w":"clarify","m":"명확하게 하다, 분명히 밝히다 (= make sth clear, 모두 이해할 수 있게 하다)"},{"w":"explain","m":"설명하다"},{"w":"address","m":"(동) (문제 등을) 다루다, 처리하다, 연설하다 / (명) 연설, 강연, 주소"},{"w":"decide","m":"결정하다"},{"w":"fill out","m":"작성하다"},{"w":"remind","m":"상기시키다, 다시 한번 알려주다"},{"w":"encourage","m":"권장하다, 장려하다"},{"w":"inquire","m":"inquire about ~에 대해 문의하다 (= have questions about)"},{"w":"allow","m":"~을 허용하다, 허가하다 (* allow 목적어 to V)"},{"w":"appreciate","m":"감사하다 / ~을 높이 평가하다, ~의 진가를 알아보다 / 감상하다"}],"7":[{"w":"collect","m":"모으다, 수집하다"},{"w":"attract","m":"유치하다, 끌어들이다 [2017년 상반기 기출]"},{"w":"expire","m":"만기가 되다, 만료되다"},{"w":"recruit","m":"모집하다, 채용하다 / 신입 사원, 신입 회원"},{"w":"contain","m":"포함하다, 담고 있다"},{"w":"win an award","m":"상을 받다"},{"w":"verify","m":"증명하다, 입증하다, 확인하다"},{"w":"avoid","m":"~을 피하다, 방지하다"},{"w":"praise","m":"칭찬하다"},{"w":"recognize","m":"인정하다, 표창하다"},{"w":"act","m":"자) 행동하다, 행하다, 일하다, 실행하다 / 명) 행위, 행동, 소행"},{"w":"last","m":"지속되다"},{"w":"adjust","m":"조정하다, 조절하다"},{"w":"pack","m":"포장하다, 꾸리다"},{"w":"establish","m":"확립하다, 설립하다"},{"w":"motivate","m":"동기를 부여하다"},{"w":"grab","m":"급히 ~하다"},{"w":"reservation","m":"예약 / 망설임, 유보"},{"w":"appointment","m":"임명 / 예약, 약속"},{"w":"available","m":"이용(사용)할 수 있는 / (시간이 비어) 만날 수 있는, 바쁘지 않은"},{"w":"material","m":"자재, 재료 / 자료 / 물질의, 중요한"},{"w":"currently","m":"현재, 지금"},{"w":"pick up","m":"가져가다, 가져오다"},{"w":"application","m":"지원, 신청서 / 적용, 응용(활용)"},{"w":"opportunity","m":"기회"},{"w":"access","m":"접근, 이용 (권한) / ~에 접근하다, 이용하다"},{"w":"correct","m":"정확한, 옳은 / 수정하다, 바로잡다"},{"w":"operation","m":"운영, 영업"},{"w":"relocate","m":"이전하다, 이전시키다 =move"},{"w":"performance","m":"업무 처리, 수행 능력, 실적, 성능 / 공연, 연기"},{"w":"located","m":"~에 위치한"},{"w":"upcoming","m":"곧 있을, 다가오는"},{"w":"development","m":"개발, 발전"},{"w":"fit","m":"맞추다, 맞게 하다"},{"w":"shade","m":"그늘 / 색조"},{"w":"community","m":"지역사회, 지역 주민 / 공동체"},{"w":"decision","m":"결정, 판단 / (불가산) 결단력"},{"w":"vacation","m":"휴가"},{"w":"official","m":"공식적인 / 공무원, 관계자"},{"w":"attention","m":"주의, 주목, 관심"},{"w":"advance","m":"사전 (준비), 선불 / 미리 알리다"},{"w":"recent","m":"최근의"},{"w":"switch","m":"바꾸다"},{"w":"assistance","m":"도움, 지원"},{"w":"catering","m":"출장요리 서비스, 음식 배달 서비스"},{"w":"merger","m":"합병"},{"w":"affect","m":"~에 영향을 미치다"},{"w":"efficiency","m":"효율성"},{"w":"satisfaction","m":"만족, 만족도"},{"w":"contribution","m":"공헌, 기여, 기부"}],"8":[{"w":"progress","m":"진전, 진행 / 나아가다, 전진하다, (시간이) 경과하다"},{"w":"temperature","m":"기온, 온도"},{"w":"prototype","m":"시제품, 원형, 기본 모델 (=a basic or first model)"},{"w":"create","m":"만들다"},{"w":"clothing","m":"의류, 옷"},{"w":"put together","m":"만들다, 조립하다"},{"w":"details","m":"세부 사항들, 상세 내용"},{"w":"fill","m":"채우다; (빈자리를) 충원하다; (서류를) 작성하다"},{"w":"arrangement","m":"조치, 처리"},{"w":"electronics","m":"전자 제품"},{"w":"exercise","m":"활동, 운동"},{"w":"reminder","m":"다시 알려 주는 것 [편지, 노트, 문자, 이메일 등] / 독촉장"},{"w":"confirmation","m":"확인(서)"},{"w":"addition","m":"추가, 부가 / 추가된 것"},{"w":"analysis","m":"분석"},{"w":"refrigerator","m":"냉장고"},{"w":"handout","m":"유인물"},{"w":"leading","m":"선두의, 일류의, 주요한"},{"w":"reception","m":"환영회, 리셉션 / 접수처, 프런트"},{"w":"landscaping","m":"조경"},{"w":"district","m":"지역, 구역"},{"w":"recycling","m":"재활용"},{"w":"laboratory","m":"실험실 (= lab)"},{"w":"cafeteria","m":"구내식당"},{"w":"approach","m":"~에 다가오다, ~에 접근하다 / 접근, 방식, 방법"},{"w":"pharmaceutical","m":"약학의, 제약의"},{"w":"borrow","m":"빌리다"},{"w":"script","m":"원고, 대본"},{"w":"quarter","m":"분기"},{"w":"machinery","m":"기계류, (집합적) 기계"},{"w":"profit","m":"수익, 이윤 / 이득을 얻다"},{"w":"guarantee","m":"동) 보장하다 / 명) 보증, 보증서"},{"w":"vote","m":"투표하다, 표결하다 / 투표, 표"},{"w":"staffing","m":"인력 모집"},{"w":"source","m":"근원, 원천"},{"w":"original","m":"원래의, 초기의, 원문의 / 원본, 원작"},{"w":"frame","m":"틀, 테두리"},{"w":"mayor","m":"시장"},{"w":"decoration","m":"장식(물)"},{"w":"apparently","m":"듣자 하니, 분명히"},{"w":"negotiation","m":"협상"},{"w":"improvement","m":"개선, 향상"},{"w":"status","m":"상태, 상황 / 지위, 신분"},{"w":"assembly","m":"조립"},{"w":"well-known","m":"잘 알려진, 유명한"},{"w":"priority","m":"우선순위, 우선 사항"},{"w":"pick","m":"고르다, 뽑다"},{"w":"light fixture","m":"조명"},{"w":"real estate","m":"부동산"},{"w":"step stool","m":"계단식 발판"}],"9":[{"w":"consultant","m":"자문"},{"w":"publication","m":"출판(물)"},{"w":"neighborhood","m":"지역, 인근"},{"w":"booth","m":"부스, 임시 칸막이 공간"},{"w":"inspector","m":"검사관"},{"w":"clear off","m":"치우다"},{"w":"expansion","m":"확장, 확대"},{"w":"excuse","m":"핑계, 변명"},{"w":"spot","m":"자리, 장소"},{"w":"usually","m":"보통, 대개"},{"w":"exit","m":"나가다"},{"w":"automobile","m":"자동차"},{"w":"fabric","m":"직물, 천"},{"w":"collection","m":"모음, 수집품"},{"w":"availability","m":"이용 가능성"},{"w":"rack","m":"거치대, ~걸이"},{"w":"forecast","m":"예보, 예측(하다)"},{"w":"summary","m":"요약(본)"},{"w":"consultation","m":"상담, 상의"},{"w":"mechanic","m":"정비사"},{"w":"recipe","m":"조리법"},{"w":"botanical garden","m":"식물원"},{"w":"solar panel","m":"태양광 패널"},{"w":"keynote speech","m":"기조 연설"},{"w":"keynote speaker","m":"기조연설자"},{"w":"tenant","m":"세입자, 임차인"},{"w":"audition","m":"오디션 / 오디션을 보다"},{"w":"correction","m":"수정, 정정"},{"w":"signature","m":"서명"},{"w":"drawing","m":"그림"},{"w":"flyer","m":"전단"},{"w":"aware","m":"알고 있는"},{"w":"impact","m":"영향을 미치다"},{"w":"honor","m":"상, 명예"},{"w":"photography","m":"사진 촬영, 사진술"},{"w":"widely","m":"널리"},{"w":"notification","m":"알림 (메시지), 통지(서)"},{"w":"sick leave","m":"병가"},{"w":"durability","m":"내구성"},{"w":"tracking","m":"추적, 파악"},{"w":"pharmacy","m":"약국"},{"w":"slot","m":"시간대, 자리"},{"w":"restoration","m":"복원, 복구"},{"w":"expertise","m":"전문지식, 전문기술"},{"w":"cross","m":"건너다, 가로지르다"},{"w":"region","m":"지역"},{"w":"additional","m":"추가적인, 추가의"},{"w":"potential","m":"잠재적인, 가능성이 있는 / (불가산) 잠재력"},{"w":"convenient","m":"편리한, 편한"},{"w":"extra","m":"여분의, 추가의 / 추가되는 것 / 추가로"}],"10":[{"w":"nearby","m":"인근의, 가까운 곳의 / 인근에, 가까운 곳에"},{"w":"annual","m":"연례의, 매년의 / 연간의"},{"w":"definitely","m":"분명히, 확실히"},{"w":"local","m":"지역의, 지방의, 현지의"},{"w":"current","m":"현재의, 지금의"},{"w":"temporary","m":"일시적인, 임시의, 잠정적인 =tentative, provisional"},{"w":"bill","m":"청구서, 계산서"},{"w":"regular","m":"보통의"},{"w":"athletic","m":"운동의"},{"w":"corporate","m":"기업의, 회사의"},{"w":"sold out","m":"매진된, 품절된"},{"w":"unavailable","m":"부재중인, 이용할 수 없는"},{"w":"specific","m":"구체적인, 특정한"},{"w":"positive","m":"긍정적인"},{"w":"overseas","m":"해외의 / 해외로, 해외에서"},{"w":"dental","m":"치과의, 치아의"},{"w":"reference","m":"참조, 참고문헌 / 추천인, 추천서"},{"w":"effective","m":"효과적인"},{"w":"correctly","m":"제대로, 정확하게"},{"w":"appropriate","m":"적절한, 알맞은"},{"w":"able","m":"~할 수 있는"},{"w":"particular","m":"특별한, 특정한 / (particulars) 세부사항"},{"w":"brief","m":"(시간이) 짧은, 잠시 동안의 / (말·글이) 간단한 / ~에게 알려주다, 보고하다"},{"w":"trail","m":"등산로, 산길"},{"w":"selection of","m":"다양한 ~ (a selection of)"},{"w":"aisle","m":"통로"},{"w":"completely","m":"완전히"},{"w":"culinary","m":"요리의, 요리와 관련된"},{"w":"commercial","m":"상업의"},{"w":"covered","m":"지붕으로 덮인, 덮여 있는"},{"w":"incorrect","m":"부정확한, 맞지 않는"},{"w":"least","m":"최소한"},{"w":"protective","m":"보호용의, 보호하는"},{"w":"temporarily","m":"일시적으로, 임시로"},{"w":"architectural","m":"건축학적인"},{"w":"inaccurate","m":"부정확한"},{"w":"quarterly","m":"분기의"},{"w":"useful","m":"유용한"},{"w":"former","m":"이전의, 전직의"},{"w":"row","m":"줄, 열"},{"w":"advanced","m":"발전된, 고급의"},{"w":"regional","m":"지역의"},{"w":"indoors","m":"실내로, 실내에"},{"w":"remote","m":"원격의, 멀리 떨어진"},{"w":"ongoing","m":"진행 중인"},{"w":"accidentally","m":"실수로, 우연히"},{"w":"officially","m":"공식적으로, 정식으로"},{"w":"residential","m":"주거의"},{"w":"upstairs","m":"위층의"},{"w":"comfortably","m":"편하게"}]};
   var $=function(id){return document.getElementById(id);};
   var selDays={}, count=20, dir='e2k', Q=[], idx=0, correct=0, wrong=[];
+  // ── 단어 유형 (2026-10-06 앱 ⑤와 같게) ──
+  //   head 표제어 / der 파생어 / side 동의어·반의어(syn+ant) / plus 만점 완성 / wrong 내가 틀린 단어(이 브라우저에만)
+  var kinds={head:1}, wrongOnly=false, style='choice', EXTRA=null, ALL_KIND=null, SIDE=[], RELATED={};
+  var WRONG_KEY='vt:wrong:v1', WRONG_MAX=300;
+  function loadWrong(){ try{ var a=JSON.parse(localStorage.getItem(WRONG_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+  function saveWrong(a){ try{ localStorage.setItem(WRONG_KEY, JSON.stringify(a.slice(0,WRONG_MAX))); }catch(e){} }
+  function itemKey(it){ return (it.k||'head')+':'+it.w; }
+  function cleanHm(t){ return String(t||'').replace(/\s*\(=.*$/,'').replace(/\s*=\s*[A-Za-z].*$/,'').trim(); }
+  function posOf(m){ var t=String(m||'').split(' ')[0]; return /^(?:[a-z]{1,4}\.(?:\/[a-z]{1,4}\.)?|[명동형부전접대감조](?:·[명동형부전접대감조])*)$/.test(t)?t:''; }
+  // 고른 DAY · 고른 유형의 시험 칸
+  function itemsFor(days, ks){
+    var out=[], seen={};
+    function push(it){ var k=itemKey(it); if(seen[k]) return; seen[k]=1; out.push(it); }
+    days.forEach(function(d){
+      if(ks.head) (VOCA[d]||[]).forEach(function(e){ push({w:e.w,m:e.m,k:'head'}); });
+      var x=EXTRA&&EXTRA[d]; if(!x) return;
+      if(ks.der) x.der.forEach(function(e){ push({w:e.w,m:e.m,k:'der'}); });
+      if(ks.side){ x.syn.forEach(function(e){ push({w:e.h,m:cleanHm(e.hm),k:'syn',ans:e.s}); }); x.ant.forEach(function(e){ push({w:e.h,m:cleanHm(e.hm),k:'ant',ans:e.a}); }); }
+      if(ks.plus) x.plus.forEach(function(e){ push({w:e.w,m:e.m,k:'plus'}); });
+    });
+    return out;
+  }
+  function prepExtra(){
+    var all=Object.keys(VOCA);
+    ALL_KIND={head:itemsFor(all,{head:1}), der:itemsFor(all,{der:1}), plus:itemsFor(all,{plus:1})};
+    var side=itemsFor(all,{side:1}), set={};
+    ALL_KIND.syn=side.filter(function(i){return i.k==='syn';}); ALL_KIND.ant=side.filter(function(i){return i.k==='ant';});
+    side.forEach(function(i){ (i.ans||[]).forEach(function(a){ set[a]=1; }); });
+    SIDE=Object.keys(set);
+    // 같은 동의어 묶음(표제어+동의어) — 정답처럼 보이는 오답을 빼려고
+    ALL_KIND.syn.forEach(function(i){ var g=[i.w].concat(i.ans||[]).map(function(t){return t.toLowerCase();}); g.forEach(function(t){ var r=RELATED[t]||(RELATED[t]={}); g.forEach(function(u){ r[u]=1; }); }); });
+  }
+  fetch('voca_extra.json').then(function(r){ return r.ok?r.json():null; }).then(function(j){ if(j){ EXTRA=j; prepExtra(); } syncKinds(); }).catch(function(){ syncKinds(); });
   var GROUPS=[
     // 2026-10-05 원장님 「LC 는 DAY 1~10, RC 는 DAY 11부터인데 왜 RC 에도 1~10 이 있어?」
     // 예전엔 30일 전체 + 듣기 빈출 500(= DAY 1~10 과 같은 단어) 두 묶음을 그려 1~10 이 두 번 나왔다 → 듣기/읽기로 나눈다(앱과 같음)
@@ -2080,42 +2129,97 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
   $('vtNone').onclick=function(){ dayKeys.forEach(function(k){ dayBtn[k].classList.remove('on'); }); selDays={}; updateCount(); };
   $('vtCount').querySelectorAll('button').forEach(function(b){ b.onclick=function(){ $('vtCount').querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); count=parseInt(b.getAttribute('data-n'),10); }; });
   $('vtDir').querySelectorAll('button').forEach(function(b){ b.onclick=function(){ $('vtDir').querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); dir=b.getAttribute('data-d'); }; });
-  function poolOf(){
-    var pool=[], seen={};
-    dayKeys.forEach(function(k){ if(selDays[k]) (BANK[k]||[]).forEach(function(e){ if(seen[e.w]) return; seen[e.w]=1; pool.push(e); }); });
-    return pool;
+  function syncKinds(){
+    var n=loadWrong().length;
+    $('vtWrongN').textContent=n?' '+n:'';
+    $('vtKinds').querySelectorAll('button').forEach(function(b){
+      var k=b.getAttribute('data-k');
+      var on = k==='wrong' ? wrongOnly : k==='all' ? !!(!wrongOnly && kinds.head && kinds.der && kinds.side && kinds.plus) : (!wrongOnly && !!kinds[k]);
+      b.classList.toggle('on', on);
+      // 책 자료를 못 읽었으면 파생어·동의어·만점은 막는다
+      b.disabled = (k==='wrong' && !n) || (!EXTRA && (k==='der'||k==='side'||k==='plus'||k==='all'));
+    });
   }
+  $('vtKinds').querySelectorAll('button').forEach(function(b){ b.onclick=function(){
+    var k=b.getAttribute('data-k');
+    if(k==='wrong'){ wrongOnly=!wrongOnly; }
+    else if(k==='all'){ wrongOnly=false; kinds={head:1,der:1,side:1,plus:1}; }
+    else { wrongOnly=false; var nx={}; for(var x in kinds) nx[x]=kinds[x]; if(nx[k]) delete nx[k]; else nx[k]=1; if(Object.keys(nx).length) kinds=nx; }
+    syncKinds();
+  }; });
+  $('vtStyle').querySelectorAll('button').forEach(function(b){ b.onclick=function(){ $('vtStyle').querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); style=b.getAttribute('data-s'); }; });
+  function kindsLabel(){
+    if(wrongOnly) return '내가 틀린 단어';
+    var L=[['head','표제어'],['der','파생어'],['side','동의어·반의어'],['plus','만점 완성']].filter(function(p){return kinds[p[0]];}).map(function(p){return p[1];});
+    return L.length===4?'전체 유형':L.join('·');
+  }
+  function poolOf(){
+    if(wrongOnly) return loadWrong();
+    return itemsFor(dayKeys.filter(function(k){ return selDays[k]; }), kinds);
+  }
+  function hasPick(){ return wrongOnly ? loadWrong().length>0 : dayKeys.some(function(k){return selDays[k];}); }
   function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
   function pane(id){ document.querySelectorAll('#voca .vt-pane').forEach(function(p){p.classList.remove('on');}); $(id).classList.add('on'); }
   function build(){
     var pool=poolOf();
     pool=shuffle(pool.slice());
-    var n = count===0 ? pool.length : Math.min(count, pool.length);
+    var n = Math.min(count, pool.length);
     var qs = pool.slice(0, n);
     Q = qs.map(function(e){
+      var k=e.k||'head';
+      // 동의어·반의어 — 「authorize 의 동의어는?」 영어 보기 4개. 같은 동의어 묶음 낱말은 오답에서 뺀다
+      if((k==='syn'||k==='ant') && e.ans && e.ans.length){
+        var a=shuffle(e.ans.slice())[0], bad={};
+        e.ans.concat([e.w]).forEach(function(t){ t=t.toLowerCase(); bad[t]=1; var r=RELATED[t]; if(r) for(var u in r) bad[u]=1; });
+        var wr=shuffle(SIDE.filter(function(t){ return !bad[t.toLowerCase()]; })).slice(0,3);
+        return {prm:e.w, ans:a, opts:shuffle([a].concat(wr)), w:e.w, m:e.m, it:e, side:true,
+                tag:k==='syn'?'비슷한 뜻(동의어)은?':'반대말(반의어)은?', reveal:e.ans.join(', ')};
+      }
       var ans = dir==='e2k'? e.m : e.w;
       var prm = dir==='e2k'? e.w : e.m;
-      var others = shuffle(pool.filter(function(x){ return x.w!==e.w && x.m!==e.m; }));
+      // 오답 보기는 같은 유형·같은 품사부터 — 품사만 보고 찍지 못하게
+      var from = ((ALL_KIND&&ALL_KIND[k])||pool).filter(function(x){ return x.w!==e.w && x.m!==e.m; });
+      var p=posOf(e.m), same=p?shuffle(from.filter(function(x){return posOf(x.m)===p;})):[];
+      var others = same.concat(shuffle(from.filter(function(x){ return same.indexOf(x)<0; })));
       var opts=[ans];
       for(var i=0;i<others.length && opts.length<4;i++){ var c=dir==='e2k'?others[i].m:others[i].w; if(opts.indexOf(c)<0) opts.push(c); }
-      return {prm:prm, ans:ans, opts:shuffle(opts), w:e.w, m:e.m};
+      return {prm:prm, ans:ans, opts:shuffle(opts), w:e.w, m:e.m, it:e, tag:k==='der'?'파생어':k==='plus'?'만점 완성':'', reveal:e.w+' — '+e.m};
     });
   }
   function start(){
-    if(!dayKeys.some(function(k){return selDays[k];})){ $('vtHint').textContent='⚠ DAY를 1개 이상 선택하세요.'; $('vtHint').style.color='#c0342b'; return; }
+    if(!hasPick()){ $('vtHint').textContent= wrongOnly?'틀린 단어가 아직 없어요.':'⚠ DAY를 1개 이상 선택하세요.'; $('vtHint').style.color='#c0342b'; return; }
     build();
     if(!Q.length){ $('vtHint').textContent='선택한 DAY에 단어가 없습니다.'; return; }
     idx=0; correct=0; wrong=[];
-    $('vtTot').textContent=Q.length; $('vtQdir').textContent = dir==='e2k'?'알맞은 뜻 고르기':'알맞은 단어 고르기';
+    $('vtTot').textContent=Q.length;
     render(); pane('vtQuiz');
   }
   function render(){
     var q=Q[idx], LET=['A','B','C','D'];
     $('vtNow').textContent=idx+1;
     $('vtFill').style.width=((idx+1)/Q.length*100)+'%';
-    $('vtQ').textContent=q.prm;
-    $('vtQ').className='vt-q'+(dir==='k2e'?' small':'');
+    $('vtQdir').textContent = style==='write' ? '스스로 채점' : (q.side ? '알맞은 단어 고르기' : dir==='e2k'?'알맞은 뜻 고르기':'알맞은 단어 고르기');
+    $('vtQ').innerHTML='';
+    if(q.tag){ var tg=document.createElement('span'); tg.className='vt-qtag'; tg.textContent=q.tag; $('vtQ').appendChild(tg); }
+    $('vtQ').appendChild(document.createTextNode(q.prm));
+    $('vtQ').className='vt-q'+(dir==='k2e'&&!q.side?' small':'');
     var ob=$('vtOpts'); ob.innerHTML=''; ob.removeAttribute('data-done');
+    // 주관식 — 머릿속으로 답하고 「정답 보기」 → 스스로 ⭕/❌ (앱과 같다)
+    if(style==='write'){
+      var sb=document.createElement('button'); sb.className='btn btn-primary'; sb.style.width='100%'; sb.textContent='정답 보기';
+      sb.onclick=function(){
+        ob.innerHTML='';
+        var rv=document.createElement('div'); rv.className='vt-reveal';
+        var sm=document.createElement('small'); sm.textContent='정답'; var bb=document.createElement('b'); bb.textContent=q.side?q.reveal:q.ans;
+        rv.appendChild(sm); rv.appendChild(bb); ob.appendChild(rv);
+        var row=document.createElement('div'); row.className='vt-self';
+        var x=document.createElement('button'); x.className='x'; x.textContent='❌ 몰랐어요'; x.onclick=function(){ wrong.push(q); next(); };
+        var o=document.createElement('button'); o.className='o'; o.textContent='⭕ 맞았어요'; o.onclick=function(){ correct++; next(); };
+        row.appendChild(x); row.appendChild(o); ob.appendChild(row);
+      };
+      ob.appendChild(sb);
+      return;
+    }
     q.opts.forEach(function(opt,i){
       var b=document.createElement('button'); b.className='vt-opt';
       var k=document.createElement('span'); k.className='k'; k.textContent=LET[i];
@@ -2134,30 +2238,40 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
   }
   function next(){ idx++; if(idx<Q.length) render(); else result(); }
   function result(){
+    // 틀린 단어 목록 — 틀린 건 더하고, 맞힌 건 뺀다(이 브라우저에만 남는다)
+    var wk={}; wrong.forEach(function(q){ wk[itemKey(q.it)]=1; });
+    var rk={}; Q.forEach(function(q){ var k=itemKey(q.it); if(!wk[k]) rk[k]=1; });
+    var kept=loadWrong().filter(function(it){ var k=itemKey(it); return !rk[k] && !wk[k]; });
+    saveWrong(wrong.map(function(q){ return q.it; }).concat(kept));
+    syncKinds();
     var pct=Math.round(correct/Q.length*100);
     $('vtScore').textContent=correct;
     $('vtResSub').textContent='총 '+Q.length+'문제 · 정답률 '+pct+'%';
     var h='';
     if(!wrong.length){ h='<p style="text-align:center;color:#0a7d3f;font-weight:800;padding:16px">🎉 만점! 틀린 단어가 없습니다.</p>'; }
-    else { wrong.forEach(function(q){ var d=document.createElement('div'); d.className='vt-rv'; d.innerHTML='<b></b> — <span class="cor"></span>'; d.querySelector('b').textContent=q.w; d.querySelector('.cor').textContent=q.m; h+=d.outerHTML; }); }
+    else { wrong.forEach(function(q){ var d=document.createElement('div'); d.className='vt-rv'; d.innerHTML='<b></b> — <span class="cor"></span>'; d.querySelector('b').textContent=q.w+(q.side?(q.it.k==='syn'?' (동의어)':' (반의어)'):q.tag?' ('+q.tag+')':''); d.querySelector('.cor').textContent=q.side?q.reveal:q.m; h+=d.outerHTML; }); }
     $('vtReview').innerHTML=h; $('vtReview').classList.remove('on'); $('vtReviewBtn').textContent='틀린 단어 · 정답 보기';
     pane('vtResult');
   }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function printSheet(){
-    if(!dayKeys.some(function(k){return selDays[k];})){ $('vtHint').textContent='⚠ DAY를 1개 이상 선택하세요.'; $('vtHint').style.color='#c0342b'; return; }
+    if(!hasPick()){ $('vtHint').textContent= wrongOnly?'틀린 단어가 아직 없어요.':'⚠ DAY를 1개 이상 선택하세요.'; $('vtHint').style.color='#c0342b'; return; }
     var pool=poolOf();
-    var chosen = chosenLabel();
+    var chosen = (wrongOnly?'':chosenLabel()+'  ·  ')+kindsLabel();
     pool=shuffle(pool.slice());
-    var n = count===0 ? pool.length : Math.min(count, pool.length);
+    var n = Math.min(count, pool.length);
     var items = pool.slice(0,n);
     var e2k = dir==='e2k';
     var rows='', key='', rowsArr=[], keyArr=[];
+    var anySide=false;
     items.forEach(function(e,i){
-      rows += '<li><span class="qn">'+(i+1)+'</span><span class="qw">'+esc(e2k?e.w:e.m)+'</span><span class="bl"></span></li>';
-      key  += '<li><span class="kn">'+(i+1)+'.</span><b>'+esc(e.w)+'</b>'+esc(e.m)+'</li>';
-      rowsArr.push('<li><span class="qn">'+(i+1)+'</span><span class="qw">'+esc(e2k?e.w:e.m)+'</span><span class="bl"></span></li>');
-      keyArr.push('<li><span class="kn">'+(i+1)+'.</span><b>'+esc(e.w)+'</b>'+esc(e.m)+'</li>');
+      // 동의어·반의어는 「approve 동의어 ____」, 정답지엔 동의어 전부
+      var sd = e.k==='syn'?'동의어':e.k==='ant'?'반의어':'';
+      if(sd) anySide=true;
+      var q = sd ? esc(e.w)+'<em class="tg">'+sd+'</em>' : esc(e2k?e.w:e.m);
+      var a = sd ? '<b>'+esc((e.ans||[]).join(', '))+'</b>('+esc(e.w)+'의 '+sd+')' : '<b>'+esc(e.w)+'</b>'+esc(e.m);
+      rowsArr.push('<li><span class="qn">'+(i+1)+'</span><span class="qw">'+q+'</span><span class="bl"></span></li>');
+      keyArr.push('<li><span class="kn">'+(i+1)+'.</span>'+a+'</li>');
     });
     var meta = chosen+'  ·  '+n+'문항  ·  '+(e2k?'영어 → 뜻 쓰기':'뜻 → 영어 쓰기');
     var logo = (document.querySelector('.logo')||{}).src||'';
@@ -2205,6 +2319,7 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
       + 'ol.sheet .qn{flex:none;width:23px;height:23px;background:#eaf1fe;color:#1F62E0;border-radius:7px;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center}'
       + '.pgbreak{break-before:page;page-break-before:always;height:0}'
       + '.qw{font-weight:700;font-size:16px;color:#15181E;line-height:1.2}'
+      + '.qw .tg{font-style:normal;font-size:10.5px;font-weight:800;color:#1F62E0;background:#eaf1fe;border-radius:5px;padding:2px 5px;margin-left:6px;vertical-align:2px}'
       + '.sheet .bl{flex:1;border-bottom:1.4px dotted #c2c8d2;height:20px;margin-left:4px}'
       + '.keywrap{break-before:page;page-break-before:always}'
       + '.wm-ans-badge{display:inline-block;background:#1F62E0;color:#fff;font-size:12px;font-weight:800;padding:6px 15px;border-radius:999px;margin:15px 0 15px;letter-spacing:.03em}'
@@ -2240,7 +2355,7 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
       + '<div class="printbar"><span>완벽한토익 VOCA 단어시험지</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button><button class="pb-close" onclick="closeSheet()">&#10005; 닫기</button></div>'
       + head()
       + '<div class="wm-info"><span>이름<span class="u"></span></span><span>점수<span class="u short"></span> / '+n+'</span><span>날짜<span class="u"></span></span></div>'
-      + '<div class="wm-tip">'+(e2k?'각 단어의 우리말 뜻을 쓰세요.':'각 뜻에 해당하는 영어 단어를 쓰세요.')+'</div>'
+      + '<div class="wm-tip">'+(e2k?'각 단어의 우리말 뜻을 쓰세요.':'각 뜻에 해당하는 영어 단어를 쓰세요.')+(anySide?' 「동의어」「반의어」 표시가 있으면 그 낱말을 영어로 쓰세요.':'')+'</div>'
       + sheetPages()
       + '<div class="keywrap">'+head()+'<span class="wm-ans-badge">정답 · ANSWER KEY</span>'+keyPages()+'</div>'
       + '<div class="wm-foot"><span>완벽한토익 · PERFECT TOEIC</span><span>매일 10:00 – 22:00 · Kakao CH_ PERFECT_TOEIC</span></div>'
