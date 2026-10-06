@@ -13018,7 +13018,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var wh=(p.withhold_rate!=null)?Number(p.withhold_rate):DEFAULT_WITHHOLD;
     var feeRate=(p.card_fee_rate!=null)?Number(p.card_fee_rate):cardFeeRate(p.method);
     var gross=Math.round(amount*rate/100);
-    var fee=Math.round(amount*feeRate/100);      // 카드사가 떼가는 몫(수업료 기준, 부가세 제외)
+    // 🚨 2026-10-06 원장님 「A로 해」 — 10월 정산부터 1.5% 를 실제 결제액(부가세 포함)에 매긴다 → 잉여금 정확히 1.1%.
+    //    9월까지는 예전대로(부가세 제외) — 이미 지급한 정산은 안 바꾼다. 앱 lib/payroll feeBase 와 같다.
+    var feeBase = String(p.month||'') < '2026-10' ? amount : amount + (isRefund(p)?-1:1)*(Number(p.vat)||0);
+    var fee=Math.round(feeBase*feeRate/100);
     var afterFee=gross-fee;
     var tax=Math.round(afterFee*wh/100);
     return { amount:amount, rate:rate, wh:wh, gross:gross,
@@ -13570,7 +13573,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           if(isRefund(it.p)) return;
           var v=Number(it.p.vat)||0; if(v>0){ o.vatN++; o.vat+=v; }
           var fr=(it.p.card_fee_rate!=null)?Number(it.p.card_fee_rate):cardFeeRate(it.p.method);
-          if(fr>0){ var _paid=(Number(it.p.amount)||0)+v, _fee=Math.round((Number(it.p.amount)||0)*fr/100), _real=Math.round(_paid*ACTUAL_CARD_FEE/100);
+          if(fr>0){ var _paid=(Number(it.p.amount)||0)+v, _fee=Math.round((String(it.p.month||'')<'2026-10'?(Number(it.p.amount)||0):_paid)*fr/100), _real=Math.round(_paid*ACTUAL_CARD_FEE/100);
             o.cardN++; o.cardAmt+=_paid; o.fee+=_fee; o.real+=_real; o.surplus+=_fee-_real; }
         });
         if(o.vatN||o.cardN){ vf.push(o); ['vatN','vat','cardN','cardAmt','fee','real','surplus'].forEach(function(x){ vfT[x]+=o[x]; }); }
@@ -14194,7 +14197,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('pyFilter')) $('pyFilter').onchange=function(){ loadPayments($('pyFilter').value); };
   // 수수료는 '어느 통로로 받았나'로 갈린다(원장 2026-08-24). 그래서 통로를 고르게 한다.
   // 카드사는 옆의 별도 칸(card_issuer)에 따로 담는다.
-  var PAY_CATS=['카드결제','계좌이체','현금','결제선생','카카오페이','네이버페이','기타 PG'];
+  // 2026-10-06 원장님 「PG 는 앞으로 안 쓸 거라 없애」 — 고르는 목록에서만 뺐다(예전 줄의 요율은 그대로)
+  var PAY_CATS=['카드결제','계좌이체','현금','결제선생'];
   var CARD_ISSUERS=['삼성카드','현대카드','신한카드','KB국민카드','롯데카드','BC카드','하나카드','우리카드','NH농협카드','기타 카드'];
   function fillMethods(){
     var cats=PAY_CATS.map(function(m){return '<option>'+m+'</option>';}).join('');
