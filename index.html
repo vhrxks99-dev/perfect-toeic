@@ -7931,12 +7931,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
 
     var kak=$('waEndKakao').files||[];
-    if(!kak.length){ err.textContent='카톡 대화 캡처를 올려 주세요.'; return; }
+    // 2026-10-06 원장님 「첨부 안 하더라도 수강종료 신청은 할 수 있게」 — 카톡 캡처·성적표 사진은 선택
     var score=null, cat='', memo='';
     if(why==='graduated'){
       score=parseInt($('waEndScore').value,10);
       if(isNaN(score)){ err.textContent='최종 점수를 적어 주세요.'; return; }
-      if(!($('waEndCard').files||[]).length){ err.textContent='성적표 사진을 올려 주세요.'; return; }
     }else{
       cat=$('waEndCat').value; memo=($('waEndMemo').value||'').trim();
       if(!cat){ err.textContent='개인 사정 종류를 골라 주세요.'; return; }
