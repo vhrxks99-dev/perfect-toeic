@@ -6226,7 +6226,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var aom=$('waAdminOpenM'); if(aom) aom.onclick=function(e){e.preventDefault();closeDrawer();openAdmin();};
   }
 
-  function openAdmin(){ renderTable(); $('waAdmin').classList.add('on'); }
+  function openAdmin(){ if(window.__webGate && window.__webGate(profile)) return; renderTable(); $('waAdmin').classList.add('on'); }
   function renderTable(){
     var m=load(); $('waCount').textContent='('+m.length+'명)';
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
@@ -6766,7 +6766,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   function doLogout(){ if(sb) sb.auth.signOut().then(refresh); }
 
-  async function openAdmin(){ $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role, profile&&profile.title); dashTab('members'); await renderTable(); await dashInit(); }
+  async function openAdmin(){ if(window.__webGate && window.__webGate(profile)) return; $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role, profile&&profile.title); dashTab('members'); await renderTable(); await dashInit(); }
   function isMasterNow(){ return profile && profile.role==='master'; }
   function isOps(){ return profile && (profile.role==='master'||profile.role==='manager'); }
   async function renderTable(){
@@ -8226,6 +8226,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function openMaster(){ openAdmin(); }
   async function openMy(){
     if(!profile) return;
+    
     await renderMy();
     // 공지는 열 때마다 새로 읽는다. 앱에서 올린 것이 바로 보여야 한다.
     if(typeof myNoticeLoad==='function'){ try{ await myNoticeLoad(); }catch(e){} }
@@ -8234,9 +8235,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(typeof window.myScoreLoad==='function'){ try{ await window.myScoreLoad(); }catch(e){} }
     $('waMy').classList.add('on');
   }
-  async function openLearn(){ if(!profile||!$('waLearn')) return; await renderLearn(); $('waLearn').classList.add('on'); }
+  async function openLearn(){ if(!profile||!$('waLearn')) return; if(window.__webGate && window.__webGate(profile)) return;  await renderLearn(); $('waLearn').classList.add('on'); }
   // 비대면 수업 안내 — 읽을 내용이 고정이라 그릴 것이 없다. 창만 연다.
-  function openOnline(){ if(!profile||!$('waOnline')) return; $('waOnline').classList.add('on'); }
+  function openOnline(){ if(!profile||!$('waOnline')) return;  $('waOnline').classList.add('on'); }
 
   // 카카오 간편로그인 (활성 인증 블록)
   if($('waKakao')) $('waKakao').onclick=async function(){
@@ -16955,6 +16956,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 🚨 2026-10-05 혼합(대면·비대면) 학생은 예약 창을 열 때마다 형태를 새로 고른다(원장님 지시).
   var _bookMode=null;
   function openBooking(){
+    if(window.__webGate && window.__webGate(null)) return;
     _bookMode=null;
     var m=$('waBooking'); if(!m) return;
     m.classList.add('on');
@@ -18219,10 +18221,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
       var d=rows[0], prev=rows[1];
       var t=levelFor(goal);
+      // 🚨 d.score 는 총점 기준(성적표 없으면 읽기×2)이다. 「읽기 예상」으로 그대로 쓰면 두 배로 보인다(2026-10-08 고침).
+      //    맞은 개수를 ab_*(정답률)에서 되돌려 진단테스트 rcScore 와 같은 식으로 다시 낸다. 앱 lib/diagnostics rcOf 와 같다.
+      var rcEst=(function(){
+        var ks=['ab_infer','ab_locate','ab_connect','ab_vocab','ab_gram'], c=0;
+        for(var i=0;i<ks.length;i++){ if(d[ks[i]]==null) return null; c+=Math.round(d[ks[i]]*6/100); }
+        var sh=-102.6+5.69*(c/30*100);
+        return Math.min(495, Math.max(5, Math.round(sh/5)*5));
+      })();
 
       var h='<div class="dash-list-head" style="margin-top:0">🎯 진단 리포트'
           + ' <span style="font-weight:600;color:var(--muted);font-size:11.5px">'
-          + (d.score!=null?('읽기 예상 '+d.score+'점 · '):'')
+          + (rcEst!=null?('읽기 예상 '+rcEst+'점 · '):'')
           + (d.level?esc(d.level)+' · ':'')
           + esc(String(d.created_at||'').slice(0,10))+'</span></div>'
         + '<div style="font-size:10.5px;color:var(--muted);margin-bottom:4px">파란 막대 = 내 정답률'
@@ -18447,5 +18457,43 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       };
     };
   })();
+</script>
+<script>
+/* 🚨 2026-10-08 원장님 「웹 관리자 페이지 잠시 닫아줘 — 학생들도 마찬가지, 나중에 다시 열 거야」
+   앱 사용을 늘리려고 로그인 뒤 화면(관리 페이지 · 학생은 내 학습·수업 예약만(10/8 원장님 「이거만 일단」))을 막고 앱으로 안내한다.
+   · 다시 열기: Supabase  update site_flags set on_=false where key='web_member_closed';  (배포 없이 바로)
+   · 원장님(김태완) 계정만 예외 — 급할 때 웹으로 처리할 수 있게
+   · 플래그를 못 읽으면 닫힌 쪽으로 둔다(기본값) */
+(function(){
+  var OWNER='459484c5-626b-44a2-8758-6efadcf259e2';
+  window.__webClosed = true;
+  try{
+    if(window.sb) window.sb.from('site_flags').select('on_').eq('key','web_member_closed').then(function(r){
+      if(r && !r.error && r.data && r.data[0] && r.data[0].on_===false) window.__webClosed=false;
+    });
+  }catch(e){}
+  function sheet(){
+    var old=document.getElementById('webGate'); if(old) old.remove();
+    var d=document.createElement('div'); d.id='webGate';
+    d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+    d.innerHTML='<div style="background:#fff;border-radius:18px;max-width:380px;width:100%;padding:24px 22px;text-align:center;font-family:inherit;box-shadow:0 10px 30px rgba(0,0,0,.25)">'
+      +'<div style="font-size:40px;line-height:1">📱</div>'
+      +'<div style="font-size:19px;font-weight:800;margin:10px 0 6px;color:#15181E">이제 앱에서 이용해 주세요</div>'
+      +'<div style="font-size:14px;line-height:1.65;color:#555">수업 · 숙제 · 내 정보 · 예약은<br><b>완벽한토익 앱</b>에서 할 수 있어요.<br>(웹 화면은 잠시 닫아 두었어요)</div>'
+      +'<div style="display:flex;flex-direction:column;gap:8px;margin-top:18px">'
+      +'<a href="https://apps.apple.com/kr/app/id6815950208" target="_blank" rel="noopener" style="display:block;background:#15181E;color:#fff;border-radius:12px;padding:12px;font-weight:800;text-decoration:none">🍎 아이폰 앱 받기</a>'
+      +'<a href="https://play.google.com/store/apps/details?id=com.perfecttoeic.app" target="_blank" rel="noopener" style="display:block;background:#1F62E0;color:#fff;border-radius:12px;padding:12px;font-weight:800;text-decoration:none">🤖 안드로이드 앱 받기</a>'
+      +'<button type="button" id="webGateX" style="margin-top:4px;background:none;border:0;color:#888;font-size:14px;padding:8px;cursor:pointer">닫기</button>'
+      +'</div></div>';
+    document.body.appendChild(d);
+    d.addEventListener('click', function(e){ if(e.target===d || e.target.id==='webGateX') d.remove(); });
+  }
+  window.__webGate = function(profile){
+    if(!window.__webClosed) return false;
+    if(profile && String(profile.id)===OWNER) return false;
+    sheet();
+    return true;
+  };
+})();
 </script>
 </body></html>
