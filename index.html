@@ -18495,7 +18495,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var a=document.getElementById('waAdmin'); if(!a) return;
     a.classList.add('hw-only');
     if(!document.getElementById('hwOnlyCss')){ var st=document.createElement('style'); st.id='hwOnlyCss';
-      st.textContent='#waAdmin.hw-only .dash-tab:not([data-dtab="hw"]){display:none!important}#waAdmin.hw-only .dash-pane:not([data-dpane="hw"]){display:none!important}#waAdmin.hw-only .dash-pane[data-dpane="hw"]{display:block!important}';
+      // 2026-10-09 원장님 터미널 「준우쌤 관리페이지에서 수업스케줄 열어놔」 → 숙제 + 수업 스케줄 두 칸
+      st.textContent='#waAdmin.hw-only .dash-tab:not([data-dtab="hw"]):not([data-dtab="sched"]){display:none!important}#waAdmin.hw-only .dash-pane:not([data-dpane="hw"]):not([data-dpane="sched"]){display:none!important}';
       document.head.appendChild(st); }
   };
   window.__webGate = function(profile, where){
