@@ -6226,7 +6226,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var aom=$('waAdminOpenM'); if(aom) aom.onclick=function(e){e.preventDefault();closeDrawer();openAdmin();};
   }
 
-  function openAdmin(){ if(window.__webGate && window.__webGate(profile)) return; renderTable(); $('waAdmin').classList.add('on'); }
+  function openAdmin(){ if(window.__webGate && window.__webGate(profile,'admin')) return; renderTable(); $('waAdmin').classList.add('on'); if(window.__hwOnly) window.__hwOnlyApply(); }
   function renderTable(){
     var m=load(); $('waCount').textContent='('+m.length+'명)';
     if(!m.length){ $('waTable').innerHTML='<tr><td class="wa-empty">아직 가입한 회원이 없습니다.</td></tr>'; return; }
@@ -6766,7 +6766,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   function doLogout(){ if(sb) sb.auth.signOut().then(refresh); }
 
-  async function openAdmin(){ if(window.__webGate && window.__webGate(profile)) return; $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role, profile&&profile.title); dashTab('members'); await renderTable(); await dashInit(); }
+  async function openAdmin(){ if(window.__webGate && window.__webGate(profile,'admin')) return; $('waAdmin').classList.add('on'); if($('waRoleBadge')) $('waRoleBadge').textContent=roleTag(profile&&profile.role, profile&&profile.title); if(window.__hwOnly){ window.__hwOnlyApply(); dashTab('hw'); } else dashTab('members'); await renderTable(); await dashInit(); if(window.__hwOnly){ window.__hwOnlyApply(); dashTab('hw'); } }
   function isMasterNow(){ return profile && profile.role==='master'; }
   function isOps(){ return profile && (profile.role==='master'||profile.role==='manager'); }
   async function renderTable(){
@@ -18488,9 +18488,22 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     document.body.appendChild(d);
     d.addEventListener('click', function(e){ if(e.target===d || e.target.id==='webGateX') d.remove(); });
   }
-  window.__webGate = function(profile){
+  // 2026-10-09 원장님 「관리자 페이지 숙제 내주는 부분은 열어놔(준우쌤이 키보드로 웹이 편하다)」
+  //   → 웹이 닫혀 있어도 직원은 관리자 페이지를 「숙제」 칸만 보이게 연다.
+  window.__hwOnly = false;
+  window.__hwOnlyApply = function(){
+    var a=document.getElementById('waAdmin'); if(!a) return;
+    a.classList.add('hw-only');
+    if(!document.getElementById('hwOnlyCss')){ var st=document.createElement('style'); st.id='hwOnlyCss';
+      st.textContent='#waAdmin.hw-only .dash-tab:not([data-dtab="hw"]){display:none!important}#waAdmin.hw-only .dash-pane:not([data-dpane="hw"]){display:none!important}#waAdmin.hw-only .dash-pane[data-dpane="hw"]{display:block!important}';
+      document.head.appendChild(st); }
+  };
+  window.__webGate = function(profile, where){
+    window.__hwOnly = false;
+    var wa=document.getElementById('waAdmin'); if(wa) wa.classList.remove('hw-only');
     if(!window.__webClosed) return false;
     if(profile && String(profile.id)===OWNER) return false;
+    if(where==='admin' && profile && /^(admin|manager|master)$/.test(String(profile.role||''))){ window.__hwOnly = true; return false; }
     sheet();
     return true;
   };
