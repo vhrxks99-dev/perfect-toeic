@@ -2003,6 +2003,10 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
           <button class="btn btn-primary" id="vtGateLogin" style="margin-top:16px">로그인 / 회원가입 <span class="arrow">→</span></button>
         </div>
         <div id="vtSetupBody">
+        <!-- 2026-10-09 원장님 — 시험지 종류: 단어만(지금 것) / All-in-One(파생·유의·기출 뜻 쓰기). 앱 단어시험지와 같은 모양 -->
+        <div class="vt-set-row"><div class="vt-set-label">시험지 종류</div></div>
+        <div class="vt-opts2" id="vtSheetKind" style="margin-bottom:14px"><button type="button" data-sk="word" class="on">단어만</button><button type="button" data-sk="all">All-in-One</button></div>
+        <div id="vtAioParts" style="display:none;margin:-4px 0 14px"><div class="vt-set-label" style="margin-bottom:6px">넣을 칸 <span style="color:var(--muted);font-weight:600;font-size:12px">끄면 그 줄은 빼고 만들어요</span></div><div class="vt-opts2"><button type="button" data-p="word" class="on">표제어 뜻</button><button type="button" data-p="par" class="on">파생어</button><button type="button" data-p="syn" class="on">유의어</button><button type="button" data-p="col" class="on">기출표현</button></div></div>
         <div class="vt-set-row">
           <div class="vt-set-label">① DAY 선택 <span id="vtDayCount" style="color:var(--accent)">(0일)</span></div>
           <div class="vt-set-actions"><button type="button" id="vtAll">전체 선택</button><button type="button" id="vtNone">해제</button></div>
@@ -2364,7 +2368,82 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
     if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도해주세요.'); return; }
     w.document.open(); w.document.write(doc); w.document.close();
   }
-  $('vtPrint').onclick=function(){ if(!vtLoggedIn()){ vtUpdateGate(); return; } printSheet(); };
+  $('vtPrint').onclick=function(){ if(!vtLoggedIn()){ vtUpdateGate(); return; } if(sheetKind==='all') printAio(); else printSheet(); };
+  // ── All-in-One 시험지 (2026-10-09 원장님) — 앱 lib/allinone.ts 와 같은 모양. 자료 = voca_allinone.json(앱 assets/voca/allinone.json 과 같은 파일)
+  var sheetKind='word', AIO=null, aioParts={word:true,par:true,syn:true,col:true};
+  function aioShowMode(){
+    var all = sheetKind==='all';
+    var body=$('vtSetupBody');
+    $('vtAioParts').style.display = all?'':'none';
+    var kindsRow = $('vtKinds') ? $('vtKinds').previousElementSibling : null;
+    [kindsRow, $('vtKinds')].forEach(function(el){ if(el) el.style.display = all?'none':''; });
+    body.querySelectorAll('.vt-set-row2').forEach(function(el){ el.style.display = all?'none':''; });
+    $('vtStart').style.display = all?'none':'';
+    $('vtPrint').innerHTML = all ? '📄 All-in-One 시험지 인쇄 · PDF 저장 (정답지 포함)' : '📄 시험지 인쇄 · PDF 저장';
+    $('vtPrint').style.flex = all ? '1 1 100%' : '1 1 190px';
+  }
+  $('vtSheetKind').querySelectorAll('button').forEach(function(b){ b.onclick=function(){
+    $('vtSheetKind').querySelectorAll('button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on');
+    sheetKind=b.getAttribute('data-sk'); aioShowMode();
+  }; });
+  $('vtAioParts').querySelectorAll('button').forEach(function(b){ b.onclick=function(){
+    var k=b.getAttribute('data-p'); aioParts[k]=!aioParts[k]; b.classList.toggle('on', aioParts[k]);
+  }; });
+  var AIO_POS={n:'명',v:'동',a:'형',adj:'형',ad:'부',adv:'부',prep:'전',conj:'접'};
+  function aioKoPos(p){ var m=(p||'').match(/(n|v|adj|adv|ad|a|prep|conj)\./g)||[]; var out=[]; m.forEach(function(x){ var k=AIO_POS[x.replace('.','')]; if(k&&out.indexOf(k)<0) out.push(k); }); return out.join('·'); }
+  function aioTidy(x){ return String(x||'').replace(/\s*\[[^\]]*기출[^\]]*\]/g,'').replace(/\s+/g,' ').trim(); }
+  function aioLines(it){
+    var out=[{k:'word',en:it.word,pos:it.pos,ko:it.mean}];
+    if(aioParts.par) it.par.forEach(function(p){ out.push({k:'par',en:p[0],pos:aioKoPos(p[1]),ko:p[2]}); });
+    if(aioParts.syn) it.syn.forEach(function(p){ out.push({k:'syn',en:p[0],pos:it.pos,ko:p[1]}); });
+    if(aioParts.col) it.col.forEach(function(p){ out.push({k:'col',en:p[0],pos:'',ko:p[1]}); });
+    return out;
+  }
+  var AIO_CSS='@page{size:A4;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Pretendard,"Malgun Gothic",sans-serif;color:#15181E;letter-spacing:-.01em}'
+    +'.top{display:flex;justify-content:space-between;align-items:flex-end;padding-bottom:6pt;border-bottom:2pt solid #15181E;margin-bottom:8pt}'
+    +'.brand{font-size:8pt;font-weight:800;color:#1F62E0;letter-spacing:.08em}h1{font-size:15pt;margin:1pt 0 0}h1 span{font-size:10pt;color:#777;font-weight:600}'
+    +'.meta{display:flex;gap:14pt;font-size:9.5pt}.meta i{display:inline-block;width:70pt;border-bottom:1px solid #999}.meta i.s{width:30pt}'
+    +'.legend{font-size:8pt;color:#777;margin:-2pt 0 8pt}.grid{columns:2;column-gap:18pt}.w{break-inside:avoid;margin-bottom:9pt}'
+    +'.h{display:flex;align-items:baseline;gap:5pt;border-bottom:1.2pt solid #15181E;padding-bottom:2pt}.h .no{font-size:7.6pt;color:#9AA0AB;font-weight:700}.h b{font-size:11pt}'
+    +'.ps{font-size:7pt;font-weight:600;color:#8A93A3;white-space:nowrap}.h i,.r i{flex:1;border-bottom:1px dotted #B9BEC8;height:10pt}.h i{margin-left:6pt}'
+    +'.r{display:flex;align-items:baseline;gap:5pt;font-size:9pt;padding:2.2pt 0 2.2pt 12pt}.r .t{width:14pt;font-size:7pt;font-weight:800;color:#9AA0AB}'
+    +'.r .e{flex:0 0 54%;display:flex;gap:4pt;align-items:baseline;flex-wrap:wrap}'
+    +'.ans{color:#1D3E8A;font-weight:500;font-size:8.4pt;flex:1;line-height:1.35}.key .r{padding-top:1.6pt;padding-bottom:1.6pt}.key .w{margin-bottom:7pt}.page{page-break-after:always}'
+    +'.printbar{position:sticky;top:0;background:#15181E;color:#fff;display:flex;gap:10px;align-items:center;padding:10px 14px;font-size:14px;z-index:9}.printbar span{flex:1;font-weight:800}.printbar button{border:0;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer}'
+    +'@media print{.printbar{display:none}}';
+  function aioDay(d, answer, total){
+    var L={par:'파',syn:'유',col:'기출'};
+    var blank=function(x){ return answer ? '<span class="ans">'+(esc(aioTidy(x))||'—')+'</span>' : '<i></i>'; };
+    var blocks=d.items.map(function(it){
+      var ls=aioLines(it), h=ls[0];
+      var head='<div class="h"><span class="no">'+esc(it.n)+'</span><b>'+esc(h.en)+'</b><span class="ps">'+esc(h.pos)+'</span>'+(aioParts.word?blank(h.ko):'<i style="border:0"></i>')+'</div>';
+      var rows=ls.slice(1).map(function(l){ return '<div class="r"><span class="t">'+L[l.k]+'</span><span class="e">'+esc(l.en)+' '+(l.pos?'<span class="ps">'+esc(l.pos)+'</span>':'')+'</span>'+blank(l.ko)+'</div>'; }).join('');
+      return '<div class="w">'+head+rows+'</div>';
+    }).join('');
+    return '<div class="'+(answer?'key page':'page')+'"><div class="top"><div><div class="brand">완벽한토익 VOCA</div><h1>DAY '+('0'+d.day).slice(-2)+' · '+esc(d.title)+' <span>All-in-One'+(answer?' · 정답':'')+'</span></h1></div>'
+      +'<div class="meta"><div>이름 <i></i></div><div>점수 <i class="s"></i> / '+total+'</div></div></div>'
+      +(answer?'':'<div class="legend">파 파생어 · 유 유의어(동의어) · 기출 기출표현 · 단어 옆 작은 글씨 = 품사(명 명사 · 동 동사 · 형 형용사 · 부 부사)</div>')
+      +'<div class="grid">'+blocks+'</div></div>';
+  }
+  function printAio(){
+    var days=dayKeys.filter(function(k){ return selDays[k]; }).map(function(k){ return k*1; });
+    if(!days.length){ $('vtHint').textContent='⚠ DAY를 1개 이상 선택하세요.'; $('vtHint').style.color='#c0342b'; return; }
+    var w = window.open('', '_blank');
+    if(!w){ alert('팝업이 막혀 있어요. 주소창 오른쪽에서 팝업을 허용해 주세요.'); return; }
+    w.document.write('<p style="font-family:sans-serif;padding:20px">All-in-One 시험지를 만드는 중…</p>');
+    (AIO ? Promise.resolve(AIO) : fetch('voca_allinone.json').then(function(r){ if(!r.ok) throw new Error('자료를 못 읽었어요'); return r.json(); }).then(function(j){ AIO=j; return j; }))
+      .then(function(data){
+        var body=data.filter(function(d){ return days.indexOf(d.day)>=0; }).sort(function(a,b){ return a.day-b.day; }).map(function(d){
+          var total=0; d.items.forEach(function(it){ var n=aioLines(it).length; total += aioParts.word ? n : n-1; });
+          return aioDay(d,false,total)+aioDay(d,true,total);
+        }).join('');
+        var doc='<!doctype html><html><head><meta charset="utf-8"><title>완토 VOCA All-in-One</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"><style>'+AIO_CSS+'</style></head><body>'
+          +'<div class="printbar"><span>완벽한토익 VOCA · All-in-One 시험지</span><button onclick="window.print()">🖨 인쇄 / PDF로 저장</button><button onclick="window.close()">닫기</button></div>'+body+'</body></html>';
+        w.document.open(); w.document.write(doc); w.document.close();
+      })
+      .catch(function(e){ w.document.body.innerHTML='<p style="font-family:sans-serif;padding:20px">시험지를 만들지 못했어요: '+esc(e.message||String(e))+'</p>'; });
+  }
+
   $('vtStart').onclick=function(){ if(!vtLoggedIn()){ vtUpdateGate(); return; } start(); };
   $('vtAgain').onclick=function(){ build(); idx=0; correct=0; wrong=[]; $('vtTot').textContent=Q.length; render(); pane('vtQuiz'); };
   $('vtRetry2').onclick=function(){ pane('vtSetup'); };
