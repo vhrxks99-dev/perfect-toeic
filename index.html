@@ -18623,10 +18623,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   };
   window.__webGate = function(profile, where){
     window.__hwOnly = false;
-    var wa=document.getElementById('waAdmin'); if(wa) wa.classList.remove('hw-only');
+    var wa=document.getElementById('waAdmin'); if(wa){ wa.classList.remove('hw-only'); wa.classList.remove('mgr-nomoney'); }
     if(!window.__webClosed) return false;
     if(profile && String(profile.id)===OWNER) return false;
-    if(where==='admin' && profile && /^(admin|manager|master)$/.test(String(profile.role||''))){ window.__hwOnly = true; return false; }
+    // 2026-10-10 원장님 「관리자페이지 이제 웹에 있는 거 전부 열어」 — 직원은 관리자 페이지 전체(숙제·스케줄만 → 전부).
+    //   학생 내 학습·수업 예약은 그대로 닫혀 있다(web_member_closed). 실장(manager)은 수납·정산만 가린다(10/9 원장님).
+    if(where==='admin' && profile && /^(admin|manager|master)$/.test(String(profile.role||''))){
+      if(String(profile.role)==='manager' && wa){
+        wa.classList.add('mgr-nomoney');
+        if(!document.getElementById('mgrNoMoneyCss')){ var st2=document.createElement('style'); st2.id='mgrNoMoneyCss';
+          st2.textContent='#waAdmin.mgr-nomoney .dash-tab[data-dtab="pay"],#waAdmin.mgr-nomoney .dash-tab[data-dtab="payroll"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="pay"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="payroll"]{display:none!important}';
+          document.head.appendChild(st2); }
+      }
+      return false;
+    }
     sheet();
     return true;
   };
