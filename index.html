@@ -14956,9 +14956,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var byName=function(list){ return q?list.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):list; };
     var fst=byName(live), fend=byName(done);
     // 곧 결제 탭이면 남은 1회 이하만, 급한 순(적은 것 먼저 -> 이름) (2026-09-16).
+    // 🚨 2026-10-11 원장님 「곧 결제는 횟수 말고 날짜 기준」 — 미리 다 잡아 둔 학생은
+    //    마지막으로 잡힌 수업이 7일 안으로 올 때만 뜬다(잡힌 수업 없으면 바로). 앱 lib/paymentdue dueByDate 와 같다.
     if(window.__attTab!=='all'){
-      fst=fst.filter(function(s){ return remainOf(s.id)<=1; })
-             .sort(function(a,b){ return (remainOf(a.id)-remainOf(b.id))
+      var lastFut=function(id){ var L=(window.__wtLessons||{})[id]||[], now=Date.now(), m=0;
+        L.forEach(function(x){ if(x.t>now && x.t>m) m=x.t; }); return m; };
+      var dueLimit=Date.now()+7*864e5;
+      fst=fst.filter(function(s){ if(remainOf(s.id)>1) return false; var lf=lastFut(s.id); return !lf || lf<=dueLimit; })
+             .sort(function(a,b){ return (lastFut(a.id)-lastFut(b.id)) || (remainOf(a.id)-remainOf(b.id))
                                        || (a.name||'').localeCompare(b.name||'','ko'); });
     }
     var adjSum=window.__wtAdjSum||{};
