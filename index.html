@@ -14514,6 +14514,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     //    서버 sessions_left / sessions_left_done 과 같은 기준이어야 화면과 알림이 어긋나지 않는다.
     var hasPass={};
     pays.forEach(function(p){ if((p.sessions||0)>0 && (p.kind||'payment')!=='ot') hasPass[p.student_id]=true; });
+    // 사전 OT 만 내고 정규 등록 안 한 학생 — 곧 결제에서 뺀다 (2026-10-11 원장님 「정규 수업 등록된 애들만」)
+    var otOnly={};
+    pays.forEach(function(p){ if((p.kind||'payment')==='ot' && !hasPass[p.student_id]) otOnly[p.student_id]=true; });
+    window.__wtOtOnly=otOnly;
     pays.forEach(function(p){
       if(!p.sessions) return;
       if((p.kind||'payment')==='ot' && !hasPass[p.student_id]) return;
@@ -14962,7 +14966,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var lastFut=function(id){ var L=(window.__wtLessons||{})[id]||[], now=Date.now(), m=0;
         L.forEach(function(x){ if(x.t>now && x.t>m) m=x.t; }); return m; };
       var dueLimit=Date.now()+7*864e5;
-      fst=fst.filter(function(s){ if(remainOf(s.id)>1) return false; var lf=lastFut(s.id); return !lf || lf<=dueLimit; })
+      // 정규 등록된 학생만 — 담당 없음(가입만)·사전 OT 만 낸 학생은 뺀다 (2026-10-11)
+      fst=fst.filter(function(s){ if(!s.teacher_id || (window.__wtOtOnly||{})[s.id]) return false;
+        if(remainOf(s.id)>1) return false; var lf=lastFut(s.id); return !lf || lf<=dueLimit; })
              .sort(function(a,b){ return (lastFut(a.id)-lastFut(b.id)) || (remainOf(a.id)-remainOf(b.id))
                                        || (a.name||'').localeCompare(b.name||'','ko'); });
     }
