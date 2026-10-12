@@ -5677,6 +5677,30 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <div id="bkLog" style="margin-top:14px"></div>
       </details>
 
+      <!-- 💼 다른 사업 수입·지출 (2026-10-12 원장님 「퍼펙트웹·통하는자소서 — 완벽한토익이랑 섞이지 않게」).
+           학원 수납(payments)과 다른 표 side_income. 원장·부원장만(서버 side_income_access). 앱 「다른 사업」과 같다. -->
+      <details class="dash-form" id="sdWrap" style="margin-top:12px;display:none">
+        <summary style="cursor:pointer;font-weight:800;font-size:14.5px">💼 다른 사업 (퍼펙트웹 · 통하는자소서)
+          <span class="wa-hint" style="font-weight:600">학원 매출·정산에는 안 들어갑니다</span></summary>
+        <div class="dash-row" style="margin-top:12px">
+          <label>구분<select id="sdKind"><option value="income">수입</option><option value="expense">지출</option></select></label>
+          <label>사업<select id="sdBizName"><option>퍼펙트웹</option><option>통하는자소서</option></select></label>
+          <label>사업자<select id="sdBiz"><option value="">— 사업자 고르기 —</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option></select></label>
+          <label>날짜<input type="date" id="sdDate"></label>
+        </div>
+        <div class="dash-row">
+          <label>누구·어디에<input type="text" id="sdClient" placeholder="숨쉼 상담센터 · 마승우 · 크몽"></label>
+          <label>무엇<input type="text" id="sdItem" placeholder="유지관리 1년 · 대한항공 자소서"></label>
+          <label>금액(원)<input type="number" id="sdAmt" min="0" step="1000" placeholder="120000"></label>
+          <label>방법<input type="text" id="sdMethod" placeholder="계좌이체 · 카드 · 크몽"></label>
+          <label style="flex:2">메모<input type="text" id="sdMemo" placeholder="선택"></label>
+        </div>
+        <p class="wa-err" id="sdErr"></p>
+        <button class="btn btn-primary" id="sdAdd" type="button">넣기</button>
+        <div class="dash-row" style="margin-top:12px"><label>보는 달<input type="month" id="sdMonth"></label></div>
+        <div id="sdList" style="margin-top:8px"></div>
+      </details>
+
       <div class="dash-list-head" id="sumHead">💰 수납 집계 <span style="font-weight:700;font-size:12px;color:var(--muted)">결제일 기준</span></div>
       <div class="dash-form" style="margin-top:6px" id="sumForm">
         <div class="dash-row">
@@ -13495,11 +13519,72 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     $('bkNewName').value=''; $('bkNewPrice').value='';
     await bkLoad();
   };
+  // ── 💼 다른 사업 (2026-10-12) ──
+  var _sdOk=null;
+  async function sdSync(){
+    var w=$('sdWrap'); if(!w || !sb || !profile){ if(w) w.style.display='none'; return; }
+    if(_sdOk===null){ try{ var r=await sb.rpc('can_side_income'); _sdOk=!r.error && r.data===true; }catch(e){ _sdOk=false; } }
+    w.style.display=_sdOk?'':'none';
+    if(_sdOk){
+      if($('sdDate') && !$('sdDate').value) $('sdDate').value=kymd();
+      if($('sdMonth') && !$('sdMonth').value) $('sdMonth').value=kymd().slice(0,7);
+    }
+  }
+  async function sdLoad(){
+    if(!_sdOk) return;
+    var m=$('sdMonth').value||kymd().slice(0,7);
+    var y=parseInt(m.slice(0,4),10), mo=parseInt(m.slice(5,7),10);
+    var to=new Date(Date.UTC(y,mo,1)).toISOString().slice(0,10);
+    var r=await sb.from('side_income').select('*').gte('paid_on',m+'-01').lt('paid_on',to).order('paid_on',{ascending:false});
+    var box=$('sdList'); if(!box) return;
+    if(r.error){ box.innerHTML='<div class="dash-note">불러오지 못했습니다. '+esc(r.error.message)+'</div>'; return; }
+    var rows=r.data||[];
+    var BZ={wanto:'김태완',ajlabs:'이창희'}, TN={'퍼펙트웹':'#8974FB','통하는자소서':'#e8590c'};
+    var sum=function(list,k){ return list.filter(function(x){return x.kind===k;}).reduce(function(t,x){return t+(x.amount||0);},0); };
+    var inc=sum(rows,'income'), exp=sum(rows,'expense');
+    var h='<div class="pr-sum"><div class="pr-sum-row pr-sum-key"><span>'+esc(m)+' 수입</span><b style="color:#0f7a52">'+won(inc)+'</b></div>'
+        + '<div class="pr-sum-row"><span>지출</span><b style="color:#c0342b">'+won(exp)+'</b></div>'
+        + '<div class="pr-sum-row pr-sum-key"><span>남은 돈</span><b>'+won(inc-exp)+'</b></div>'
+        + ['퍼펙트웹','통하는자소서'].map(function(b){ var l=rows.filter(function(x){return x.biz_name===b;}); return '<div class="pr-sum-row"><span>'+b+'</span><span>수입 '+won(sum(l,'income'))+' · 지출 '+won(sum(l,'expense'))+'</span></div>'; }).join('')
+        + '</div>';
+    if(rows.length){
+      h+='<div class="dash-wrap" style="margin-top:10px"><table class="dash-table"><tr><th>날짜</th><th>사업</th><th>사업자</th><th>구분</th><th>누구·어디에</th><th>무엇</th><th>금액</th><th>방법</th><th>메모</th><th></th></tr>';
+      rows.forEach(function(x){
+        h+='<tr><td>'+esc(x.paid_on)+'</td><td><b style="color:'+(TN[x.biz_name]||'#555')+'">'+esc(x.biz_name)+'</b></td><td>'+esc(BZ[x.biz]||'-')+'</td><td>'+(x.kind==='expense'?'<b style="color:#c0342b">지출</b>':'수입')+'</td><td>'+esc(x.client||'')+'</td><td>'+esc(x.item||'')+'</td><td>'+(x.kind==='expense'?'−':'')+won(x.amount||0)+'</td><td>'+esc(x.method||'')+'</td><td>'+esc(x.memo||'')+'</td><td><a class="wa-link" data-sddel="'+x.id+'">지우기</a></td></tr>';
+      });
+      h+='</table></div>';
+    } else h+='<div class="dash-note" style="margin-top:8px">'+esc(m)+' 에 넣은 게 없습니다.</div>';
+    box.innerHTML=h;
+    box.querySelectorAll('[data-sddel]').forEach(function(a){ a.onclick=async function(){
+      if(!confirm('이 줄을 지울까요?')) return;
+      var d=await sb.from('side_income').delete().eq('id',this.getAttribute('data-sddel'));
+      if(d.error){ alert('지우지 못했습니다: '+d.error.message); return; }
+      sdLoad();
+    }; });
+  }
+  if($('sdWrap')) $('sdWrap').addEventListener('toggle', function(){ if(this.open) sdLoad(); });
+  if($('sdMonth')) $('sdMonth').addEventListener('change', sdLoad);
+  if($('sdAdd')) $('sdAdd').onclick=async function(){
+    var err=$('sdErr'); err.textContent='';
+    var amt=parseInt($('sdAmt').value,10)||0;
+    if(amt<=0){ err.textContent='금액을 넣어주세요.'; return; }
+    if(!$('sdBiz').value){ err.textContent='사업자를 골라주세요. (김태완 / 이창희)'; return; }
+    var row={ kind:$('sdKind').value, biz_name:$('sdBizName').value, biz:$('sdBiz').value,
+      client:($('sdClient').value.trim()||null), item:($('sdItem').value.trim()||null), amount:amt,
+      method:($('sdMethod').value.trim()||null), paid_on:($('sdDate').value||kymd()), memo:($('sdMemo').value.trim()||null) };
+    var r=await sb.from('side_income').insert(row);
+    if(r.error){ err.textContent='넣지 못했습니다: '+r.error.message; return; }
+    ['sdClient','sdItem','sdAmt','sdMethod','sdMemo'].forEach(function(id){ $(id).value=''; });
+    $('sdMonth').value=row.paid_on.slice(0,7);
+    sdLoad();
+  };
+  window.addEventListener('wt-auth', function(){ _sdOk=null; try{ sdSync(); }catch(e){} });
   function exSyncBox(){
     var w = $('exWrap'); if(!w) return false;
     var ok = exCanSee();
     w.style.display = ok ? '' : 'none';
     if($('bkWrap')) $('bkWrap').style.display = ok ? '' : 'none';   // 교재 재고도 원장·실장만
+    try{ sdSync(); }catch(e){}                                       // 다른 사업은 원장·부원장만(서버가 판단)
     // 처음 열 때 날짜·정산월을 미리 채워 둔다. 매번 고르게 하면 안 쓰게 된다.
     if(ok && $('exMonth') && !$('exMonth').value){
       $('exMonth').value = ($('pyMonth') && $('pyMonth').value) || kymd().slice(0,7);
