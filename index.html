@@ -11747,12 +11747,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function minsFromStart(iso){ var d=kwall(iso); return (d.getHours()-DAY_START)*60 + d.getMinutes(); }
   // 폼에 적은 시각은 언제나 서울 기준이다. 기기 시간대를 따라가면 해외에서 수업이 밀린다.
   function slotISO(dstr, t){ return kISO(dstr, t); }
+  // 겹치는 수업 놓기 (2026-10-12 원장님 시안 B 「나눠서 표시하지 말고 겹쳐서」, 앱 RoomBoard 와 같다).
+  //   시작 시각이 같은 수업(2:1·합반)만 옆으로 나누고, 시작이 다르면 전체 폭으로 포갠 뒤
+  //   나중 수업에 「○분 겹침」을 단다(앞 수업과 겹친 분).
   function layoutDay(evs){
     evs.sort(function(a,b){ return a.__st-b.__st || a.__en-b.__en; });
-    var cluster=[], curEnd=-1;
-    function flush(){ var lanes=[]; cluster.forEach(function(s){ var ln=0; while(lanes[ln]!=null && lanes[ln]>s.__st) ln++; lanes[ln]=s.__en; s.__lane=ln; }); cluster.forEach(function(s){ s.__lanes=lanes.length; }); cluster=[]; curEnd=-1; }
-    evs.forEach(function(s){ if(cluster.length && s.__st>=curEnd) flush(); cluster.push(s); curEnd=Math.max(curEnd,s.__en); });
-    if(cluster.length) flush();
+    var byStart={};
+    evs.forEach(function(s){ (byStart[s.__st]=byStart[s.__st]||[]).push(s); });
+    Object.keys(byStart).forEach(function(k){ var g=byStart[k]; g.forEach(function(s,i){ s.__lane=i; s.__lanes=g.length; }); });
+    evs.forEach(function(s){
+      var ov=0;
+      evs.forEach(function(q){ if(q!==s && q.__st<s.__st) ov=Math.max(ov, Math.min(q.__en,s.__en)-s.__st); });
+      s.__ov = ov>0 ? Math.round(ov) : 0;
+    });
   }
   // 달력에 얹을 스터디를 그 기간만큼 읽는다.
   // 돌려주는 값: { '2026-08-15': { '3': 5, 'none': 5 } }  ← 날짜 → (강의장id 또는 'none') → 신청 인원
@@ -11900,7 +11907,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           var tip=hm(s.starts_at)+'~'+hm(s.ends_at)+' '+(s.subject||'')+' '+[s.teacher_name,s.student_name].filter(Boolean).join(' · ')
                 + (isOtLesson(s)?' · 사전 OT(차감 안 함)':'')
                 + (mark?' · '+lessonResultLabel(st):'')+' — 클릭하면 수정';
-          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+mark+subj+(who?who:'')+otTag+'</div>';
+          return '<div class="cal-ev" data-scid="'+esc(String(s.id))+'" data-stu="'+esc(s.student_name||'')+'" title="'+esc(tip)+'" style="'+dim+'top:'+top+'px;height:'+hgt+'px;left:calc('+left+'% + 1px);width:calc('+w+'% - 3px);background:'+col+'22;border-color:'+col+';border-left:3px solid '+col+'">'+(s.__ov?'<span style="float:right;font-size:10px;font-weight:800;color:'+col+';margin-left:4px">⇵ '+s.__ov+'분 겹침</span>':'')+mark+subj+(who?who:'')+otTag+'</div>';
         }).join('');
         // 주말 스터디(12~14시)를 이 칸에 얹는다. 수업이 아니라 학생들끼리 모이는 거라
         // 클릭해도 수업 수정 창이 뜨지 않게 data-scid 를 붙이지 않는다.
