@@ -5575,7 +5575,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                (2026-08-17 최소 횟수 제한 자체를 없앴다 — 4회만 끊는 학생도 있다.) -->
           <!-- 2026-08-25 「환불」을 뺐다(원장 지시). 아래 「🧾 환불 계산기」가 회차·강사 몫까지
                한 번에 처리하는데, 여기서 금액만 손으로 넣으면 그 계산을 건너뛰게 된다. -->
-          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option></select><select id="pyRentalItem" style="display:none"><option value="보증금">보증금</option><option value="월 대여료">월 대여료</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
+          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="book">책 판매</option></select><select id="pyBook" style="display:none"></select><input type="number" id="pyBookQty" min="1" value="1" style="display:none;width:70px" title="권수"><select id="pyRentalItem" style="display:none"><option value="보증금">보증금</option><option value="월 대여료">월 대여료</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"></label>
@@ -5654,6 +5654,27 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <p class="wa-ok" id="exOk" style="display:none"></p>
         <button class="btn btn-primary" id="exAdd" type="button">지출 추가</button>
         <div id="exList" style="margin-top:14px"></div>
+      </details>
+
+      <!-- 📚 교재 재고 (2026-10-12 원장님 「책 판매 칸 + 재고 파악」). 판매는 수납 → 「책 판매」로 넣으면 자동으로 빠진다.
+           여기선 입고·조정만. 앱 「교재 재고」와 같은 표(books · book_stock_log). -->
+      <details class="dash-form" id="bkWrap" style="margin-top:12px;display:none">
+        <summary style="cursor:pointer;font-weight:800;font-size:14.5px">📚 교재 재고
+          <span class="wa-hint" style="font-weight:600">판매는 수납에서 「책 판매」로 — 재고에서 자동으로 빠집니다</span></summary>
+        <div id="bkList" style="margin-top:12px"></div>
+        <div class="dash-row" style="margin-top:10px">
+          <label>책<select id="bkBook"></select></label>
+          <label>구분<select id="bkMode"><option value="입고">입고 (+)</option><option value="조정+">조정 더하기 (+)</option><option value="조정-">조정 빼기 (−)</option></select></label>
+          <label>권수<input type="number" id="bkQty" min="1" placeholder="10"></label>
+          <label style="flex:2">메모<input type="text" id="bkMemo" placeholder="인쇄소 입고 · 파손 1권 등"></label>
+        </div>
+        <button class="btn btn-primary" id="bkSave" type="button">재고 저장</button>
+        <div class="dash-row" style="margin-top:14px">
+          <label style="flex:2">새 책 이름<input type="text" id="bkNewName" placeholder="완벽한토익 Grammar All-in-One"></label>
+          <label>판매가(원)<input type="number" id="bkNewPrice" min="0" step="1000" placeholder="22000"></label>
+        </div>
+        <button class="btn" id="bkAdd" type="button">새 책 넣기</button>
+        <div id="bkLog" style="margin-top:14px"></div>
       </details>
 
       <div class="dash-list-head" id="sumHead">💰 수납 집계 <span style="font-weight:700;font-size:12px;color:var(--muted)">결제일 기준</span></div>
@@ -6140,7 +6161,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-sub" id="pyeStudent"></div>
     <div class="wa-form on" style="display:flex">
       <div class="wa-row pye-grid">
-        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="refund">환불</option></select></label>
+        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="book">책 판매</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
         <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"></label>
@@ -13433,10 +13454,52 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function exCanSee(){
     return !!(profile && (profile.role === 'master' || profile.role === 'manager'));
   }
+  // ── 📚 교재 재고 (2026-10-12) ──
+  async function bkLoad(){
+    if(!sb || !exCanSee()) return;
+    var r=await sb.from('books').select('id,name,price,stock,active').order('id');
+    var books=r.error?[]:(r.data||[]);
+    var nm={}; books.forEach(function(b){ nm[b.id]=b.name; });
+    if($('bkList')) $('bkList').innerHTML = books.length
+      ? '<div class="dash-wrap"><table class="dash-table"><tr><th>책</th><th>판매가</th><th>남은 권수</th></tr>'
+        + books.map(function(b){ return '<tr><td>'+esc(b.name)+'</td><td>'+won(b.price)+'</td><td><b style="'+(b.stock<=3?'color:#c0342b':'')+'">'+b.stock+'권</b>'+(b.stock<=3?' <span style="font-size:11px;color:#c0342b">얼마 안 남음</span>':'')+'</td></tr>'; }).join('')
+        + '</table></div>'
+      : '<div class="dash-note">등록된 책이 없습니다. 아래에서 새 책을 넣어 주세요.</div>';
+    if($('bkBook')) $('bkBook').innerHTML = books.map(function(b){ return '<option value="'+b.id+'">'+esc(b.name)+'</option>'; }).join('');
+    var lg=await sb.from('book_stock_log').select('book_id,delta,reason,memo,stock_after,created_at').order('created_at',{ascending:false}).limit(40);
+    var rows=lg.error?[]:(lg.data||[]);
+    if($('bkLog')) $('bkLog').innerHTML = rows.length
+      ? '<div style="font-weight:800;margin-bottom:6px">재고 기록</div><div class="dash-wrap"><table class="dash-table"><tr><th>날짜</th><th>구분</th><th>책</th><th>변화</th><th>남은 권수</th><th>메모</th></tr>'
+        + rows.map(function(x){ return '<tr><td>'+esc(kymd(x.created_at))+'</td><td>'+esc(x.reason)+'</td><td>'+esc(nm[x.book_id]||'')+'</td><td><b style="color:'+(x.delta>0?'#0f7a52':'#c0342b')+'">'+(x.delta>0?'+':'')+x.delta+'</b></td><td>'+(x.stock_after==null?'':x.stock_after+'권')+'</td><td>'+esc(x.memo||'')+'</td></tr>'; }).join('')
+        + '</table></div>'
+      : '';
+    window.__bkStale=true;   // 수납 칸의 책 목록도 다음에 새로 읽게
+  }
+  if($('bkWrap')) $('bkWrap').addEventListener('toggle', function(){ if(this.open) bkLoad(); });
+  if($('bkSave')) $('bkSave').onclick = async function(){
+    var id=parseInt($('bkBook').value,10), n=parseInt($('bkQty').value,10)||0, mode=$('bkMode').value;
+    if(!id){ alert('책을 골라주세요.'); return; }
+    if(n<=0){ alert('몇 권인지 적어주세요.'); return; }
+    var delta = mode==='조정-' ? -n : n;
+    var r=await sb.rpc('add_book_stock',{ p_book_id:id, p_delta:delta, p_reason:(mode==='입고'?'입고':'조정'), p_memo:($('bkMemo').value.trim()||null) });
+    if(r.error){ alert('저장하지 못했습니다: '+r.error.message); return; }
+    if(r.data && r.data.ok===false){ alert(r.data.msg||'저장하지 못했습니다.'); return; }
+    $('bkQty').value=''; $('bkMemo').value='';
+    await bkLoad();
+  };
+  if($('bkAdd')) $('bkAdd').onclick = async function(){
+    var name=($('bkNewName').value||'').trim(), price=parseInt($('bkNewPrice').value,10)||0;
+    if(!name){ alert('책 이름을 적어주세요.'); return; }
+    var r=await sb.from('books').insert({ name:name, price:price });
+    if(r.error){ alert('넣지 못했습니다: '+r.error.message); return; }
+    $('bkNewName').value=''; $('bkNewPrice').value='';
+    await bkLoad();
+  };
   function exSyncBox(){
     var w = $('exWrap'); if(!w) return false;
     var ok = exCanSee();
     w.style.display = ok ? '' : 'none';
+    if($('bkWrap')) $('bkWrap').style.display = ok ? '' : 'none';   // 교재 재고도 원장·실장만
     // 처음 열 때 날짜·정산월을 미리 채워 둔다. 매번 고르게 하면 안 쓰게 된다.
     if(ok && $('exMonth') && !$('exMonth').value){
       $('exMonth').value = ($('pyMonth') && $('pyMonth').value) || kymd().slice(0,7);
@@ -13600,7 +13663,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   // 강사에게 돈이 나가는 묶음인가. 담당 미지정('')과 스터디(학원 몫)는 아니다.
   // 태블릿 대여도 스터디처럼 전액 학원 몫(2026-09-23 원장님 — 보증금·대여료가 강사 정산에 들어가 있었다).
-  function isAcademyKey(k){ return k==='__study__' || k==='__rental__'; }
+  function isAcademyKey(k){ return k==='__study__' || k==='__rental__' || k==='__book__'; }
   function isTeacherKey(k){ return !!k && !isAcademyKey(k); }
   function renderPayroll(rows, month){
     var box=$('prBox'); if(!box) return;
@@ -13614,8 +13677,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     rows.forEach(function(p){
       // 스터디비용은 학원 몫이다. 강사 정산에 섞이면 안 되고,
       // 담당이 비어 있다고 '담당 빠뜨림' 경고에 잡혀서도 안 된다(원장 지적 2026-09-03).
-      var key=(p.kind==='study') ? '__study__' : (p.kind==='rental') ? '__rental__' : (p.teacher_id||'');
-      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':key==='__rental__'?'태블릿 대여 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, vat:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
+      var key=(p.kind==='study') ? '__study__' : (p.kind==='rental') ? '__rental__' : (p.kind==='book') ? '__book__' : (p.teacher_id||'');
+      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':key==='__rental__'?'태블릿 대여 (학원 몫)':key==='__book__'?'교재 판매 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, vat:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
       if(!isRefundSide(p)) groups[key].allRefund=false;
       var s=payShare(p);
       // 담당 미지정·스터디는 배분 자체를 안 하므로 '배분율 없음' 경고 대상이 아니다.
@@ -13976,6 +14039,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       // 스터디비용도 딱지를 붙인다 — 수업료와 섞여 보이면 매출을 잘못 읽는다.
       if(p.kind==='study') otTag = ' <span style="font-size:11px;font-weight:800;color:#0a6b4a;background:#e8f6ef;border-radius:5px;padding:2px 5px">스터디</span>';
       if(p.kind==='rental') otTag = ' <span style="font-size:11px;font-weight:800;color:#a85b12;background:#fbf3e8;border-radius:5px;padding:2px 5px">태블릿 대여</span>';
+      if(p.kind==='book') otTag = ' <span style="font-size:11px;font-weight:800;color:#6d28d9;background:#f1ebff;border-radius:5px;padding:2px 5px">책 판매</span>';
       if(dupIds[String(p.id)]) otTag += ' <span title="같은 학생·같은 금액이 3일 안에 또 있어요" style="font-size:11px;font-weight:800;color:#7a5b00;background:#fff3b0;border-radius:5px;padding:2px 5px">중복 의심</span>';
       // 사업자 딱지 (2026-09-29 · 10/1 결제부터 붙는다)
       if(p.biz) otTag += ' <span style="font-size:11px;font-weight:800;border-radius:5px;padding:2px 5px;'+(p.biz==='ajlabs'?'color:#6b21a8;background:#f3e8ff':'color:#154fbe;background:#eaf1fe')+'">'+(p.biz==='ajlabs'?'이창희':'김태완')+'</span>';
@@ -14125,16 +14189,44 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('pyTeacher')) $('pyTeacher').onchange=function(){ syncPayRate(); pyBizSync(); drawPayPreview(); };
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
   // 구분에서 '사전 OT' 를 고르면 6만원 1회를 미리 채워 준다. 매번 손으로 적지 않게.
+  // ── 책 판매 (2026-10-12 원장님 「책 판매 칸 + 재고 파악」) ──
+  var _books=null;
+  async function pyBookLoad(){
+    if((_books && !window.__bkStale) || !sb) return _books||[];
+    window.__bkStale=false;
+    var r=await sb.from('books').select('id,name,price,stock,active').eq('active',true).order('id');
+    _books = r.error ? [] : (r.data||[]);
+    var sel=$('pyBook');
+    if(sel) sel.innerHTML = _books.length ? _books.map(function(b){ return '<option value="'+b.id+'">'+esc(b.name)+' · '+won(b.price)+' · 재고 '+b.stock+'권</option>'; }).join('')
+                                          : '<option value="">등록된 책 없음 — 교재 재고에서 먼저 넣기</option>';
+    return _books;
+  }
+  function pyBookFill(){
+    if(!$('pyKind') || $('pyKind').value!=='book') return;
+    var b=(_books||[]).filter(function(x){ return String(x.id)===String($('pyBook')&&$('pyBook').value); })[0];
+    var q=Math.max(1, parseInt($('pyBookQty')&&$('pyBookQty').value,10)||1);
+    if(b && $('pyAmount')) $('pyAmount').value = b.price*q;
+    if($('pyBiz')) $('pyBiz').value='wanto';
+    drawPayPreview();
+  }
+  if($('pyBook')) $('pyBook').addEventListener('change', pyBookFill);
+  if($('pyBookQty')) $('pyBookQty').addEventListener('input', pyBookFill);
   if($('pyKind')) $('pyKind').addEventListener('change', function(){
     // 태블릿 대여: 보증금/월 대여료 선택칸을 보이고, 회차칸은 잠근다(수업이 아니라서).
     var isRent = this.value==='rental';
     if($('pyRentalItem')) $('pyRentalItem').style.display = isRent ? '' : 'none';
+    // 책 판매 (2026-10-12): 책·권수 칸을 보이고 금액을 정가×권수로, 사업자는 학원(김태완)으로.
+    var isBook = this.value==='book';
+    if($('pyBook')) $('pyBook').style.display = isBook ? '' : 'none';
+    if($('pyBookQty')) $('pyBookQty').style.display = isBook ? '' : 'none';
+    if(isBook){ pyBookLoad().then(pyBookFill); }
     var sc=$('pySessions'); if(sc){ sc.disabled=isRent; if(isRent) sc.value=''; }
     // 스터디·태블릿 대여 = 학원 몫 → 담당 강사·배분율·원천징수 칸을 비우고 잠근다(2026-09-23 원장님).
-    var isAcad = isRent || this.value==='study';
+    var isAcad = isRent || isBook || this.value==='study';
     ['pyTeacher','pyRate','pyWithhold'].forEach(function(id){ var el=$(id); if(!el) return; el.disabled=isAcad; if(isAcad) el.value=''; });
     // 다시 수납·OT 로 바꾸면 학생 담당쌤·배분율을 도로 채운다
     if(!isAcad && $('pyTeacher') && !$('pyTeacher').value && typeof syncPayTeacher==='function') syncPayTeacher();
+    if(isBook){ var sc2=$('pySessions'); if(sc2){ sc2.disabled=true; sc2.value=''; } drawPayPreview(); return; }
     if(isRent){
       var it=$('pyRentalItem')?$('pyRentalItem').value:'태블릿 대여';
       if($('pyMemo') && !$('pyMemo').value) $('pyMemo').value=it;
@@ -14249,7 +14341,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
     var kv=$('pyKind')?$('pyKind').value:'payment';
     // 아는 종류면 그대로 쓴다. 모르는 값이 오면 수납으로 본다.
-    var kind=(['refund','ot','study','rental'].indexOf(kv)>=0)?kv:'payment';
+    var kind=(['refund','ot','study','rental','book'].indexOf(kv)>=0)?kv:'payment';
     // 환불은 돌려준 횟수만큼 남은 횟수에서 빼야 한다(원장 지시 2026-08-18).
     // 전에는 0으로 지웠는데, 그러면 결제 때 더한 횟수가 그대로 남는다.
     // 2026-08-18 김지영 건 — 오티 1회를 환불했는데 횟수가 안 빠져서, 나중에 정규 등록을
@@ -14264,11 +14356,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     // 🚨 태블릿 대여는 학원 몫이다 — 강사 칸에 학생 담당쌤이 자동으로 채워져 있어도 비운다(2026-09-23 원장님 지적:
     //    김예진 보증금·대여료가 이창희 정산 100% 로 들어가 있었다).
-    if(kind==='rental'||kind==='study') tid='';   // 스터디도 학원 몫(2026-09-23 원장님)
+    if(kind==='rental'||kind==='study'||kind==='book') tid='';   // 스터디·책 판매도 학원 몫
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ err.textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
-    if(!tid && kind!=='rental' && kind!=='study' && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
+    if(!tid && kind!=='rental' && kind!=='study' && kind!=='book' && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
     // 횟수권을 빠뜨리면 학생의 남은 수업 횟수가 안 올라가는데, 화면에는 아무 표시가 없어
     // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
     if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
@@ -14279,6 +14371,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         + '지금 '+sessions+'회로 되어 있어요. 이대로 저장할까요?')) return;
     // 스터디비용은 수업 횟수와 상관없다. 회차 계산도 payment·ot 만 세므로 남은 횟수에 영향이 없다.
     if(kind==='study') sessions=0;
+    // 책 판매: 어떤 책 몇 권 — 재고는 서버 트리거가 깎는다. 메모 앞에 책 이름·권수.
+    var bookId=null, bookQty=null;
+    if(kind==='book'){
+      sessions=0;
+      bookId=parseInt($('pyBook')&&$('pyBook').value,10)||null;
+      bookQty=Math.max(1, parseInt($('pyBookQty')&&$('pyBookQty').value,10)||1);
+      if(!bookId){ err.textContent='어떤 책을 팔았는지 골라주세요.'; return; }
+      var bk=(_books||[]).filter(function(x){ return x.id===bookId; })[0];
+      var mm1=($('pyMemo').value||'').trim(), tag=(bk?bk.name:'책')+' '+bookQty+'권';
+      if(mm1.indexOf(tag)!==0) $('pyMemo').value = tag + (mm1?(' · '+mm1):'');
+    }
     // 태블릿 대여도 수업 횟수와 무관 → 0. 메모 앞에 보증금/월 대여료를 붙여 구분한다.
     if(kind==='rental'){
       sessions=0;
@@ -14295,7 +14398,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var recv=amount + (vat3On()?0:(parseInt($('pyVat')?$('pyVat').value:'',10)||0));
       var unit=(sessions>0 && (kind==='payment'||kind==='ot')) ? Math.round(recv/sessions) : null;
       var odd=(unit!=null && (unit<45000 || unit>85000));
-      var kindKo2={payment:'수납',ot:'사전 OT',study:'스터디',rental:'태블릿 대여'}[kind]||'수납';
+      var kindKo2={payment:'수납',ot:'사전 OT',study:'스터디',rental:'태블릿 대여',book:'책 판매'}[kind]||'수납';
       var bizKo=($('pyBiz')&&$('pyBiz').value==='ajlabs')?'이창희 사업자':'김태완 사업자';
       var v3=vat3On()?vat3Split(amount):null;
       var line=student.name+' · '+kindKo2+(sessions?(' · '+sessions+'회'):'')+' · 받은 돈 '+won(recv)
@@ -14317,10 +14420,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       card_fee_rate:(cardFeeRate(mth)||null),
       teacher_id:(tid||null), teacher_name:(teacher?teacher.name:null), pay_rate:(tid?rate:null), withhold_rate:(tid?wh:null), kind:kind,
       biz:(($('pyBiz')&&$('pyBiz').value)||null) };
+    if(kind==='book'){ payload.book_id=bookId; payload.book_qty=bookQty; }
     var dup=await findSimilarPayment(student.id, amount, kind, payload.paid_at);
     if(dup){
       var who=((_members||[]).filter(function(m){return m.id===dup.admin_id;})[0]||{}).name;
-      var kindKo={payment:'수납',ot:'사전 OT',study:'스터디',rental:'태블릿 대여',refund:'환불'}[kind]||'수납';
+      var kindKo={payment:'수납',ot:'사전 OT',study:'스터디',rental:'태블릿 대여',book:'책 판매',refund:'환불'}[kind]||'수납';
       if(!confirm('⚠️ 비슷한 수납이 이미 있어요\n\n'+student.name+' · '+won(amount)+' · '+kindKo+'\n결제일 '+dup.paid_at+(dup.method?' · '+dup.method:'')+(who?' · '+who+' 입력':'')+'\n\n같은 돈을 두 번 넣는 건 아닌지 확인해 주세요.\n그래도 등록할까요?')) return;
     }
     var r=await sb.from('payments').insert(payload);
@@ -14373,7 +14477,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     editingPayId=p.id;
     if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
     if($('pyeKind')){
-      $('pyeKind').value=(['refund','ot','study','rental'].indexOf(p.kind)>=0)?p.kind:'payment';
+      $('pyeKind').value=(['refund','ot','study','rental','book'].indexOf(p.kind)>=0)?p.kind:'payment';
       // 이미 환불인 줄은 그대로 고칠 수 있어야 하지만, 멀쩡한 수납을 여기서 환불로
       // 바꾸는 길은 막는다. 새 환불은 환불 계산기로만 만든다(2026-08-25 원장 지시).
       var _ro=$('pyeKind').querySelector('option[value="refund"]');
@@ -14450,12 +14554,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
     var sessions=parseInt($('pyeSessions').value,10)||0;
     var ekv=$('pyeKind')?$('pyeKind').value:'payment';
-    var ekind=(['refund','ot','study','rental'].indexOf(ekv)>=0)?ekv:'payment';
+    var ekind=(['refund','ot','study','rental','book'].indexOf(ekv)>=0)?ekv:'payment';
     if(ekind==='refund') sessions=-Math.abs(sessions);   // 등록 폼과 같은 규칙(2026-08-18)
-    if(ekind==='study'||ekind==='rental') sessions=0;    // 수업 횟수와 무관
+    if(ekind==='study'||ekind==='rental'||ekind==='book') sessions=0;    // 수업 횟수와 무관
     // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
-    if(ekind==='rental'||ekind==='study') tid='';   // 스터디·태블릿 대여 = 학원 몫(등록 폼과 같은 규칙)
+    if(ekind==='rental'||ekind==='study'||ekind==='book') tid='';   // 스터디·태블릿 대여·책 판매 = 학원 몫(등록 폼과 같은 규칙)
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
