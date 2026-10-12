@@ -5642,7 +5642,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             <option>세금</option><option>수수료</option><option>기타</option></select></label>
           <label>금액(원)<input type="number" id="exAmt" min="0" step="1000" placeholder="예: 1430000"></label>
           <label>정산 월<input type="month" id="exMonth"></label>
-          <label>사업자<select id="exBiz"><option value="">— 사업자 고르기 —</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option><option value="common">공통 (두 사업자)</option></select></label>
+          <label>사업자<select id="exBiz"><option value="">— 사업자 고르기 —</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option></select></label>
         </div>
         <div class="dash-row">
           <label>어디에<input type="text" id="exVendor" placeholder="건물주 · 네이버 · 쿠팡 …"></label>
@@ -13458,20 +13458,40 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var rows = r.data || [];
     if(!rows.length){ box.innerHTML = '<div class="dash-note">' + esc(m) + ' 에 적힌 지출이 없습니다.</div>'; return; }
     var tot = rows.reduce(function(s, x){ return s + (x.amount || 0); }, 0);
-    var h = '<div class="dash-wrap"><table class="dash-table"><tr><th>쓴 날</th><th>분류</th><th>어디에</th>'
-          + '<th>금액</th><th>결제</th><th>메모</th><th></th></tr>';
-    rows.forEach(function(x){
-      // data-l 은 좁은 화면에서 칸 이름을 앞에 찍는 데 쓴다(표 머리글이 숨으므로).
-      h += '<tr><td data-l="쓴 날" class="ex-date">' + esc(x.spent_on || '') + '</td>'
-         + '<td data-l="분류" class="ex-cat">' + esc(x.category || '') + '</td>'
-         + '<td data-l="어디에" class="ex-who">' + esc(x.vendor || '-') + '</td>'
-         + '<td data-l="금액" class="ex-amt">' + won(x.amount || 0) + '</td>'
-         + '<td data-l="결제" class="ex-pay">' + esc(x.method || '-') + '</td>'
-         + '<td data-l="메모" class="ex-memo">' + esc(x.memo || '') + '</td>'
-         + '<td class="ex-del"><a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>';
+    // 2026-10-12 원장님 「창희 사업자로 어떤 거 얼마, 태완 사업자로 어떤 거 얼마 구분 + 전체로도」(앱 시안 B와 같다).
+    //   공통은 없앴다. 예전에 사업자 안 적은 기록은 있을 때만 「사업자 미지정」으로 따로.
+    var GROUPS = [['wanto','김태완 사업자','#2f6be8'],['ajlabs','이창희 사업자','#16a34a'],['none','사업자 미지정 (예전 기록)','#9aa3b2']];
+    var keyOf = function(x){ return (x.biz === 'wanto' || x.biz === 'ajlabs') ? x.biz : 'none'; };
+    var parts = GROUPS.map(function(g){
+      var it = rows.filter(function(x){ return keyOf(x) === g[0]; });
+      return { key:g[0], label:g[1], tone:g[2], items:it, total: it.reduce(function(s, x){ return s + (x.amount || 0); }, 0) };
+    }).filter(function(g){ return g.key !== 'none' || g.items.length; });
+    var h = '<div class="pr-sum" style="margin-bottom:10px"><div class="pr-sum-row pr-sum-key"><span>' + esc(m) + ' 전체 지출</span><b>' + won(tot) + '</b></div>'
+          + '<div style="font-size:12.5px;color:var(--muted);margin-top:2px">' + parts.map(function(g){ return esc(g.label.replace(' 사업자','').replace(' (예전 기록)','')) + ' ' + won(g.total); }).join(' · ') + '</div></div>';
+    parts.forEach(function(g){
+      var cats = {};
+      g.items.forEach(function(x){ var c = x.category || '기타'; cats[c] = (cats[c] || 0) + (x.amount || 0); });
+      var catLine = Object.keys(cats).sort(function(a, b){ return cats[b] - cats[a]; })
+                      .map(function(c){ return esc(c) + ' ' + won(cats[c]); }).join(' · ');
+      h += '<div style="border-left:5px solid ' + g.tone + ';padding:8px 0 4px 12px;margin:14px 0 6px">'
+         + '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b style="font-size:15px">' + esc(g.label) + ' <span style="font-weight:600;color:var(--muted);font-size:12px">' + g.items.length + '건</span></b>'
+         + '<b style="font-size:17px">' + won(g.total) + '</b></div>'
+         + (catLine ? '<div style="font-size:12.5px;color:var(--muted);margin-top:3px">' + catLine + '</div>' : '') + '</div>';
+      if(!g.items.length) return;
+      h += '<div class="dash-wrap"><table class="dash-table"><tr><th>쓴 날</th><th>분류</th><th>어디에</th>'
+         + '<th>금액</th><th>결제</th><th>메모</th><th></th></tr>';
+      g.items.forEach(function(x){
+        // data-l 은 좁은 화면에서 칸 이름을 앞에 찍는 데 쓴다(표 머리글이 숨으므로).
+        h += '<tr><td data-l="쓴 날" class="ex-date">' + esc(x.spent_on || '') + '</td>'
+           + '<td data-l="분류" class="ex-cat">' + esc(x.category || '') + '</td>'
+           + '<td data-l="어디에" class="ex-who">' + esc(x.vendor || '-') + '</td>'
+           + '<td data-l="금액" class="ex-amt">' + won(x.amount || 0) + '</td>'
+           + '<td data-l="결제" class="ex-pay">' + esc(x.method || '-') + '</td>'
+           + '<td data-l="메모" class="ex-memo">' + esc(x.memo || '') + '</td>'
+           + '<td class="ex-del"><a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>';
+      });
+      h += '</table></div>';
     });
-    h += '</table></div><div class="pr-sum"><div class="pr-sum-row pr-sum-key">'
-       + '<span>' + esc(m) + ' 지출 합계</span><b>' + won(tot) + '</b></div></div>';
     box.innerHTML = h;
     box.querySelectorAll('[data-exdel]').forEach(function(a){
       a.onclick = async function(){
@@ -13499,7 +13519,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!m){ say('정산 월을 골라주세요.'); return; }
     if(!(amt > 0)){ say('금액을 넣어주세요.'); return; }
     // 🚨 사업자를 안 고르면 저장하지 않는다 (2026-09-29 원장님)
-    if($('exBiz') && !$('exBiz').value){ say('사업자를 골라주세요. (김태완 / 이창희 / 공통)'); $('exBiz').focus(); return; }
+    if($('exBiz') && !$('exBiz').value){ say('사업자를 골라주세요. (김태완 / 이창희)'); $('exBiz').focus(); return; }
     var btn = this; btn.disabled = true;
     try{
       var r = await sb.from('expenses').insert({
@@ -14514,10 +14534,6 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     //    서버 sessions_left / sessions_left_done 과 같은 기준이어야 화면과 알림이 어긋나지 않는다.
     var hasPass={};
     pays.forEach(function(p){ if((p.sessions||0)>0 && (p.kind||'payment')!=='ot') hasPass[p.student_id]=true; });
-    // 사전 OT 만 내고 정규 등록 안 한 학생 — 곧 결제에서 뺀다 (2026-10-11 원장님 「정규 수업 등록된 애들만」)
-    var otOnly={};
-    pays.forEach(function(p){ if((p.kind||'payment')==='ot' && !hasPass[p.student_id]) otOnly[p.student_id]=true; });
-    window.__wtOtOnly=otOnly;
     pays.forEach(function(p){
       if(!p.sessions) return;
       if((p.kind||'payment')==='ot' && !hasPass[p.student_id]) return;
@@ -14960,16 +14976,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var byName=function(list){ return q?list.filter(function(s){return (s.name||'').toLowerCase().indexOf(q)>=0;}):list; };
     var fst=byName(live), fend=byName(done);
     // 곧 결제 탭이면 남은 1회 이하만, 급한 순(적은 것 먼저 -> 이름) (2026-09-16).
-    // 🚨 2026-10-11 원장님 「곧 결제는 횟수 말고 날짜 기준」 — 미리 다 잡아 둔 학생은
-    //    마지막으로 잡힌 수업이 7일 안으로 올 때만 뜬다(잡힌 수업 없으면 바로). 앱 lib/paymentdue dueByDate 와 같다.
     if(window.__attTab!=='all'){
-      var lastFut=function(id){ var L=(window.__wtLessons||{})[id]||[], now=Date.now(), m=0;
-        L.forEach(function(x){ if(x.t>now && x.t>m) m=x.t; }); return m; };
-      var dueLimit=Date.now()+7*864e5;
-      // 정규 등록된 학생만 — 담당 없음(가입만)·사전 OT 만 낸 학생은 뺀다 (2026-10-11)
-      fst=fst.filter(function(s){ if(!s.teacher_id || (window.__wtOtOnly||{})[s.id]) return false;
-        if(remainOf(s.id)>1) return false; var lf=lastFut(s.id); return !lf || lf<=dueLimit; })
-             .sort(function(a,b){ return (lastFut(a.id)-lastFut(b.id)) || (remainOf(a.id)-remainOf(b.id))
+      fst=fst.filter(function(s){ return remainOf(s.id)<=1; })
+             .sort(function(a,b){ return (remainOf(a.id)-remainOf(b.id))
                                        || (a.name||'').localeCompare(b.name||'','ko'); });
     }
     var adjSum=window.__wtAdjSum||{};
