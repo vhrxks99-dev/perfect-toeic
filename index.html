@@ -13745,11 +13745,58 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     await prBizInfo(bz);
     // 학원 몫에서 뺄 지출을 먼저 구해 둔다. 선생님이면 0 이 돌아온다(못 본다).
     _exTotal = await exSumOf(month);
+    // 미리 정산 (2026-10-13 원장님, 앱과 같음) — 서버가 원장은 전부, 선생님은 자기 것만 준다
+    _prAdv = [];
+    try{ var ra=await sb.from('payroll_advances').select('*').eq('month',month).order('paid_on'); if(!ra.error&&ra.data) _prAdv=ra.data; }catch(e){}
     renderPayroll(rows, month);
     if(_exCommon && $('prBox')) $('prBox').insertAdjacentHTML('beforeend','<div class="ps-warn">※ 「공통」으로 넣은 지출 '+won(_exCommon)+'은 사업자별 화면에서 빼지 않았습니다. 전체 화면에서 보입니다.</div>');
   }
   // 강사에게 돈이 나가는 묶음인가. 담당 미지정('')과 스터디(학원 몫)는 아니다.
   // 태블릿 대여도 스터디처럼 전액 학원 몫(2026-09-23 원장님 — 보증금·대여료가 강사 정산에 들어가 있었다).
+  var _prAdv = [];
+  function prPayDay(month){ var m=parseInt(month.slice(5,7),10); return (m===12?1:m+1)+'/10'; }
+  // 지급표: 선생님별 정산 − 미리 정산 = 다음 달 10일 지급 (2026-10-13 원장님 「김태완 미리 300만원」)
+  function prAdvHtml(groups, order, month){
+    var adv=_prAdv||[]; var pd=prPayDay(month);
+    var rows=order.filter(isTeacherKey).map(function(k){ return {id:k, name:groups[k].name, net:groups[k].net}; });
+    adv.forEach(function(a){ if(!rows.some(function(r){return r.id===a.teacher_id;})) rows.push({id:a.teacher_id, name:a.teacher_name||'(이름 없음)', net:0}); });
+    if(!profile || profile.role!=='master') rows=rows.filter(function(r){ return adv.some(function(a){return a.teacher_id===r.id;}); });
+    var master = profile && profile.role==='master';
+    if(!rows.length && !master) return '';
+    var advOf=function(id){ return adv.filter(function(a){return a.teacher_id===id;}).reduce(function(n,a){return n+(a.amount||0);},0); };
+    var h='<div class="pr-card" style="margin-top:12px"><div class="pr-top"><div class="pr-name">'+pd+' 지급표 (미리 정산 뺀 금액)</div></div>'
+      + '<div class="dash-wrap"><table class="dash-table"><tr><th>선생님</th><th>정산</th><th>미리 정산</th><th>'+pd+' 지급</th></tr>';
+    rows.forEach(function(r){ var a=advOf(r.id);
+      h+='<tr'+(a?' style="background:#fff6e6"':'')+'><td><b>'+esc(r.name)+'</b></td><td>'+won(r.net)+'</td><td'+(a?' style="color:#c0342b"':'')+'>'+(a?'−'+won(a):'0')+'</td><td><b>'+won(Math.max(0,r.net-a))+'</b></td></tr>'; });
+    h+='</table></div>';
+    adv.forEach(function(a){ h+='<div class="dash-note">'+esc(a.teacher_name||'')+' · '+esc(a.paid_on)+' 미리 정산 −'+won(a.amount)+(a.memo?' · '+esc(a.memo):'')+(master?' <a class="wa-link" data-advdel="'+a.id+'">지우기</a>':'')+'</div>'; });
+    if(master){
+      h+='<div class="dash-row" style="margin-top:8px"><label>선생님<select id="advT"><option value="">— 고르기 —</option>'
+        + rows.map(function(r){ return '<option value="'+esc(r.id)+'" data-n="'+esc(r.name)+'">'+esc(r.name)+'</option>'; }).join('')
+        + '</select></label><label>금액(원)<input type="number" id="advAmt" min="0" step="10000" placeholder="3000000"></label>'
+        + '<label>준 날<input type="date" id="advDay" value="'+kymd()+'"></label><label style="flex:2">메모<input type="text" id="advMemo" placeholder="선택"></label></div>'
+        + '<p class="wa-err" id="advErr"></p><button class="btn btn-primary" id="advAdd" type="button">+ 미리 정산 넣기</button>'
+        + '<div class="dash-note">'+parseInt(month.slice(5),10)+'월 정산('+pd+' 지급)에서 뺍니다 · 학원 지출에는 안 들어가요(두 번 빠지지 않게)</div>';
+    }
+    return h+'</div>';
+  }
+  function prAdvBind(month){
+    var b=$('advAdd'); if(b) b.onclick=async function(){
+      var err=$('advErr'); err.textContent='';
+      var sel=$('advT'); var amt=parseInt($('advAmt').value,10)||0;
+      if(!sel.value){ err.textContent='선생님을 골라주세요.'; return; }
+      if(amt<=0){ err.textContent='금액을 넣어주세요.'; return; }
+      var r=await sb.from('payroll_advances').insert({ teacher_id:sel.value, teacher_name:sel.options[sel.selectedIndex].getAttribute('data-n'), month:month, amount:amt, paid_on:($('advDay').value||kymd()), memo:($('advMemo').value.trim()||null) });
+      if(r.error){ err.textContent='넣지 못했습니다: '+r.error.message; return; }
+      loadPayroll();
+    };
+    document.querySelectorAll('[data-advdel]').forEach(function(a){ a.onclick=async function(){
+      if(!confirm('이 미리 정산을 지울까요?')) return;
+      var d=await sb.from('payroll_advances').delete().eq('id',this.getAttribute('data-advdel'));
+      if(d.error){ alert('지우지 못했습니다: '+d.error.message); return; }
+      loadPayroll();
+    }; });
+  }
   function isAcademyKey(k){ return k==='__study__' || k==='__rental__' || k==='__book__'; }
   function isTeacherKey(k){ return !!k && !isAcademyKey(k); }
   function renderPayroll(rows, month){
@@ -13909,7 +13956,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(unassigned>0) h+='<div class="ps-warn">⚠ 담당 강사가 지정되지 않은 수납이 '+unassignedCnt+'건('+won(unassigned)+') 있습니다. 수납 탭에서 수정을 눌러 강사를 지정하면 정산에 반영됩니다.</div>';
     if(guessed) h+='<div class="ps-warn">※ 배분율이 저장되지 않은 예전 수납은 기본 '+DEFAULT_PAY_RATE+'%로 계산했습니다.</div>';
     if(ops) h+='<div class="ps-warn" style="background:#eef4ff;border-color:#c3d6f5;color:#2c4a7c">※ 학원 몫은 카드 결제분의 부가세(10%)를 빼기 전 금액입니다.</div>';
+    h+=prAdvHtml(groups, order, month);
     box.innerHTML=h;
+    prAdvBind(month);
     _prGroups = groups; _prMonth = month;     // 내역서에서 다시 쓴다
     if($('prTotal')) $('prTotal').textContent='실지급 합계 '+won(totNet);
   }
