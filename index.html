@@ -5685,7 +5685,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <div class="dash-row" style="margin-top:12px">
           <label>구분<select id="sdKind"><option value="income">수입</option><option value="expense">지출</option></select></label>
           <label>사업<select id="sdBizName"><option>퍼펙트웹</option><option>통하는자소서</option></select></label>
-          <label>사업자<select id="sdBiz"><option value="">— 사업자 고르기 —</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option></select></label>
+          <label>사업자 · 받은 통장<select id="sdBiz"><option value="">— 고르기 —</option><option value="tw_personal" selected>사업자 없음 · 태완 통장</option><option value="ch_personal">사업자 없음 · 창희 통장</option><option value="wanto">김태완 사업자</option><option value="ajlabs">이창희 사업자</option></select></label>
           <label>날짜<input type="date" id="sdDate"></label>
         </div>
         <div class="dash-row">
@@ -13539,7 +13539,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var box=$('sdList'); if(!box) return;
     if(r.error){ box.innerHTML='<div class="dash-note">불러오지 못했습니다. '+esc(r.error.message)+'</div>'; return; }
     var rows=r.data||[];
-    var BZ={wanto:'김태완',ajlabs:'이창희'}, TN={'퍼펙트웹':'#8974FB','통하는자소서':'#e8590c'};
+    var BZ={wanto:'김태완 사업자',ajlabs:'이창희 사업자',tw_personal:'태완 통장',ch_personal:'창희 통장'}, TN={'퍼펙트웹':'#8974FB','통하는자소서':'#e8590c'};
     var sum=function(list,k){ return list.filter(function(x){return x.kind===k;}).reduce(function(t,x){return t+(x.amount||0);},0); };
     var inc=sum(rows,'income'), exp=sum(rows,'expense');
     var h='<div class="pr-sum"><div class="pr-sum-row pr-sum-key"><span>'+esc(m)+' 수입</span><b style="color:#0f7a52">'+won(inc)+'</b></div>'
@@ -13564,11 +13564,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
   if($('sdWrap')) $('sdWrap').addEventListener('toggle', function(){ if(this.open) sdLoad(); });
   if($('sdMonth')) $('sdMonth').addEventListener('change', sdLoad);
+  // 2026-10-13 원장님 「사업자 없어서 각자 통장으로 받는 중 — 통하는자소서는 창희 통장, 퍼펙트웹은 태완 통장」 → 사업을 고르면 통장이 먼저 채워진다
+  if($('sdBizName')) $('sdBizName').addEventListener('change', function(){ var d={'퍼펙트웹':'tw_personal','통하는자소서':'ch_personal'}[this.value]; if(d) $('sdBiz').value=d; });
   if($('sdAdd')) $('sdAdd').onclick=async function(){
     var err=$('sdErr'); err.textContent='';
     var amt=parseInt($('sdAmt').value,10)||0;
     if(amt<=0){ err.textContent='금액을 넣어주세요.'; return; }
-    if(!$('sdBiz').value){ err.textContent='사업자를 골라주세요. (김태완 / 이창희)'; return; }
+    if(!$('sdBiz').value){ err.textContent='사업자(또는 받은 통장)를 골라주세요.'; return; }
     var row={ kind:$('sdKind').value, biz_name:$('sdBizName').value, biz:$('sdBiz').value,
       client:($('sdClient').value.trim()||null), item:($('sdItem').value.trim()||null), amount:amt,
       method:($('sdMethod').value.trim()||null), paid_on:($('sdDate').value||kymd()), memo:($('sdMemo').value.trim()||null) };
