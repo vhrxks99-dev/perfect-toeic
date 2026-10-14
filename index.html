@@ -14330,10 +14330,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       try{ var rb=await sb.from('teacher_biz').select('teacher_id,biz'); (rb.data||[]).forEach(function(x){ _tbMap[x.teacher_id]=x.biz; }); }catch(e){}
     }
     var t=$('pyTeacher').value;
-    // 담당 강사가 없으면(스터디·대여 등) 비워 둔다 → 사람이 직접 골라야 저장된다(2026-09-29 원장님)
+    // 🚨 2026-10-14 원장님 「담당 학생 결제는 전부 기본으로 그 선생님 사업자 — 실수로 김태완 사업자로 들어가면 안 돼」
+    //    강사 칸이 비어 있어도(책·스터디·대여) 학생의 담당 선생님 사업자를 기본으로. 담당도 없으면 비워 두고 사람이 고른다.
+    if(!t && $('pyStudent') && $('pyStudent').value){ var sm=(_members||[]).filter(function(m){ return m.id===$('pyStudent').value; })[0]; t=(sm&&sm.teacher_id)||''; }
     $('pyBiz').value=(t&&_tbMap[t])||'';
   }
   if($('pyTeacher')) $('pyTeacher').onchange=function(){ syncPayRate(); pyBizSync(); drawPayPreview(); };
+  if($('pyStudent')) $('pyStudent').addEventListener('change', function(){ try{ pyBizSync(); }catch(e){} });
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
   // 구분에서 '사전 OT' 를 고르면 6만원 1회를 미리 채워 준다. 매번 손으로 적지 않게.
   // ── 책 판매 (2026-10-12 원장님 「책 판매 칸 + 재고 파악」) ──
@@ -14353,7 +14356,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var b=(_books||[]).filter(function(x){ return String(x.id)===String($('pyBook')&&$('pyBook').value); })[0];
     var q=Math.max(1, parseInt($('pyBookQty')&&$('pyBookQty').value,10)||1);
     if(b && $('pyAmount')) $('pyAmount').value = b.price*q;
-    if($('pyBiz')) $('pyBiz').value='wanto';
+    try{ pyBizSync(); }catch(e){}
     drawPayPreview();
   }
   if($('pyBook')) $('pyBook').addEventListener('change', pyBookFill);
