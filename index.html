@@ -17327,7 +17327,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // ==== 학생 수업 예약 (선생님 승인제, 2시간 단위) ====
   // ── 수업료 결제 칸 (2026-10-05 원장님) ──
   //    아래 두 값을 채우면 버튼이 켜진다. 비어 있으면 「준비 중」. 앱 screens/student/PayMethodsCard.tsx 와 같은 값으로.
-  var PAY_VACCOUNT=null;   // 예: {bank:'기업은행', number:'000-000000-00-000', holder:'완벽한토익'}
+  // 계좌는 서버 my_pay_account 가 담당 선생님 사업자별로 준다 (2026-10-14 원장님 — 태완·준우·혜인 학생 = 완벽한토익, 창희·혜령 학생 = 퍼펙트웍스)
+  var PAY_VACCOUNT=null;
+  async function loadPayAccount(){
+    try{ if(!sb||!profile) return; var r=await sb.rpc('my_pay_account'); if(!r.error && r.data && r.data.number){ PAY_VACCOUNT=r.data; drawPayMethods(); } }catch(e){}
+  }
+  window.addEventListener('wt-auth', function(){ PAY_VACCOUNT=null; loadPayAccount(); });
   var PAY_CARD_LINK=null;  // 예: 'https://...' (비대면 카드 결제 링크)
   function drawPayMethods(){
     var el=$('myPayMethods'); if(!el) return;
@@ -17338,9 +17343,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         +'<span class="tx"><b>'+title+'</b><span>'+sub+'</span></span>'
         +(on?'<span style="color:var(--muted)">›</span>':'<span class="soon">준비 중</span>')+'</button>';
     }
-    el.innerHTML = row('va','🏦','#e8f0fe','가상계좌로 입금', va?(esc(va.bank)+' '+esc(va.number)+' · 눌러서 복사'):'계좌번호를 바로 받아 입금해요', !!va)
+    el.innerHTML = row('va','🏦','#e8f0fe','계좌로 입금'+(va?' · '+esc(va.holder):''), va?(esc(va.bank)+' '+esc(va.number)+' · 눌러서 복사'):'계좌번호를 바로 받아 입금해요', !!va)
       + row('card','💳','#f1ebfe','카드로 결제', cl?'눌러서 결제 창 열기':'휴대폰에서 바로 카드로 결제해요', !!cl)
-      + ((!va||!cl)?'<div class="pay-note">지금은 결제 안내 카톡으로 보내드린 계좌로 입금해 주세요.</div>':'');
+      + (!cl?'<div class="pay-note">'+(va?'카드 결제는 수업 때 창구에서 해 주세요.':'지금은 결제 안내 카톡으로 보내드린 계좌로 입금해 주세요.')+'</div>':'');
   }
   document.addEventListener('click', function(e){
     var b=(e.target&&e.target.closest)?e.target.closest('[data-paym]'):null; if(!b) return;
@@ -17352,6 +17357,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
   });
   drawPayMethods();
+  loadPayAccount();
 
   // 🚨 2026-10-05 혼합(대면·비대면) 학생은 예약 창을 열 때마다 형태를 새로 고른다(원장님 지시).
   var _bookMode=null;
