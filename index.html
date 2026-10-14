@@ -8259,6 +8259,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       }
     }
     $('waERole').value=u.role||'student'; $('waEErr').textContent='';
+    // 실장은 원장 지정·원장 계정 변경을 못 한다 — 「원장님」 칸을 감춘다 (서버도 막는다)
+    (function(){ var o=$('waERole').querySelector('option[value="master"]'); if(o) o.hidden = !(profile && profile.role==='master'); $('waERole').disabled = (u.role==='master' && !(profile && profile.role==='master')); })();
     // 🚨 값이 아직 없는 사람(학생→선생님으로 막 바꾼 경우)은 칸에 50·3.3 을 채워 보여 주지만
     //    저장된 게 아니다. 「안 바뀌었으니 안 보냄」으로 넘기면 끝내 저장이 안 된다(2026-09-23 김혜인).
     editingRateKnown=(u.pay_rate!=null); editingWhKnown=(u.withhold_rate!=null);
@@ -8331,7 +8333,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!r.error) alert('「선생님 한마디」 칸이 아직 없어 나머지만 저장했습니다.');
     }
     if(r.error){ $('waEErr').textContent='저장 실패: '+r.error.message; return; }
-    if(newRole!==editingRole){ var rr=await sb.rpc('set_role',{target:editingId,new_role:newRole}); if(rr.error){ $('waEErr').textContent='권한 변경 실패: '+rr.error.message; return; } }
+    if(newRole!==editingRole){
+      var kindOf={student:'student',admin:'teacher',manager:'manager'};
+      var rr = (newRole!=='master' && editingRole!=='master')
+        ? await sb.rpc('set_member_kind',{target:editingId,kind:kindOf[newRole]})
+        : await sb.rpc('set_role',{target:editingId,new_role:newRole});
+      if(rr.error){ $('waEErr').textContent='권한 변경 실패: '+rr.error.message; return; }
+    }
     var newTeacher=$('waETeacher')?$('waETeacher').value:'';
     if(newTeacher!==editingTeacher){ var rt2=await sb.rpc('set_teacher',{target:editingId,tid:(newTeacher||null)}); if(rt2.error){ $('waEErr').textContent='담당 선생님 변경 실패: '+rt2.error.message; return; } }
     // 2:1 짝. 🚨 담당쌤을 바꾼 **뒤에** 해야 한다 —
