@@ -1527,6 +1527,7 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
     paintHead();
     autoSave(effScore(), abils, weakA);
     paintReport();
+    gateDetail();
     buildReview();
     if($('lvtReviewBtn')){ $('lvtReviewBtn').style.display=''; $('lvtReviewBtn').textContent='내가 틀린 문제 확인하기'; }
     if($('lvtReview')) $('lvtReview').classList.remove('on');
@@ -1825,9 +1826,33 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
       userLC=lc; userRC=rc;
       paintHead();
       paintReport();
+      gateDetail();
       var box=document.querySelector('#lvtReport .lvc-tot');
       if(box) box.scrollIntoView({behavior:'smooth',block:'center'});
     };
+  }
+  // 2026-10-15 원장님 「진단테스트는 가입만 한 애들도 문제는 볼 수 있게, 그러나 어디가 부족한지·커리큘럼은 못 보게」
+  //   직원 + 수강 등록 학생만 시간 분석·맞춤 커리큘럼을 본다(서버 can_see_diag_detail). 비로그인도 막는다.
+  //   점수·레벨·틀린 문항·정답 해설은 그대로 보여 준다.
+  var DIAG_LOCK_HTML = '<div style="background:#f4f6ff;border:1px solid #c9d3ff;border-radius:14px;padding:18px 18px 16px;margin:12px 0;text-align:center;line-height:1.65">'
+    + '<div style="font-size:15.5px;font-weight:800;color:#2a3a8f;margin-bottom:6px">🔒 어디가 부족한지 · 맞춤 커리큘럼</div>'
+    + '<div style="font-size:13.5px;color:#4a5170">능력별 약점 분석과 맞춤 커리큘럼은 <b>수강 등록 후</b> 담당 선생님이 알려 드려요.<br>궁금하면 카카오톡 「완벽한토익」 채널로 문의해 주세요.</div>'
+    + '<a href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" class="btn btn-primary" style="margin-top:12px;display:inline-flex">카카오톡 채널로 문의 →</a></div>';
+  function lockDetail(){
+    var tb=$('lvtTimeBox'); if(tb){ tb.innerHTML=''; tb.style.display='none'; }
+    var rp=$('lvtReport'); if(rp) rp.innerHTML = (lastWrong||'') + DIAG_LOCK_HTML;
+  }
+  function gateDetail(){
+    var tb=$('lvtTimeBox'); if(tb) tb.style.display='none';
+    var rp=$('lvtReport'); if(rp) rp.style.visibility='hidden';
+    function show(ok){
+      if(rp) rp.style.visibility='';
+      if(ok){ if(tb) tb.style.display=''; } else lockDetail();
+    }
+    if(!window.sb || !window.WT_PROFILE){ show(false); return; }
+    try{
+      window.sb.rpc('can_see_diag_detail').then(function(r){ show(!r.error && r.data===true); }, function(){ show(false); });
+    }catch(e){ show(false); }
   }
   function buildReview(){
     var h='';
