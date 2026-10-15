@@ -2368,7 +2368,16 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
     if(!w){ alert('팝업이 차단되었습니다. 팝업을 허용한 뒤 다시 시도해주세요.'); return; }
     w.document.open(); w.document.write(doc); w.document.close();
   }
-  $('vtPrint').onclick=function(){ if(!vtLoggedIn()){ vtUpdateGate(); return; } if(sheetKind==='all') printAio(); else printSheet(); };
+  // 2026-10-15 원장님 「단어시험지는 가입만 한 학생은 못 보게 — 앱·웹 둘 다」 — 직원·수강 등록 학생만(서버 can_voca_sheet)
+  $('vtPrint').onclick=async function(){
+    if(!vtLoggedIn()){ vtUpdateGate(); return; }
+    var ok=false; try{ var r=await sb.rpc('can_voca_sheet'); ok=(!r.error && r.data===true); }catch(e){}
+    if(!ok){ if(confirm('단어시험지는 수강 등록 후 이용할 수 있어요.
+수강 신청은 카카오톡 「완벽한토익」 채널로 문의해 주세요.
+
+카카오톡 채널을 열까요?')) window.open('https://pf.kakao.com/_JCLYG/chat','_blank','noopener'); return; }
+    if(sheetKind==='all') printAio(); else printSheet();
+  };
   // ── All-in-One 시험지 (2026-10-09 원장님) — 앱 lib/allinone.ts 와 같은 모양. 자료 = voca_allinone.json(앱 assets/voca/allinone.json 과 같은 파일)
   var sheetKind='word', AIO=null, aioParts={word:true,par:true,syn:true,col:true}, aioN=0;
   function aioShowMode(){
