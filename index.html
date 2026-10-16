@@ -4581,6 +4581,64 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .sd-lab.mt{margin-top:14px}
 
 .dash-form{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+/* 업무 지시 2단계 (2026-10-16 원장님 「전부 다 만들어」) — tkx- 로 시작하는 이름만 쓴다(다른 것과 안 겹치게) */
+.tkx-lbl{font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:10px 0 6px}
+.tkx-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tkx-chips button{padding:6px 12px;border:1.5px solid var(--line-strong);border-radius:999px;background:var(--surface);color:var(--ink-soft);font-family:var(--font-sans);font-size:13px;font-weight:700;cursor:pointer}
+.tkx-chips button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tkx-chips button.on.hot{background:#c0342b;border-color:#c0342b}
+.tkx-opts{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.tkx-opts label{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.tkx-dday{font-size:12px;font-weight:800;padding:2px 8px;border-radius:999px;background:#eaf1fe;color:var(--accent);white-space:nowrap}
+.tkx-dday.soon{background:#fff5e4;color:#b26a00}
+.tkx-dday.late{background:#fdefed;color:#c0342b}
+.tkx-hot{border-left:4px solid #c0342b}
+.tkx-st{font-weight:800;font-size:12.5px}
+.tkx-st-done{color:#12855C}.tkx-st-going{color:var(--accent)}.tkx-st-seen{color:var(--ink-soft)}.tkx-st-new{color:var(--muted)}.tkx-st-late{color:#c0342b}
+.tkx-who{border-top:1px solid var(--line);padding-top:6px;margin-top:6px}
+.tkx-who-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tkx-nudge{padding:3px 10px!important;font-size:12px!important}
+.tkx-items{margin-top:8px;display:flex;flex-direction:column;gap:3px}
+.tkx-bar-row{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+.tkx-bar-row[data-tkitog]{cursor:pointer}
+.tkx-bar{flex:1;height:8px;border-radius:999px;background:#ebebeb;overflow:hidden}
+.tkx-bar i{display:block;height:100%;background:#12855C;border-radius:999px}
+.tkx-item{display:flex;gap:8px;align-items:flex-start;padding:3px 0;font-size:14px}
+.tkx-item[data-tkisel]{cursor:pointer}
+.tkx-mark{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex:none;background:#f5f5f5;color:#a3a3ad}
+.tkx-i-done .tkx-mark{background:#e8f7f0;color:#12855C}
+.tkx-i-hard .tkx-mark{background:#fdf1e0;color:#d98324}
+.tkx-i-will .tkx-mark{background:#eaf1fe;color:var(--accent)}
+.tkx-idone{text-decoration:line-through;color:var(--muted)}
+.tkx-inote{font-size:12px;font-weight:700}
+.tkx-i-done .tkx-inote{color:#12855C}.tkx-i-hard .tkx-inote{color:#d98324}.tkx-i-will .tkx-inote{color:var(--accent)}
+.tkx-ians{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 6px 30px}
+.tkx-ians input{flex:1 1 200px;padding:6px 9px;border:1.5px solid var(--line-strong);border-radius:8px;font-family:var(--font-sans);font-size:13px}
+.tkx-ians button{padding:5px 11px;border-radius:999px;border:1.5px solid var(--line-strong);font-family:var(--font-sans);font-size:12.5px;font-weight:800;cursor:pointer;background:#fff;color:var(--muted)}
+.tkx-ians .tkx-a-will{color:var(--accent);border-color:var(--accent);background:#eaf1fe}
+.tkx-ians .tkx-a-hard{color:#d98324;border-color:#d98324;background:#fdf1e0}
+.tkx-ians .tkx-a-done{color:#12855C;border-color:#12855C;background:#e8f7f0}
+.tkx-acts{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.tkx-going{font-weight:800;color:var(--accent);font-size:13.5px;background:#eaf1fe;padding:6px 12px;border-radius:9px}
+.tkx-proofhint{margin-top:6px;font-size:12.5px;font-weight:700;color:#b26a00}
+.tkx-proof{margin-top:8px;display:flex;flex-direction:column;gap:6px;background:var(--bg-soft,#f5f6f8);padding:10px;border-radius:10px}
+.tkx-proof input[type=text]{padding:8px 10px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px}
+.tkx-photo{display:inline-flex;flex-direction:column;gap:3px;margin-top:6px;font-size:12px;color:var(--muted);text-decoration:none}
+.tkx-photo img{width:140px;height:140px;object-fit:cover;border-radius:10px;background:#ebebeb}
+.tkx-dash{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+.tkx-dash-head{font-weight:800;font-size:15px;margin-bottom:10px}
+.tkx-dash-sub{font-weight:800;font-size:14px;margin:14px 0 4px}
+.tkx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tkx-stats>div{background:var(--surface);border-radius:10px;padding:10px 6px;text-align:center;border:1px solid var(--line)}
+.tkx-stats b{display:block;font-size:24px;font-weight:900}
+.tkx-stats span{font-size:12px;font-weight:700;color:var(--muted)}
+.tkx-red{color:#c0342b}.tkx-green{color:#12855C}
+.tkx-people{margin-top:10px;display:flex;flex-direction:column}
+.tkx-prow{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px}
+.tkx-prow small{font-weight:600;color:var(--muted)}
+.tkx-pill{display:inline-block;font-size:12px;font-weight:800;padding:2px 8px;border-radius:999px;margin:2px 0 2px 4px}
+.tkx-pill-0{background:#f5f5f5;color:#a3a3ad}.tkx-pill-blue{background:#eaf1fe;color:var(--accent)}.tkx-pill-red{background:#fdefed;color:#c0342b}.tkx-pill-orange{background:#fdf1e0;color:#d98324}.tkx-pill-green{background:#e8f7f0;color:#12855C}
+.tkx-lrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
 /* 🚨 칸 높이·위치 맞추기 (원장 지적 2026-08-13 "박스 위치 서로 다르고 정산월은 뒤에 회색박스가 튀어나온다")
    원인 둘 — ① 안내 문구(.wa-hint)가 라벨과 입력칸 사이에 있어서, 문구가 있는 칸만 입력칸이 아래로 밀렸다.
              ② 날짜·월 칸은 브라우저 기본 높이가 달라 혼자 커 보였다.
@@ -5850,12 +5908,28 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <!-- 업무 지시 (2026-10-02 원장님) — 직원끼리(원장·부원장·실장·선생님) 일을 내리고 받는다.
          앱 「업무 → 업무 지시」와 같은 표(staff_tasks). 카드마다 「쓴이 → 받는이」. -->
     <div class="dash-pane" data-dpane="task">
+      <!-- 업무 현황 (2026-10-16 시안 D) — 원장·부원장만. 앱 업무 지시 [현황] 탭과 같은 서버 함수 staff_task_dashboard -->
+      <div id="tkDash" class="tkx-dash" style="display:none"></div>
       <div class="dash-form">
         <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">받는 사람 <span class="wa-hint">(여러 명 골라도 돼요)</span></label>
         <div id="tkTo" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px"></div>
         <label>제목<input type="text" id="tkTitle" placeholder="예: 10월 시간표 정리해서 올리기"></label>
         <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft)">내용 <span class="wa-hint">(없어도 돼요)</span><textarea id="tkBody" rows="3" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></textarea></label>
-        <div class="dash-row"><label>마감 <span class="wa-hint">(없으면 비워 두세요)</span><input type="date" id="tkDue"></label></div>
+        <!-- 2026-10-16 시안 B·C — 항목(한 줄에 하나) · 마감 칩 · 중요도 · 자동 알림 켜고 끄기 · 완료 사진 필수 -->
+        <label style="font-size:12.5px;font-weight:700;color:var(--ink-soft);display:block;margin-top:10px">항목 <span class="wa-hint">(없어도 돼요 · 한 줄에 하나 — 받는 사람이 하나씩 「할게요 · 어려워요 · 완료」로 답해요)</span><textarea id="tkItems" rows="3" placeholder="예:&#10;1. 시간표 엑셀 정리&#10;2. 단톡방에 올리기" style="width:100%;margin-top:5px;padding:9px 11px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px;background:var(--surface);color:var(--ink)"></textarea></label>
+        <div class="tkx-lbl">마감</div>
+        <div class="tkx-chips" id="tkDueChips"><button type="button" data-due="today">오늘</button><button type="button" data-due="tomorrow">내일</button><button type="button" data-due="week">이번 주</button><button type="button" data-due="pick">날짜 고르기</button><button type="button" data-due="none" class="on">없음</button>
+          <input type="date" id="tkDue" style="display:none;padding:6px 10px;border:1.5px solid var(--line-strong);border-radius:9px;font-family:var(--font-sans);font-size:14px"> <span class="wa-hint" id="tkDueShow"></span></div>
+        <div class="tkx-lbl">중요도</div>
+        <div class="tkx-chips" id="tkUrgent"><button type="button" data-urg="0" class="on">보통</button><button type="button" data-urg="1">🔥 급함</button></div>
+        <div class="tkx-lbl">알림·완료 방법</div>
+        <div class="tkx-opts" id="tkOpts">
+          <label><input type="checkbox" data-opt="remind_unread" checked> 안 읽으면 2시간 뒤 한 번 더 알림</label>
+          <label><input type="checkbox" data-opt="remind_eve" checked> 마감 전날 저녁 9시 미리 알림</label>
+          <label><input type="checkbox" data-opt="remind_overdue" checked> 마감 지나면 매일 아침 10시 알림</label>
+          <label><input type="checkbox" data-opt="require_proof"> 완료할 때 사진·메모 꼭 남기기</label>
+          <label><input type="checkbox" data-opt="notify_late" checked> 늦어지면 나에게도 알려주기</label>
+        </div>
         <p class="wa-err" id="tkErr"></p>
         <button class="btn btn-primary" id="tkAdd" type="button">＋ 업무 보내기</button>
       </div>
@@ -8503,6 +8577,143 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     return h+'</div>';
   }
+  // ── 2026-10-16 원장님 「전부 다 만들어」 (시안 A·B·C·D, 서버: staff_tasks_v2_20261016.sql) ──
+  //    앱 screens/work/TasksScreen·TaskItems·TaskDashboard 와 같은 규칙(한쪽만 고치지 말 것).
+  //   A. 단계 — 보냄 → 👀확인(받는이가 「받은 업무」를 보면 자동) → ⏳진행중 → ✓완료. 받는이마다 단계·날짜, 마감 배지, 🔔 다시 알림(10분에 한 번)
+  //   B. 항목(체크리스트) — 「항목」 칸 한 줄 = 하나. 받는이가 할게요/어려워요/완료 + 한 줄 메모
+  //   C. 쓸 때 — 마감 칩(오늘/내일/이번 주=그 주 일요일/날짜 고르기/없음) · 🔥 급함 · 자동 알림 · 완료 사진 필수(비공개 저장통 task-proof)
+  //   D. 업무 현황 — 맨 위 tkDash, 원장·부원장만(웹 profile.role 은 실장이 'manager' 그대로라 'master' 만 본다)
+  var TK_OLD_COLS='id,group_id,title,body,due_date,from_id,from_name,to_id,to_name,done,done_at,done_memo,created_at';
+  var TK_COLS=TK_OLD_COLS+',seen_at,started_at,nudged_at,items,urgent,require_proof,done_photo,remind_unread,remind_eve,remind_overdue,notify_late';
+  var tkV2=true;          // SQL(staff_tasks_v2) 전이면 false 로 바뀌고 옛 모양으로만 보인다
+  var tkRows={}, tkProofOpen={}, tkItemOpen={}, tkItemSel={}, tkPhotoUrl={};
+  var tkDueKey='none', tkUrg=false;
+  var TK_WEEK=['일','월','화','수','목','금','토'];
+  function tkDays(a,b){ return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000); }
+  function tkAdd(ymd,n){ var d=new Date(ymd+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+  function tkWd(ymd){ return TK_WEEK[new Date(ymd+'T00:00:00Z').getUTCDay()]||''; }
+  // 「항목」 칸 → 한 줄에 하나, 앞의 「1.」「-」「•」는 뗀다 (앱 parseItems 와 같은 규칙)
+  function tkParseItems(text){
+    return String(text||'').split(/\r?\n/).map(function(l){ return l.replace(/^\s*(?:\d+\s*[.)]|[-•·*▪◦]|\[\s?\])\s*/,'').trim(); })
+      .filter(function(l){ return l.length>0; }).slice(0,30)
+      .map(function(t){ return {t:t, s:null, note:null, at:null}; });
+  }
+  // 마감 배지 — D-3 / D-day / 마감 지남 N일 (끝났거나 마감 없으면 빈칸)
+  function tkDday(t,today){
+    if(!t.due_date||t.done) return '';
+    var d=tkDays(today,t.due_date), txt, cls='';
+    if(d<0){ txt='마감 지남 '+(-d)+'일'; cls='late'; }
+    else if(d===0){ txt='D-day'; cls='soon'; }
+    else { txt='D-'+d; if(d<=1) cls='soon'; }
+    return '<span class="tkx-dday '+cls+'">'+txt+'</span>';
+  }
+  function tkProg(t){
+    var l=Array.isArray(t.items)?t.items:[];
+    return { done:l.filter(function(i){return i.s==='done';}).length, total:l.length, hard:l.filter(function(i){return i.s==='hard';}).length };
+  }
+  // 받는이 한 명의 지금 단계 — 「✓ 완료 10/08」「⏳ 진행중」「👀 확인 10/09 14:20」「미확인 · 8일째」(빨강)
+  function tkStage(x,today){
+    var p=tkProg(x), prog=p.total?' · 항목 '+p.done+'/'+p.total:'';
+    if(x.done) return '<span class="tkx-st tkx-st-done">✓ 완료 '+esc(tkMd(kymd(x.done_at)))+'</span>';
+    if(x.started_at) return '<span class="tkx-st tkx-st-going">⏳ 진행중 '+esc(tkMd(kymd(x.started_at)))+prog+'</span>';
+    if(x.seen_at) return '<span class="tkx-st tkx-st-seen">👀 확인 '+esc(tkMd(kymd(x.seen_at)))+' '+esc(tkHm(x.seen_at))+prog+'</span>';
+    var d=tkDays(kymd(x.created_at),today);
+    return '<span class="tkx-st '+(d>=1?'tkx-st-late':'tkx-st-new')+'">미확인'+(d>=1?' · '+d+'일째':'')+'</span>';
+  }
+  var TK_LOOK={done:['✓','완료'],hard:['!','어려워요'],will:['→','할게요'],none:['·','']};
+  // 항목 목록 — 받는이(canAnswer)는 누르면 답하는 칸이 열린다. 보낸 사람(collapsible)은 진행 막대만, 누르면 펼친다.
+  function tkItemsHtml(t, canAnswer, collapsible){
+    var list=Array.isArray(t.items)?t.items:[]; if(!list.length) return '';
+    var p=tkProg(t), pct=Math.round(p.done/p.total*100), open=!collapsible||!!tkItemOpen[t.id];
+    var h='<div class="tkx-items"><div class="tkx-bar-row"'+(collapsible?' data-tkitog="'+t.id+'"':'')+'><div class="tkx-bar"><i style="width:'+pct+'%"></i></div><span>항목 '+p.done+'/'+p.total+(p.hard?' · 어려워요 '+p.hard:'')+(collapsible?(open?' ▴':' ▾'):'')+'</span></div>';
+    if(open){
+      list.forEach(function(it,i){
+        var st=it.s||'none', sel=canAnswer&&tkItemSel[t.id]===i;
+        h+='<div class="tkx-item tkx-i-'+st+'"'+(canAnswer?' data-tkisel="'+t.id+'" data-idx="'+i+'"':'')+'><b class="tkx-mark">'+TK_LOOK[st][0]+'</b><div style="flex:1;min-width:0"><div class="'+(st==='done'?'tkx-idone':'')+'">'+esc(it.t)+'</div>'
+          +(it.s?'<div class="tkx-inote">'+TK_LOOK[st][1]+(it.note?' · '+esc(it.note):'')+'</div>':'')+'</div></div>';
+        if(sel){
+          h+='<div class="tkx-ians"><input type="text" id="tki-'+t.id+'-'+i+'" maxlength="200" placeholder="한 줄 메모 (없어도 돼요)" value="'+esc(it.note||'')+'">'
+            +'<button type="button" class="tkx-a-will" data-tkitem="'+t.id+'" data-idx="'+i+'" data-st="will">할게요</button>'
+            +'<button type="button" class="tkx-a-hard" data-tkitem="'+t.id+'" data-idx="'+i+'" data-st="hard">어려워요</button>'
+            +'<button type="button" class="tkx-a-done" data-tkitem="'+t.id+'" data-idx="'+i+'" data-st="done">완료</button>'
+            +(it.s?'<button type="button" data-tkitem="'+t.id+'" data-idx="'+i+'" data-st="">지우기</button>':'')+'</div>';
+        }
+      });
+      if(canAnswer) h+='<div class="wa-hint">항목을 누르면 「할게요 · 어려워요 · 완료」를 고를 수 있어요.</div>';
+    }
+    return h+'</div>';
+  }
+  // 완료 사진 — 비공개 저장통이라 잠깐 쓰는 주소(10분)로만 보여 준다
+  function tkPhoto(path){
+    if(!path) return '';
+    return '<a class="tkx-photo" data-tkphoto="'+esc(path)+'" target="_blank" rel="noopener"><img alt="완료 사진"><span>📷 완료 사진 · 누르면 크게</span></a>';
+  }
+  async function tkFillPhotos(){
+    var els=document.querySelectorAll('#tkList [data-tkphoto]');
+    for(var i=0;i<els.length;i++){
+      var a=els[i], p=a.getAttribute('data-tkphoto'), c=tkPhotoUrl[p];
+      if(!c || Date.now()-c.at>8*60*1000){
+        try{ var sg=await sb.storage.from('task-proof').createSignedUrl(p,600); if(sg&&sg.data&&sg.data.signedUrl) c=tkPhotoUrl[p]={u:sg.data.signedUrl, at:Date.now()}; }catch(e){}
+      }
+      if(c){ a.href=c.u; var im=a.querySelector('img'); if(im) im.src=c.u; }
+    }
+  }
+  // 웹에서 고른 사진은 몇 MB 씩이라 줄여서 올린다(긴 변 1600px, jpg)
+  function tkShrink(file){
+    return new Promise(function(res){
+      try{
+        var url=URL.createObjectURL(file), im=new Image();
+        im.onload=function(){
+          var w=im.naturalWidth, h=im.naturalHeight, k=Math.min(1,1600/Math.max(w,h||1));
+          var c=document.createElement('canvas'); c.width=Math.round(w*k); c.height=Math.round(h*k);
+          c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(url);
+          c.toBlob(function(b){ res(b||file); },'image/jpeg',0.8);
+        };
+        im.onerror=function(){ URL.revokeObjectURL(url); res(file); };
+        im.src=url;
+      }catch(e){ res(file); }
+    });
+  }
+  // 🔔 다시 알림 — 서버가 10분에 한 번만 보내고, 아니면 「N분 뒤에」 를 알려 준다
+  async function tkNudge(id, btn){
+    if(btn) btn.disabled=true;
+    var r=await sb.rpc('staff_task_nudge',{p_id:+id});
+    if(btn) btn.disabled=false;
+    if(r&&r.error){ alert(r.error.message); return false; }
+    alert('알림을 보냈어요. 받는 사람 폰에 다시 알림이 갔어요.');
+    return true;
+  }
+  // 업무 현황 (시안 D) — 원장·부원장만. 서버가 real_role 로 한 번 더 막는다. SQL 전이면 조용히 숨긴다.
+  async function tkDashLoad(){
+    var box=$('tkDash'); if(!box) return;
+    if(!profile||profile.role!=='master'){ box.style.display='none'; return; }
+    var r; try{ r=await sb.rpc('staff_task_dashboard'); }catch(e){ r=null; }
+    if(!r||r.error||!r.data){ box.style.display='none'; return; }
+    var d=r.data; box.style.display='';
+    function pill(txt,n,cls){ return '<span class="tkx-pill '+(n?cls:'tkx-pill-0')+'">'+txt+' '+n+'</span>'; }
+    var h='<div class="tkx-dash-head">📊 업무 현황 <span class="wa-hint">원장·부원장만 보여요 · 이번 주 '+esc(tkMd(d.week_start))+'~</span></div>'
+      +'<div class="tkx-stats"><div><b class="'+(d.unread?'tkx-red':'')+'">'+d.unread+'</b><span>안 읽음</span></div>'
+      +'<div><b class="'+(d.overdue?'tkx-red':'')+'">'+d.overdue+'</b><span>마감 지남</span></div>'
+      +'<div><b class="tkx-green">'+d.done_week+'</b><span>이번 주 완료</span></div></div>';
+    var ppl=d.people||[];
+    h+='<div class="tkx-people">'+(ppl.length?ppl.map(function(p){
+      return '<div class="tkx-prow"><b>'+esc(p.name||'')+' <small>'+esc(titleOf(p.role,p.title))+'</small></b><span>'
+        +pill('진행',p.going,'tkx-pill-blue')+pill('지남',p.late,'tkx-pill-red')+pill('안 읽음',p.unread,'tkx-pill-orange')+pill('완료',p.done,'tkx-pill-green')+'</span></div>';
+    }).join(''):'<div class="wa-hint">주고받은 업무가 없습니다.</div>')+'</div>';
+    var late=d.late_list||[];
+    h+='<div class="tkx-dash-sub">⚠ 늦어진 업무</div>'+(late.length?late.map(function(t){
+      return '<div class="tkx-lrow"><div style="flex:1;min-width:0"><b>'+(t.urgent?'🔥 ':'')+esc(t.title)+'</b>'
+        +'<div class="wa-hint">'+esc(t.from_name||'')+' → '+esc(t.to_name||'')+(t.due_date?' · '+esc(tkMd(t.due_date))+'까지':'')+'</div>'
+        +'<div class="tkx-red" style="font-size:12.5px;font-weight:700">'+(t.late_days!=null?'마감 지남 '+t.late_days+'일':'')+(t.late_days!=null&&!t.seen_at?' · ':'')+(!t.seen_at?'미확인 · '+t.age_days+'일째':'')+'</div></div>'
+        +'<button class="btn btn-ghost tkx-nudge" type="button" data-tknudge="'+t.id+'">🔔 알림</button></div>';
+    }).join(''):'<div class="wa-hint">늦어진 업무가 없어요. 👍</div>');
+    box.innerHTML=h;
+  }
+  if($('tkDash')) $('tkDash').addEventListener('click', async function(e){
+    var nb=e.target.closest('[data-tknudge]'); if(!nb) return;
+    if(await tkNudge(nb.getAttribute('data-tknudge'), nb)) tkDashLoad();
+  });
+
   async function taskLoad(){
     if(!sb||!profile) return;
     var isM = profile.role==='master';
@@ -8513,14 +8724,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         return '<label style="display:inline-flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid var(--line-strong);border-radius:999px;font-size:13px;font-weight:600;cursor:pointer"><input type="checkbox" value="'+esc(p.id)+'" data-name="'+esc(p.name||'')+'"> '+esc(p.name||'')+' '+esc(titleOf(p.role,p.title))+'</label>';
       }).join('');
     }
+    tkDashLoad();
     var view=($('tkView')&&$('tkView').value)||'mine';
-    var q=sb.from('staff_tasks').select('id,group_id,title,body,due_date,from_id,from_name,to_id,to_name,done,done_at,done_memo,created_at');
-    if(view==='mine') q=q.eq('to_id',profile.id).order('done',{ascending:true});
-    else if(view==='sent') q=q.eq('from_id',profile.id);
-    var r=await q.order('created_at',{ascending:false}).limit(300);
+    function query(cols){
+      var q=sb.from('staff_tasks').select(cols);
+      if(view==='mine') q=q.eq('to_id',profile.id).order('done',{ascending:true});
+      else if(view==='sent') q=q.eq('from_id',profile.id);
+      return q.order('created_at',{ascending:false}).limit(300);
+    }
+    var r=await query(tkV2?TK_COLS:TK_OLD_COLS);
+    // SQL(staff_tasks_v2) 전이면 새 칸이 없어 오류 → 옛 칸만 다시 읽는다
+    if(r&&r.error&&tkV2&&/column|items|seen_at/i.test(r.error.message||'')){ tkV2=false; r=await query(TK_OLD_COLS); }
     var el=$('tkList'); if(!el) return;
     if(r&&r.error){ el.innerHTML='<p class="wa-err">'+esc(r.error.message)+'</p>'; return; }
     var rows=(r&&r.data)||[], today=kymd();
+    tkRows={}; rows.forEach(function(t){ tkRows[t.id]=t; });
     tkCmt={};
     if(rows.length){
       var cr=await sb.from('staff_task_comments').select('id,task_id,author_id,author_name,body,created_at')
@@ -8530,50 +8748,132 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     if(view==='mine'){
       if(!rows.length){ el.innerHTML='<p class="dash-note">받은 업무가 없습니다.</p>'; return; }
+      // 👀 받은 업무를 보면 「확인」으로 (처음 한 번만, 서버가 적는다)
+      if(tkV2){
+        var unseen=rows.filter(function(t){ return !t.done && !t.seen_at; });
+        if(unseen.length){
+          var nowIso=new Date().toISOString();
+          await Promise.all(unseen.map(function(t){ return sb.rpc('staff_task_seen',{p_id:t.id}).then(function(){},function(){}); }));
+          unseen.forEach(function(t){ t.seen_at=nowIso; });
+        }
+      }
+      // 🔥 급함이 맨 위, 그다음 안 끝낸 것, 그다음 최근
+      rows.sort(function(a,b){
+        if(a.done!==b.done) return a.done?1:-1;
+        var ua=(a.urgent&&!a.done)?1:0, ub=(b.urgent&&!b.done)?1:0; if(ua!==ub) return ub-ua;
+        return a.created_at<b.created_at?1:(a.created_at>b.created_at?-1:0);
+      });
       el.innerHTML=rows.map(function(t){
-        var late=!t.done&&t.due_date&&t.due_date<today;
-        return '<div class="dash-form" style="'+(t.done?'opacity:.65':'')+'">'
-          +'<div style="display:flex;gap:8px;align-items:flex-start"><b style="flex:1;'+(t.done?'text-decoration:line-through':'')+'">'+esc(t.title)+'</b>'
+        var late=!t.done&&t.due_date&&t.due_date<today, hot=t.urgent&&!t.done, acts='';
+        if(t.done){
+          acts='<div style="margin-top:6px;font-weight:700;color:#12855C">✓ 완료'+(t.done_memo?' · '+esc(t.done_memo):'')+' <button class="btn btn-ghost" data-tkundo="'+t.id+'" type="button" style="padding:3px 8px;font-size:12px;margin-left:6px">완료 취소</button></div>'
+            +tkPhoto(t.done_photo);
+        } else {
+          if(t.require_proof) acts+='<div class="tkx-proofhint">📷 완료할 때 사진과 메모를 꼭 남겨 주세요</div>';
+          if(tkProofOpen[t.id]){
+            acts+='<div class="tkx-proof"><input type="text" id="tkpm-'+t.id+'" maxlength="300" placeholder="한 줄 메모 (꼭 적어 주세요)">'
+              +'<input type="file" id="tkpf-'+t.id+'" accept="image/*">'
+              +'<div style="display:flex;gap:6px"><button class="btn btn-primary" data-tkproofsend="'+t.id+'" type="button">완료 보내기</button><button class="btn btn-ghost" data-tkproofx="'+t.id+'" type="button">닫기</button></div></div>';
+          } else {
+            acts+='<div class="tkx-acts">'
+              +(tkV2?(t.started_at?'<span class="tkx-going">⏳ 진행중 '+esc(tkMd(kymd(t.started_at)))+' <a class="wa-link" data-tkunstart="'+t.id+'" style="cursor:pointer;font-size:12px;margin-left:4px">되돌리기</a></span>'
+                                   :'<button class="btn btn-ghost" data-tkstart="'+t.id+'" type="button">⏳ 진행중</button>'):'')
+              +'<button class="btn btn-primary" data-tkdone="'+t.id+'" type="button">✓ 완료</button></div>';
+          }
+        }
+        return '<div class="dash-form'+(hot?' tkx-hot':'')+'" style="'+(t.done?'opacity:.65':'')+'">'
+          +'<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><b style="flex:1;'+(t.done?'text-decoration:line-through':'')+'">'+(hot?'🔥 ':'')+esc(t.title)+'</b>'+tkDday(t,today)
           +(t.due_date?'<span style="font-size:12.5px;font-weight:700;color:'+(late?'#c0342b':'var(--accent)')+'">'+esc(tkMd(t.due_date))+'까지</span>':'')+'</div>'
           +(t.body?'<div style="white-space:pre-wrap;color:var(--ink-soft);margin-top:4px">'+esc(t.body)+'</div>':'')
+          +tkItemsHtml(t, !t.done, false)
           +'<div class="wa-hint" style="margin-top:6px">쓴이 '+esc(tkName(t.from_id,t.from_name))+' → 받는이 나 · '+esc(tkMd(t.created_at))+'</div>'
-          +(t.done?'<div style="margin-top:6px;font-weight:700;color:#12855C">✓ 완료'+(t.done_memo?' · '+esc(t.done_memo):'')+' <button class="btn btn-ghost" data-tkundo="'+t.id+'" type="button" style="padding:3px 8px;font-size:12px;margin-left:6px">완료 취소</button></div>'
-                  :'<button class="btn btn-primary" data-tkdone="'+t.id+'" type="button" style="margin-top:8px">완료</button>')
+          +acts
           +tkThread(t.id)
           +'</div>';
       }).join('');
+      tkFillPhotos();
       return;
     }
     var groups={}, order=[];
     rows.forEach(function(t){ if(!groups[t.group_id]){ groups[t.group_id]=[]; order.push(t.group_id); } groups[t.group_id].push(t); });
     if(!order.length){ el.innerHTML='<p class="dash-note">'+(view==='all'?'주고받은 업무가 없습니다.':'보낸 업무가 없습니다.')+'</p>'; return; }
+    // 🔥 급하고 안 끝난 묶음이 위로(나머지는 최근 순 그대로)
+    function gHot(g){ var l=groups[g]; return (l[0].urgent && l.some(function(x){ return !x.done; }))?1:0; }
+    order=order.map(function(g,i){ return {g:g,i:i,h:gHot(g)}; }).sort(function(a,b){ return (b.h-a.h)||(a.i-b.i); }).map(function(o){ return o.g; });
     el.innerHTML=order.map(function(g){
-      var list=groups[g], t=list[0], dn=list.filter(function(x){return x.done;}).length;
+      var list=groups[g], t=list[0], dn=list.filter(function(x){return x.done;}).length, allDone=dn===list.length;
       var canDel = t.from_id===profile.id || profile.role==='master';
-      return '<div class="dash-form">'
-        +'<div style="display:flex;gap:8px;align-items:flex-start"><b style="flex:1">'+esc(t.title)+'</b><span style="font-size:12.5px;font-weight:700;color:var(--accent)">'+dn+'/'+list.length+' 완료</span></div>'
+      var hot=t.urgent&&!allDone;
+      return '<div class="dash-form'+(hot?' tkx-hot':'')+'">'
+        +'<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><b style="flex:1">'+(hot?'🔥 ':'')+esc(t.title)+'</b>'+tkDday({due_date:t.due_date,done:allDone},today)+'<span style="font-size:12.5px;font-weight:700;color:var(--accent)">'+dn+'/'+list.length+' 완료</span></div>'
         +(t.body?'<div style="white-space:pre-wrap;color:var(--ink-soft);margin-top:4px">'+esc(t.body)+'</div>':'')
-        +'<div class="wa-hint" style="margin-top:6px">쓴이 '+esc(tkName(t.from_id,t.from_name))+' · '+esc(tkMd(t.created_at))+(t.due_date?' · '+esc(tkMd(t.due_date))+'까지':'')+'</div>'
-        +list.map(function(x){ return '<div style="font-size:13.5px;margin-top:3px;'+(x.done?'font-weight:700':'color:var(--ink-soft)')+'">'+(x.done?'✓':'○')+' 받는이 '+esc(tkName(x.to_id,x.to_name))+(x.done&&x.done_memo?' — '+esc(x.done_memo):'')+'</div>'
-          // 받는이마다 따로 대화한다(다른 받는이 답글은 서로 안 보인다)
-          +tkThread(x.id, list.length>1 ? (tkName(x.to_id,x.to_name)+'과') : ''); }).join('')
+        +'<div class="wa-hint" style="margin-top:6px">쓴이 '+esc(tkName(t.from_id,t.from_name))+' · '+esc(tkMd(t.created_at))+(t.due_date?' · '+esc(tkMd(t.due_date))+'까지':'')+(t.require_proof?' · 📷 사진 필수':'')+'</div>'
+        +list.map(function(x){
+          var canN=tkV2&&!x.done&&(x.from_id===profile.id||isM);
+          return '<div class="tkx-who"><div class="tkx-who-row"><span style="flex:1;font-size:13.5px;'+(x.done?'font-weight:700':'color:var(--ink-soft)')+'">'
+            +(tkV2?'':(x.done?'✓ ':'○ '))+'받는이 '+esc(tkName(x.to_id,x.to_name))+(tkV2?' '+tkStage(x,today):'')+(x.done&&x.done_memo?' — '+esc(x.done_memo):'')+'</span>'
+            +(canN?'<button class="btn btn-ghost tkx-nudge" type="button" data-tknudge="'+x.id+'">🔔 다시 알림</button>':'')+'</div>'
+            +tkItemsHtml(x, false, true)
+            +tkPhoto(x.done_photo)
+            // 받는이마다 따로 대화한다(다른 받는이 답글은 서로 안 보인다)
+            +tkThread(x.id, list.length>1 ? (tkName(x.to_id,x.to_name)+'과') : '')+'</div>';
+        }).join('')
         +(canDel?'<button class="btn btn-ghost" data-tkdel="'+esc(g)+'" type="button" style="padding:4px 9px;font-size:12px;margin-top:8px">지우기</button>':'')
         +'</div>';
     }).join('');
+    tkFillPhotos();
   }
+  // 마감 칩 — 「이번 주」는 그 주 일요일
+  function tkDueYmd(){
+    var t=kymd();
+    if(tkDueKey==='today') return t;
+    if(tkDueKey==='tomorrow') return tkAdd(t,1);
+    if(tkDueKey==='week'){ var w=new Date(t+'T00:00:00Z').getUTCDay(); return tkAdd(t, w===0?0:7-w); }
+    if(tkDueKey==='pick') return ($('tkDue')&&$('tkDue').value)||null;
+    return null;
+  }
+  function tkDueSync(){
+    document.querySelectorAll('#tkDueChips [data-due]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-due')===tkDueKey); });
+    if($('tkDue')) $('tkDue').style.display = tkDueKey==='pick' ? '' : 'none';
+    var y=tkDueYmd(); if($('tkDueShow')) $('tkDueShow').textContent = y ? (tkMd(y)+'('+tkWd(y)+')까지') : '';
+  }
+  function tkUrgSync(){
+    document.querySelectorAll('#tkUrgent [data-urg]').forEach(function(b){ var v=b.getAttribute('data-urg')==='1'; b.classList.toggle('on', v===tkUrg); b.classList.toggle('hot', v); });
+  }
+  if($('tkDueChips')) $('tkDueChips').addEventListener('click', function(e){ var b=e.target.closest('[data-due]'); if(!b) return; tkDueKey=b.getAttribute('data-due'); tkDueSync(); });
+  if($('tkDue')) $('tkDue').addEventListener('change', tkDueSync);
+  if($('tkUrgent')) $('tkUrgent').addEventListener('click', function(e){ var b=e.target.closest('[data-urg]'); if(!b) return; tkUrg=b.getAttribute('data-urg')==='1'; tkUrgSync(); });
+  tkUrgSync();
   if($('tkView')) $('tkView').onchange=taskLoad;
   if($('tkReload')) $('tkReload').onclick=taskLoad;
   if($('tkAdd')) $('tkAdd').onclick=async function(){
     var err=$('tkErr'); if(err) err.textContent='';
     var to=[].slice.call(document.querySelectorAll('#tkTo input:checked')).map(function(i){ return {id:i.value, name:i.getAttribute('data-name')}; });
-    var title=($('tkTitle').value||'').trim(), body=($('tkBody').value||'').trim(), due=$('tkDue').value||null;
+    var title=($('tkTitle').value||'').trim(), body=($('tkBody').value||'').trim(), due=tkDueYmd();
+    var items=tkParseItems($('tkItems')?$('tkItems').value:'');
     if(!to.length){ if(err) err.textContent='받는 사람을 골라 주세요.'; return; }
     if(!title){ if(err) err.textContent='제목을 넣어 주세요.'; return; }
+    if(tkDueKey==='pick'&&!due){ if(err) err.textContent='마감 날짜를 골라 주세요.'; return; }
+    var opts={urgent:tkUrg};
+    document.querySelectorAll('#tkOpts input[data-opt]').forEach(function(i){ opts[i.getAttribute('data-opt')]=!!i.checked; });
     var gid=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16);});
-    var rows=to.map(function(t){ return {group_id:gid,title:title,body:body||null,due_date:due,from_id:profile.id,from_name:profile.name||null,to_id:t.id,to_name:t.name||null}; });
+    var rows=to.map(function(t){
+      var row={group_id:gid,title:title,body:body||null,due_date:due,from_id:profile.id,from_name:profile.name||null,to_id:t.id,to_name:t.name||null};
+      if(items.length) row.items=items;
+      Object.keys(opts).forEach(function(k){ row[k]=opts[k]; });
+      return row;
+    });
     var r=await sb.from('staff_tasks').insert(rows);
+    // SQL(staff_tasks_v2) 전이면 새 칸이 없어 오류 → 옛 모양으로 다시(항목은 내용 밑에 글로 붙인다)
+    if(r.error && /column|items|urgent|remind/i.test(r.error.message||'')){
+      tkV2=false;
+      var oldBody=[body].concat(items.map(function(i){ return '• '+i.t; })).filter(Boolean).join('\n')||null;
+      r=await sb.from('staff_tasks').insert(to.map(function(t){ return {group_id:gid,title:title,body:oldBody,due_date:due,from_id:profile.id,from_name:profile.name||null,to_id:t.id,to_name:t.name||null}; }));
+    }
     if(r.error){ if(err) err.textContent='보내지 못했어요: '+r.error.message; return; }
-    $('tkTitle').value=''; $('tkBody').value=''; $('tkDue').value='';
+    $('tkTitle').value=''; $('tkBody').value=''; $('tkDue').value=''; if($('tkItems')) $('tkItems').value='';
+    tkDueKey='none'; tkUrg=false; tkDueSync(); tkUrgSync();
+    document.querySelectorAll('#tkOpts input[data-opt]').forEach(function(i){ i.checked = i.getAttribute('data-opt')!=='require_proof'; });
     document.querySelectorAll('#tkTo input:checked').forEach(function(i){ i.checked=false; });
     if($('tkView')) $('tkView').value='sent';
     taskLoad();
@@ -8581,6 +8881,37 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   if($('tkList')) $('tkList').addEventListener('click', async function(e){
     var th=e.target.closest('[data-tkthr]');
     if(th){ var tid=th.getAttribute('data-tkthr'); tkOpen[tid]=!tkOpen[tid]; taskLoad(); return; }
+    // 항목 막대 누르면 펼치기(보낸 사람 화면)
+    var ig=e.target.closest('[data-tkitog]');
+    if(ig){ var gid2=ig.getAttribute('data-tkitog'); tkItemOpen[gid2]=!tkItemOpen[gid2]; taskLoad(); return; }
+    // 항목에 답하기 (할게요 / 어려워요 / 완료 / 지우기)
+    var ib=e.target.closest('[data-tkitem]');
+    if(ib){
+      var iid=+ib.getAttribute('data-tkitem'), idx=+ib.getAttribute('data-idx'), st=ib.getAttribute('data-st')||null;
+      var inp=$('tki-'+iid+'-'+idx), note=(st&&inp)?inp.value.trim():'';
+      ib.disabled=true;
+      var ir2=await sb.rpc('staff_task_item',{p_id:iid,p_idx:idx,p_state:st,p_note:note||null});
+      ib.disabled=false;
+      if(ir2.error){ alert('저장하지 못했어요: '+ir2.error.message); return; }
+      delete tkItemSel[iid];
+      if(ir2.data==='done') alert('항목을 모두 끝내서 업무도 완료로 바꿨어요.');
+      if(ir2.data==='need_proof'){ alert('거의 다 됐어요. 이 업무는 사진과 메모를 남겨야 완료돼요.'); tkProofOpen[iid]=true; }
+      taskLoad(); return;
+    }
+    var isel=e.target.closest('[data-tkisel]');
+    if(isel){
+      var sid2=+isel.getAttribute('data-tkisel'), sidx=+isel.getAttribute('data-idx');
+      if(tkItemSel[sid2]===sidx) delete tkItemSel[sid2]; else tkItemSel[sid2]=sidx;
+      taskLoad(); return;
+    }
+    var nb=e.target.closest('[data-tknudge]');
+    if(nb){ if(await tkNudge(nb.getAttribute('data-tknudge'), nb)) taskLoad(); return; }
+    var us=e.target.closest('[data-tkunstart]');
+    if(us){
+      var ur=await sb.rpc('staff_task_start',{p_id:+us.getAttribute('data-tkunstart'),p_on:false});
+      if(ur.error){ alert(ur.error.message); return; }
+      taskLoad(); return;
+    }
     var cd=e.target.closest('[data-tkcdel]');
     if(cd){
       if(!confirm('이 답글을 지울까요?')) return;
@@ -8601,9 +8932,28 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var b=e.target.closest('button'); if(!b) return;
     var r;
     if(b.getAttribute('data-tkdone')){
+      var did=+b.getAttribute('data-tkdone');
+      // 사진·메모 필수 업무는 완료 칸을 연다
+      if(tkRows[did]&&tkRows[did].require_proof){ tkProofOpen[did]=true; taskLoad(); return; }
       var memo=prompt('완료했어요. 한마디 남길까요? (안 적어도 돼요)','');
       if(memo===null) return;
-      r=await sb.rpc('staff_task_done',{p_id:+b.getAttribute('data-tkdone'),p_done:true,p_memo:memo||null});
+      r=await sb.rpc('staff_task_done',{p_id:did,p_done:true,p_memo:memo||null});
+    } else if(b.getAttribute('data-tkstart')){
+      r=await sb.rpc('staff_task_start',{p_id:+b.getAttribute('data-tkstart'),p_on:true});
+    } else if(b.getAttribute('data-tkproofx')){
+      delete tkProofOpen[+b.getAttribute('data-tkproofx')]; taskLoad(); return;
+    } else if(b.getAttribute('data-tkproofsend')){
+      var pid=+b.getAttribute('data-tkproofsend');
+      var pm=(($('tkpm-'+pid)&&$('tkpm-'+pid).value)||'').trim(), pf=$('tkpf-'+pid)&&$('tkpf-'+pid).files&&$('tkpf-'+pid).files[0];
+      if(!pm){ alert('메모를 적어 주세요. 이 업무는 완료할 때 메모가 꼭 필요해요.'); return; }
+      if(!pf){ alert('사진을 골라 주세요. 이 업무는 완료할 때 사진이 꼭 필요해요.'); return; }
+      b.disabled=true;
+      var blob=await tkShrink(pf), path=pid+'/'+Date.now()+'.jpg';
+      var up=await sb.storage.from('task-proof').upload(path, blob, {contentType:(blob&&blob.type)||'image/jpeg', upsert:false});
+      if(up.error){ b.disabled=false; alert('사진 올리기 실패: '+up.error.message); return; }
+      r=await sb.rpc('staff_task_done',{p_id:pid,p_done:true,p_memo:pm,p_photo:path});
+      b.disabled=false;
+      if(r&&!r.error) delete tkProofOpen[pid];
     } else if(b.getAttribute('data-tkundo')){
       r=await sb.rpc('staff_task_done',{p_id:+b.getAttribute('data-tkundo'),p_done:false,p_memo:null});
     } else if(b.getAttribute('data-tkdel')){
