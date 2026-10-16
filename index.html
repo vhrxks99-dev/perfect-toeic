@@ -4814,6 +4814,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .pr-it-h span{font-size:12px;color:var(--muted)}
 .pr-it-l{display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:4px;font-size:12.5px;color:var(--ink-soft)}
 .pr-it-l span{white-space:nowrap}
+.pr-steps{margin-top:10px;border-top:1px solid var(--line);padding-top:6px;max-width:520px}
+.pr-step{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:3px 0;font-size:13.5px;color:var(--ink-soft)}
+.pr-step b{font-family:var(--font-num);color:var(--ink);font-weight:800;white-space:nowrap}
+.pr-step.pr-step-key{border-top:1px dashed var(--line);margin-top:4px;padding-top:7px;color:var(--ink);font-weight:800}
+.pr-step.pr-step-key b{font-size:17px;color:var(--accent)}
 .pr-items .wa-table{font-size:12.5px}
 /* ---- 숙제 탭: 모바일에서 입력칸이 좁아 글이 잘게 쪼개지고 글씨가 작던 문제 ---- */
 #hwContent{line-height:1.65}
@@ -14321,13 +14326,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(!key){ unassigned+=s.amount; unassignedCnt++; }
       var g=groups[key];
       g.amount+=s.amount; g.gross+=s.gross; g.fee+=s.fee; g.tax+=s.tax; g.net+=s.net;
+      if(s.fee) g.cardN=(g.cardN||0)+1;   // 카드수수료 붙은 건수 (2026-10-16)
       if(!isRefund(p)) g.vat+=(Number(p.vat)||0);
       // 스터디는 전부 학원 몫이라 배분율이라는 게 없다(원장 지적 2026-09-03).
       if(isTeacherKey(key)) g.rates[s.rate]=1;
       g.items.push({ p:p, s:s });
     });
     // 담당이 정해지지 않은 건은 누구 몫인지 모르므로 강사 몫을 계산하지 않는다.
-    if(groups['']){ groups[''].gross=0; groups[''].fee=0; groups[''].tax=0; groups[''].net=0; }
+    if(groups['']){ groups[''].gross=0; groups[''].fee=0; groups[''].cardN=0; groups[''].tax=0; groups[''].net=0; }
     // 스터디비용도 마찬가지 — 학원이 갖는 돈이라 강사 몫·원천징수가 없다.
     // 🚨 2026-10-12 원장님 「책 카드결제라서 카드수수료 빠져야 해 1.5%」 — 학원 몫(스터디·태블릿·책)도 카드면 수수료는 남겨 두고 학원 몫에서 뺀다.
     ['__study__','__rental__','__book__'].forEach(function(ak){ if(groups[ak]){ var _st=groups[ak]; _st.gross=0; _st.tax=0; _st.net=0; } });
@@ -14363,6 +14369,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       //    둘이 같이 보이면 학원 몫이 빼기 한 번에 나온다.
       //    원장님·매니저는 그대로 다 본다.
       var hideSales = !isOps();
+      var _links = '<span class="pr-more"><a class="wa-link" data-prdetail="'+esc(k||'none')+'">상세 '+g.items.length+'건 ▸</a></span>'
+        + (isT?('<span class="pr-more"><a class="wa-link" data-prsheet="'+esc(k)+'">내역서 ▸</a></span>'):'');
+      // 2026-10-16 원장님 「전체 정산도 더 디테일하게 쉽게」 — 받은 돈 → 실지급(학원 몫)까지 한 줄씩 (앱 PayrollScreen 과 같은 순서)
+      // 🚨 2026-10-16 원장님 「책 정산 틀렸어 — 계좌이체랑 카드로 긁은 금액이 똑같아」: 학원 몫 묶음도 카드면 수수료를 뺀 학원 몫을 보여 준다
+      if(!hideSales){
+        var _st=[['받은 돈 (부가세 포함)', won(g.amount+g.vat)], ['− 부가세', g.vat?('−'+won(g.vat)):'0원'], [isT?'= 담당 매출':'= 매출', won(g.amount), !k]];
+        var _cn = g.cardN ? (' ('+g.cardN+'건)') : '';
+        if(isT){
+          _st.push(['× 배분율 '+rateTxt+' = 강사 몫', won(g.gross)]);
+          _st.push(['− 카드수수료'+_cn, g.fee?('−'+won(g.fee)):'0원']);
+          _st.push(['− 원천징수 3.3%', g.tax?('−'+won(g.tax)):'0원']);
+          _st.push(['= 실지급액', won(g.net), 1]);
+        } else if(isStudy){
+          _st.push(['− 카드수수료'+_cn, g.fee?('−'+won(g.fee)):'0원']);
+          _st.push(['= 학원 몫', won(g.amount-g.fee), 1]);
+        }
+        h+='<div class="pr-steps">'+_st.map(function(r){ return '<div class="pr-step'+(r[2]?' pr-step-key':'')+'"><span>'+r[0]+'</span><b>'+r[1]+'</b></div>'; }).join('')+'</div>'
+          + '<div class="pr-line">'+_links+'</div>';
+      } else
       h+='<div class="pr-line">'
         + (hideSales ? '' : ('<span>매출 <b>'+won(g.amount+g.vat)+'</b></span>'))
         + (hideSales || !g.vat ? '' : ('<span>부가세 <b>−'+won(g.vat)+'</b></span>'))
@@ -14382,12 +14407,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         var rf=isRefund(it.p), vv=rf?0:(Number(it.p.vat)||0), paid=(Number(it.p.amount)||0)+vv;
         var parts=[];
         if(!hideSales){
-          parts.push((rf?'환불 ':'매출 ')+'<b'+(rf?' style="color:#c0342b"':'')+'>'+(rf?'−':'')+won(paid)+'</b>');
+          // 2026-10-16 원장님 — 한 건마다 결제액 · 부가세 · 카드수수료 · 강사 몫 · 실지급 (학원 몫 묶음은 카드수수료 뺀 학원 몫)
+          parts.push((rf?'환불 ':'결제 ')+'<b'+(rf?' style="color:#c0342b"':'')+'>'+(rf?'−':'')+won(paid)+'</b>');
           if(vv) parts.push('부가세 <b>−'+won(vv)+'</b>');
-          if(vv) parts.push('부가세 뺀 금액 <b>'+won(it.p.amount)+'</b>');
-          if(isT) parts.push('배분율 <b>'+it.s.rate+'%</b>');
+          if((isT||isStudy) && it.s.fee) parts.push('카드수수료 '+it.s.feeRate+'% <b>−'+won(it.s.fee)+'</b>');
+          if(isT){
+            parts.push('강사 몫('+it.s.rate+'%) <b>'+won(it.s.gross)+'</b>');
+            if(it.s.tax) parts.push('원천징수 <b>−'+won(it.s.tax)+'</b>');
+            parts.push('실지급 <b style="color:#154fbe">'+won(it.s.net)+'</b>');
+          } else if(isStudy){
+            parts.push('학원 몫 <b style="color:#154fbe">'+won(it.s.amount-it.s.fee)+'</b>');
+          } else {
+            parts.push('매출 <b>'+won(it.s.amount)+'</b>');
+          }
         }
-        if(isT){
+        else if(isT){
           parts.push((hideSales?'정산 대상':'강사 몫')+' <b>'+won(it.s.gross)+'</b>');
           if(it.s.fee) parts.push('카드수수료 <b>−'+won(it.s.fee)+'</b>');
           if(it.s.tax) parts.push('원천징수 <b>−'+won(it.s.tax)+'</b>');
@@ -14441,7 +14475,28 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       }
     }
 
-    h+='<div class="pr-sum"><div class="pr-sum-row"><span>이 달 총 수납</span><b>'+won(totAmount)+'</b></div>'
+    if(ops){
+      // 2026-10-16 원장님 「전체 정산도 더 디테일하게 쉽게」 — 학원 요약을 맨 위로. 학원 몫 정의는 예전 그대로(매출 − 강사 몫 − 학원 몫 묶음 카드수수료)
+      var totVat=0; order.forEach(function(k){ totVat+=groups[k].vat||0; });
+      var _top='<div class="pr-sum" style="margin-top:4px;margin-bottom:6px"><div class="pr-name" style="margin-bottom:6px">'+esc(String(parseInt(month.slice(5,7),10)))+'월 학원 요약</div>'
+        + '<div class="pr-sum-row"><span>이번 달 받은 돈 (부가세 포함)</span><b>'+won(totAmount+totVat)+'</b></div>'
+        + '<div class="pr-sum-row"><span>− 부가세</span><b>−'+won(totVat)+'</b></div>'
+        + '<div class="pr-sum-row"><span>= 매출 (부가세 뺀 금액)</span><b>'+won(totAmount)+'</b></div>'
+        + '<div class="pr-sum-row pr-sum-key" style="font-size:inherit"><span style="font-size:13.5px;color:var(--ink-soft)">선생님 강사 몫 합</span><b style="font-size:15px;color:var(--ink)">'+won(totGross)+'</b></div>'
+        + '<div class="pr-sum-row"><span>　− 카드수수료 (강사 부담'+(feeRateLabel?(' · '+feeRateLabel+'%'):'')+')</span><b>−'+won(totFee)+'</b></div>'
+        + '<div class="pr-sum-row"><span>　− 원천징수 합 (3.3%)</span><b>−'+won(totTax)+'</b></div>'
+        + '<div class="pr-sum-row"><span>　= 선생님 실지급 합</span><b>'+won(totNet)+'</b></div>'
+        + '<div class="pr-sum-row pr-sum-key" style="font-size:inherit"><span style="font-size:13.5px;color:var(--ink-soft)">카드수수료 합 (정산 기준)</span><b style="font-size:15px;color:var(--ink)">'+won(totFee+acadFee)+'</b></div>'
+        + '<div class="pr-sum-row"><span>매출 − 강사 몫</span><b>'+won(totAmount-totGross)+'</b></div>'
+        + (acadFee?('<div class="pr-sum-row"><span>− 학원 몫 카드수수료 (책·스터디·대여)</span><b>−'+won(acadFee)+'</b></div>'):'')
+        + '<div class="pr-sum-row'+(_exTotal?'':' pr-sum-key')+'"><span>= 학원 몫'+(_exTotal?' (지출 빼기 전)':'')+'</span><b>'+won(totAmount-totGross-acadFee)+'</b></div>'
+        + (_exTotal?('<div class="pr-sum-row"><span>− 학원 지출</span><b>−'+won(_exTotal)+'</b></div>'
+            + '<div class="pr-sum-row pr-sum-key"><span>= 학원 몫 (실제로 남는 돈)</span><b>'+won(totAmount-totGross-acadFee-_exTotal)+'</b></div>'):'')
+        + '<div style="font-size:12px;color:var(--muted);margin-top:6px">강사 몫에서 뗀 카드수수료·원천징수는 학원 몫에 더하지 않았습니다 (수수료는 잉여금 통장, 원천징수는 세금으로 나감).</div>'
+        + '</div>';
+      h=_top+h;
+    }
+    if(!ops) h+='<div class="pr-sum"><div class="pr-sum-row"><span>이 달 총 수납</span><b>'+won(totAmount)+'</b></div>'
       + '<div class="pr-sum-row"><span>강사 몫 합계</span><b>'+won(totGross)+'</b></div>'
       + (totFee?('<div class="pr-sum-row"><span>카드 수수료 합계'+(feeRateLabel?(' ('+feeRateLabel+'%)'):'')+'</span><b>−'+won(totFee)+'</b></div>'):'')
       + '<div class="pr-sum-row"><span>원천징수 합계 (3.3%)</span><b>−'+won(totTax)+'</b></div>'
