@@ -14658,15 +14658,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 화면에서도 걸러야 예전 데이터나 정책 누락 시에 남의 실지급액이 새지 않는다.
     if(!isOps() && profile) rows=rows.filter(function(p){ return p.teacher_id===profile.id; });
     window.__wtPayments=rows;
-    var total=rows.reduce(function(a,b){return a+payAmt(b);},0);
+    // 2026-10-16 원장님 「수납 화면에 카드수수료까지 뺀 실금액으로 보여줘」 — 합계 = 받은 돈 − 부가세 − 카드수수료
+    function payCardFee(p){ if(isRefund(p)) return 0; var r=(p.card_fee_rate!=null)?Number(p.card_fee_rate):cardFeeRate(p.method); if(!r) return 0; var base=(Number(p.amount)||0)+(String(p.month||'')<'2026-10'?0:(Number(p.vat)||0)); return Math.round(base*r/100); }
+    var total=rows.reduce(function(a,b){return a+payAmt(b)-payCardFee(b);},0);
+    var feeSum=rows.reduce(function(a,b){return a+payCardFee(b);},0);
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
     if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 수납 내역이 없습니다.</td></tr>'; return; }
     var mm=isOps();
     // 부가세는 매출과 따로 보여준다 — 합쳐 보이면 강사 배분이 그만큼 되는 줄 오해한다.
     var vatSum=rows.reduce(function(a,b){ return a+(Number(b.vat)||0); },0);
     if($('pyTotal') && vatSum>0) $('pyTotal').innerHTML=(month||'')+' 합계 '+won(total)
-      +' <span style="color:var(--muted);font-weight:700;font-size:12.5px">+ 부가세 '+won(vatSum)+'</span>';
-    var h='<tr><th>학생</th><th>결제금액</th><th>부가세</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
+      +' <span style="color:var(--muted);font-weight:700;font-size:12.5px">(부가세 '+won(vatSum)+(feeSum?' · 카드수수료 '+won(feeSum):'')+' 뺀 실금액)</span>';
+    var h='<tr><th>학생</th><th>결제금액</th><th>부가세</th><th>카드수수료</th><th>실금액</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     // 중복 의심(2026-09-23 원장님) — 같은 학생·같은 금액·같은 구분이 3일 안에 두 줄이면 노란 딱지.
     var dupIds=paySuspectDups(rows);
     rows.forEach(function(p){
@@ -14682,7 +14685,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(dupIds[String(p.id)]) otTag += ' <span title="같은 학생·같은 금액이 3일 안에 또 있어요" style="font-size:11px;font-weight:800;color:#7a5b00;background:#fff3b0;border-radius:5px;padding:2px 5px">중복 의심</span>';
       // 사업자 딱지 (2026-09-29 · 10/1 결제부터 붙는다)
       if(p.biz) otTag += ' <span style="font-size:11px;font-weight:800;border-radius:5px;padding:2px 5px;'+(p.biz==='ajlabs'?'color:#6b21a8;background:#f3e8ff':'color:#154fbe;background:#eaf1fe')+'">'+(p.biz==='ajlabs'?'이창희':'김태완')+'</span>';
-      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won((Number(p.amount)||0)+(Number(p.vat)||0))+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td class="tb-memo">'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
+      h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won((Number(p.amount)||0)+(Number(p.vat)||0))+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td style="white-space:nowrap">'+(payCardFee(p)?'<span style="color:var(--muted)">'+won(payCardFee(p))+'</span>':'-')+'</td><td style="white-space:nowrap"><b>'+(isRefund(p)?'−'+won(p.amount):won((Number(p.amount)||0)-payCardFee(p)))+'</b></td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td class="tb-memo">'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
   }
   function applyRoleScope(){
