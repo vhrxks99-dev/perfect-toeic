@@ -8688,7 +8688,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           }).join('')
           +'<button type="button" class="tkx-ibsm" data-tkimemo="'+t.id+'" data-idx="'+i+'">'+(memo?'메모 닫기':'메모')+'</button>'
           +(it.s?'<button type="button" class="tkx-ibsm"'+a+' data-st="">↩ 되돌리기</button>':'')+'</div>';
-        if(memo) h+='<input type="text" class="tkx-inote-in" id="tki-'+t.id+'-'+i+'" maxlength="200" placeholder="한 줄 메모를 쓰고 위 버튼을 누르세요" value="'+esc(it.note||'')+'">';
+        // 2026-10-16 원장님 「메모 쓰고 확인 버튼이 있어야 등록이 되지」
+        if(memo) h+='<div style="display:flex;gap:6px;align-items:center"><input type="text" class="tkx-inote-in" style="flex:1" id="tki-'+t.id+'-'+i+'" maxlength="200" placeholder="한 줄 메모" value="'+esc(it.note||'')+'">'
+          +'<button type="button" class="btn btn-primary" style="padding:7px 14px;font-size:13px" data-tknotesave="'+t.id+'" data-idx="'+i+'" data-cur="'+(it.s||'')+'">등록</button></div>';
       }
     });
     return h+'</div>';
@@ -8980,6 +8982,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         else { alert('거의 다 됐어요. 이 업무는 사진과 메모를 남겨야 완료돼요.'); tkProofOpen[iid]=true; }
       }
       taskLoad(); return;
+    }
+    // 메모 「등록」 — 상태는 그대로 두고 메모만 저장(아직 답이 없으면 「할게요」)
+    var ns=e.target.closest('[data-tknotesave]');
+    if(ns){
+      var nid=+ns.getAttribute('data-tknotesave'), nidx=+ns.getAttribute('data-idx'), ncur=ns.getAttribute('data-cur')||'will';
+      var ninp=$('tki-'+nid+'-'+nidx), nv=ninp?ninp.value.trim():'';
+      if(!nv){ alert('메모를 쓴 다음 「등록」을 누르세요.'); return; }
+      ns.disabled=true;
+      var nr=await sb.rpc('staff_task_item',{p_id:nid,p_idx:nidx,p_state:ncur,p_note:nv});
+      ns.disabled=false;
+      if(nr.error){ alert('저장하지 못했어요: '+nr.error.message); return; }
+      delete tkItemSel[nid]; taskLoad(); return;
     }
     // 항목 「메모」 — 한 줄 메모 칸 열고 닫기
     var im=e.target.closest('[data-tkimemo]');
