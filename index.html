@@ -8812,7 +8812,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           var canN=tkV2&&!x.done&&(x.from_id===profile.id||isM);
           return '<div class="tkx-who"><div class="tkx-who-row"><span style="flex:1;font-size:13.5px;'+(x.done?'font-weight:700':'color:var(--ink-soft)')+'">'
             +(tkV2?'':(x.done?'✓ ':'○ '))+'받는이 '+esc(tkName(x.to_id,x.to_name))+(tkV2?' '+tkStage(x,today):'')+(x.done&&x.done_memo?' — '+esc(x.done_memo):'')+'</span>'
-            +(canN?'<button class="btn btn-ghost tkx-nudge" type="button" data-tknudge="'+x.id+'">🔔 다시 알림</button>':'')+'</div>'
+            +((x.from_id===profile.id||isM)?'<button class="btn btn-ghost tkx-nudge" type="button" style="margin-right:6px" data-tkclose="'+x.id+'" data-done="'+(x.done?1:0)+'">'+(x.done?'↩ 완료 취소':'✓ 완료')+'</button>':'')+(canN?'<button class="btn btn-ghost tkx-nudge" type="button" data-tknudge="'+x.id+'">🔔 다시 알림</button>':'')+'</div>'
             +tkItemsHtml(x, false, true)
             +tkPhoto(x.done_photo)
             // 받는이마다 따로 대화한다(다른 받는이 답글은 서로 안 보인다)
@@ -8902,6 +8902,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(isel){
       var sid2=+isel.getAttribute('data-tkisel'), sidx=+isel.getAttribute('data-idx');
       if(tkItemSel[sid2]===sidx) delete tkItemSel[sid2]; else tkItemSel[sid2]=sidx;
+      taskLoad(); return;
+    }
+    // 2026-10-16 원장님 「보낸 업무 중에 나도 내가 보낸 업무 완료시킬 수 있게」 — 보낸 사람·원장·부원장이 대신 완료/취소
+    var cb=e.target.closest('[data-tkclose]');
+    if(cb){
+      var wasDone=cb.getAttribute('data-done')==='1';
+      if(!confirm(wasDone?'완료를 취소할까요?':'받는 사람 대신 내가 완료 처리할까요? (누가 완료했는지 기록이 남아요)')) return;
+      var cr=await sb.rpc('staff_task_close',{p_id:+cb.getAttribute('data-tkclose'),p_done:!wasDone,p_memo:null});
+      if(cr.error){ alert(cr.error.message); return; }
       taskLoad(); return;
     }
     var nb=e.target.closest('[data-tknudge]');
