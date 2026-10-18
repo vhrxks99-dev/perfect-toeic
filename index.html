@@ -14722,8 +14722,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var mm=isOps();
     // 부가세는 매출과 따로 보여준다 — 합쳐 보이면 강사 배분이 그만큼 되는 줄 오해한다.
     var vatSum=rows.reduce(function(a,b){ return a+(Number(b.vat)||0); },0);
-    if($('pyTotal') && vatSum>0) $('pyTotal').innerHTML=(month||'')+' 합계 '+won(total)
-      +' <span style="color:var(--muted);font-weight:700;font-size:12.5px">(부가세 '+won(vatSum)+(feeSum?' · 카드수수료 '+won(feeSum):'')+' 뺀 실금액)</span>';
+    // 2026-10-18 원장님 「세전이랑 세후로 나눠서」 — 세전 = 결제금액 그대로, 세후 = 환불·부가세·카드수수료(1.5%) 뺀 금액
+    var grossSum=rows.reduce(function(a,b){ return a+(isRefund(b)?0:(Number(b.amount)||0)+(Number(b.vat)||0)); },0);
+    var refSum=rows.reduce(function(a,b){ return a+(isRefund(b)?(Number(b.amount)||0):0); },0);
+    if($('pyTotal')) $('pyTotal').innerHTML=(month||'')+' 세전 '+won(grossSum)+' · <span style="color:var(--accent)">세후 '+won(total)+'</span>'
+      +' <span style="color:var(--muted);font-weight:700;font-size:12.5px">('+(refSum?'환불 '+won(refSum)+' · ':'')+'부가세 '+won(vatSum)+(feeSum?' · 카드수수료 '+won(feeSum):'')+' 뺀 금액)</span>';
     var h='<tr><th>학생</th><th>결제금액</th><th>부가세</th><th>카드수수료</th><th>실금액</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     // 중복 의심(2026-09-23 원장님) — 같은 학생·같은 금액·같은 구분이 3일 안에 두 줄이면 노란 딱지.
     var dupIds=paySuspectDups(rows);
@@ -19460,7 +19463,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   };
   window.__webGate = function(profile, where){
     window.__hwOnly = false;
-    var wa=document.getElementById('waAdmin'); if(wa){ wa.classList.remove('hw-only'); wa.classList.remove('mgr-nomoney'); }
+    var wa=document.getElementById('waAdmin'); if(wa){ wa.classList.remove('hw-only'); wa.classList.remove('mgr-nomoney'); wa.classList.remove('tch-nopay'); }
+    // 2026-10-18 원장님 「선생님들은 저 화면을 볼수없어야해 · 수납은 원장 부원장 실장만」 — 선생님(admin)은 수납 탭 자체를 감춘다.
+    if(wa && profile && String(profile.role)==='admin'){
+      wa.classList.add('tch-nopay');
+      if(!document.getElementById('tchNoPayCss')){ var st3=document.createElement('style'); st3.id='tchNoPayCss';
+        st3.textContent='#waAdmin.tch-nopay .dash-tab[data-dtab="pay"],#waAdmin.tch-nopay .dash-pane[data-dpane="pay"]{display:none!important}';
+        document.head.appendChild(st3); }
+    }
     if(!window.__webClosed) return false;
     if(profile && String(profile.id)===OWNER) return false;
     // 2026-10-10 원장님 「관리자페이지 이제 웹에 있는 거 전부 열어」 — 직원은 관리자 페이지 전체(숙제·스케줄만 → 전부).
@@ -19469,7 +19479,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(String(profile.role)==='manager' && wa){
         wa.classList.add('mgr-nomoney');
         if(!document.getElementById('mgrNoMoneyCss')){ var st2=document.createElement('style'); st2.id='mgrNoMoneyCss';
-          st2.textContent='#waAdmin.mgr-nomoney .dash-tab[data-dtab="pay"],#waAdmin.mgr-nomoney .dash-tab[data-dtab="payroll"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="pay"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="payroll"]{display:none!important}';
+          // 2026-10-18: 수납은 실장에게 다시 연다. 정산만 감춘다.
+          st2.textContent='#waAdmin.mgr-nomoney .dash-tab[data-dtab="payroll"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="payroll"]{display:none!important}';
           document.head.appendChild(st2); }
       }
       return false;
