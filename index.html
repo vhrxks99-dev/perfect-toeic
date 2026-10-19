@@ -5837,6 +5837,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <label style="font-weight:700;font-size:13px">조회 월 <input type="month" id="pyFilter" style="margin-left:6px;padding:7px 9px;border:1.5px solid var(--line-strong);border-radius:8px"></label>
         <span id="pyTotal" class="dash-total"></span>
       </div>
+      <div id="pySplit" style="display:none;margin:6px 0 12px"></div>
       <div id="pyScopeNote" class="dash-note" style="display:none">담당 학생의 수납 내역만 표시됩니다. (조회 전용 · 등록/삭제는 원장님)</div>
       <div class="wa-table-wrap"><table class="wa-table" id="pyTable"></table></div>
     </div>
@@ -14705,6 +14706,104 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       .gte('paid_at',payDayShift(d,-PAY_DUP_DAYS)).lte('paid_at',payDayShift(d,PAY_DUP_DAYS)).limit(1);
     return (!r.error && r.data && r.data[0]) ? r.data[0] : null;
   }
+  // ── 수납 · 사업자별 표 (2026-10-19 원장님 「B G로」 「환불 부가세 카드수수료도 내역 보여줘」) ──
+  // 세전/세후를 누르면 김태완·이창희 사업자 칸으로 나눈 표가 펼쳐지고, 줄을 누르면 내역이 펼쳐진다.
+  // 앱 screens/work/BizSplit.tsx 와 같은 기준. 결제금액 = amount + vat(환불 제외), 남는 돈 = 결제금액 − 환불 − 부가세 − 카드수수료.
+  var pySplitMode=null, pySplitOpen={}, pySplitRows=[], pySplitFee=null;
+  var PY_SPLIT_CATS=[
+    {key:'lesson',label:'수업료',test:function(k){ return ['ot','book','study','rental','refund'].indexOf(k)<0; }},
+    {key:'ot',label:'사전 OT',test:function(k){ return k==='ot'; }},
+    {key:'book',label:'책',test:function(k){ return k==='book'; }},
+    {key:'study',label:'스터디',test:function(k){ return k==='study'; }},
+    {key:'rental',label:'태블릿 대여',test:function(k){ return k==='rental'; }}
+  ];
+  function pySplitBiz(p){ return (p.biz==='wanto'||p.biz==='ajlabs')?p.biz:'none'; }
+  function pySplitMd(d){ return d?(Number(String(d).slice(5,7))+'/'+Number(String(d).slice(8,10))):''; }
+  function pySplitKind(k){ return k==='ot'?'OT':k==='book'?'책':k==='study'?'스터디':k==='rental'?'대여':'수업료'; }
+  function pySplitDraw(){
+    var box=$('pySplit'); if(!box) return;
+    if(!pySplitMode){ box.style.display='none'; box.innerHTML=''; return; }
+    var rows=pySplitRows, feeOf=pySplitFee;
+    var cols=rows.some(function(p){ return pySplitBiz(p)==='none'; })?['wanto','ajlabs','none']:['wanto','ajlabs'];
+    var LBL={wanto:'김태완 · 완벽한토익',ajlabs:'이창희 · 퍼펙트웍스',none:'미지정'}, COL={wanto:'#2F6BE8',ajlabs:'#12855C',none:'#8B95A1'};
+    var ORD={wanto:0,ajlabs:1,none:2};
+    function z(){ return {wanto:0,ajlabs:0,none:0}; }
+    function gv(p){ return (Number(p.amount)||0)+(Number(p.vat)||0); }
+    function it(p,v,extra){ return {biz:pySplitBiz(p), v:v, label:(p.student_name||'(이름 없음)')+' '+pySplitMd(p.paid_at)+(extra?' · '+extra:'')}; }
+    function sorted(ps){ return ps.slice().sort(function(a,b){ return (ORD[pySplitBiz(a)]-ORD[pySplitBiz(b)]) || String(b.paid_at||'').localeCompare(String(a.paid_at||'')); }); }
+    var lines=[], gross=z();
+    PY_SPLIT_CATS.forEach(function(c){
+      var ps=rows.filter(function(p){ return !isRefund(p) && c.test(p.kind||'payment'); });
+      if(!ps.length) return;
+      var by=z(), items=sorted(ps).map(function(p){ var x=it(p,gv(p)); by[x.biz]+=x.v; gross[x.biz]+=x.v; return x; });
+      var ln={key:c.key,label:c.label,minus:false,by:by,items:items};
+      if(c.key==='lesson'){
+        var tm={}, order=[];
+        sorted(ps).forEach(function(p){
+          var tk=p.teacher_id||'__none__';
+          if(!tm[tk]){ tm[tk]={key:'t:'+tk,label:(p.teacher_name||'담당 없음')+' 쌤',by:z(),items:[]}; order.push(tk); }
+          var x=it(p,gv(p)); tm[tk].by[x.biz]+=x.v; tm[tk].items.push(x);
+        });
+        ln.subs=order.map(function(k){ return tm[k]; }).sort(function(a,b){ return (b.by.wanto+b.by.ajlabs+b.by.none)-(a.by.wanto+a.by.ajlabs+a.by.none); });
+        ln.items=null;
+      }
+      lines.push(ln);
+    });
+    function minus(key,label,ps,v,extra){
+      var by=z(), items=sorted(ps).map(function(p){ var x=it(p,v(p),extra?extra(p):''); by[x.biz]+=x.v; return x; });
+      return {key:key,label:label,minus:true,by:by,items:items};
+    }
+    var refund=minus('refund','환불',rows.filter(isRefund),function(p){ return Number(p.amount)||0; });
+    var vat=minus('vat','부가세',rows.filter(function(p){ return !isRefund(p)&&(Number(p.vat)||0)>0; }),function(p){ return Number(p.vat)||0; },function(p){ return pySplitKind(p.kind); });
+    var fee=minus('fee','카드수수료',rows.filter(function(p){ return feeOf(p)>0; }),feeOf,function(p){ return pySplitKind(p.kind); });
+    var net=z(); cols.forEach(function(b){ net[b]=gross[b]-refund.by[b]-vat.by[b]-fee.by[b]; });
+    if(pySplitMode==='net'){ if(refund.items.length) lines.push(refund); lines.push(vat); lines.push(fee); }
+    var total=pySplitMode==='gross'?gross:net;
+
+    function num(v,m){ return v?((m?'−':'')+won(v)):(m?'0':'0'); }
+    var td='padding:7px 8px;text-align:right;white-space:nowrap', red='color:#c0342b';
+    var h='<table class="wa-table" style="max-width:640px">'
+      +'<tr><th>'+(pySplitMode==='gross'?'세전 · 사업자별':'세후 · 사업자별')+'</th>'
+      +cols.map(function(b){ return '<th style="text-align:right"><span style="display:inline-block;width:8px;height:8px;border-radius:4px;background:'+COL[b]+';margin-right:5px"></span>'+LBL[b]+'</th>'; }).join('')+'</tr>';
+    function itemRows(items,m,pad){
+      return items.map(function(x){
+        return '<tr style="background:var(--surface-2)"><td style="padding:4px 8px 4px '+pad+'px;font-size:12.5px;color:var(--muted)">'+esc(x.label)+'</td>'
+          +cols.map(function(b){ return '<td style="'+td+';padding:4px 8px;font-size:12.5px;color:'+(m?'#c0342b':'var(--muted)')+'">'+(b===x.biz?((m?'−':'')+won(x.v)):'')+'</td>'; }).join('')+'</tr>';
+      }).join('');
+    }
+    lines.forEach(function(ln){
+      var open=!!pySplitOpen[ln.key];
+      h+='<tr data-pysplit-k="'+ln.key+'" style="cursor:pointer'+(open?';background:#EEF3FF':'')+'"><td'+(open?' style="font-weight:800"':'')+'>'+esc(ln.label)+' <span style="color:var(--muted);font-size:10px">'+(open?'▲':'▼')+'</span></td>'
+        +cols.map(function(b){ return '<td style="'+td+(ln.minus&&ln.by[b]?';'+red:'')+(open?';font-weight:800':'')+'">'+num(ln.by[b],ln.minus)+'</td>'; }).join('')+'</tr>';
+      if(!open) return;
+      if(ln.items) h+=itemRows(ln.items,ln.minus,22);
+      if(ln.subs) ln.subs.forEach(function(sb){
+        var so=!!pySplitOpen[sb.key];
+        h+='<tr data-pysplit-k="'+esc(sb.key)+'" style="cursor:pointer;background:var(--surface-2)"><td style="padding:5px 8px 5px 22px;font-size:13px">'+esc(sb.label)+' <span style="color:var(--muted);font-size:10px">'+(so?'▲':'▼')+'</span></td>'
+          +cols.map(function(b){ return '<td style="'+td+';font-size:13px">'+(sb.by[b]?won(sb.by[b]):'')+'</td>'; }).join('')+'</tr>';
+        if(so) h+=itemRows(sb.items,false,38);
+      });
+    });
+    h+='<tr style="border-top:2px solid var(--line-strong)"><td><b>'+(pySplitMode==='gross'?'결제금액':'남는 돈')+'</b></td>'
+      +cols.map(function(b){ return '<td style="'+td+';font-weight:800'+(pySplitMode==='net'?';color:'+COL[b]:'')+'">'+won(total[b])+'</td>'; }).join('')+'</tr></table>';
+    box.innerHTML='<div class="wa-table-wrap">'+h+'</div>';
+    box.style.display='';
+  }
+  document.addEventListener('click', function(e){
+    var t=e.target&&e.target.closest; if(!t) return;
+    var m=e.target.closest('[data-pysplit-m]');
+    if(m){ var v=m.getAttribute('data-pysplit-m'); pySplitMode=(pySplitMode===v)?null:v; pySplitDraw(); pySplitMark(); return; }
+    var k=e.target.closest('[data-pysplit-k]');
+    if(k){ var kk=k.getAttribute('data-pysplit-k'); pySplitOpen[kk]=!pySplitOpen[kk]; pySplitDraw(); }
+  });
+  function pySplitMark(){
+    document.querySelectorAll('[data-pysplit-m]').forEach(function(el){
+      var on=el.getAttribute('data-pysplit-m')===pySplitMode;
+      el.style.outline=on?'2px solid var(--accent)':'none';
+      el.style.background=on?'#EEF3FF':'transparent';
+    });
+  }
+
   async function loadPayments(month){
     if(!$('pyTable')) return;
     var rows=[];
@@ -14718,17 +14817,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var total=rows.reduce(function(a,b){return a+payAmt(b)-payCardFee(b);},0);
     var feeSum=rows.reduce(function(a,b){return a+payCardFee(b);},0);
     if($('pyTotal')) $('pyTotal').textContent=(month||'')+' 합계 '+won(total);
-    if(!rows.length){ $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 수납 내역이 없습니다.</td></tr>'; return; }
+    if(!rows.length){ pySplitRows=[]; pySplitMode=null; pySplitDraw(); $('pyTable').innerHTML='<tr><td class="wa-empty">해당 월 수납 내역이 없습니다.</td></tr>'; return; }
     var mm=isOps();
     // 부가세는 매출과 따로 보여준다 — 합쳐 보이면 강사 배분이 그만큼 되는 줄 오해한다.
     var vatSum=rows.reduce(function(a,b){ return a+(Number(b.vat)||0); },0);
     // 2026-10-18 원장님 「세전이랑 세후로 나눠서」 — 세전 = 결제금액 그대로, 세후 = 환불·부가세·카드수수료(1.5%) 뺀 금액
     var grossSum=rows.reduce(function(a,b){ return a+(isRefund(b)?0:(Number(b.amount)||0)+(Number(b.vat)||0)); },0);
     var refSum=rows.reduce(function(a,b){ return a+(isRefund(b)?(Number(b.amount)||0):0); },0);
-    if($('pyTotal')) $('pyTotal').innerHTML=(month||'')+' 세전 '+won(grossSum)+' · <span style="color:var(--accent)">세후 '+won(total)+'</span>'
+    var _btn='cursor:pointer;border-radius:7px;padding:2px 6px';
+    if($('pyTotal')) $('pyTotal').innerHTML=(month||'')+' '
+      +(mm?'<span data-pysplit-m="gross" title="눌러서 사업자별로 보기" style="'+_btn+'">세전 '+won(grossSum)+' ▾</span>':'세전 '+won(grossSum))
+      +' · '
+      +(mm?'<span data-pysplit-m="net" title="눌러서 사업자별로 보기" style="'+_btn+';color:var(--accent)">세후 '+won(total)+' ▾</span>':'<span style="color:var(--accent)">세후 '+won(total)+'</span>')
+      +''
       +' <span style="color:var(--muted);font-weight:700;font-size:12.5px">('+(refSum?'환불 '+won(refSum)+' · ':'')+'부가세 '+won(vatSum)+(feeSum?' · 카드수수료 '+won(feeSum):'')+' 뺀 금액)</span>';
     var h='<tr><th>학생</th><th>결제금액</th><th>부가세</th><th>카드수수료</th><th>실금액</th><th>담당 강사</th><th>실지급</th><th>횟수권</th><th>수단</th><th>결제일</th><th>메모</th>'+(mm?'<th>관리</th>':'')+'</tr>';
     // 중복 의심(2026-09-23 원장님) — 같은 학생·같은 금액·같은 구분이 3일 안에 두 줄이면 노란 딱지.
+    pySplitRows=mm?rows:[]; pySplitFee=payCardFee; if(!mm) pySplitMode=null; pySplitDraw(); pySplitMark();
     var dupIds=paySuspectDups(rows);
     rows.forEach(function(p){
       var s=payShare(p);
