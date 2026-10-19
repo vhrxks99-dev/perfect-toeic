@@ -3974,6 +3974,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .wa-ok{display:none;background:#f0fbf3;border:1px solid #a7e0bb;border-radius:10px;
        padding:10px 13px;margin:8px 0 0;font-size:13.5px;font-weight:700;color:#14683a;line-height:1.6}
 .wa-ok.on{display:block}
+/* 지출 증빙 (2026-10-19 창희쌤 시안 D) */
+.exrc-drop{border:2px dashed #9DB6EE;background:#F6F9FF;border-radius:12px;padding:14px;text-align:center;color:#2F6BE8;font-size:13px;cursor:pointer;margin-top:4px}
+.exrc-drop.on{background:#E9F0FE;border-color:#2F6BE8}
+.exrc-drop b{display:block;font-size:14px;margin-bottom:2px}
+.exrc-thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.exrc-th{width:66px;height:66px;border-radius:10px;border:1px solid #e3e5ea;overflow:hidden;position:relative;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-weight:800;color:#D2483C;font-size:13px}
+.exrc-th img{width:100%;height:100%;object-fit:cover}
+.exrc-th a.x{position:absolute;right:3px;top:3px;width:18px;height:18px;border-radius:9px;background:rgba(0,0,0,.55);color:#fff;text-align:center;line-height:17px;font-size:12px;cursor:pointer;text-decoration:none}
+.exrc-no{display:flex !important;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.exrc-tag{font-size:11.5px;font-weight:800;border-radius:7px;padding:2px 7px;white-space:nowrap;cursor:pointer;text-decoration:none}
+.exrc-tag.on{background:#E9F0FE;color:#2F6BE8}
+.exrc-tag.miss{background:#FDECEA;color:#D2483C}
+.exrc-tag.off{background:#f2f2f2;color:#9aa3b2}
+.exrc-zip{float:right;border:1px solid #2F6BE8;color:#2F6BE8;background:#fff;border-radius:9px;padding:5px 10px;font-size:12.5px;font-weight:800;cursor:pointer}
+.exrc-box{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start;padding:6px 0}
+.exrc-big{width:120px;text-align:center;font-size:11.5px}
+.exrc-big a.v{display:block;width:120px;height:150px;border-radius:10px;border:1px solid #e3e5ea;overflow:hidden;background:#f5f5f5;line-height:150px;font-weight:800;color:#D2483C;text-decoration:none;cursor:pointer}
+.exrc-big img{width:100%;height:100%;object-fit:cover}
 .wa-ok b{color:#0f7a52}
 .wa-note{font-size:11.5px;color:var(--muted);text-align:center;margin:8px 0 0;line-height:1.5}
 #waAuth{display:inline-flex;align-items:center;gap:10px}
@@ -5765,6 +5783,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             <option>계좌이체</option><option>카드</option><option>현금</option><option>자동이체</option></select></label>
           <label style="flex:2">메모<input type="text" id="exMemo" placeholder="선택"></label>
         </div>
+        <div style="margin-top:4px;font-size:12.5px;font-weight:700;color:var(--muted)">증빙 (영수증·카드전표·세금계산서) · 최대 5개</div>
+        <div class="exrc-drop" id="exrcDrop"><b>영수증 파일을 여기로 끌어다 놓으세요</b>또는 눌러서 고르기 · JPG·PNG·PDF · 하나에 10MB까지</div>
+        <input type="file" id="exrcFile" accept="image/*,application/pdf" multiple style="display:none">
+        <input type="file" id="exrcLater" accept="image/*,application/pdf" multiple style="display:none">
+        <div class="exrc-thumbs" id="exrcThumbs"></div>
+        <label class="exrc-no"><input type="checkbox" id="exrcNo" style="width:auto;margin:0"> 증빙 없음으로 넣기 (자동이체처럼 영수증이 원래 없는 지출)</label>
         <p class="wa-err" id="exErr"></p>
         <p class="wa-ok" id="exOk" style="display:none"></p>
         <button class="btn btn-primary" id="exAdd" type="button">지출 추가</button>
@@ -14111,6 +14135,152 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     _exCommon = (bz==='wanto' || bz==='ajlabs') ? r.data.filter(function(x){ return !x.biz; }).reduce(function(s,x){ return s+(x.amount||0); },0) : 0;
     return list.reduce(function(s, x){ return s + (x.amount || 0); }, 0);
   }
+  // ── 지출 증빙 (2026-10-19 창희쌤 시안 D) ──
+  //  🚨 통 expense-receipts 는 비공개. 볼 때마다 createSignedUrl 로 잠깐 쓰는 주소를 만든다.
+  //     보는 사람은 expenses 표와 같이 원장·실장뿐(서버 정책). 앱 lib/receipts.ts 와 같은 규칙.
+  var EXRC_BUCKET = 'expense-receipts', EXRC_MAX = 5, EXRC_BYTES = 10 * 1024 * 1024;
+  var exrcFiles = [], exrcRows = {}, exrcOpen = {}, exrcLaterId = null;
+  function exrcIsPdf(f){ return (f.mime || f.type) === 'application/pdf' || /\.pdf$/i.test(f.name || ''); }
+  function exrcOkFile(f){ return (/^image\//.test(f.type) || f.type === 'application/pdf') && f.size <= EXRC_BYTES; }
+  function exrcAddFiles(list){
+    var bad = [];
+    Array.prototype.forEach.call(list || [], function(f){
+      if(exrcFiles.length >= EXRC_MAX){ bad.push(f.name + ' (5개까지)'); return; }
+      if(!exrcOkFile(f)){ bad.push(f.name + ' (사진·PDF, 10MB까지)'); return; }
+      exrcFiles.push(f);
+    });
+    if(bad.length) alert('못 붙인 파일\n' + bad.join('\n'));
+    if(exrcFiles.length && $('exrcNo')) $('exrcNo').checked = false;
+    exrcDrawThumbs();
+  }
+  function exrcDrawThumbs(){
+    var box = $('exrcThumbs'); if(!box) return;
+    box.innerHTML = exrcFiles.map(function(f, i){
+      var inner = exrcIsPdf(f) ? 'PDF' : '<img src="' + URL.createObjectURL(f) + '" alt="">';
+      return '<div class="exrc-th" title="' + esc(f.name) + '">' + inner + '<a class="x" data-exrcx="' + i + '">×</a></div>';
+    }).join('');
+    box.querySelectorAll('[data-exrcx]').forEach(function(a){
+      a.onclick = function(){ exrcFiles.splice(+this.getAttribute('data-exrcx'), 1); exrcDrawThumbs(); };
+    });
+  }
+  async function exrcUpload(id, files, current){
+    var out = (current || []).slice(), err = null;
+    for(var i = 0; i < files.length && out.length < EXRC_MAX; i++){
+      var f = files[i];
+      var ext = ((f.name || '').match(/\.[A-Za-z0-9]{1,8}$/) || [exrcIsPdf(f) ? '.pdf' : '.jpg'])[0].toLowerCase();
+      var path = id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + ext;
+      var up = await sb.storage.from(EXRC_BUCKET).upload(path, f, { contentType: f.type || undefined });
+      if(up.error){ err = f.name + ': ' + up.error.message; break; }
+      out.push({ path: path, name: f.name, mime: f.type || (exrcIsPdf(f) ? 'application/pdf' : 'image/jpeg') });
+    }
+    if(out.length !== (current || []).length){
+      var u = await sb.from('expenses').update({ receipts: out, no_receipt: false }).eq('id', id);
+      if(u.error) err = err || u.error.message;
+    }
+    if(err) throw new Error(err);
+    return out;
+  }
+  async function exrcUrl(path){
+    var r = await sb.storage.from(EXRC_BUCKET).createSignedUrl(path, 600);
+    return (r.data && r.data.signedUrl) || '';
+  }
+  async function exrcDrawBox(id){
+    var cell = document.querySelector('[data-exrcbox="' + id + '"]'); if(!cell) return;
+    var x = exrcRows[String(id)]; if(!x) return;
+    var list = x.receipts || [];
+    var h = '<div class="exrc-box">';
+    for(var i = 0; i < list.length; i++){
+      var r = list[i], u = await exrcUrl(r.path);
+      h += '<div class="exrc-big"><a class="v" href="' + esc(u) + '" target="_blank" rel="noopener">'
+         + (exrcIsPdf(r) ? 'PDF' : '<img src="' + esc(u) + '" alt="">') + '</a>'
+         + '<div style="margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(r.name || '') + '</div>'
+         + '<a class="wa-link" data-exrcdel="' + id + '|' + esc(r.path) + '">빼기</a></div>';
+    }
+    if(list.length < EXRC_MAX) h += '<div class="exrc-big"><a class="v" style="color:#2F6BE8;border:2px dashed #9DB6EE;background:#F6F9FF" data-exrcadd="' + id + '">+ 붙이기</a></div>';
+    if(!list.length) h += '<div style="align-self:center;font-size:12.5px"><a class="wa-link" data-exrcnoset="' + id + '">' + (x.no_receipt ? '증빙 없음 표시 풀기' : '증빙 없음으로 표시') + '</a></div>';
+    cell.innerHTML = h + '</div>';
+    cell.querySelectorAll('[data-exrcadd]').forEach(function(a){ a.onclick = function(e){ e.preventDefault(); exrcLaterId = this.getAttribute('data-exrcadd'); $('exrcLater').value = ''; $('exrcLater').click(); }; });
+    cell.querySelectorAll('[data-exrcdel]').forEach(function(a){
+      a.onclick = async function(){
+        var pr = this.getAttribute('data-exrcdel').split('|'), xx = exrcRows[pr[0]];
+        if(!confirm('이 증빙을 뺄까요?')) return;
+        var rest = (xx.receipts || []).filter(function(r){ return r.path !== pr[1]; });
+        var u = await sb.from('expenses').update({ receipts: rest }).eq('id', pr[0]);
+        if(u.error){ alert('빼지 못했습니다: ' + u.error.message); return; }
+        await sb.storage.from(EXRC_BUCKET).remove([pr[1]]);
+        exrcOpen[pr[0]] = true; await exLoad();
+      };
+    });
+    cell.querySelectorAll('[data-exrcnoset]').forEach(function(a){
+      a.onclick = async function(){
+        var k = this.getAttribute('data-exrcnoset'), xx = exrcRows[k];
+        var u = await sb.from('expenses').update({ no_receipt: !xx.no_receipt }).eq('id', k);
+        if(u.error){ alert('바꾸지 못했습니다: ' + u.error.message); return; }
+        exrcOpen[k] = true; await exLoad();
+      };
+    });
+  }
+  function exrcLoadZipLib(){
+    if(window.JSZip) return Promise.resolve();
+    return new Promise(function(ok, no){
+      var sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      sc.onload = function(){ ok(); }; sc.onerror = function(){ no(new Error('zip 도구를 불러오지 못했습니다.')); };
+      document.head.appendChild(sc);
+    });
+  }
+  async function exrcZip(m, btn){
+    var rows = Object.keys(exrcRows).map(function(k){ return exrcRows[k]; }).filter(function(x){ return x.month === m && (x.receipts || []).length; });
+    if(!rows.length){ alert(m + ' 에 붙은 증빙이 없습니다.'); return; }
+    var old = btn.textContent; btn.disabled = true; btn.textContent = '묶는 중…';
+    try{
+      await exrcLoadZipLib();
+      var zip = new JSZip(), BZ = { wanto:'김태완', ajlabs:'이창희' }, n = 0, miss = 0, used = {};
+      var clean = function(t){ return String(t || '').replace(/[\\/:*?"<>|\s]+/g, '').slice(0, 30); };
+      for(var i = 0; i < rows.length; i++){
+        var x = rows[i];
+        for(var j = 0; j < x.receipts.length; j++){
+          var r = x.receipts[j];
+          var ext = ((r.name || r.path).match(/\.[A-Za-z0-9]{1,8}$/) || ['.jpg'])[0].toLowerCase();
+          var name = [x.spent_on, clean(x.category), clean(x.vendor) || '미기재', x.amount, BZ[x.biz] || '미지정', j + 1].join('_');
+          while(used[name + ext]) name += '-' + x.id;
+          used[name + ext] = 1;
+          var d = await sb.storage.from(EXRC_BUCKET).download(r.path);
+          if(d.error || !d.data){ miss++; continue; }
+          zip.file(name + ext, d.data); n++;
+        }
+      }
+      var blob = await zip.generateAsync({ type: 'blob' });
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '완벽한토익_지출증빙_' + m + '.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+      if(miss) alert(n + '개를 묶었습니다. ' + miss + '개는 받지 못했습니다.');
+    } catch(e){ alert('zip 을 만들지 못했습니다: ' + ((e && e.message) || e)); }
+    finally { btn.disabled = false; btn.textContent = old; }
+  }
+  (function(){
+    var dz = $('exrcDrop'), fi = $('exrcFile'), later = $('exrcLater');
+    if(!dz || !fi) return;
+    dz.onclick = function(){ fi.value = ''; fi.click(); };
+    fi.onchange = function(){ exrcAddFiles(this.files); };
+    ['dragenter','dragover'].forEach(function(ev){ dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.add('on'); }); });
+    ['dragleave','drop'].forEach(function(ev){ dz.addEventListener(ev, function(e){ e.preventDefault(); dz.classList.remove('on'); }); });
+    dz.addEventListener('drop', function(e){ exrcAddFiles(e.dataTransfer && e.dataTransfer.files); });
+    if($('exrcNo')) $('exrcNo').onchange = function(){
+      if(this.checked && exrcFiles.length){
+        if(confirm('붙인 파일을 빼고 증빙 없음으로 넣을까요?')){ exrcFiles = []; exrcDrawThumbs(); } else this.checked = false;
+      }
+    };
+    if(later) later.onchange = async function(){
+      var id = exrcLaterId, x = exrcRows[String(id)]; if(!id || !x || !this.files.length) return;
+      var ok = [], bad = [];
+      Array.prototype.forEach.call(this.files, function(f){ if(exrcOkFile(f)) ok.push(f); else bad.push(f.name); });
+      if(bad.length) alert('못 붙인 파일(사진·PDF, 10MB까지)\n' + bad.join('\n'));
+      try{ await exrcUpload(id, ok, x.receipts || []); }
+      catch(e){ alert('다 올리지 못했습니다: ' + e.message); }
+      exrcOpen[String(id)] = true; await exLoad();
+    };
+  })();
+
   async function exLoad(){
     if(!exSyncBox() || !sb) return;
     var m = ($('exMonth') && $('exMonth').value) || '';
@@ -14122,6 +14292,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var rows = r.data || [];
     if(!rows.length){ box.innerHTML = '<div class="dash-note">' + esc(m) + ' 에 적힌 지출이 없습니다.</div>'; return; }
     var tot = rows.reduce(function(s, x){ return s + (x.amount || 0); }, 0);
+    // 증빙 칸(receipts)이 있는 DB 인가 — 없으면 증빙 표시를 안 띄운다
+    var hasRc = rows.some(function(x){ return x.receipts !== undefined; });
+    rows.forEach(function(x){ exrcRows[String(x.id)] = x; });
+    var rcMiss = hasRc ? rows.filter(function(x){ return !(x.receipts || []).length && !x.no_receipt; }).length : 0;
     // 2026-10-12 원장님 「창희 사업자로 어떤 거 얼마, 태완 사업자로 어떤 거 얼마 구분 + 전체로도」(앱 시안 B와 같다).
     //   공통은 없앴다. 예전에 사업자 안 적은 기록은 있을 때만 「사업자 미지정」으로 따로.
     var GROUPS = [['wanto','김태완 사업자','#2f6be8'],['ajlabs','이창희 사업자','#16a34a'],['none','사업자 미지정 (예전 기록)','#9aa3b2']];
@@ -14130,8 +14304,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var it = rows.filter(function(x){ return keyOf(x) === g[0]; });
       return { key:g[0], label:g[1], tone:g[2], items:it, total: it.reduce(function(s, x){ return s + (x.amount || 0); }, 0) };
     }).filter(function(g){ return g.key !== 'none' || g.items.length; });
-    var h = '<div class="pr-sum" style="margin-bottom:10px"><div class="pr-sum-row pr-sum-key"><span>' + esc(m) + ' 전체 지출</span><b>' + won(tot) + '</b></div>'
-          + '<div style="font-size:12.5px;color:var(--muted);margin-top:2px">' + parts.map(function(g){ return esc(g.label.replace(' 사업자','').replace(' (예전 기록)','')) + ' ' + won(g.total); }).join(' · ') + '</div></div>';
+    var h = (hasRc ? '<button type="button" class="exrc-zip" id="exrcZipBtn">⬇ ' + esc(m) + ' 증빙 zip 받기</button>' : '')
+          + '<div class="pr-sum" style="margin-bottom:10px"><div class="pr-sum-row pr-sum-key"><span>' + esc(m) + ' 전체 지출</span><b>' + won(tot) + '</b></div>'
+          + '<div style="font-size:12.5px;color:var(--muted);margin-top:2px">' + parts.map(function(g){ return esc(g.label.replace(' 사업자','').replace(' (예전 기록)','')) + ' ' + won(g.total); }).join(' · ')
+          + (rcMiss ? ' · <span style="color:#D2483C;font-weight:800">증빙 없음 ' + rcMiss + '건</span>' : '') + '</div></div>';
     parts.forEach(function(g){
       var cats = {};
       g.items.forEach(function(x){ var c = x.category || '기타'; cats[c] = (cats[c] || 0) + (x.amount || 0); });
@@ -14143,7 +14319,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
          + (catLine ? '<div style="font-size:12.5px;color:var(--muted);margin-top:3px">' + catLine + '</div>' : '') + '</div>';
       if(!g.items.length) return;
       h += '<div class="dash-wrap"><table class="dash-table"><tr><th>쓴 날</th><th>분류</th><th>어디에</th>'
-         + '<th>금액</th><th>결제</th><th>메모</th><th></th></tr>';
+         + '<th>금액</th><th>결제</th><th>메모</th>' + (hasRc ? '<th>증빙</th>' : '') + '<th></th></tr>';
       g.items.forEach(function(x){
         // data-l 은 좁은 화면에서 칸 이름을 앞에 찍는 데 쓴다(표 머리글이 숨으므로).
         h += '<tr><td data-l="쓴 날" class="ex-date">' + esc(x.spent_on || '') + '</td>'
@@ -14152,16 +14328,31 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
            + '<td data-l="금액" class="ex-amt">' + won(x.amount || 0) + '</td>'
            + '<td data-l="결제" class="ex-pay">' + esc(x.method || '-') + '</td>'
            + '<td data-l="메모" class="ex-memo">' + esc(x.memo || '') + '</td>'
-           + '<td class="ex-del"><a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>';
+           + (hasRc ? '<td data-l="증빙">' + ((x.receipts || []).length ? '<a class="exrc-tag on" data-exrcopen="' + x.id + '">📎 ' + x.receipts.length + '</a>'
+                     : x.no_receipt ? '<a class="exrc-tag off" data-exrcopen="' + x.id + '">안 받음</a>'
+                     : '<a class="exrc-tag miss" data-exrcopen="' + x.id + '">없음 · 붙이기</a>') + '</td>' : '')
+           + '<td class="ex-del"><a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>'
+           + (hasRc ? '<tr data-exrcrow="' + x.id + '" style="display:' + (exrcOpen[String(x.id)] ? '' : 'none') + '"><td colspan="8" data-exrcbox="' + x.id + '"></td></tr>' : '');
       });
       h += '</table></div>';
     });
     box.innerHTML = h;
+    if($('exrcZipBtn')) $('exrcZipBtn').onclick = function(){ exrcZip(m, this); };
+    box.querySelectorAll('[data-exrcopen]').forEach(function(a){
+      a.onclick = function(){
+        var k = this.getAttribute('data-exrcopen'), tr = box.querySelector('[data-exrcrow="' + k + '"]');
+        exrcOpen[k] = !exrcOpen[k]; if(tr) tr.style.display = exrcOpen[k] ? '' : 'none';
+        if(exrcOpen[k]) exrcDrawBox(k);
+      };
+    });
+    Object.keys(exrcOpen).forEach(function(k){ if(exrcOpen[k]) exrcDrawBox(k); });
     box.querySelectorAll('[data-exdel]').forEach(function(a){
       a.onclick = async function(){
         if(!confirm('이 지출을 지울까요?')) return;
-        var d = await sb.from('expenses').delete().eq('id', this.getAttribute('data-exdel'));
+        var delId = this.getAttribute('data-exdel'), delRc = ((exrcRows[String(delId)] || {}).receipts || []).map(function(r){ return r.path; });
+        var d = await sb.from('expenses').delete().eq('id', delId);
         if(d.error){ alert('지우지 못했습니다: ' + d.error.message); return; }
+        if(delRc.length){ try{ await sb.storage.from(EXRC_BUCKET).remove(delRc); }catch(e){} }
         await exLoad();
         try{ await loadPayroll(); }catch(e){}      // 학원 몫을 다시 계산한다
       };
@@ -14186,7 +14377,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if($('exBiz') && !$('exBiz').value){ say('사업자를 골라주세요. (김태완 / 이창희)'); $('exBiz').focus(); return; }
     var btn = this; btn.disabled = true;
     try{
-      var r = await sb.from('expenses').insert({
+      var exRow = {
         spent_on: d, month: m,
         category: ($('exCat') && $('exCat').value) || '기타',
         amount: amt,
@@ -14195,8 +14386,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         memo: (($('exMemo') && $('exMemo').value) || '').trim() || null,
         biz: ((($('exBiz') && $('exBiz').value) || '') === 'common' ? null : (($('exBiz') && $('exBiz').value) || null)),
         admin_id: (profile ? profile.id : null)
-      });
+      };
+      if($('exrcNo') && $('exrcNo').checked && !exrcFiles.length) exRow.no_receipt = true;
+      var r = await sb.from('expenses').insert(exRow).select('id').single();
+      // 증빙 칸이 아직 없는 DB 면 그 칸만 빼고 다시
+      if(r.error && /receipt/.test(r.error.message)){ delete exRow.no_receipt; r = await sb.from('expenses').insert(exRow).select('id').single(); }
       if(r.error){ say('넣지 못했습니다: ' + r.error.message); return; }
+      var upErr = null;
+      if(exrcFiles.length && r.data){
+        try{ await exrcUpload(r.data.id, exrcFiles, []); }
+        catch(e){ upErr = e.message; }
+      }
+      exrcFiles = []; exrcDrawThumbs(); if($('exrcNo')) $('exrcNo').checked = false;
+      if(upErr) alert('지출은 넣었는데 증빙을 다 못 올렸습니다.\n' + upErr + '\n아래 표에서 그 지출의 「없음 · 붙이기」를 눌러 다시 붙여 주세요.');
       if(ok){ ok.textContent = '✅ ' + won(amt) + ' 넣었습니다.'; ok.style.display = ''; }
       if($('exAmt')) $('exAmt').value = '';
       if($('exVendor')) $('exVendor').value = '';
