@@ -2468,7 +2468,7 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
     var L={par:'파',syn:'유',col:'기출'};
     var blank=function(x){ return answer ? '<span class="ans">'+(esc(aioTidy(x))||'—')+'</span>' : '<i></i>'; };
     var ls=aioLines(p.it), h=ls[0];
-    var no = multi ? p.day+'-'+p.it.n : p.it.n;
+    var no = p.seq || (multi ? p.day+'-'+p.it.n : p.it.n);
     var head='<div class="h"><span class="no">'+esc(no)+'</span><b>'+esc(h.en)+'</b><span class="ps">'+esc(h.pos)+'</span>'+(aioParts.word?blank(h.ko):'<i style="border:0"></i>')+'</div>';
     var rows=ls.slice(1).map(function(l){ return '<div class="r"><span class="t">'+L[l.k]+'</span><span class="e">'+esc(l.en)+' '+(l.pos?'<span class="ps">'+esc(l.pos)+'</span>':'')+'</span>'+blank(l.ko)+'</div>'; }).join('');
     return '<div class="w">'+head+rows+'</div>';
@@ -2500,7 +2500,8 @@ window.kISO=kISO; window.kBack=kBack; window.kp2=kp2;
     if(!(n>0) || n>=all.length) return all;
     var idx=all.map(function(_,i){ return i; });
     for(var i=idx.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=idx[i]; idx[i]=idx[j]; idx[j]=t; }
-    return idx.slice(0,n).sort(function(a,b){ return a-b; }).map(function(i){ return all[i]; });
+    // 일부만 뽑으면 시험지 번호를 1, 2, 3… 로 다시 매긴다(책 번호면 30개 골라도 끝 번호가 50 — 2026-10-20 원장님)
+    return idx.slice(0,n).sort(function(a,b){ return a-b; }).map(function(i,k){ var o=all[i]; return {day:o.day,it:o.it,title:o.title,seq:k+1}; });
   }
   function printAio(){
     var days=dayKeys.filter(function(k){ return selDays[k]; }).map(function(k){ return k*1; });
@@ -11673,7 +11674,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var end=new Date(nowW); end.setDate(end.getDate()+1); end.setHours(0,0,0,0);
     var recent=await fetchRange(start,end);
     var mine=recent.filter(function(s){ return s.teacher_id===meId && isStudentEntry(s) && new Date(s.ends_at)<now && !ended[stuKey(s.student_id,s.student_name)]; });
-    if(!mine.length) return [];
+    if(!mine.length && !isOps()) return [];   // 운영진은 내 수업이 없어도 전체 결제 알림을 본다(2026-10-20)
     // 내 학생들의 예정 수업 (미래)
     var hasFuture={}, futureRows=[];
     // 휴강·결석은 '다음 수업'이 아니다(2026-08-24). 안 빼면 휴강해 둔 수업 때문에
@@ -11800,6 +11801,23 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         alerts.push({ type:'pay', student:s.student_name||'학생', sid:sid, day:day, skey:key,
                       n:quota, tname:(isOps()?(s.teacher_name||''):'') });
       });
+      // 🚨 2026-10-20 원장님 「원장·부원장·실장 화면엔 모든 학생, 선생님은 각자 학생」 — 마지막 회차 날이 지났거나
+      //    OT 만 하고 정규 결제가 없어 남은 횟수(끝난 수업만 뺀 값)가 0 이하면 계속 띄운다(앱 lib/teacherAlerts 와 같음).
+      //    대상: 최근 3일 끝난 수업. 운영진은 선생님 상관없이 전부, 선생님은 내 수업만.
+      var pool=(isOps()?recent:mine).filter(function(s){ return s.student_id && isStudentEntry(s) && new Date(s.ends_at)<now && !ended[stuKey(s.student_id,s.student_name)] && (s.status||'confirmed')!=='pending'; });
+      pool.sort(function(a,b){ return new Date(b.starts_at)-new Date(a.starts_at); });
+      var paySeen={};
+      alerts.forEach(function(x){ if(x.type==='pay') paySeen[x.sid]=1; });
+      for(var pi=0; pi<pool.length; pi++){
+        var ps=pool[pi], psid=ps.student_id;
+        if(paySeen[psid]) continue; paySeen[psid]=1;
+        var lr=await sb.rpc('sessions_left_done',{ p_student: psid });
+        if(lr.error || typeof lr.data!=='number' || lr.data>0) continue;
+        var pkey=stuKey(psid, ps.student_name), pday=kymd(ps.starts_at);
+        if(_alertChecks[ackKey('pay',pkey,pday)]) continue;
+        alerts.push({ type:'pay', student:ps.student_name||'학생', sid:psid, day:pday, skey:pkey, left:lr.data,
+                      tname:(isOps()&&ps.teacher_id!==meId?(ps.teacher_name||''):'') });
+      }
     }catch(e){}
     // 결제 → OT 상담 → 다음수업 → 숙제 순. 그 안에서는 최신 날짜순.
     var ORD={pay:0,ot:1,next:2,hw:3};
@@ -11858,6 +11876,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         var ptn = a.tname ? ' <span style="color:var(--muted);font-weight:700">('+esc(a.tname)+' 담당)</span>' : '';
         // '확인함' 버튼을 달지 않는다 — 수납을 넣으면 산 횟수가 늘어 저절로 사라진다.
         // 손으로 지울 수 있게 하면 돈 받는 걸 놓친 채 알림만 없앨 수 있다(OT 상담 알림과 같은 이유).
+        if(a.left!=null) return '<li><span class="wa-al-tag t-pay">결제</span><b>'+esc(a.student)+'</b> 학생'+ptn+' — 남은 횟수 <b>'+esc(String(a.left))+'회</b>, 아직 결제 전이에요 <span class="wa-al-go" data-goto="pay" data-pyname="'+esc(a.student)+'" data-pysid="'+esc(String(a.sid||''))+'">수납으로 →</span></li>';
         return '<li><span class="wa-al-tag t-pay">결제</span><b>'+esc(a.student)+'</b> 학생'+ptn+' — 오늘이 <b>'+esc(String(a.n))+'회차(마지막)</b> 수업이에요. 결제 확인 필요해요 <span class="wa-al-go" data-goto="pay" data-pyname="'+esc(a.student)+'" data-pysid="'+esc(String(a.sid||''))+'">수납으로 →</span></li>';
       }
       if(a.type==='next') return '<li><span class="wa-al-tag t-next">다음수업</span><b>'+esc(a.student)+'</b> 학생 — 다음 수업이 아직 안 잡혔어요 <span class="wa-al-go" data-goto="sched" data-scname="'+esc(a.student)+'" data-scsid="'+esc(String(a.sid||''))+'">스케줄로 →</span><span class="wa-al-sp"></span>'+ack+'</li>';
@@ -19112,13 +19131,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     ];
 
     // ETS 성적표에 찍히는 전체 수험자 평균. 앱 lib/bench.ts 와 같은 값이다.
-    var ETS_AVG = { locate:69, connect:68, infer:66, vocab:73, gram:79 };
+    var ETS_AVG = { locate:68, connect:68, infer:66, vocab:73, gram:78 };
     // 목표 점수를 낸 학생들이 실제로 냈던 수준 (2026-09-12 · 27명, 김진욱 495까지)
     // 🚨 앱 lib/bench.ts 와 **같은 숫자**여야 한다. 한쪽만 고치지 말 것.
     // 🚨 850 줄은 **4명**뿐이다. 한 사람 들어오면 이만큼 움직인다 — 단정해서 쓰지 말 것.
     var TARGET = [
       { band:850, label:'850 이상', need:{ gram:94, vocab:88, connect:81, infer:81, locate:76 } },
-      { band:750, label:'700점대', need:{ gram:83, vocab:80, connect:71, infer:68, locate:75 } },
+      { band:750, label:'700점대', need:{ gram:82, vocab:79, connect:70, infer:68, locate:75 } },
       { band:650, label:'600점대', need:{ gram:79, vocab:66, connect:64, infer:51, locate:66 } }
     ];
     var DIAG = [ ['ab_gram','gram','문법'], ['ab_vocab','vocab','어휘'],
