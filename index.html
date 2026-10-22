@@ -11291,13 +11291,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       btn.disabled=false; btn.textContent=old;
     }
   };
+  // 2:1 짝 수업 같이 지우기 (2026-10-22 원장님 「물어보고 같이 지울지 남길지 정하게」). 같이 지울 짝 수업 id 또는 null
+  window.waAskPairDelete = async function(id){
+    try{
+      var q=await sb.rpc('pair_lesson_of',{p_id:id});
+      var p=q&&q.data; if(!p||!p.id) return null;
+      return confirm('같은 시간에 2:1 짝 '+(p.student_name||'학생')+' 수업이 있어요'+(p.auto?' (자동으로 같이 잡힌 수업)':'')+'.\n\n짝 수업도 같이 지울까요?\n[확인] 같이 지우기   [취소] 이 수업만 지우기') ? p.id : null;
+    }catch(e){ return null; }
+  }
   if($('scTable')) $('scTable').addEventListener('click', async function(e){
     var ed=(e.target&&e.target.closest)?e.target.closest('a[data-scedit]'):null;
     if(ed){ openSchedEdit(ed.getAttribute('data-scedit')); return; }
     var a=(e.target&&e.target.closest)?e.target.closest('a[data-scdel]'):null; if(!a) return;
     if(!confirm('이 수업 스케줄을 삭제할까요?')) return;
+    // 2026-10-22 원장님: 2:1 짝 수업이 같은 시간에 있으면 같이 지울지 묻는다
+    var _pairId=await waAskPairDelete(parseInt(a.getAttribute('data-scdel'),10));
     // 삭제도 RPC 로만 한다 — 24시간 안 남은 수업은 선생님이 못 지우고 승인 요청으로 넘어간다.
     var r=await sb.rpc('request_schedule_delete',{p_id:parseInt(a.getAttribute('data-scdel'),10)});
+    if(_pairId && !r.error){ try{ await sb.rpc('request_schedule_delete',{p_id:_pairId}); }catch(e){} }
     if(r.error){ alert('삭제 실패: '+r.error.message); return; }
     if(r.data && r.data.pending){ alert(r.data.msg||'원장님께 승인 요청을 보냈습니다.'); try{ await loadTeacherAlerts(); }catch(e){} return; }
     if(r.data && r.data.ok===false){ alert(r.data.msg||'삭제하지 못했습니다.'); return; }
@@ -11588,10 +11599,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 24시간 안 남은 수업은 선생님이 지워서 없앨 수 없다(원장 지적 2026-08-14).
     // 안 그러면 시간 변경·휴강을 승인제로 막아도 '삭제'로 빠져나간다.
     // 사유 칸을 골라 뒀으면 같이 넘겨 기록에 남긴다.
+    var _pairId=await waAskPairDelete(_seId);   // 2026-10-22 2:1 짝 수업 같이 지울지
     var r=await sb.rpc('request_schedule_delete',{
       p_id:_seId,
       p_reason:($('waSeReason')&&$('waSeReason').value)||null,
       p_note:($('waSeNote')&&$('waSeNote').value.trim())||null });
+    if(_pairId && !r.error){ try{ await sb.rpc('request_schedule_delete',{p_id:_pairId,
+      p_reason:($('waSeReason')&&$('waSeReason').value)||null, p_note:'2:1 짝 수업 같이 삭제'}); }catch(e){} }
     if(r.error){ $('waSeErr').textContent='삭제 실패: '+r.error.message; return; }
     if(r.data && r.data.pending){
       closeSchedEdit();
@@ -19137,7 +19151,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 🚨 850 줄은 **4명**뿐이다. 한 사람 들어오면 이만큼 움직인다 — 단정해서 쓰지 말 것.
     var TARGET = [
       { band:850, label:'850 이상', need:{ gram:94, vocab:88, connect:81, infer:81, locate:76 } },
-      { band:750, label:'700점대', need:{ gram:82, vocab:79, connect:70, infer:68, locate:75 } },
+      { band:750, label:'700점대', need:{ gram:81, vocab:78, connect:69, infer:69, locate:76 } },
       { band:650, label:'600점대', need:{ gram:75, vocab:65, connect:63, infer:51, locate:64 } }
     ];
     var DIAG = [ ['ab_gram','gram','문법'], ['ab_vocab','vocab','어휘'],
