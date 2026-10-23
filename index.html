@@ -9303,7 +9303,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   }
 
   // 한 학생 자료를 한꺼번에 읽어 온다
-  async function sdLoad(sid){
+  async function sdCardLoad(sid){
     var out={ sched:[], hw:[], pay:[], consult:[], study:[], studyOff:[], notes:[], exam:[], diag:[] };
     if(!sb||!sid) return out;
     var qs=[
@@ -9482,7 +9482,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!st){ box.innerHTML='<div class="sd-empty">학생을 고르면 여기에 나옵니다.</div>'; return; }
     if(!sdCanSee(st)){ box.innerHTML='<div class="sd-empty">담당 학생만 볼 수 있습니다.</div>'; return; }
     box.innerHTML='<div class="sd-empty">불러오는 중…</div>';
-    sdLoad(sid).then(function(d){
+    sdCardLoad(sid).then(function(d){
       if(String($('sdStudent').value)!==String(sid)) return;   // 그새 다른 학생을 골랐으면 버린다
       var now=new Date();
       var done=d.sched.filter(function(x){ var s2=x.status||'confirmed';
