@@ -11670,14 +11670,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   var _alertChecks={}, _alertCheckRows=[];
   function ackKey(kind, skey, day){ return kind+'|'+skey+'|'+day; }
   async function loadAlertChecks(){
-    _alertChecks={}; _alertCheckRows=[];
-    if(!sb || !profile) return;
+    if(!sb || !profile){ _alertChecks={}; _alertCheckRows=[]; return; }
     var from=kwallNow(); from.setDate(from.getDate()-60);
     var r=await sb.from('alert_checks').select('*').eq('teacher_id',profile.id)
                   .gte('day', ymd(from)).order('created_at',{ascending:false});
     if(r.error || !r.data) return;                  // 표가 아직 없으면 조용히 넘어간다
-    _alertCheckRows=r.data;
-    r.data.forEach(function(x){ _alertChecks[ackKey(x.kind,x.student_key,x.day)]=1; });
+    // 다 읽은 뒤에 한 번에 바꾼다 — 비워 놓고 기다리면 그 사이 다른 새로고침이 빈 목록으로 그린다(2026-10-23)
+    var m={}; r.data.forEach(function(x){ m[ackKey(x.kind,x.student_key,x.day)]=1; });
+    _alertCheckRows=r.data; _alertChecks=m;
   }
   async function computeTeacherAlerts(){
     if(!sb || !profile) return [];
@@ -12241,12 +12241,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var r3=await sb.from('alert_checks').insert({
         teacher_id:profile.id, kind:parts[0], student_key:parts[1], day:parts[2],
         student_name:ak.getAttribute('data-ackname')||null });
-      if(r3.error){
-        alert(r3.error.message.indexOf('alert_checks')>=0
+      // 🚨 2026-10-23 원장님(김효민 확인함) — 첫 클릭은 저장됐는데 목록이 늦게 다시 그려져 알림이 그대로 보였고,
+      //    두 번째 클릭은 「이미 확인함」(중복 23505)인데 「표가 없습니다」로 잘못 떴다.
+      //    → 중복은 성공으로 보고, 누르는 즉시 그 줄을 지우고 확인 목록에도 바로 넣는다. 「표 없음」은 진짜 표가 없을 때(42P01)만.
+      if(r3.error && r3.error.code!=='23505'){
+        alert(r3.error.code==='42P01'
           ? '확인 기록을 저장할 표가 아직 없습니다.\nSupabase에서 alert_checks.sql 을 먼저 실행해주세요.'
           : '확인 처리 실패: '+r3.error.message);
         return;
       }
+      _alertChecks[ackKey(parts[0],parts[1],parts[2])]=1;
+      var _li=ak.closest('li'); if(_li) _li.remove();
       await loadTeacherAlerts(); return;
     }
     if(un){
@@ -13884,7 +13889,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     if(rate==null || isNaN(rate)) rate = DEFAULT_PAY_RATE;
     var perNet = totalNet/totalSess;                // 강사 배분 기준(부가세 뺀) 회당
-    var teachBase  = Math.round(perNet*done);       // 한 수업의 수업료
+    // 한 수업의 수업료(부가세 뺀) — 등록할 때 결제 줄을 가르는 것과 똑같이 센다(정산 화면과 숫자가 맞게)
+    var teachBase = 0, _rem = done;
+    _rfRows.forEach(function(p){
+      var ss=p.sessions||0; if(!ss || _rem<=0) return;
+      var ks=Math.min(ss,_rem); _rem-=ks;
+      var g=(p.amount||0)+(p.vat||0);
+      var kg=(ks===ss)? g : Math.min(g, Math.round(per*ks));
+      var kv=p.vat!=null ? (ks===ss ? (p.vat||0) : (g? Math.round(kg*(p.vat||0)/g):0)) : 0;
+      teachBase += kg-kv;
+    });
     var teachGross = Math.round(teachBase*rate/100);
     // 🚨 전에는 3.3 이 못 박혀 있어서, 원천징수를 안 떼는 대표님 건도 3.3% 를
     //    뗀 금액이 적혔다(2026-09-14 원장님 지적). 그 사람 값으로 읽는다.
@@ -13913,7 +13927,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         : '')
     + '<br>'
     + '학원이 쥐는 돈 '+won(keep)+' = '
-      + (tname? esc(tname)+' 선생님 ' : '강사 ')+won(teachGross)+' ('+done+'회 × '+won(Math.round(perNet))+(totalNet!==totalAmt?' (부가세 뺀 회당)':'')+' × '+rate+'%)'
+      + (tname? esc(tname)+' 선생님 ' : '강사 ')+won(teachGross)+' (들은 '+done+'회 몫 '+won(teachBase)+(totalNet!==totalAmt?'(부가세 뺀 돈)':'')+' × '+rate+'%)'
       + ' + 학원 '+won(academy)+'<br>'
     + '<span style="color:var(--muted);font-size:12.5px">'
       + (wh ? ('선생님 실지급은 원천징수 '+wh+'% 떼고 '+won(teachNet)+'입니다.')
@@ -13961,9 +13975,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         var restSess = sess - keepSess;
         if(!restSess) continue;                     // 통째로 한 수업 → 그대로 둔다
 
-        var keepAmt = Math.round((p.amount||0)*keepSess/sess);
+        // 🚨 2026-10-23 원장님: 들은 몫 = **전체 회당 금액(낸 돈 전부 ÷ 전체 회차) × 들은 회차**.
+        //    줄마다 나누면(90만÷11회) OT 를 따로 낸 학생은 163,636 같은 끝전이 생긴다(이가현). 160,000 이어야 맞다.
+        //    부가세는 그 줄의 부가세 비율대로 가른다.
+        var rowGross = (p.amount||0) + (p.vat||0);
+        var keepGross = Math.min(rowGross, Math.round(_rfCalc.per*keepSess));
+        var keepVat = p.vat!=null ? (rowGross ? Math.round(keepGross*(p.vat||0)/rowGross) : 0) : null;
+        var keepAmt = keepGross - (keepVat||0);
         var restAmt = (p.amount||0) - keepAmt;
-        var keepVat = p.vat!=null ? Math.round((p.vat||0)*keepSess/sess) : null;   // 부가세도 같은 비율로 가른다(2026-10-23)
         var restVat = p.vat!=null ? (p.vat||0) - keepVat : null;
 
         if(keepSess === 0){
@@ -14735,6 +14754,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         + (_exTotal?('<div class="pr-sum-row"><span>− 학원 지출</span><b>−'+won(_exTotal)+'</b></div>'
             + '<div class="pr-sum-row pr-sum-key"><span>= 학원 몫 (실제로 남는 돈)</span><b>'+won(totAmount-totGross-acadFee-_exTotal)+'</b></div>'):'')
         + '<div style="font-size:12px;color:var(--muted);margin-top:6px">강사 몫에서 뗀 카드수수료·원천징수는 학원 몫에 더하지 않았습니다 (수수료는 잉여금 통장, 원천징수는 세금으로 나감).</div>'
+        + '<div id="prRefundSum"></div>'
         + '</div>';
       h=_top+h;
     }
@@ -14759,6 +14779,33 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     prAdvBind(month);
     _prGroups = groups; _prMonth = month;     // 내역서에서 다시 쓴다
     if($('prTotal')) $('prTotal').textContent='실지급 합계 '+won(totNet);
+    if(ops) prRefundSum(rows);
+  }
+  // ── 이번 달 환불 — 학원이 쥐는 환불 몫 (2026-10-23 원장님 「정산에 학원 환불수수료 학원몫이 따로 안 나와」) ──
+  //    환불 계산기는 안 들은 회차 몫을 「환불 처리 - 미수강 N회분」 줄(담당 없음)로 떼어 두고, 그중 일부를 환불 줄로 돌려준다.
+  //    학원 몫 = 안 들은 회차 몫(부가세 포함) − 돌려준 돈. 미수강분 줄은 결제한 달에 있어서(예: 9월) 학생 단위로 따로 읽는다.
+  async function prRefundSum(rows){
+    var box=$('prRefundSum'); if(!box || !sb) return;
+    var rf=rows.filter(function(p){ return isRefund(p); });
+    if(!rf.length){ box.innerHTML=''; return; }
+    var ids=[]; rf.forEach(function(p){ if(p.student_id && ids.indexOf(p.student_id)<0) ids.push(p.student_id); });
+    var r=ids.length ? await sb.from('payments').select('student_id,amount,vat,sessions,memo,kind').in('student_id',ids) : {data:[]};
+    var all=(r && !r.error && r.data) ? r.data : [];
+    var tRef=0, tLeft=0, lines='';
+    ids.forEach(function(sid){
+      var ref=rf.filter(function(p){ return p.student_id===sid; });
+      var refAmt=ref.reduce(function(t,p){ return t+(p.amount||0); },0);
+      var left=all.filter(function(p){ return p.student_id===sid && p.kind!=='refund' && /^환불 처리/.test(p.memo||''); });
+      var leftAmt=left.reduce(function(t,p){ return t+(p.amount||0)+(p.vat||0); },0);
+      var leftSess=left.reduce(function(t,p){ return t+(p.sessions||0); },0);
+      tRef+=refAmt; tLeft+=leftAmt;
+      var nm=(ref[0]&&ref[0].student_name)||'';
+      lines+='<div class="pr-sum-row"><span>　'+esc(nm)+(leftSess?(' · 안 들은 '+leftSess+'회'):'')+' '+won(leftAmt)+' − 환불 '+won(refAmt)+'</span><b>'+won(leftAmt-refAmt)+'</b></div>';
+    });
+    box.innerHTML='<div class="pr-sum-row pr-sum-key" style="font-size:inherit;margin-top:10px"><span style="font-size:13.5px;color:var(--ink-soft)">이번 달 환불 '+rf.length+'건 · 학생에게 돌려준 돈</span><b style="font-size:15px;color:#c0342b">−'+won(tRef)+'</b></div>'
+      + lines
+      + '<div class="pr-sum-row pr-sum-key"><span>= 환불 수수료 (학원 몫)</span><b>'+won(tLeft-tRef)+'</b></div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:4px">안 들은 회차 몫(부가세 포함)에서 돌려준 돈을 뺀 금액입니다. 안 들은 회차 몫은 결제한 달 정산에, 돌려준 돈은 환불한 달 정산에 이미 들어 있어 위 「학원 몫」에 따로 더하지 않았습니다.</div>';
   }
   // ── 정산 내역서 ──────────────────────────────────────────────────
   // 선생님이 '내 몫이 왜 이 금액인지' 를 한 장으로 확인하는 자리다.
