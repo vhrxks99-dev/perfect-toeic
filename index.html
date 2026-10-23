@@ -13847,8 +13847,10 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   function rfDraw(prev){
     var box=$('rfCalc'), go=$('rfGo');
     if(!box || !_rfRows) return;
-    var totalAmt=0, totalSess=0;
-    _rfRows.forEach(function(p){ totalAmt += (p.amount||0); totalSess += (p.sessions||0); });
+    // 🚨 2026-10-23 원장님: 10월부터 수납은 부가세 3% 를 vat 칸에 떼어 적는다(amount = 뗀 나머지).
+    //    학생에게 돌려줄 돈은 학생이 **실제로 낸 돈(amount+vat)** 기준. 강사 몫은 예전처럼 amount(부가세 뺀 돈) 기준.
+    var totalAmt=0, totalNet=0, totalSess=0;
+    _rfRows.forEach(function(p){ totalAmt += (p.amount||0)+(p.vat||0); totalNet += (p.amount||0); totalSess += (p.sessions||0); });
     if(!totalSess){ box.textContent='이 학생의 결제에 수업 횟수가 안 적혀 있어 계산할 수 없습니다. 위 정산 목록에서 횟수를 먼저 채워주세요.'; if(go) go.disabled=true; return; }
 
     var per = totalAmt/totalSess;
@@ -13881,7 +13883,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       }
     }
     if(rate==null || isNaN(rate)) rate = DEFAULT_PAY_RATE;
-    var teachBase  = Math.round(per*done);          // 한 수업의 수업료
+    var perNet = totalNet/totalSess;                // 강사 배분 기준(부가세 뺀) 회당
+    var teachBase  = Math.round(perNet*done);       // 한 수업의 수업료
     var teachGross = Math.round(teachBase*rate/100);
     // 🚨 전에는 3.3 이 못 박혀 있어서, 원천징수를 안 떼는 대표님 건도 3.3% 를
     //    뗀 금액이 적혔다(2026-09-14 원장님 지적). 그 사람 값으로 읽는다.
@@ -13910,7 +13913,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         : '')
     + '<br>'
     + '학원이 쥐는 돈 '+won(keep)+' = '
-      + (tname? esc(tname)+' 선생님 ' : '강사 ')+won(teachGross)+' ('+done+'회 × '+won(Math.round(per))+' × '+rate+'%)'
+      + (tname? esc(tname)+' 선생님 ' : '강사 ')+won(teachGross)+' ('+done+'회 × '+won(Math.round(perNet))+(totalNet!==totalAmt?' (부가세 뺀 회당)':'')+' × '+rate+'%)'
       + ' + 학원 '+won(academy)+'<br>'
     + '<span style="color:var(--muted);font-size:12.5px">'
       + (wh ? ('선생님 실지급은 원천징수 '+wh+'% 떼고 '+won(teachNet)+'입니다.')
@@ -13960,6 +13963,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 
         var keepAmt = Math.round((p.amount||0)*keepSess/sess);
         var restAmt = (p.amount||0) - keepAmt;
+        var keepVat = p.vat!=null ? Math.round((p.vat||0)*keepSess/sess) : null;   // 부가세도 같은 비율로 가른다(2026-10-23)
+        var restVat = p.vat!=null ? (p.vat||0) - keepVat : null;
 
         if(keepSess === 0){
           // 하나도 안 한 결제 줄 → 담당만 뗀다. 줄을 쪼갤 필요가 없다.
@@ -13969,13 +13974,13 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           continue;
         }
 
-        var u = await sb.from('payments').update({ amount:keepAmt, sessions:keepSess }).eq('id', p.id);
+        var u = await sb.from('payments').update(p.vat!=null ? { amount:keepAmt, vat:keepVat, sessions:keepSess } : { amount:keepAmt, sessions:keepSess }).eq('id', p.id);
         if(u.error) throw new Error('결제 줄 수정 실패: '+u.error.message);
 
         var ins = await sb.from('payments').insert({
           student_id:p.student_id, student_name:p.student_name, admin_id:(profile?profile.id:null),
-          amount:restAmt, sessions:restSess, month:p.month, method:p.method, card_issuer:p.card_issuer,
-          card_fee_rate:p.card_fee_rate, paid_at:p.paid_at, kind:p.kind,
+          amount:restAmt, vat:restVat, sessions:restSess, month:p.month, method:p.method, card_issuer:p.card_issuer,
+          card_fee_rate:p.card_fee_rate, paid_at:p.paid_at, kind:p.kind, biz:(p.biz||null),
           teacher_id:null, teacher_name:null, pay_rate:null, withhold_rate:null,
           memo:'환불 처리 - 미수강 '+restSess+'회분'
         });
@@ -13987,6 +13992,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         student_id:sid, student_name:sname, admin_id:(profile?profile.id:null),
         amount:c.refund, sessions:-Math.abs(c.left), month:month, paid_at:paid,
         method:(_rfRows[0]&&_rfRows[0].method)||null, kind:'refund',
+        biz:((_rfRows.filter(function(x){return x.biz;})[0]||{}).biz||null),
         teacher_id:null, teacher_name:null, pay_rate:null, withhold_rate:null,
         memo:'환불 '+rfRatioText(c.ratio)+' ('+c.done+'/'+c.totalSess+'회 수강)'
       });
