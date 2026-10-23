@@ -14798,13 +14798,20 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var left=all.filter(function(p){ return p.student_id===sid && p.kind!=='refund' && /^환불 처리/.test(p.memo||''); });
       var leftAmt=left.reduce(function(t,p){ return t+(p.amount||0)+(p.vat||0); },0);
       var leftSess=left.reduce(function(t,p){ return t+(p.sessions||0); },0);
-      tRef+=refAmt; tLeft+=leftAmt;
+      tRef+=refAmt;
       var nm=(ref[0]&&ref[0].student_name)||'';
-      lines+='<div class="pr-sum-row"><span>　'+esc(nm)+(leftSess?(' · 안 들은 '+leftSess+'회'):'')+' '+won(leftAmt)+' − 환불 '+won(refAmt)+'</span><b>'+won(leftAmt-refAmt)+'</b></div>';
+      // 환불 계산기를 안 거친(손으로 넣은) 환불은 미수강분 줄이 없어 수수료를 셀 수 없다 → 합계에서 뺀다(10/13 김수연)
+      if(!left.length){
+        var rs=Math.abs(ref.reduce(function(t,p){ return t+(p.sessions||0); },0));
+        lines+='<div class="pr-sum-row"><span style="flex:1;min-width:0;margin-right:8px">　'+esc(nm)+' · 남은 '+(rs?rs+'회 ':'')+'전액 환불 '+won(refAmt)+'</span><b style="white-space:nowrap">'+won(0)+'</b></div>';
+        return;
+      }
+      tLeft+=leftAmt-refAmt;
+      lines+='<div class="pr-sum-row"><span style="flex:1;min-width:0;margin-right:8px">　'+esc(nm)+' · 안 들은 '+leftSess+'회 '+won(leftAmt)+' − 환불 '+won(refAmt)+'</span><b style="white-space:nowrap">'+won(leftAmt-refAmt)+'</b></div>';
     });
     box.innerHTML='<div class="pr-sum-row pr-sum-key" style="font-size:inherit;margin-top:10px"><span style="font-size:13.5px;color:var(--ink-soft)">이번 달 환불 '+rf.length+'건 · 학생에게 돌려준 돈</span><b style="font-size:15px;color:#c0342b">−'+won(tRef)+'</b></div>'
       + lines
-      + '<div class="pr-sum-row pr-sum-key"><span>= 환불 수수료 (학원 몫)</span><b>'+won(tLeft-tRef)+'</b></div>'
+      + '<div class="pr-sum-row pr-sum-key"><span>= 환불 수수료 (학원 몫)</span><b>'+won(tLeft)+'</b></div>'
       + '<div style="font-size:12px;color:var(--muted);margin-top:4px">안 들은 회차 몫(부가세 포함)에서 돌려준 돈을 뺀 금액입니다. 안 들은 회차 몫은 결제한 달 정산에, 돌려준 돈은 환불한 달 정산에 이미 들어 있어 위 「학원 몫」에 따로 더하지 않았습니다.</div>';
   }
   // ── 정산 내역서 ──────────────────────────────────────────────────
