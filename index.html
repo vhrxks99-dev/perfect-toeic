@@ -5864,6 +5864,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       </div>
       <div id="pySplit" style="display:none;margin:6px 0 12px"></div>
       <div id="pyScopeNote" class="dash-note" style="display:none">담당 학생의 수납 내역만 표시됩니다. (조회 전용 · 등록/삭제는 원장님)</div>
+      <div id="pyRefundCard"></div>
       <div class="wa-table-wrap"><table class="wa-table" id="pyTable"></table></div>
     </div>
 
@@ -15099,6 +15100,49 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     });
   }
 
+  // ── 수납 「환불」 카드 (2026-10-23 원장님 「이경은 총 64만 / OT 6만+8만+8만 = 22만 선생님 몫 / 학원법 1/2 → 32만 환불 /
+  //    나머지 10만은 학원 몫 — 이렇게 하면 쉽자나」). 앱 lib/payroll fetchRefundCases 와 같다.
+  //    학생마다: 총 결제 = 들은 수업(선생님 정산으로) + 학생 환불 + 학원 몫. 부가세 포함 금액.
+  async function pyRefundCard(month){
+    var box=$('pyRefundCard'); if(!box) return; box.innerHTML='';
+    if(!sb || !month) return;
+    var rf=await sb.from('payments').select('student_id,student_name,amount,memo').eq('month',month).eq('kind','refund');
+    var refunds=(rf && !rf.error && rf.data)?rf.data:[];
+    var ids=[]; refunds.forEach(function(r){ if(r.student_id && ids.indexOf(r.student_id)<0) ids.push(r.student_id); });
+    if(!ids.length) return;
+    var all=await sb.from('payments').select('student_id,amount,vat,sessions,kind,teacher_id,teacher_name,memo').in('student_id',ids).in('kind',['payment','ot']);
+    var pays=(all && !all.error && all.data)?all.data:[];
+    var G=function(p){ return (Number(p.amount)||0)+(Number(p.vat)||0); };
+    var cut=function(p){ return /^환불 처리/.test(p.memo||''); };
+    var cases=ids.map(function(sid){
+      var mine=pays.filter(function(p){ return p.student_id===sid; });
+      var rs=refunds.filter(function(r){ return r.student_id===sid; });
+      var paid=mine.reduce(function(t,p){ return t+G(p); },0);
+      var refund=rs.reduce(function(t,r){ return t+(Number(r.amount)||0); },0);
+      // 환불 계산기로 처리한 학생은 들은 몫/안 들은 몫 줄로 갈라져 있다. 손으로 넣은 옛 환불(10/13 김수연)은 들은 수업 = 낸 돈 − 환불.
+      var split=mine.some(cut), kept=mine.filter(function(p){ return !cut(p); });
+      var att=split ? kept.reduce(function(t,p){ return t+G(p); },0) : paid-refund;
+      var attS=split ? kept.reduce(function(t,p){ return t+(Number(p.sessions)||0); },0) : 0;
+      var ratio=''; rs.forEach(function(r){ var m=(r.memo||'').match(/환불 (2\/3|1\/2|없음)/); if(m && !ratio) ratio=m[1]; });
+      var tn=[]; kept.forEach(function(p){ if(p.teacher_name && tn.indexOf(p.teacher_name)<0) tn.push(p.teacher_name); });
+      return { sid:sid, name:(rs[0]&&rs[0].student_name)||'', paid:paid, att:att, attS:attS, tn:tn, refund:refund, ratio:ratio, acad:paid-att-refund,
+               mineT: mine.some(function(p){ return profile && p.teacher_id===profile.id; }) };
+    });
+    if(!isOps()) cases=cases.filter(function(c){ return c.mineT; });
+    if(!cases.length) return;
+    var row=function(l,v,st){ return '<div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;font-size:13.5px'+(st||'')+'"><span style="flex:1;min-width:0">'+l+'</span><b style="white-space:nowrap">'+v+'</b></div>'; };
+    var h='<div class="pr-card" style="margin:10px 0"><div class="pr-top"><div class="pr-name">환불 '+cases.length+'명</div><b style="color:#c0342b">-'+won(cases.reduce(function(t,c){ return t+c.refund; },0))+'</b></div>';
+    cases.forEach(function(c){
+      h+='<div style="border-top:1px solid var(--line);padding:9px 0"><div style="font-weight:800;margin-bottom:3px">'+esc(c.name)+'</div>'
+        + row('<span style="color:var(--muted)">총 결제</span>', won(c.paid))
+        + row('<span style="color:var(--muted)">들은 수업'+(c.attS?' '+c.attS+'회':'')+' → '+(c.tn.length?esc(c.tn.join('·'))+' 선생님 ':'선생님 ')+'정산</span>', won(c.att))
+        + row('<span style="color:var(--muted)">학생 환불'+(c.ratio?' (학원법 '+c.ratio+')':'')+'</span>', '<span style="color:#c0342b">'+won(c.refund)+'</span>')
+        + row('<span style="color:var(--accent);font-weight:800">학원 몫 (환불 수수료)</span>', '<span style="color:var(--accent)">'+won(c.acad)+'</span>')
+        + '</div>';
+    });
+    h+='<div style="font-size:12px;color:var(--muted)">총 결제 = 들은 수업 + 학생 환불 + 학원 몫 (부가세 포함 금액)</div></div>';
+    box.innerHTML=h;
+  }
   async function loadPayments(month){
     if(!$('pyTable')) return;
     var rows=[];
@@ -15107,6 +15151,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 화면에서도 걸러야 예전 데이터나 정책 누락 시에 남의 실지급액이 새지 않는다.
     if(!isOps() && profile) rows=rows.filter(function(p){ return p.teacher_id===profile.id; });
     window.__wtPayments=rows;
+    try{ pyRefundCard(month); }catch(e){}
     // 2026-10-16 원장님 「수납 화면에 카드수수료까지 뺀 실금액으로 보여줘」 — 합계 = 받은 돈 − 부가세 − 카드수수료
     function payCardFee(p){ if(isRefund(p)) return 0; var r=(p.card_fee_rate!=null)?Number(p.card_fee_rate):cardFeeRate(p.method); if(!r) return 0; var base=(Number(p.amount)||0)+(String(p.month||'')<'2026-10'?0:(Number(p.vat)||0)); return Math.round(base*r/100); }
     var total=rows.reduce(function(a,b){return a+payAmt(b)-payCardFee(b);},0);
