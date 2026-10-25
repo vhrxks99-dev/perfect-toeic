@@ -15978,6 +15978,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 2회는 '곧 대상이 됩니다'로 미리 알려 주기만 한다.
     var due=students.map(function(s){ return { s:s, rem:remainDoneOf(s.id) }; })
                     .filter(function(x){ return x.rem<=2 && hasSessionsEver(x.s.id) && !alreadyHandled(x.s.id); })
+                    // 2026-10-25 원장님 「수업종료한애들은 자동 삭제, 가입만한애들도 삭제」 — 앱 결제 안내와 같은 기준.
+                    //   수업이 한 번도 없거나, 0회 이하인데 마지막 수업이 7일 넘게 지났으면 뺀다(회원은 그대로).
+                    .filter(function(x){
+                      var ls=(window.__wtLessons||{})[x.s.id];
+                      if(!ls||!ls.length) return false;
+                      var last=ls[ls.length-1].t;
+                      return !(x.rem<=0 && last < Date.now()-7*86400000);
+                    })
                     .sort(function(a,b){ return a.rem-b.rem; });
     // 나간 안내. 목록이 비었을 때 칸을 통째로 숨기면 기능이 죽은 줄 아신다
     // (2026-08-14 원장 "하나로 합친 거 맞아? 모바일에 안 뜨는데?" — 사실은 대상이 0명이었다).
