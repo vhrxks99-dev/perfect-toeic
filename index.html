@@ -5392,6 +5392,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <button class="dash-tab" data-dtab="study">스터디</button>
       <button class="dash-tab" data-dtab="pay">수납</button>
       <button class="dash-tab" data-dtab="payroll">정산</button>
+      <button class="dash-tab" data-dtab="settle" style="display:none">월말 정산</button>
       <button class="dash-tab" data-dtab="att">수업 횟수</button>
       <button class="dash-tab" data-dtab="work">출퇴근</button>
       <button class="dash-tab" data-dtab="oplog">운영일지</button>
@@ -5880,6 +5881,18 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       <div id="prBizInfo"></div>
       <div id="prNote" class="dash-note">이 달에 받은 수강료를 담당 강사별로 나눈 결과입니다. <b>실지급액</b>이 강사에게 실제로 드릴 금액입니다.</div>
       <div id="prBox"></div>
+    </div>
+
+    <!-- 월말 정산 — 두 통장 (2026-10-24 원장님). 원장·부원장만 (applyTabRoles 가 탭을 연다). 계산은 settleCore. -->
+    <div class="dash-pane" data-dpane="settle" id="mstPane">
+      <div class="mst-head">
+        <button type="button" class="btn btn-ghost" data-mst-m="-1" style="padding:6px 12px">‹</button>
+        <b id="mstMonth" class="mst-mlabel"></b>
+        <button type="button" class="btn btn-ghost" data-mst-m="1" style="padding:6px 12px">›</button>
+        <button type="button" class="btn" data-mst-print="1" style="margin-left:auto;padding:8px 14px;font-size:13.5px">PDF로 저장·프린트</button>
+      </div>
+      <div class="mst-tabs"><button type="button" data-mst-tab="wanto" class="on">김태완 통장</button><button type="button" data-mst-tab="ajlabs">이창희 통장</button><button type="button" data-mst-tab="split">학원 몫 5:5</button></div>
+      <div id="mstBox"></div>
     </div>
 
     <div class="dash-pane" data-dpane="att">
@@ -9115,6 +9128,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 달력은 탭이 숨어 있는 동안 폭이 0이라 스크롤 계산이 안 먹는다. 열릴 때 다시 맞춘다.
     if(name==='sched' && typeof centerToday==='function') setTimeout(centerToday, 0);
     if(name==='task') taskLoad();
+    // 월말 정산 (2026-10-24) — 열 때마다 새로 계산한다
+    if(name==='settle') stLoad();
     // 학생별 화면 — 열 때 학생 목록을 채운다.
     // 🚨 회원을 아직 안 읽었으면 여기서 읽는다(2026-09-11). 전에는 비어 있었다.
     if(name==='student' && typeof sdFillStudents==='function'){
@@ -14815,6 +14830,594 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       + '<div class="pr-sum-row pr-sum-key"><span>= 환불 수수료 (학원 몫)</span><b>'+won(tLeft)+'</b></div>'
       + '<div style="font-size:12px;color:var(--muted);margin-top:4px">안 들은 회차 몫(부가세 포함)에서 돌려준 돈을 뺀 금액입니다. 안 들은 회차 몫은 결제한 달 정산에, 돌려준 돈은 환불한 달 정산에 이미 들어 있어 위 「학원 몫」에 따로 더하지 않았습니다.</div>';
   }
+  // ══════════════════════════════════════════════════════════════
+  // 월말 정산 — 두 통장 (2026-10-24 원장님 시안 승인: 통장별 · 학원 몫 5:5 · 보정 · PDF)
+  // 🚨 settleCore 는 앱 lib/settleCore.ts 를 tsc 로 JS 로 바꿔 **그대로** 붙인 것이다. 계산을 고치면 앱 파일을 고치고 다시 붙일 것.
+  //    선생님 몫·카드 1.5%·원천세는 이 페이지 payShare 를 그대로 넘겨 쓴다 → 정산 탭과 같은 숫자.
+  // 🚨 원장·부원장(role master)만. 실장(manager)·선생님은 탭을 감춘다(applyTabRoles). 서버 RLS 도 settle_adjustments 는 real_role() master 만.
+  // 🚨 「누가 누구에게 보낼 돈」은 안 보여 준다(원장님 「헷갈려」).
+  var settleCore = (function(){
+    /**
+     * 월말 정산 — 두 통장 계산 (2026-10-24 원장님 「원장님 방식 정산표」 → 앱·웹 화면으로).
+     *
+     * 🚨 이 파일은 바깥 것을 하나도 import 하지 않는다. 웹(index.html)에도 **이 파일을 그대로 옮긴 것**이 들어 있다
+     *    (tsc 로 JS 로 바꿔 붙였다). 계산을 고치면 웹 쪽 「settleCore」 덩어리도 같이 바꿀 것.
+     *    두 화면 숫자가 다르면 어느 쪽이 맞는지 아무도 모른다.
+     * 🚨 선생님 몫·카드 1.5%·원천세는 정산 화면의 payShare 를 받아서 쓴다(deps). 따로 셈하지 않는다.
+     *
+     * 통장 두 개 — 'wanto' 김태완(기업은행 · 완벽한토익) / 'ajlabs' 이창희(국민은행 · 퍼펙트웍스). 10월부터, 0원 시작, 세전.
+     *   남아 있어야 할 돈 = OT + 수업료 + 책 − 지출 − 환불 − 미리 정산 − 카드사 0.4% + 보정
+     *   학원 몫 = 남아 있어야 할 돈 − 부가세 보관 − 카드 잉여금 1.1% − 원천세 3.3% − 선생님 지급액
+     *   1인 몫 = 두 통장 학원 몫 합 ÷ 2
+     *
+     * 선생님 → 통장은 TEACHER_ACCT 한 곳에서만 정한다. 없는 선생님은 그 달 수납 줄이 더 많이 들어간 통장.
+     * 카드 0.4%·1.1%·원천세·지급액은 선생님 묶음(통장)으로 센다 — 실제 카드가 긁힌 단말기가 선생님 통장이다
+     * (예: 이가현 OT #183 은 biz 가 wanto 지만 이창희 통장 카드 32만 안에 다시 들어갔다).
+     */
+    var __rest = (this && this.__rest) || function (s, e) {
+        var t = {};
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+            t[p] = s[p];
+        if (s != null && typeof Object.getOwnPropertySymbols === "function")
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
+        return t;
+    };
+    /** 월말 정산이 시작된 달. 그 전 달은 통장이 안 나뉘어 있어 보여 주지 않는다. */
+    const SETTLE_FROM = '2026-10';
+    const ACCOUNTS = [
+        { key: 'wanto', name: '김태완', bank: '기업은행 · 완벽한토익', teachers: ['김태완', '김준우', '김혜인'] },
+        { key: 'ajlabs', name: '이창희', bank: '국민은행 · 퍼펙트웍스', teachers: ['신혜령', '이창희'] },
+    ];
+    /** 선생님 → 통장 (원장님 10/24). 새 선생님이 오면 여기 한 줄. */
+    const TEACHER_ACCT = {
+        김태완: 'wanto',
+        김준우: 'wanto',
+        김혜인: 'wanto',
+        이창희: 'ajlabs',
+        신혜령: 'ajlabs',
+    };
+    /** 카드사가 실제로 떼는 % · 1.5% 중 나머지(잉여금) % */
+    const CARD_REAL = 0.4;
+    const CARD_SURPLUS = 1.1;
+    const ACADEMY_KINDS = ['book', 'study', 'rental'];
+    const n = (v) => Number(v) || 0;
+    const R = (x) => Math.round(x);
+    const g = (r) => n(r.amount) + n(r.vat);
+    const day = (s) => String(s || '').slice(0, 10);
+    const sKey = (r) => r.student_id || `n:${r.student_name || ''}`;
+    const isSplit = (r) => r.kind === 'payment' && !r.teacher_id;
+    /** 1,234,567 — 기기 글꼴·Intl 에 기대지 않는다 */
+    function w(v) {
+        const s = String(Math.abs(Math.round(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return v < 0 ? `−${s}` : s;
+    }
+    /** 10/24 */
+    function md(s) {
+        const d = day(s);
+        return d ? `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}` : '';
+    }
+    function computeSettle(inp, deps) {
+        const { rows } = inp;
+        const feeRate = (r) => (r.card_fee_rate != null ? n(r.card_fee_rate) : deps.cardFeeRate(r.method));
+        // 선생님 → 통장. 지도에 없으면 그 선생님 줄이 더 많이 들어간 통장
+        const tName = new Map();
+        for (const r of rows)
+            if (r.teacher_id)
+                tName.set(r.teacher_id, r.teacher_name || tName.get(r.teacher_id) || '');
+        for (const a of inp.adv)
+            if (a.teacher_id && !tName.has(a.teacher_id))
+                tName.set(a.teacher_id, a.teacher_name || '');
+        const acctOf = (tid) => {
+            if (!tid)
+                return 'wanto';
+            const nm = tName.get(tid) || '';
+            if (TEACHER_ACCT[nm])
+                return TEACHER_ACCT[nm];
+            const mine = rows.filter((r) => r.teacher_id === tid);
+            const aj = mine.filter((r) => r.biz === 'ajlabs').length;
+            return aj > mine.length - aj ? 'ajlabs' : 'wanto';
+        };
+        const bizOf = (r) => (r.biz === 'ajlabs' ? 'ajlabs' : r.biz === 'wanto' ? 'wanto' : acctOf(r.teacher_id));
+        const accts = ACCOUNTS.map((A) => {
+            // 이 통장 선생님 — 지도 순서, 그다음 지도에 없는 선생님
+            const tids = [...tName.keys()].filter((t) => acctOf(t) === A.key);
+            const order = (t) => {
+                const i = A.teachers.indexOf(tName.get(t) || '');
+                return i < 0 ? 99 : i;
+            };
+            tids.sort((a, b) => order(a) - order(b) || (tName.get(a) || '').localeCompare(tName.get(b) || ''));
+            const named = A.teachers.filter((nm) => ![...tName.values()].includes(nm));
+            const teachers = [...tids.map((t) => tName.get(t) || ''), ...named];
+            const byPaid = (a, b) => day(a.paid_at).localeCompare(day(b.paid_at)) || String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+            // 1. OT 비용
+            const otRows = rows.filter((r) => r.kind === 'ot' && bizOf(r) === A.key).sort(byPaid);
+            const ot = {
+                items: otRows.map((r) => ({ date: md(r.paid_at), student: r.student_name || '', teacher: r.teacher_name || '', amount: g(r) })),
+                total: otRows.reduce((t, r) => t + g(r), 0),
+            };
+            // 2. 수업료 — 담당 있는 수업료는 선생님 통장, 담당 없는 줄(환불 처리 - 미수강 N회분)은 biz 통장의 같은 학생 줄 밑에
+            const lessonRows = rows
+                .filter((r) => r.kind === 'payment' && r.teacher_id && acctOf(r.teacher_id) === A.key)
+                .sort((a, b) => order(a.teacher_id || '') - order(b.teacher_id || '') || byPaid(a, b));
+            const lessonItems = lessonRows.map((r) => ({
+                date: md(r.paid_at), student: r.student_name || '', teacher: r.teacher_name || '', method: r.method || '', amount: g(r), unused: 0, unusedNote: '', _k: sKey(r),
+            }));
+            for (const u of rows.filter((r) => isSplit(r) && bizOf(r) === A.key).sort(byPaid)) {
+                const host = lessonItems.find((x) => x._k === sKey(u));
+                const note = `그중 ${w(g(u))}은 안 들은 회차 → 환불표`;
+                if (host) {
+                    host.amount += g(u);
+                    host.unused += g(u);
+                    host.unusedNote = host.unusedNote ? `${host.unusedNote} · ${note}` : note;
+                }
+                else {
+                    lessonItems.push({ date: md(u.paid_at), student: u.student_name || '', teacher: '—', method: u.method || '', amount: g(u), unused: g(u), unusedNote: `안 들은 회차 → 환불표${u.memo ? ` (${u.memo})` : ''}`, _k: sKey(u) });
+                }
+            }
+            const lesson = {
+                items: lessonItems.map((_a) => {
+                    var { _k } = _a, x = __rest(_a, ["_k"]);
+                    return x;
+                }),
+                total: lessonItems.reduce((t, x) => t + x.amount, 0),
+            };
+            // 3. 책 매출 (스터디·태블릿 대여도 학원 몫이라 같이)
+            const bookRows = rows.filter((r) => ACADEMY_KINDS.includes(r.kind || '') && bizOf(r) === A.key).sort(byPaid);
+            const kindWhat = (r) => r.kind === 'study' ? '스터디' : r.kind === 'rental' ? '태블릿 대여' : (r.memo || '책').replace(/완벽한토익 /g, '').split(' · ')[0].slice(0, 30);
+            const book = {
+                title: bookRows.some((r) => r.kind !== 'book') ? '책·학원 매출' : '책 매출',
+                items: bookRows.map((r) => ({ date: md(r.paid_at), student: r.student_name || '', what: kindWhat(r), method: r.method || '', amount: g(r) })),
+                total: bookRows.reduce((t, r) => t + g(r), 0),
+            };
+            // 4. 지출
+            const expRows = inp.exp.filter((e) => e.biz === A.key).sort((a, b) => day(a.spent_on).localeCompare(day(b.spent_on)));
+            const exp = {
+                items: expRows.map((e) => ({ date: md(e.spent_on), vendor: e.vendor || '', category: e.category || '', memo: e.memo || '', amount: n(e.amount) })),
+                total: expRows.reduce((t, e) => t + n(e.amount), 0),
+            };
+            const commonExp = A.key === 'wanto' ? inp.exp.filter((e) => e.biz !== 'wanto' && e.biz !== 'ajlabs').reduce((t, e) => t + n(e.amount), 0) : 0;
+            // 5. 환불 — 결제한 금액 = 그 학생이 낸 돈 전부(책·환불 빼고, 모든 달)
+            const refRows = rows.filter((r) => r.kind === 'refund' && bizOf(r) === A.key).sort(byPaid);
+            const refund = {
+                items: refRows.map((r) => {
+                    const k = sKey(r);
+                    const mine = inp.hist.filter((h) => sKey(h) === k);
+                    const paidRows = mine.filter((h) => h.kind !== 'book' && h.kind !== 'refund');
+                    const paid = paidRows.reduce((t, h) => t + g(h), 0);
+                    const split = paidRows.some(isSplit);
+                    let teacher;
+                    let used;
+                    if (split) {
+                        const kept = paidRows.filter((h) => !!h.teacher_id);
+                        teacher = kept.reduce((t, h) => t + g(h), 0);
+                        const hasOt = kept.some((h) => h.kind === 'ot');
+                        const ss = kept.filter((h) => h.kind !== 'ot').reduce((t, h) => t + n(h.sessions), 0);
+                        used = ss > 0 ? `${hasOt ? 'OT + ' : ''}${ss}회 들음` : '들은 수업 몫';
+                    }
+                    else {
+                        const total = paidRows.reduce((t, h) => t + Math.max(0, n(h.sessions)), 0);
+                        const back = Math.abs(mine.filter((h) => h.kind === 'refund').reduce((t, h) => t + n(h.sessions), 0));
+                        teacher = total > 0 ? R(paid * (1 - back / total)) : paid - n(r.amount);
+                        used = total > 0 ? `${total - back}회 들음 (${total}회 중)` : '';
+                    }
+                    return { date: md(r.paid_at), student: r.student_name || '', paid, refund: n(r.amount), teacher, academy: paid - n(r.amount) - teacher, used, memo: r.memo || '' };
+                }),
+                total: refRows.reduce((t, r) => t + n(r.amount), 0),
+            };
+            // 6. 미리 정산 — 이 통장 선생님이 받은 것
+            const advRows = inp.adv.filter((a) => acctOf(a.teacher_id) === A.key).sort((a, b) => day(a.paid_on).localeCompare(day(b.paid_on)));
+            const adv = {
+                items: advRows.map((a) => ({ date: md(a.paid_on), name: a.teacher_name || tName.get(a.teacher_id || '') || '', amount: n(a.amount), memo: a.memo || '' })),
+                total: advRows.reduce((t, a) => t + n(a.amount), 0),
+            };
+            const tRows = (tid) => rows.filter((r) => r.teacher_id === tid && (r.kind === 'payment' || r.kind === 'ot'));
+            const nameRows = (nm) => tids.find((t) => tName.get(t) === nm);
+            // 7. 부가세 3% — 선생님 몫은 11월 급여에서 떼고, 책값까지 이 통장에 따로 보관
+            const vatRows = teachers.map((nm) => {
+                const tid = nameRows(nm);
+                const L = tid ? tRows(tid) : [];
+                return { label: nm, count: `${L.length}건`, gross: L.reduce((t, r) => t + g(r), 0), vat: L.reduce((t, r) => t + n(r.vat), 0) };
+            });
+            vatRows.push({ label: '책값 (학원)', count: `${bookRows.length}${book.title === '책 매출' ? '권' : '건'}`, gross: book.total, vat: bookRows.reduce((t, r) => t + n(r.vat), 0) });
+            const vat = { rows: vatRows, total: vatRows.reduce((t, x) => t + x.vat, 0) };
+            // 8. 카드 수수료 — 0.4% 카드사(이미 빠져서 들어옴) · 1.1% 잉여금
+            const cardRows = [];
+            const cardRow = (label, amount, count) => cardRows.push({ label, count, amount, f4: R((amount * CARD_REAL) / 100), f11: R((amount * CARD_SURPLUS) / 100) });
+            for (const nm of teachers) {
+                const tid = nameRows(nm);
+                const L = (tid ? tRows(tid) : []).filter((r) => feeRate(r) > 0);
+                cardRow(nm, L.reduce((t, r) => t + g(r), 0), L.length);
+            }
+            // 학원: 책·스터디 카드 + 담당 없는 줄 카드(그 학생 카드 환불만큼은 카드 취소라 수수료 없음)
+            const acBooks = bookRows.filter((r) => feeRate(r) > 0);
+            const splits = rows.filter((r) => isSplit(r) && bizOf(r) === A.key && feeRate(r) > 0);
+            let splitAmt = 0;
+            for (const u of splits) {
+                const cancelled = rows
+                    .filter((r) => r.kind === 'refund' && bizOf(r) === A.key && sKey(r) === sKey(u) && feeRate(Object.assign(Object.assign({}, r), { card_fee_rate: null })) > 0)
+                    .reduce((t, r) => t + n(r.amount), 0);
+                splitAmt += Math.max(0, g(u) - cancelled);
+            }
+            cardRow(splits.length ? '학원 (책 · 환불 남은 몫)' : '학원 (책)', acBooks.reduce((t, r) => t + g(r), 0) + splitAmt, acBooks.length + splits.filter(() => splitAmt > 0).length);
+            const card = {
+                rows: cardRows,
+                amount: cardRows.reduce((t, x) => t + x.amount, 0),
+                f4: cardRows.reduce((t, x) => t + x.f4, 0),
+                f11: cardRows.reduce((t, x) => t + x.f11, 0),
+            };
+            // 9. 원천세 3.3% — 선생님 몫(카드 1.5% 뺀 뒤)의 3.3%, 정산 화면 payShare 그대로
+            const whRows = [];
+            for (const nm of teachers) {
+                const tid = nameRows(nm);
+                if (!tid)
+                    continue;
+                const S = tRows(tid).map((r) => deps.payShare(r));
+                const tax = S.reduce((t, s) => t + s.tax, 0);
+                if (!tax)
+                    continue;
+                whRows.push({ label: nm, base: S.reduce((t, s) => t + s.gross - s.fee, 0), tax });
+            }
+            const wh = { rows: whRows, total: whRows.reduce((t, x) => t + x.tax, 0) };
+            // 10. 선생님 지급액 — 정산 화면과 같은 줄(그 선생님 담당 환불 줄까지)로 payShare 합
+            const cards = [];
+            for (const nm of teachers) {
+                const tid = nameRows(nm);
+                const L = tid ? tRows(tid) : [];
+                const refundsT = tid ? rows.filter((r) => r.teacher_id === tid && r.kind === 'refund') : [];
+                const advT = inp.adv.filter((a) => (tid ? a.teacher_id === tid : false) || (!tid && a.teacher_name === nm));
+                if (!L.length && !refundsT.length && !advT.length)
+                    continue;
+                const S = L.map((r) => deps.payShare(r));
+                const G = L.reduce((t, r) => t + g(r), 0);
+                const V = L.reduce((t, r) => t + n(r.vat), 0);
+                const Am = L.reduce((t, r) => t + n(r.amount), 0);
+                const sh = S.reduce((t, s) => t + s.gross, 0);
+                const fee = S.reduce((t, s) => t + s.fee, 0);
+                const tax = S.reduce((t, s) => t + s.tax, 0);
+                const rates = [...new Set(S.map((s) => s.rate))].sort((a, b) => a - b);
+                const rateTxt = rates.join('·') || '0';
+                const nOT = L.filter((r) => r.kind === 'ot').length;
+                const lines = [
+                    { label: `결제 합계 (OT ${nOT}건 · 수업료 ${L.length - nOT}건)`, value: G, tone: 'n' },
+                    { label: '− 부가세 3% (통장에 따로 보관)', value: -V, tone: 'red' },
+                    { label: '= 부가세 뺀 금액', value: Am, tone: 'k' },
+                ];
+                if (Am - sh)
+                    lines.push({ label: `학원 몫 (${rates.map((x) => 100 - x).join('·')}%) → 학원`, value: Am - sh, tone: 'acad' });
+                lines.push({ label: `선생님 몫 (${rateTxt}%)`, value: sh, tone: 'k' });
+                if (fee)
+                    lines.push({ label: '− 카드 수수료 1.5% (0.4% 카드사 + 1.1% 잉여금)', value: -fee, tone: 'red' });
+                if (tax)
+                    lines.push({ label: '− 원천세 3.3% (세무서에 냄)', value: -tax, tone: 'red' });
+                let cut = 0;
+                for (const r of refundsT) {
+                    const s = deps.payShare(r);
+                    cut += -s.net;
+                    lines.push({ label: `− ${r.student_name || ''} 환불 (선생님 몫에서)`, value: s.net, tone: 'red' });
+                }
+                const advSum = advT.reduce((t, a) => t + n(a.amount), 0);
+                if (advSum)
+                    lines.push({ label: '− 미리 정산 (이번 달에 받음)', value: -advSum, tone: 'red' });
+                const final = sh - fee - tax - cut - advSum;
+                lines.push({ label: '= 지급액', value: final, tone: 'fin' });
+                cards.push({ name: nm, lines, final, academy: Am - sh });
+            }
+            const pay = { cards, total: cards.reduce((t, c) => t + c.final, 0), academy: cards.reduce((t, c) => t + c.academy, 0) };
+            // 보정 — 실제 돈이 다른 통장으로 오갔을 때 (수납·선생님 정산은 그대로)
+            const adjItems = inp.adj.slice().sort((a, b) => day(a.ymd).localeCompare(day(b.ymd)) || a.id - b.id);
+            const adj = { items: adjItems, total: adjItems.reduce((t, a) => t + n(A.key === 'wanto' ? a.wanto : a.ajlabs), 0) };
+            const left = ot.total + lesson.total + book.total - exp.total - refund.total - adv.total - card.f4 + adj.total;
+            const academy = left - vat.total - card.f11 - wh.total - pay.total;
+            return { key: A.key, name: A.name, bank: A.bank, teachers, ot, lesson, book, exp, refund, adv, vat, card, wh, pay, adj, commonExp, left, academy };
+        });
+        const academySum = accts.reduce((t, a) => t + a.academy, 0);
+        return { month: inp.month, accts, academySum, half: R(academySum / 2) };
+    }
+    // ── PDF·프린트용 HTML (settle_v2.png 모양, A4) ─────────────────────────────
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] || c);
+    }
+    function table(title, head, body, foot, cls = '') {
+        const h = head.map((x) => `<th>${x}</th>`).join('');
+        const b = body.length
+            ? body.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')
+            : `<tr><td colspan="${head.length}" class="empty">없음</td></tr>`;
+        const f = foot ? `<tr class="sum">${foot.map((c) => `<td>${c}</td>`).join('')}</tr>` : '';
+        return `<div class="blk ${cls}"><h2>${title}</h2><table><tr>${h}</tr>${b}${f}</table></div>`;
+    }
+    function payCardsHtml(cards) {
+        return cards
+            .map((c) => `<div class="pc"><h3>${esc(c.name)}</h3>${c.lines
+            .map((l) => `<div class="pl ${l.tone}"><span>${esc(l.label)}</span><b>${w(l.value)}</b></div>`)
+            .join('')}</div>`)
+            .join('');
+    }
+    function monthTitle(month) {
+        return `${month.slice(0, 4)}년 ${Number(month.slice(5, 7))}월`;
+    }
+    /** 통장 하나 — 1~10 전부 펼친 것 */
+    /** noAdjTable — 웹 화면은 보정을 노란 상자(고치기·지우기)로 따로 그려서 표를 뺀다 */
+    function acctHtml(a, month, asOf, noAdjTable = false) {
+        const out = [];
+        out.push(table('1. OT 비용' + (a.key === 'wanto' ? ' (모든 선생님)' : ''), ['날짜', '학생', '선생님', '금액'], a.ot.items.map((x) => [x.date, esc(x.student), esc(x.teacher), w(x.amount)]), ['', `${a.ot.items.length}건`, '', w(a.ot.total)]));
+        out.push(table(`2. 수업료 (${a.teachers.map(esc).join('·')})`, ['날짜', '학생', '선생님', '결제', '금액'], a.lesson.items.map((x) => [x.date, esc(x.student) + (x.unusedNote ? ` <span class="s">(${esc(x.unusedNote)})</span>` : ''), esc(x.teacher), esc(x.method), w(x.amount)]), ['', `${a.lesson.items.length}건`, '', '', w(a.lesson.total)]));
+        out.push(table(`3. ${a.book.title}`, ['날짜', '학생', '내용', '결제', '금액'], a.book.items.map((x) => [x.date, esc(x.student), esc(x.what), esc(x.method), w(x.amount)]), ['', `${a.book.items.length}건`, '', '', w(a.book.total)]));
+        out.push(table('4. 지출', ['날짜', '어디', '분류', '메모', '금액'], a.exp.items.map((x) => [x.date, esc(x.vendor), esc(x.category), esc(x.memo), w(x.amount)]), ['', `${a.exp.items.length}건`, '', '', w(a.exp.total)], 'out'));
+        out.push(table('5. 환불 내역', ['날짜', '학생', '결제한 금액', '학생에게 환불', '선생님 몫', '학원 몫', '참고'], a.refund.items.map((x) => [x.date, esc(x.student), w(x.paid), `<b class="red">${w(x.refund)}</b>`, `${w(x.teacher)}${x.used ? `<br><span class="s">${esc(x.used)}</span>` : ''}`, w(x.academy), `<span class="s">${esc(x.memo)}</span>`]), ['', `${a.refund.items.length}건`, '', `<b class="red">${w(a.refund.total)}</b>`, '', '', ''], 'out'));
+        out.push(table('6. 미리 정산', ['날짜', '받은 사람', '메모', '금액'], a.adv.items.map((x) => [x.date, esc(x.name), `<span class="s">${esc(x.memo)}</span>`, w(x.amount)]), ['', '', '', w(a.adv.total)], 'out'));
+        out.push(table('7. 부가세 3% — 선생님 몫은 다음 달 급여에서 떼고, 책값까지 이 통장에 따로 보관', ['선생님', '결제 건수', '결제 금액', '부가세 3%'], a.vat.rows.map((x) => [esc(x.label), x.count, w(x.gross), `<b>${w(x.vat)}</b>`]), ['합계', '', '', `<b>${w(a.vat.total)}</b>`], 'vat'));
+        out.push(table('8. 카드 수수료 — 0.4% 카드사(이미 빠져서 들어옴) · 1.1% 카드 잉여금으로 모음', ['선생님', '카드 결제', '카드 결제액', '0.4% 카드사', '1.1% 잉여금'], a.card.rows.map((x) => [esc(x.label), `${x.count}건`, w(x.amount), w(x.f4), `<b>${w(x.f11)}</b>`]), ['합계', '', w(a.card.amount), w(a.card.f4), `<b>${w(a.card.f11)}</b>`], 'card'));
+        out.push(table('9. 원천세 3.3% — 다음 달 10일까지 세무서·위택스에 냄 (이 통장에서)', ['선생님', '선생님 몫 (카드 1.5% 뺀 뒤)', '세율', '원천세'], a.wh.rows.map((x) => [esc(x.label), w(x.base), '3.3%', `<b>${w(x.tax)}</b>`]), ['합계', '', '', `<b>${w(a.wh.total)}</b>`], 'wh'));
+        out.push(`<div class="blk pay"><h2>10. 선생님 지급액 (다음 달 10일)</h2><div class="pcs">${payCardsHtml(a.pay.cards)}</div>`
+            + `<div class="pnote">이 통장에서 나갈 선생님 지급액 합계 <b>${w(a.pay.total)}</b> · 학원 몫 합계 <b>${w(a.pay.academy)}</b></div></div>`);
+        if (a.adj.items.length && !noAdjTable) {
+            out.push(table('보정 — 실제 돈이 다른 통장으로 오간 것 (수납·선생님 정산은 그대로)', ['날짜', '내용', '메모', '이 통장'], a.adj.items.map((x) => {
+                const v = a.key === 'wanto' ? x.wanto : x.ajlabs;
+                return [md(x.ymd), esc(x.title), `<span class="s">${esc(x.memo || '')}</span>`, `<b class="${v < 0 ? 'red' : 'grn'}">${v > 0 ? '+' : ''}${w(v)}</b>`];
+            }), ['합계', '', '', `<b>${a.adj.total > 0 ? '+' : ''}${w(a.adj.total)}</b>`], 'adj'));
+        }
+        const sr = (l, v, cls = '') => `<tr><td>${l}</td><td class="${cls}">${v}</td></tr>`;
+        let sumrows = '';
+        sumrows += sr('OT 비용', `+${w(a.ot.total)}`);
+        sumrows += sr('수업료', `+${w(a.lesson.total)}`);
+        sumrows += sr(a.book.title, `+${w(a.book.total)}`);
+        sumrows += sr('지출', `−${w(a.exp.total)}`, 'red');
+        sumrows += sr('환불', `−${w(a.refund.total)}`, 'red');
+        sumrows += sr('미리 정산', `−${w(a.adv.total)}`, 'red');
+        sumrows += sr('카드사 수수료 0.4% (이미 빠져서 들어옴)', `−${w(a.card.f4)}`, 'red');
+        if (a.adj.items.length)
+            sumrows += sr('보정', `${a.adj.total > 0 ? '+' : ''}${w(a.adj.total)}`, a.adj.total < 0 ? 'red' : '');
+        const top = `<div class="hd"><div><h1>${esc(a.name)} 통장 <small>${esc(a.bank)}</small></h1>`
+            + `<div class="sub">${monthTitle(month)} · 0원에서 시작 · 세전(부가세·원천세 안 뺌, 카드사 0.4%만 뺌) · ${esc(asOf)}</div>`
+            + (a.commonExp ? `<div class="sub red">※ 통장이 안 정해진(공통) 지출 ${w(a.commonExp)}원은 계산에서 뺐어요.</div>` : '')
+            + `</div><table class="sumt"><tr><th>요약</th><th></th></tr>${sumrows}`
+            + `<tr class="sum"><td>지금 남아 있어야 할 돈</td><td>${w(a.left)}</td></tr>`
+            + `<tr><td>　그중 부가세 따로 보관</td><td>${w(a.vat.total)}</td></tr>`
+            + `<tr><td>　그중 카드 잉여금 1.1%</td><td>${w(a.card.f11)}</td></tr>`
+            + `<tr><td>　그중 원천세 3.3% (다음 달 10일 납부)</td><td>${w(a.wh.total)}</td></tr></table></div>`;
+        return `<section class="acct">${top}${out.join('')}</section>`;
+    }
+    /** 학원 몫 5:5 */
+    function splitHtml(r) {
+        const col = (a) => {
+            const rows = [
+                ['지금 남아 있어야 할 돈', a.left, 'k'],
+                ['− 부가세 보관', -a.vat.total, 'red'],
+                ['− 카드 잉여금 1.1%', -a.card.f11, 'red'],
+                ['− 원천세 3.3%', -a.wh.total, 'red'],
+                ['− 선생님 지급액', -a.pay.total, 'red'],
+                ['= 학원 몫', a.academy, 'fin'],
+            ];
+            return `<div class="pc"><h3>${esc(a.name)} 통장</h3>${rows.map(([l, v, c]) => `<div class="pl ${c}"><span>${l}</span><b>${w(v)}</b></div>`).join('')}</div>`;
+        };
+        return `<div class="blk pay"><h2>학원 몫 5:5</h2><div class="pcs two">${r.accts.map(col).join('')}</div>`
+            + `<div class="pc" style="margin-top:10px"><div class="pl k"><span>학원 몫 합계</span><b>${w(r.academySum)}</b></div>`
+            + `<div class="pl fin"><span>1인 몫 (5:5)</span><b>${w(r.half)}</b></div></div></div>`;
+    }
+    const SETTLE_CSS = `
+    @page{size:A4;margin:10mm}
+    *{box-sizing:border-box}
+    .stp{font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#1d1b19;font-size:11px;background:#fff}
+    .stp h1{font-size:20px;margin:0}.stp h1 small{font-size:11px;color:#7a746e;font-weight:400;margin-left:6px}
+    .stp .sub{color:#7a746e;font-size:10.5px;margin-top:4px}
+    .stp .doc-h{font-size:22px;font-weight:800;margin:0 0 10px}
+    .stp .acct{page-break-before:always}.stp .acct:first-of-type{page-break-before:auto}
+    .stp .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:8px}
+    .stp .blk{border:1px solid #e3dfda;border-radius:8px;padding:7px 10px;margin-bottom:7px;page-break-inside:avoid}
+    .stp .blk h2{margin:0 0 4px;font-size:12.5px;color:#1F62E0}.stp .blk.out h2{color:#C8443A}
+    .stp .blk.vat{border:1.5px solid #E0A33A}.stp .blk.vat h2{color:#B07510}
+    .stp .blk.card{border:1.5px solid #7A5BD0}.stp .blk.card h2{color:#5B3FB0}
+    .stp .blk.wh{border:1.5px solid #0E9F8E}.stp .blk.wh h2{color:#0B7A6D}
+    .stp .blk.pay{border:1.5px solid #1d1b19}
+    .stp .blk.adj{border:1.5px dashed #E0A33A;background:#FFFBEF}.stp .blk.adj h2{color:#B07510}
+    .stp .pcs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.stp .pcs.two{grid-template-columns:1fr 1fr}
+    .stp .pc{background:#FAF8F5;border-radius:6px;padding:6px 8px}.stp .pc h3{margin:0 0 4px;font-size:12px}
+    .stp .pl{display:flex;justify-content:space-between;gap:6px;font-size:10px;padding:2px 0;color:#57514b}
+    .stp .pl b{white-space:nowrap;color:#1d1b19}.stp .pl.red b{color:#C8443A}
+    .stp .pl.k{border-top:1px solid #e3dfda;margin-top:1px}.stp .pl.k span{color:#1d1b19;font-weight:700}
+    .stp .pl.acad b,.stp .pl.acad span{color:#1E8A4C}
+    .stp .pl.fin{border-top:1.5px solid #1d1b19;margin-top:3px;padding-top:4px}.stp .pl.fin span{color:#1d1b19;font-weight:800}.stp .pl.fin b{color:#1F62E0;font-size:12px}
+    .stp .pnote{margin-top:6px;font-size:10.5px;color:#57514b}
+    .stp table{border-collapse:collapse;width:100%;font-size:10px}
+    .stp th{background:#F1EEEA;font-weight:700;color:#57514b}
+    .stp td,.stp th{padding:3px 5px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+    .stp td:last-child,.stp th:last-child{text-align:right;white-space:nowrap}
+    .stp .sum td{font-weight:800;border-top:1.5px solid #1d1b19;border-bottom:0;background:#FAF8F5}
+    .stp .sumt{width:250px;flex:none;border:1px solid #e3dfda;font-size:10.5px}.stp .sumt .sum td{font-size:12px;color:#1F62E0}
+    .stp .red{color:#C8443A}.stp .grn{color:#1E8A4C}.stp .s{font-size:9px;color:#8a837c}.stp .empty{color:#aaa;text-align:center!important}
+    `;
+    /** 문서 전체 (본문만 — 감싸는 <html> 은 부르는 쪽이) */
+    function settleBodyHtml(r, asOf) {
+        return `<div class="stp"><div class="doc-h">${monthTitle(r.month)} 월말 정산</div>${splitHtml(r)}${r.accts.map((a) => acctHtml(a, r.month, asOf)).join('')}</div>`;
+    }
+    function settleDocHtml(r, asOf) {
+        return `<!doctype html><html><head><meta charset="utf-8"><title>${monthTitle(r.month)} 월말정산</title><style>${SETTLE_CSS}</style></head><body style="margin:0">${settleBodyHtml(r, asOf)}</body></html>`;
+    }
+    return { SETTLE_FROM:SETTLE_FROM, computeSettle:computeSettle, acctHtml:acctHtml, splitHtml:splitHtml, settleBodyHtml:settleBodyHtml, monthTitle:monthTitle, SETTLE_CSS:SETTLE_CSS, w:w, md:md };
+  })();
+  var _st = { month:'', tab:'wanto', data:null, open:false, editId:null, busy:false };
+  var ST_COLS='id,biz,kind,student_id,student_name,teacher_id,teacher_name,method,amount,vat,pay_rate,withhold_rate,card_fee_rate,paid_at,month,memo,sessions';
+  function stEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+  function stAddMonth(m, n){ var t=(+m.slice(0,4))*12+(+m.slice(5,7)-1)+n; return Math.floor(t/12)+'-'+kp2(t%12+1); }
+  // 「10/1~10/24 기록」 — 서울 날짜(kymd)로만 센다
+  function stAsOf(month){ var t=kymd(), m=+month.slice(5,7); return t.slice(0,7)===month ? (m+'/1~'+m+'/'+(+t.slice(8,10))+' 기록') : (m+'/1~'+m+'월 말 기록'); }
+  function stSign(v){ return (v>0?'+':'')+settleCore.w(v); }
+  async function stFetch(month){
+    var res=await Promise.all([
+      sb.from('payments').select(ST_COLS).eq('month',month),
+      sb.from('expenses').select('id,spent_on,biz,category,vendor,amount,memo').eq('month',month),
+      sb.from('payroll_advances').select('id,teacher_id,teacher_name,amount,paid_on,memo').eq('month',month),
+      sb.from('settle_adjustments').select('id,month,ymd,title,wanto,ajlabs,memo').eq('month',month)
+    ]);
+    if(res[0].error) throw new Error(res[0].error.message);
+    if(res[1].error) throw new Error(res[1].error.message);
+    var rows=res[0].data||[];
+    // 환불한 학생은 다른 달 수납까지 읽어야 「결제한 금액」이 나온다 (앱 lib/settle.ts 와 같다)
+    var ids=[], names=[];
+    rows.forEach(function(r){ if(r.kind!=='refund') return; if(r.student_id){ if(ids.indexOf(r.student_id)<0) ids.push(r.student_id); } else if(r.student_name && names.indexOf(r.student_name)<0) names.push(r.student_name); });
+    var hist=[];
+    if(ids.length){ var h=await sb.from('payments').select(ST_COLS).in('student_id',ids); if(h.error) throw new Error(h.error.message); hist=h.data||[]; }
+    if(names.length){ var h2=await sb.from('payments').select(ST_COLS).is('student_id',null).in('student_name',names); if(!h2.error) hist=hist.concat(h2.data||[]); }
+    return settleCore.computeSettle({
+      month:month, rows:rows, hist:hist, exp:res[1].data||[],
+      // 표가 아직 없는 DB 에서도 화면은 뜬다
+      adv:res[2].error?[]:(res[2].data||[]), adj:res[3].error?[]:(res[3].data||[])
+    }, { payShare:payShare, cardFeeRate:cardFeeRate });
+  }
+  function stCssOnce(){
+    if($('mstCss')) return;
+    var st=document.createElement('style'); st.id='mstCss';
+    // 문서용 CSS(.stp) 는 @page 만 빼고 화면에도 쓴다. @page 는 프린트할 때만 잠깐 붙인다(다른 인쇄를 건드리지 않게).
+    st.textContent=settleCore.SETTLE_CSS.replace(/@page\{[^}]*\}/,'')
+      + '.mst-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 10px}'
+      + '.mst-mlabel{font-size:16px;font-weight:800;color:var(--accent,#1F62E0);min-width:110px;text-align:center}'
+      + '.mst-tabs{display:flex;gap:4px;background:#EBEBEB;border-radius:12px;padding:4px;margin-bottom:12px;max-width:520px}'
+      + '.mst-tabs button{flex:1;border:0;background:none;padding:9px 6px;border-radius:9px;font-weight:700;font-size:13.5px;color:#6E6E78;cursor:pointer}'
+      + '.mst-tabs button.on{background:#fff;color:#1A1A1F;font-weight:800}'
+      + '.mst-view .stp{font-size:13px}.mst-view .stp table{font-size:13px}.mst-view .stp h1{font-size:24px}.mst-view .stp h1 small{font-size:13px}.mst-view .stp .sub{font-size:13px}'
+      + '.mst-view .stp .blk h2{font-size:15px}.mst-view .stp .pl{font-size:13px}.mst-view .stp .pc h3{font-size:15px}.mst-view .stp .pl.fin b{font-size:15px}.mst-view .stp .sumt{width:320px;font-size:13px}.mst-view .stp .sumt .sum td{font-size:15px}.mst-view .stp .s{font-size:11.5px}'
+      + '.mst-view .stp .blk{overflow-x:auto}'
+      + '.mst-adj{border:1.5px dashed #E0A33A;background:#FFFBEF;border-radius:14px;padding:12px 14px;margin:4px 0 12px}'
+      + '.mst-adj h4{margin:0 0 6px;font-size:14px;color:#8A5A00}'
+      + '.mst-adj-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #F0D9AE;font-size:13.5px}'
+      + '.mst-adj-row .mst-adj-t{flex:1;min-width:0}.mst-adj-row .mst-adj-t small{display:block;color:#8a837c;font-size:12px}'
+      + '.mst-adj-v{font-weight:800;white-space:nowrap;text-align:right;font-size:13px}'
+      + '.mst-adj-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}'
+      + '.mst-adj-form input{padding:9px 10px;border:1.5px solid var(--line-strong,#ccc);border-radius:9px;font-size:14px;min-width:0;width:100%;box-sizing:border-box}'
+      + '.mst-adj-form label{font-size:12px;font-weight:700;color:#6E6E78;display:flex;flex-direction:column;gap:3px}'
+      + '.mst-adj-form .mst-full{grid-column:1/-1}'
+      + '.mst-grn{color:#1E8A4C}.mst-red{color:#C8443A}'
+      + '@media(max-width:640px){.mst-view .stp .hd{flex-direction:column}.mst-view .stp .sumt{width:100%}.mst-view .stp .pcs,.mst-view .stp .pcs.two{grid-template-columns:1fr}.mst-adj-form{grid-template-columns:1fr}}';
+    document.head.appendChild(st);
+  }
+  async function stLoad(){
+    var box=$('mstBox'); if(!box || !sb) return;
+    if(!isMasterNow()){ box.innerHTML='<div class="wa-empty">원장님·부원장님만 볼 수 있습니다.</div>'; return; }
+    stCssOnce();
+    var now=kymd().slice(0,7);
+    if(!_st.month) _st.month = now < settleCore.SETTLE_FROM ? settleCore.SETTLE_FROM : now;
+    if($('mstMonth')) $('mstMonth').textContent=settleCore.monthTitle(_st.month);
+    var prev=$('mstPane') && $('mstPane').querySelector('[data-mst-m="-1"]'), next=$('mstPane') && $('mstPane').querySelector('[data-mst-m="1"]');
+    if(prev) prev.disabled = stAddMonth(_st.month,-1) < settleCore.SETTLE_FROM;
+    if(next) next.disabled = stAddMonth(_st.month,1) > now;
+    box.innerHTML='<div class="wa-empty">정산을 계산하는 중…</div>';
+    try{ _st.data=await stFetch(_st.month); }
+    catch(e){ _st.data=null; box.innerHTML='<div class="wa-empty">지금은 볼 수 없습니다. ('+stEsc(e.message||e)+')</div>'; return; }
+    stDraw();
+  }
+  function stAdjBox(acctKey){
+    var d=_st.data, items=d.accts[0].adj.items;
+    var h='<div class="mst-adj"><h4>보정 (원장님만 · 수납 기록은 그대로) — 실제 돈이 다른 통장으로 오갔을 때만</h4>';
+    if(!items.length) h+='<div style="font-size:13px;color:#8a837c">이번 달 보정이 없어요.</div>';
+    items.forEach(function(a){
+      var v = acctKey==='wanto' ? a.wanto : a.ajlabs;
+      h+='<div class="mst-adj-row"><div class="mst-adj-t"><b>'+stEsc(a.title)+'</b> <span style="color:#8a837c">('+stEsc(settleCore.md(a.ymd))+')</span>'
+        + '<small>김태완 통장 '+stSign(a.wanto)+' · 이창희 통장 '+stSign(a.ajlabs)+(a.memo?' · '+stEsc(a.memo):'')+'</small></div>'
+        + '<div class="mst-adj-v '+(v<0?'mst-red':'mst-grn')+'">이 통장 '+stSign(v)+'</div>'
+        + '<a class="wa-link" data-mst-edit="'+a.id+'">고치기</a> <a class="wa-link del" data-mst-del="'+a.id+'">지우기</a></div>';
+    });
+    if(_st.open){
+      var e=_st.editId ? items.filter(function(a){ return a.id===_st.editId; })[0] : null;
+      var t=kymd(), dflt = t.slice(0,7)===_st.month ? t : _st.month+'-01';
+      h+='<div class="mst-adj-form">'
+        + '<label>날짜<input type="date" id="mstAdjYmd" value="'+stEsc(e?e.ymd:dflt)+'"></label>'
+        + '<label>내용<input id="mstAdjTitle" placeholder="이가현 OT 6만 이체로 돌려줌" value="'+stEsc(e?e.title:'')+'"></label>'
+        + '<label>김태완 통장 ±<input id="mstAdjW" inputmode="numeric" placeholder="-60000" value="'+(e?e.wanto:'')+'"></label>'
+        + '<label>이창희 통장 ±<input id="mstAdjA" inputmode="numeric" placeholder="+60000" value="'+(e?e.ajlabs:'')+'"'+(e?' data-touched="1"':'')+'></label>'
+        + '<label class="mst-full">메모 (선택)<input id="mstAdjMemo" value="'+stEsc(e&&e.memo?e.memo:'')+'"></label>'
+        + '<div class="mst-full" style="display:flex;gap:8px"><button type="button" class="btn" data-mst-save="1">저장</button><button type="button" class="btn btn-ghost" data-mst-cancel="1">취소</button></div>'
+        + '</div>';
+    } else {
+      h+='<div style="margin-top:8px"><button type="button" class="btn btn-ghost" data-mst-add="1">＋ 보정 추가</button></div>';
+    }
+    return h+'</div>';
+  }
+  function stDraw(){
+    var box=$('mstBox'), d=_st.data; if(!box || !d) return;
+    if($('mstPane')) $('mstPane').querySelectorAll('[data-mst-tab]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-mst-tab')===_st.tab); });
+    var asOf=stAsOf(_st.month);
+    if(_st.tab==='split'){
+      box.innerHTML='<div class="mst-view"><div class="stp">'+settleCore.splitHtml(d)+'</div></div>'
+        + '<div style="font-size:12.5px;color:#8a837c;margin-top:6px">'+stEsc(asOf)+' · 달이 지나면 그 달은 그대로 굳어요.</div>';
+      return;
+    }
+    var a=d.accts.filter(function(x){ return x.key===_st.tab; })[0];
+    box.innerHTML='<div class="mst-view"><div class="stp">'+settleCore.acctHtml(a, d.month, asOf, true)+'</div></div>'+stAdjBox(a.key);
+  }
+  function stParse(s){
+    var t=String(s||'').replace(/[,\s원]/g,'').replace(/^[−–]/,'-');
+    if(!t || t==='-' || t==='+') return 0;
+    return /^[+-]?\d+$/.test(t) ? Number(t) : NaN;
+  }
+  async function stSave(){
+    if(_st.busy) return;
+    var ymd=($('mstAdjYmd')&&$('mstAdjYmd').value)||'', title=(($('mstAdjTitle')&&$('mstAdjTitle').value)||'').trim();
+    var a=stParse($('mstAdjW')&&$('mstAdjW').value), b=stParse($('mstAdjA')&&$('mstAdjA').value);
+    var memo=(($('mstAdjMemo')&&$('mstAdjMemo').value)||'').trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(ymd)){ alert('날짜를 골라 주세요.'); return; }
+    if(!title){ alert('내용을 적어 주세요.'); return; }
+    if(isNaN(a)||isNaN(b)){ alert('금액은 숫자만 적어 주세요. 빠지는 돈은 앞에 - 를 붙여요.'); return; }
+    if(!a && !b){ alert('두 통장 금액이 모두 0이에요.'); return; }
+    var row={ month:_st.month, ymd:ymd, title:title, wanto:a, ajlabs:b, memo:memo||null };
+    _st.busy=true;
+    var r = _st.editId ? await sb.from('settle_adjustments').update(row).eq('id',_st.editId) : await sb.from('settle_adjustments').insert(row);
+    _st.busy=false;
+    if(r.error){ alert('저장하지 못했어요: '+r.error.message); return; }
+    _st.open=false; _st.editId=null;
+    stLoad();
+  }
+  // 프린트 — 인쇄 전용 칸을 body 바로 아래 두고, 그동안만 제목을 「2026년 10월 월말정산」으로 바꾼다(크롬 PDF 저장 파일 이름)
+  function stPrint(){
+    var d=_st.data; if(!d){ alert('정산을 다 불러온 뒤에 눌러 주세요.'); return; }
+    var old=$('stPrint'); if(old) old.remove();
+    var div=document.createElement('div'); div.id='stPrint';
+    div.innerHTML=settleCore.settleBodyHtml(d, stAsOf(d.month));
+    document.body.appendChild(div);
+    var css=document.createElement('style'); css.id='stPrintCss';
+    css.textContent='@page{size:A4;margin:10mm}#stPrint{display:none}'
+      + '@media print{body.st-printing>*{display:none!important}body.st-printing>#stPrint{display:block!important}body.st-printing #prSheet{display:none!important}body.st-printing{background:#fff!important}}'
+      + '#stPrint .stp{-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+    document.head.appendChild(css);
+    stCssOnce();
+    var oldTitle=document.title, done=false;
+    function restore(){
+      if(done) return; done=true;
+      document.title=oldTitle; document.body.classList.remove('st-printing');
+      var c=$('stPrintCss'); if(c) c.remove(); var p=$('stPrint'); if(p) p.remove();
+      window.removeEventListener('afterprint', restore);
+    }
+    window.addEventListener('afterprint', restore);
+    document.title=settleCore.monthTitle(d.month)+' 월말정산';
+    document.body.classList.add('st-printing');
+    window.print();
+    setTimeout(restore, 1500);
+  }
+  if($('mstPane')) $('mstPane').addEventListener('click', async function(e){
+    var t=e.target && e.target.closest ? e.target.closest('[data-mst-m],[data-mst-tab],[data-mst-print],[data-mst-add],[data-mst-cancel],[data-mst-save],[data-mst-edit],[data-mst-del]') : null;
+    if(!t) return;
+    if(t.hasAttribute('data-mst-m')){ _st.month=stAddMonth(_st.month, +t.getAttribute('data-mst-m')); _st.open=false; _st.editId=null; stLoad(); return; }
+    if(t.hasAttribute('data-mst-tab')){ _st.tab=t.getAttribute('data-mst-tab'); stDraw(); return; }
+    if(t.hasAttribute('data-mst-print')){ stPrint(); return; }
+    if(t.hasAttribute('data-mst-add')){ _st.open=true; _st.editId=null; stDraw(); return; }
+    if(t.hasAttribute('data-mst-cancel')){ _st.open=false; _st.editId=null; stDraw(); return; }
+    if(t.hasAttribute('data-mst-save')){ stSave(); return; }
+    if(t.hasAttribute('data-mst-edit')){ _st.open=true; _st.editId=+t.getAttribute('data-mst-edit'); stDraw(); return; }
+    if(t.hasAttribute('data-mst-del')){
+      if(!confirm('이 보정을 지울까요?')) return;
+      var r=await sb.from('settle_adjustments').delete().eq('id', +t.getAttribute('data-mst-del'));
+      if(r.error){ alert('지우지 못했어요: '+r.error.message); return; }
+      stLoad(); return;
+    }
+  });
+  // 김태완 통장에 적으면 이창희 통장은 반대 부호로 채워 둔다(손대기 전까지) — 한쪽에서 빠진 돈은 보통 다른 쪽으로 간다
+  if($('mstPane')) $('mstPane').addEventListener('input', function(e){
+    var t=e.target; if(!t) return;
+    if(t.id==='mstAdjA'){ t.setAttribute('data-touched','1'); return; }
+    if(t.id==='mstAdjW'){ var o=$('mstAdjA'), x=stParse(t.value); if(o && !o.getAttribute('data-touched') && !isNaN(x)) o.value = x ? String(-x) : ''; }
+  });
   // ── 정산 내역서 ──────────────────────────────────────────────────
   // 선생님이 '내 몫이 왜 이 금액인지' 를 한 장으로 확인하는 자리다.
   // 계산은 화면과 같은 payShare 를 쓴다. 여기서 따로 셈하면 두 숫자가 갈라진다.
@@ -17174,6 +17777,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 변경기록은 원장님·매니저만 본다(원장 지시 2026-08-14).
     // 서로 확인하려고 만든 자리라 선생님에게 열면 취지가 달라진다.
     c.querySelectorAll('.dash-tab[data-dtab="chglog"]').forEach(function(b){ b.style.display = ops ? '' : 'none'; });
+    // 월말 정산은 원장·부원장(master)만 — 실장(manager)·선생님 X (2026-10-24)
+    c.querySelectorAll('.dash-tab[data-dtab="settle"]').forEach(function(b){ b.style.display = isMasterNow() ? '' : 'none'; });
+    if(!isMasterNow() && c.querySelector('.dash-pane[data-dpane="settle"].on')) dashTab('members');
     // 탭을 숨기는 것만으로는 부족하다 — 이미 그 탭을 열어 둔 채로 권한이 바뀌면 화면이 남는다.
     if(!ops && c.querySelector('.dash-pane[data-dpane="oplog"].on')) dashTab('members');
     if(!ops && c.querySelector('.dash-pane[data-dpane="pay"].on')) dashTab('payroll');
@@ -19933,7 +20539,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         wa.classList.add('mgr-nomoney');
         if(!document.getElementById('mgrNoMoneyCss')){ var st2=document.createElement('style'); st2.id='mgrNoMoneyCss';
           // 2026-10-18: 수납은 실장에게 다시 연다. 정산만 감춘다.
-          st2.textContent='#waAdmin.mgr-nomoney .dash-tab[data-dtab="payroll"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="payroll"]{display:none!important}';
+          st2.textContent='#waAdmin.mgr-nomoney .dash-tab[data-dtab="payroll"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="payroll"],#waAdmin.mgr-nomoney .dash-tab[data-dtab="settle"],#waAdmin.mgr-nomoney .dash-pane[data-dpane="settle"]{display:none!important}';
           document.head.appendChild(st2); }
       }
       return false;
