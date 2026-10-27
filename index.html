@@ -14600,7 +14600,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var s=payShare(p);
       // 담당 미지정·스터디는 배분 자체를 안 하므로 '배분율 없음' 경고 대상이 아니다.
       if(s.guessed && isTeacherKey(key)) guessed=true;
-      if(!key){ unassigned+=s.amount; unassignedCnt++; }
+      // 환불 계산기가 일부러 담당을 뗀 줄은 빠뜨린 게 아니다 — 경고에서 뺀다(2026-10-27 원장님 「고쳐」, 앱 payroll.ts 와 같게).
+      if(!key && !isRefundSide(p)){ unassigned+=s.amount; unassignedCnt++; }
       var g=groups[key];
       g.amount+=s.amount; g.gross+=s.gross; g.fee+=s.fee; g.tax+=s.tax; g.net+=s.net;
       if(s.fee) g.cardN=(g.cardN||0)+1;   // 카드수수료 붙은 건수 (2026-10-16)
@@ -14728,7 +14729,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var ACTUAL_CARD_FEE=0.4;
       var vf=[], vfT={vatN:0,vat:0,cardN:0,cardAmt:0,fee:0,real:0,surplus:0};
       order.forEach(function(k){
-        var g=groups[k], o={name:(k?g.name:'담당 미지정'), vatN:0, vat:0, cardN:0, cardAmt:0, fee:0, real:0, surplus:0};
+        var g=groups[k], o={name:(k?g.name:(g.allRefund?'환불 처리분':'담당 미지정')), vatN:0, vat:0, cardN:0, cardAmt:0, fee:0, real:0, surplus:0};
         g.items.forEach(function(it){
           if(isRefund(it.p)) return;
           var v=Number(it.p.vat)||0; if(v>0){ o.vatN++; o.vat+=v; }
