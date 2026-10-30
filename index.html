@@ -14836,7 +14836,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 🚨 settleCore 는 앱 lib/settleCore.ts 를 tsc 로 JS 로 바꿔 **그대로** 붙인 것이다. 계산을 고치면 앱 파일을 고치고 다시 붙일 것.
   //    선생님 몫·카드 1.5%·원천세는 이 페이지 payShare 를 그대로 넘겨 쓴다 → 정산 탭과 같은 숫자.
   // 🚨 원장·부원장(role master)만. 실장(manager)·선생님은 탭을 감춘다(applyTabRoles). 서버 RLS 도 settle_adjustments 는 real_role() master 만.
-  // 🚨 「누가 누구에게 보낼 돈」은 안 보여 준다(원장님 「헷갈려」).
+  // 🚨 「누가 누구에게 보낼 돈」은 10월까지 안 보여 준다(원장님 「헷갈려」). 11월 새 방식부터는 「창희쌤께 보낼 돈」 하나만(10-30 시안).
   var settleCore = (function(){
     /**
      * 월말 정산 — 두 통장 계산 (2026-10-24 원장님 「원장님 방식 정산표」 → 앱·웹 화면으로).
@@ -14855,17 +14855,6 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
      * 카드 0.4%·1.1%·원천세·지급액은 선생님 묶음(통장)으로 센다 — 실제 카드가 긁힌 단말기가 선생님 통장이다
      * (예: 이가현 OT #183 은 biz 가 wanto 지만 이창희 통장 카드 32만 안에 다시 들어갔다).
      */
-    var __rest = (this && this.__rest) || function (s, e) {
-        var t = {};
-        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-            t[p] = s[p];
-        if (s != null && typeof Object.getOwnPropertySymbols === "function")
-            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                    t[p[i]] = s[p[i]];
-            }
-        return t;
-    };
     /** 월말 정산이 시작된 달. 그 전 달은 통장이 안 나뉘어 있어 보여 주지 않는다. */
     const SETTLE_FROM = '2026-10';
     const ACCOUNTS = [
@@ -14880,6 +14869,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         이창희: 'ajlabs',
         신혜령: 'ajlabs',
     };
+    /**
+     * 새 방식 (2026-10-30 원장님 「너무 복잡해 — 창희 수업료는 전부 창희계좌, 그 외는 전부 김태완 완토계좌」).
+     * 이 달부터 이창희 통장 = 창희쌤 수업료만(100% 창희쌤 몫), 나머지 학원 돈·지출은 전부 김태완 통장.
+     * 카드 잉여금 1.1% 는 두 통장에서 카카오뱅크 모임통장으로 모은다.
+     */
+    const SIMPLE_FROM = '2026-11';
+    const isSimple = (month) => month >= SIMPLE_FROM;
+    const SIMPLE_CH = '이창희';
+    function teacherAcct(month, nm) {
+        if (isSimple(month))
+            return nm === SIMPLE_CH ? 'ajlabs' : TEACHER_ACCT[nm] ? 'wanto' : undefined;
+        return TEACHER_ACCT[nm];
+    }
+    function accountsFor(month) {
+        if (!isSimple(month))
+            return ACCOUNTS;
+        const all = ACCOUNTS.flatMap((A) => A.teachers);
+        return ACCOUNTS.map((A) => ({ ...A, teachers: all.filter((nm) => (nm === SIMPLE_CH) === (A.key === 'ajlabs')) }));
+    }
     /** 카드사가 실제로 떼는 % · 1.5% 중 나머지(잉여금) % */
     const CARD_REAL = 0.4;
     const CARD_SURPLUS = 1.1;
@@ -14915,14 +14923,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             if (!tid)
                 return 'wanto';
             const nm = tName.get(tid) || '';
-            if (TEACHER_ACCT[nm])
-                return TEACHER_ACCT[nm];
+            const fixed = teacherAcct(inp.month, nm);
+            if (fixed)
+                return fixed;
             const mine = rows.filter((r) => r.teacher_id === tid);
             const aj = mine.filter((r) => r.biz === 'ajlabs').length;
             return aj > mine.length - aj ? 'ajlabs' : 'wanto';
         };
         const bizOf = (r) => (r.biz === 'ajlabs' ? 'ajlabs' : r.biz === 'wanto' ? 'wanto' : acctOf(r.teacher_id));
-        const accts = ACCOUNTS.map((A) => {
+        const accts = accountsFor(inp.month).map((A) => {
             // 이 통장 선생님 — 지도 순서, 그다음 지도에 없는 선생님
             const tids = [...tName.keys()].filter((t) => acctOf(t) === A.key);
             const order = (t) => {
@@ -14959,10 +14968,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                 }
             }
             const lesson = {
-                items: lessonItems.map((_a) => {
-                    var { _k } = _a, x = __rest(_a, ["_k"]);
-                    return x;
-                }),
+                items: lessonItems.map(({ _k, ...x }) => x),
                 total: lessonItems.reduce((t, x) => t + x.amount, 0),
             };
             // 3. 책 매출 (스터디·태블릿 대여도 학원 몫이라 같이)
@@ -15021,7 +15027,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             const inHere = (tid) => tRows(tid).filter((r) => bizOf(r) === A.key);
             const fromOther = new Map();
             for (const r of rows) {
-                if ((r.kind !== 'payment' && r.kind !== 'ot') || !r.teacher_id || acctOf(r.teacher_id) === A.key || bizOf(r) !== A.key) continue;
+                if ((r.kind !== 'payment' && r.kind !== 'ot') || !r.teacher_id || acctOf(r.teacher_id) === A.key || bizOf(r) !== A.key)
+                    continue;
                 const nm = tName.get(r.teacher_id) || r.teacher_name || '';
                 fromOther.set(nm, [...(fromOther.get(nm) || []), r]);
             }
@@ -15043,7 +15050,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                 splitG += keep;
                 splitV += g(u) ? R((n(u.vat) * keep) / g(u)) : 0;
             }
-            if (splitV) vatRows.push({ label: '학원 (미수강분)', count: `${splitL.length}건`, gross: splitG, vat: splitV });
+            if (splitV)
+                vatRows.push({ label: '학원 (미수강분)', count: `${splitL.length}건`, gross: splitG, vat: splitV });
             vatRows.push({ label: '책값 (학원)', count: `${bookRows.length}${book.title === '책 매출' ? '권' : '건'}`, gross: book.total, vat: bookRows.reduce((t, r) => t + n(r.vat), 0) });
             const vat = { rows: vatRows, total: vatRows.reduce((t, x) => t + x.vat, 0) };
             // 8. 카드 수수료 — 0.4% 카드사(이미 빠져서 들어옴) · 1.1% 잉여금
@@ -15056,7 +15064,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             }
             for (const [nm, L0] of fromOther) {
                 const L = L0.filter((r) => feeRate(r) > 0);
-                if (L.length) cardRow(nm, L.reduce((t, r) => t + g(r), 0), L.length);
+                if (L.length)
+                    cardRow(nm, L.reduce((t, r) => t + g(r), 0), L.length);
             }
             // 학원: 책·스터디 카드 + 담당 없는 줄 카드(그 학생 카드 환불만큼은 카드 취소라 수수료 없음)
             const acBooks = bookRows.filter((r) => feeRate(r) > 0);
@@ -15064,7 +15073,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             let splitAmt = 0;
             for (const u of splits) {
                 const cancelled = rows
-                    .filter((r) => r.kind === 'refund' && bizOf(r) === A.key && sKey(r) === sKey(u) && feeRate(Object.assign(Object.assign({}, r), { card_fee_rate: null })) > 0)
+                    .filter((r) => r.kind === 'refund' && bizOf(r) === A.key && sKey(r) === sKey(u) && feeRate({ ...r, card_fee_rate: null }) > 0)
                     .reduce((t, r) => t + n(r.amount), 0);
                 splitAmt += Math.max(0, g(u) - cancelled);
             }
@@ -15141,7 +15150,17 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             return { key: A.key, name: A.name, bank: A.bank, teachers, ot, lesson, book, exp, refund, adv, vat, card, wh, pay, adj, commonExp, left, academy };
         });
         const academySum = accts.reduce((t, a) => t + a.academy, 0);
-        return { month: inp.month, accts, academySum, half: R(academySum / 2) };
+        const half = R(academySum / 2);
+        const aj = accts.find((a) => a.key === 'ajlabs');
+        return {
+            month: inp.month,
+            accts,
+            academySum,
+            half,
+            simple: isSimple(inp.month),
+            toCh: half - (aj ? aj.academy : 0),
+            moim: accts.reduce((t, a) => t + a.card.f11, 0),
+        };
     }
     // ── PDF·프린트용 HTML (settle_v2.png 모양, A4) ─────────────────────────────
     function esc(s) {
@@ -15176,7 +15195,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         out.push(table('5. 환불 내역', ['날짜', '학생', '결제한 금액', '학생에게 환불', '선생님 몫', '학원 몫', '참고'], a.refund.items.map((x) => [x.date, esc(x.student), w(x.paid), `<b class="red">${w(x.refund)}</b>`, `${w(x.teacher)}${x.used ? `<br><span class="s">${esc(x.used)}</span>` : ''}`, w(x.academy), `<span class="s">${esc(x.memo)}</span>`]), ['', `${a.refund.items.length}건`, '', `<b class="red">${w(a.refund.total)}</b>`, '', '', ''], 'out'));
         out.push(table('6. 미리 정산', ['날짜', '받은 사람', '메모', '금액'], a.adv.items.map((x) => [x.date, esc(x.name), `<span class="s">${esc(x.memo)}</span>`, w(x.amount)]), ['', '', '', w(a.adv.total)], 'out'));
         out.push(table('7. 부가세 3% — 선생님 몫은 다음 달 급여에서 떼고, 책값까지 이 통장에 따로 보관', ['선생님', '결제 건수', '결제 금액', '부가세 3%'], a.vat.rows.map((x) => [esc(x.label), x.count, w(x.gross), `<b>${w(x.vat)}</b>`]), ['합계', '', '', `<b>${w(a.vat.total)}</b>`], 'vat'));
-        out.push(table('8. 카드 수수료 — 0.4% 카드사(이미 빠져서 들어옴) · 1.1% 카드 잉여금으로 모음', ['선생님', '카드 결제', '카드 결제액', '0.4% 카드사', '1.1% 잉여금'], a.card.rows.map((x) => [esc(x.label), `${x.count}건`, w(x.amount), w(x.f4), `<b>${w(x.f11)}</b>`]), ['합계', '', w(a.card.amount), w(a.card.f4), `<b>${w(a.card.f11)}</b>`], 'card'));
+        out.push(table(isSimple(month) ? '8. 카드 수수료 — 0.4% 카드사(이미 빠져서 들어옴) · 1.1% 카카오뱅크 모임통장으로' : '8. 카드 수수료 — 0.4% 카드사(이미 빠져서 들어옴) · 1.1% 카드 잉여금으로 모음', ['선생님', '카드 결제', '카드 결제액', '0.4% 카드사', '1.1% 잉여금'], a.card.rows.map((x) => [esc(x.label), `${x.count}건`, w(x.amount), w(x.f4), `<b>${w(x.f11)}</b>`]), ['합계', '', w(a.card.amount), w(a.card.f4), `<b>${w(a.card.f11)}</b>`], 'card'));
         out.push(table('9. 원천세 3.3% — 다음 달 10일까지 세무서·위택스에 냄 (이 통장에서)', ['선생님', '선생님 몫 (카드 1.5% 뺀 뒤)', '세율', '원천세'], a.wh.rows.map((x) => [esc(x.label), w(x.base), '3.3%', `<b>${w(x.tax)}</b>`]), ['합계', '', '', `<b>${w(a.wh.total)}</b>`], 'wh'));
         out.push(`<div class="blk pay"><h2>10. 선생님 지급액 (다음 달 10일)</h2><div class="pcs">${payCardsHtml(a.pay.cards)}</div>`
             + `<div class="pnote">이 통장에서 나갈 선생님 지급액 합계 <b>${w(a.pay.total)}</b> · 학원 몫 합계 <b>${w(a.pay.academy)}</b></div></div>`);
@@ -15207,8 +15226,43 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             + `<tr><td>　그중 원천세 3.3% (다음 달 10일 납부)</td><td>${w(a.wh.total)}</td></tr></table></div>`;
         return `<section class="acct">${top}${out.join('')}</section>`;
     }
+    /** 통장에 남아 있어야 할 돈 — 부가세·원천세·잉여금을 아직 안 옮겼을 때 / 옮긴 뒤 */
+    function bankExpect(a) {
+        return { before: a.left, after: a.left - a.vat.total - a.wh.total - a.card.f11 };
+    }
+    /** 새 방식 요약 — 학원 몫 · 창희쌤께 보낼 돈 · 모임통장 · 통장 맞춰보기 숫자 */
+    function simpleSplitHtml(r) {
+        const col = (a) => {
+            const rows = [['지금 남아 있어야 할 돈', a.left, 'k']];
+            rows.push(['− 부가세 · 원천세 따로 보관', -(a.vat.total + a.wh.total), 'red']);
+            rows.push(['− 카드 잉여금 1.1% → 모임통장', -a.card.f11, 'red']);
+            rows.push(['− 선생님 지급액', -a.pay.total, 'red']);
+            rows.push([a.key === 'ajlabs' ? '= 학원 몫 (0이 정상)' : '= 학원 몫', a.academy, 'fin']);
+            return `<div class="pc"><h3>${esc(a.name)} 통장</h3>${rows.map(([l, v, c]) => `<div class="pl ${c}"><span>${l}</span><b>${w(v)}</b></div>`).join('')}</div>`;
+        };
+        const aj = r.accts.find((a) => a.key === 'ajlabs');
+        const send = r.toCh >= 0 ? `김태완 통장 → 창희쌤 <b>${w(r.toCh)}</b>` : `창희쌤 → 김태완 통장 <b>${w(-r.toCh)}</b>`;
+        const ajNote = !aj || !aj.academy ? ''
+            : aj.academy < 0
+                ? `<div class="pnote">※ 창희쌤 통장·카드로 낸 학원 지출 등 ${w(-aj.academy)}원을 보낼 돈에 더해 돌려드려요.</div>`
+                : `<div class="pnote red">※ 이창희 통장에 학원 돈 ${w(aj.academy)}원이 들어갔어요 (다른 선생님 수업료·책값 등). 보낼 돈에서 이미 뺐어요.</div>`;
+        const moim = r.accts.map((a) => `${esc(a.name)} 통장 ${w(a.card.f11)}`).join(' · ');
+        const bank = r.accts.map((a) => {
+            const e = bankExpect(a);
+            return `<div class="pl"><span>${esc(a.name)} 통장 (정산 전 / 따로 옮긴 뒤)</span><b>${w(e.before)} / ${w(e.after)}</b></div>`;
+        }).join('');
+        return `<div class="blk pay"><h2>학원 몫 5:5 — 새 방식 (창희쌤 수업료만 이창희 통장)</h2>`
+            + `<div class="pc"><div class="pl k"><span>학원 몫 합계</span><b>${w(r.academySum)}</b></div>`
+            + `<div class="pl"><span>1인 몫 (5:5)</span><b>${w(r.half)}</b></div>`
+            + `<div class="pl fin"><span>보낼 돈</span><b>${send}</b></div></div>${ajNote}`
+            + `<div class="pcs two" style="margin-top:8px">${r.accts.map(col).join('')}</div>`
+            + `<div class="pc" style="margin-top:8px"><div class="pl k"><span>카카오뱅크 모임통장으로 보낼 카드 잉여금</span><b>${w(r.moim)}</b></div><div class="pl"><span>${moim}</span><b></b></div></div>`
+            + `<div class="pc" style="margin-top:8px"><div class="pl k"><span>통장 맞춰보기 — 실제 잔액이 둘 중 하나와 같으면 맞아요</span><b></b></div>${bank}</div></div>`;
+    }
     /** 학원 몫 5:5 */
     function splitHtml(r) {
+        if (r.simple)
+            return simpleSplitHtml(r);
         const col = (a) => {
             const rows = [
                 ['지금 남아 있어야 할 돈', a.left, 'k'],
@@ -15263,7 +15317,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     function settleDocHtml(r, asOf) {
         return `<!doctype html><html><head><meta charset="utf-8"><title>${monthTitle(r.month)} 월말정산</title><style>${SETTLE_CSS}</style></head><body style="margin:0">${settleBodyHtml(r, asOf)}</body></html>`;
     }
-    return { SETTLE_FROM:SETTLE_FROM, computeSettle:computeSettle, acctHtml:acctHtml, splitHtml:splitHtml, settleBodyHtml:settleBodyHtml, monthTitle:monthTitle, SETTLE_CSS:SETTLE_CSS, w:w, md:md };
+    return { SETTLE_FROM:SETTLE_FROM, SIMPLE_FROM:SIMPLE_FROM, isSimple:isSimple, bankExpect:bankExpect, computeSettle:computeSettle, acctHtml:acctHtml, splitHtml:splitHtml, settleBodyHtml:settleBodyHtml, monthTitle:monthTitle, SETTLE_CSS:SETTLE_CSS, w:w, md:md };
   })();
   var _st = { month:'', tab:'wanto', data:null, open:false, editId:null, busy:false };
   var ST_COLS='id,biz,kind,student_id,student_name,teacher_id,teacher_name,method,amount,vat,pay_rate,withhold_rate,card_fee_rate,paid_at,month,memo,sessions';
@@ -15362,12 +15416,31 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     return h+'</div>';
   }
+  // 통장 맞춰보기 (새 방식, 2026-10-30 시안) — 실제 잔액을 넣으면 정산 전 / 따로 옮긴 뒤 둘 중 하나와 맞는지
+  function stBankBox(d){
+    var h='<div class="mst-view" style="margin-top:10px"><b>통장 맞춰보기</b> <span style="color:#8a837c;font-size:12.5px">말일에 실제 잔액을 넣으면 바로 알려 드려요</span>';
+    d.accts.forEach(function(a){ var e=settleCore.bankExpect(a);
+      h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"><b style="min-width:90px">'+stEsc(a.name)+' 통장</b>'
+        +'<input class="st-bank" data-b="'+e.before+'" data-a="'+e.after+'" inputmode="numeric" placeholder="실제 잔액" style="width:140px;padding:6px 8px;border:1.5px solid #ccc;border-radius:8px">'
+        +'<span class="st-bank-r" style="font-weight:700"></span></div>'; });
+    return h+'</div>';
+  }
+  document.addEventListener('input', function(ev){
+    var el=ev.target; if(!el.classList || !el.classList.contains('st-bank')) return;
+    var r=el.parentNode.querySelector('.st-bank-r'), v=el.value.replace(/[,s원]/g,''), b=+el.getAttribute('data-b'), a=+el.getAttribute('data-a');
+    if(!/^-?d+$/.test(v)){ r.textContent=''; return; }
+    var g=+v;
+    if(g===b){ r.style.color='#1E8A4C'; r.textContent='✓ 맞아요 (아직 안 옮긴 상태)'; }
+    else if(g===a){ r.style.color='#1E8A4C'; r.textContent='✓ 맞아요 (부가세·원천세·잉여금 옮긴 뒤)'; }
+    else { r.style.color='#C8443A'; r.textContent=stSign(g-a)+' 차이 (옮긴 뒤 기준) → 어떤 돈인지 확인'; }
+  });
   function stDraw(){
     var box=$('mstBox'), d=_st.data; if(!box || !d) return;
     if($('mstPane')) $('mstPane').querySelectorAll('[data-mst-tab]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-mst-tab')===_st.tab); });
     var asOf=stAsOf(_st.month);
     if(_st.tab==='split'){
       box.innerHTML='<div class="mst-view"><div class="stp">'+settleCore.splitHtml(d)+'</div></div>'
+        + (d.simple ? stBankBox(d) : '')
         + '<div style="font-size:12.5px;color:#8a837c;margin-top:6px">'+stEsc(asOf)+' · 달이 지나면 그 달은 그대로 굳어요.</div>';
       return;
     }
@@ -15961,8 +16034,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 🚨 2026-10-14 원장님 「담당 학생 결제는 전부 기본으로 그 선생님 사업자 — 실수로 김태완 사업자로 들어가면 안 돼」
     //    강사 칸이 비어 있어도(책·스터디·대여) 학생의 담당 선생님 사업자를 기본으로. 담당도 없으면 비워 두고 사람이 고른다.
     if(!t && $('pyStudent') && $('pyStudent').value){ var sm=(_members||[]).filter(function(m){ return m.id===$('pyStudent').value; })[0]; t=(sm&&sm.teacher_id)||''; }
-    $('pyBiz').value=(t&&_tbMap[t])||'';
+    $('pyBiz').value=pyBizExpect(t);
+    pyBizWarn();
   }
+  // 🚨 2026-10-30 원장님 새 방식(11월 결제부터): 창희쌤 수업료·OT만 이창희 사업자, 책·스터디·대여와 다른 선생님은 전부 김태완 사업자 (앱 PaymentAddScreen 과 같다)
+  function pyBizExpect(t){
+    var kv=$('pyKind')?$('pyKind').value:'payment', m=($('pyMonth')&&$('pyMonth').value)||kymd().slice(0,7);
+    if((kv==='book'||kv==='study'||kv==='rental') && m>='2026-11') return 'wanto';
+    return (t&&_tbMap&&_tbMap[t])||'';
+  }
+  function pyBizWarn(){
+    var b=$('pyBiz'); if(!b) return; var hint=b.parentNode.querySelector('.wa-hint'); if(!hint) return;
+    var t=$('pyTeacher')?$('pyTeacher').value:'';
+    if(!t && $('pyStudent') && $('pyStudent').value){ var sm=(_members||[]).filter(function(m){ return m.id===$('pyStudent').value; })[0]; t=(sm&&sm.teacher_id)||''; }
+    var ex=pyBizExpect(t);
+    if(b.value && ex && b.value!==ex){ hint.style.color='#C8443A'; hint.textContent='⚠ 보통은 '+(ex==='ajlabs'?'이창희':'김태완')+' 사업자예요. 창희쌤 수업료만 이창희, 나머지(책·스터디·대여 포함)는 김태완. 돈이 정말 이 통장으로 들어왔을 때만 그대로 두세요.'; }
+    else { hint.style.color=''; hint.textContent='담당 강사를 고르면 자동으로 맞춰져요'; }
+  }
+  if($('pyBiz')) $('pyBiz').addEventListener('change', pyBizWarn);
+  if($('pyKind')) $('pyKind').addEventListener('change', function(){ try{ if(!editingPayId) pyBizSync(); else pyBizWarn(); }catch(e){} });
   if($('pyTeacher')) $('pyTeacher').onchange=function(){ syncPayRate(); pyBizSync(); drawPayPreview(); };
   if($('pyStudent')) $('pyStudent').addEventListener('change', function(){ try{ pyBizSync(); }catch(e){} });
   ['pyRate','pyWithhold','pyAmount'].forEach(function(id){ if($(id)) $(id).addEventListener('input', drawPayPreview); });
