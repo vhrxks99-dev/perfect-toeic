@@ -14939,9 +14939,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                 items: otRows.map((r) => ({ date: md(r.paid_at), student: r.student_name || '', teacher: r.teacher_name || '', amount: g(r) })),
                 total: otRows.reduce((t, r) => t + g(r), 0),
             };
-            // 2. 수업료 — 담당 있는 수업료는 선생님 통장, 담당 없는 줄(환불 처리 - 미수강 N회분)은 biz 통장의 같은 학생 줄 밑에
+            // 2. 수업료 — 결제 때 고른 사업자(biz) 통장(10-30 원장님, 전엔 선생님 통장), 담당 없는 줄(환불 처리 - 미수강 N회분)은 같은 학생 줄 밑에
             const lessonRows = rows
-                .filter((r) => r.kind === 'payment' && r.teacher_id && acctOf(r.teacher_id) === A.key)
+                .filter((r) => r.kind === 'payment' && r.teacher_id && bizOf(r) === A.key)
                 .sort((a, b) => order(a.teacher_id || '') - order(b.teacher_id || '') || byPaid(a, b));
             const lessonItems = lessonRows.map((r) => ({
                 date: md(r.paid_at), student: r.student_name || '', teacher: r.teacher_name || '', method: r.method || '', amount: g(r), unused: 0, unusedNote: '', _k: sKey(r),
@@ -15017,11 +15017,33 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             const tRows = (tid) => rows.filter((r) => r.teacher_id === tid && (r.kind === 'payment' || r.kind === 'ot'));
             const nameRows = (nm) => tids.find((t) => tName.get(t) === nm);
             // 7. 부가세 3% — 선생님 몫은 11월 급여에서 떼고, 책값까지 이 통장에 따로 보관
+            // 10-30 원장님: 부가세·카드 수수료는 결제 때 고른 사업자(biz) 통장 — 돈이 들어온 통장에 보관
+            const inHere = (tid) => tRows(tid).filter((r) => bizOf(r) === A.key);
+            const fromOther = new Map();
+            for (const r of rows) {
+                if ((r.kind !== 'payment' && r.kind !== 'ot') || !r.teacher_id || acctOf(r.teacher_id) === A.key || bizOf(r) !== A.key) continue;
+                const nm = tName.get(r.teacher_id) || r.teacher_name || '';
+                fromOther.set(nm, [...(fromOther.get(nm) || []), r]);
+            }
             const vatRows = teachers.map((nm) => {
                 const tid = nameRows(nm);
-                const L = tid ? tRows(tid) : [];
+                const L = tid ? inHere(tid) : [];
                 return { label: nm, count: `${L.length}건`, gross: L.reduce((t, r) => t + g(r), 0), vat: L.reduce((t, r) => t + n(r.vat), 0) };
             });
+            for (const [nm, L] of fromOther) {
+                vatRows.push({ label: nm, count: `${L.length}건`, gross: L.reduce((t, r) => t + g(r), 0), vat: L.reduce((t, r) => t + n(r.vat), 0) });
+            }
+            // 10-30 담당 없는 줄(미수강 N회분 → 학원 몫)도 부가세는 보관 — 그 학생 환불로 취소된 만큼은 뺀다
+            let splitG = 0;
+            let splitV = 0;
+            const splitL = rows.filter((r) => isSplit(r) && bizOf(r) === A.key);
+            for (const u of splitL) {
+                const back = rows.filter((r) => r.kind === 'refund' && bizOf(r) === A.key && sKey(r) === sKey(u)).reduce((t, r) => t + n(r.amount), 0);
+                const keep = Math.max(0, g(u) - back);
+                splitG += keep;
+                splitV += g(u) ? R((n(u.vat) * keep) / g(u)) : 0;
+            }
+            if (splitV) vatRows.push({ label: '학원 (미수강분)', count: `${splitL.length}건`, gross: splitG, vat: splitV });
             vatRows.push({ label: '책값 (학원)', count: `${bookRows.length}${book.title === '책 매출' ? '권' : '건'}`, gross: book.total, vat: bookRows.reduce((t, r) => t + n(r.vat), 0) });
             const vat = { rows: vatRows, total: vatRows.reduce((t, x) => t + x.vat, 0) };
             // 8. 카드 수수료 — 0.4% 카드사(이미 빠져서 들어옴) · 1.1% 잉여금
@@ -15029,8 +15051,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             const cardRow = (label, amount, count) => cardRows.push({ label, count, amount, f4: R((amount * CARD_REAL) / 100), f11: R((amount * CARD_SURPLUS) / 100) });
             for (const nm of teachers) {
                 const tid = nameRows(nm);
-                const L = (tid ? tRows(tid) : []).filter((r) => feeRate(r) > 0);
+                const L = (tid ? inHere(tid) : []).filter((r) => feeRate(r) > 0);
                 cardRow(nm, L.reduce((t, r) => t + g(r), 0), L.length);
+            }
+            for (const [nm, L0] of fromOther) {
+                const L = L0.filter((r) => feeRate(r) > 0);
+                if (L.length) cardRow(nm, L.reduce((t, r) => t + g(r), 0), L.length);
             }
             // 학원: 책·스터디 카드 + 담당 없는 줄 카드(그 학생 카드 환불만큼은 카드 취소라 수수료 없음)
             const acBooks = bookRows.filter((r) => feeRate(r) > 0);
