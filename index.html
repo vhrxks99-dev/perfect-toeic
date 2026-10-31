@@ -15893,6 +15893,40 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       if(p.biz) otTag += ' <span style="font-size:11px;font-weight:800;border-radius:5px;padding:2px 5px;'+(p.biz==='ajlabs'?'color:#6b21a8;background:#f3e8ff':'color:#154fbe;background:#eaf1fe')+'">'+(p.biz==='ajlabs'?'이창희':'김태완')+'</span>';
       h+='<tr><td>'+esc(p.student_name||'-')+'</td><td style="white-space:nowrap">'+(isRefund(p)?('<b style="color:#c0342b">−'+won(p.amount)+'</b> <span style="font-size:11px;font-weight:800;color:#c0342b;background:#fdf0ef;border-radius:5px;padding:2px 5px">환불</span>'):(won((Number(p.amount)||0)+(Number(p.vat)||0))+otTag))+'</td><td style="white-space:nowrap">'+vat+'</td><td style="white-space:nowrap">'+(payCardFee(p)?'<span style="color:var(--muted)">'+won(payCardFee(p))+'</span>':'-')+'</td><td style="white-space:nowrap"><b>'+(isRefund(p)?'−'+won(p.amount):won((Number(p.amount)||0)-payCardFee(p)))+'</b></td><td>'+tn+'</td><td style="white-space:nowrap">'+net+'</td><td>'+(p.sessions?'<b>'+p.sessions+'회</b>':'-')+'</td><td>'+esc(methodLabel(p))+'</td><td>'+esc(p.paid_at||'-')+'</td><td class="tb-memo">'+esc(p.memo||'')+'</td>'+(mm?'<td style="white-space:nowrap"><a class="wa-link" data-pyedit="'+p.id+'">수정</a> &nbsp;<a class="wa-link del" data-pydel="'+p.id+'">삭제</a></td>':'')+'</tr>'; });
     $('pyTable').innerHTML=h;
+    try{ pyDaysDraw(rows); }catch(e){}
+  }
+  // 2026-10-31 원장님 「수납 누르면 날짜별로 모든 수납을 등록 순서대로, 접었다 폈다, 학생 옆에 선생님·카드/계좌」 (앱 PaymentsScreen DayList 와 같다)
+  var pyDaysOpen=false;
+  function pyDaysDraw(rows){
+    var wrap=$('pyTable').closest('.wa-table-wrap'); if(!wrap) return;
+    var box=$('pyDays');
+    if(!box){ box=document.createElement('div'); box.id='pyDays'; wrap.parentNode.insertBefore(box, wrap); }
+    var list=rows.slice().sort(function(a,b){ return String(a.paid_at||'').localeCompare(String(b.paid_at||'')) || (Number(a.id)-Number(b.id)); });
+    var days=[], cur=null;
+    list.forEach(function(p){ var d=String(p.paid_at||'').slice(0,10)||'날짜 없음'; if(!cur||cur.d!==d){ cur={d:d,items:[]}; days.push(cur); } cur.items.push(p); });
+    function paid(p){ return isRefund(p) ? -Math.abs(Number(p.amount)||0) : (Number(p.amount)||0)+(Number(p.vat)||0); }
+    function dl(d){ if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return d; var w='일월화수목금토'[new Date(d+'T00:00:00Z').getUTCDay()]; return (+d.slice(5,7))+'/'+(+d.slice(8,10))+'('+w+')'; }
+    var KIND={payment:'수업료',ot:'사전 OT',book:'책',study:'스터디',rental:'태블릿 대여',refund:'환불'};
+    var h='<div style="margin:6px 0 10px"><button type="button" id="pyDaysBtn" class="wa-btn" style="padding:6px 12px;border-radius:9px;font-weight:800">'+(pyDaysOpen?'▴ 날짜별 수납 접기':'▾ 날짜별 수납 전체 보기 ('+rows.length+'건)')+'</button></div>';
+    if(pyDaysOpen){
+      days.forEach(function(g){
+        var tot=g.items.reduce(function(t,p){ return t+paid(p); },0);
+        h+='<details style="background:#fff;border:1px solid var(--line,#e6e3de);border-radius:12px;margin-bottom:8px;overflow:hidden"><summary style="cursor:pointer;padding:10px 14px;font-weight:800;display:flex;gap:8px;align-items:center;background:#fafaf8"><span style="flex:1">'+dl(g.d)+'</span><span style="color:#8a8a94;font-weight:600;font-size:12px">'+g.items.length+'건</span><b'+(tot<0?' style="color:#c0342b"':'')+'>'+won(tot)+'</b></summary>';
+        g.items.forEach(function(p,i){
+          var m=String(p.method||''); var card=/카드|결제선생/.test(m);
+          h+='<div data-pyday="'+p.id+'" style="display:flex;gap:8px;align-items:center;padding:8px 14px;border-top:1px solid #f0efec;cursor:pointer"><span style="width:18px;text-align:center;color:#aaa;font-size:11px">'+(i+1)+'</span>'
+            +'<div style="flex:1;min-width:0"><div style="font-weight:800">'+esc(p.student_name||'(이름 없음)')+' <span style="color:#6e6e78;font-weight:600;font-size:12px">· '+esc(p.teacher_name||'담당 없음')+'</span></div>'
+            +'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:3px;align-items:center"><span style="font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;'+(card?'background:#EEF3FF;color:#2F6BE5':'background:#EAF7EF;color:#1E8A4C')+'">'+esc(m||'-')+'</span>'
+            +'<span style="font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;background:#f2f1ee;color:#555">'+(KIND[p.kind]||esc(p.kind||'수업료'))+((p.kind==='payment'&&p.sessions!=null)?' '+p.sessions+'회':'')+'</span>'
+            +(p.biz?'<span style="font-size:11px;color:#9a9aa3">'+(p.biz==='ajlabs'?'이창희':'김태완')+' 사업자</span>':'')+'</div></div>'
+            +'<b style="white-space:nowrap'+(isRefund(p)?';color:#c0342b':'')+'">'+won(paid(p))+'</b></div>';
+        });
+        h+='</details>';
+      });
+    }
+    box.innerHTML=h;
+    $('pyDaysBtn').onclick=function(){ pyDaysOpen=!pyDaysOpen; pyDaysDraw(rows); };
+    box.querySelectorAll('[data-pyday]').forEach(function(el){ el.onclick=function(){ var id=el.getAttribute('data-pyday'); var p=rows.filter(function(x){ return String(x.id)===id; })[0]; if(p && isOps() && typeof openPayEdit==='function') openPayEdit(p); }; });
   }
   function applyRoleScope(){
     var mm=isOps();
