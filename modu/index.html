@@ -80,6 +80,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 .talk{position:fixed;z-index:25;min-width:200px;padding:8px;border-radius:14px;background:oklch(23% .03 262 / .97);border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.4)}
 .talk[hidden]{display:none}
+.talk.rep{left:50%;bottom:92px;transform:translateX(-50%);max-width:calc(100vw - 32px)}
 .talk b{display:block;padding:6px 8px 8px;font-size:13px;color:var(--mut);font-weight:600}
 .talk button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:9px;font-size:14px}
 .talk button:hover{background:oklch(32% .03 262)}
@@ -142,6 +143,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div class="focus" id="focus" role="button" aria-label="화면을 누르면 도서관으로 돌아가요"><div class="who" id="fWho"></div><b id="fTime">00:00:00</b>
   <div class="ask" id="fAsk"></div><div class="hint" id="fHint">공부 중이에요 · 화면을 톡 치면 도서관으로 돌아가요</div></div>
 <div class="talk" id="talk" hidden role="menu" aria-label="말 걸기"></div>
+<div class="talk rep" id="rep" hidden role="menu" aria-label="답장 고르기"></div>
 <div class="modal" id="back"><div class="card" role="dialog" aria-label="돌아왔어요"><h3>다시 왔네요</h3><p class="pg" id="backTxt"></p>
   <button class="close" id="backGo">다시 공부 시작</button><button class="close" id="backStop" style="background:oklch(32% .03 262)">그만하기</button></div></div>
 <div class="modal" id="chk"><div class="card" role="dialog" aria-label="공부 확인"><h3>아직 공부 중이에요?</h3><p class="pg" id="chkTxt"></p>
@@ -683,8 +685,15 @@ function patrolCheck(){
 /* ---------- 말 걸기 ---------- */
 const TO_STUDENT=['자리 좀 비켜 줄래요?','몰래 간식 먹지 마요!','쉿, 조용히 해 주세요','같이 공부해요!','화이팅!','몇 시까지 해요?'];
 const TO_TEACHER=['질문 있어요!','화장실 다녀와도 돼요?','몇 시에 끝나요?','오늘 단어시험 있어요?'];
-const NPC_REPLY={0:['싫어요~ 제가 먼저 왔어요','5분만 더 하고 비켜 줄게요','여기 제 자리예요!'],1:['한 입만요…','들켰다!','아무것도 안 먹었는데요?'],2:['앗 죄송해요','쉿!'],3:['좋아요!','오늘 몇 시간 할 거예요?'],4:['화이팅!!','고마워요'],5:['밤 10시까지요','목표 3시간이요']};
-const T_REPLY={0:['손들고 기다리면 갈게요','무슨 문제예요? 번호 알려 줘요'],1:['다녀와요~ 가방 두고 가요'],2:['도서관은 언제든 열려 있어요'],3:['단어 퀴즈 버튼 눌러 봐요!']};
+// 말 순서: 0 자리 비켜 / 1 간식 먹지 마 / 2 조용히 / 3 같이 공부 / 4 화이팅 / 5 몇 시까지
+const NPC_REPLY={
+  sit:[['싫어요~ 제가 먼저 왔어요','5분만 더 하고 비켜 줄게요','여기 제 자리예요!'],['저 아무것도 안 먹었는데요?','공부만 하고 있었어요!'],['앗 죄송해요','네…'],['좋아요!','오늘 몇 시간 할 거예요?'],['화이팅!!','고마워요'],['밤 10시까지요','목표 3시간이요']],
+  sleep:[['음냐… 5분만…','(쿨쿨… 대답이 없다)'],['으음… 간식…?','(쿨쿨…)'],['(드르렁…)','…어? 나 안 잤어!'],['…응… 같이… 쿨쿨','(잠꼬대) 단어… 외워야 하는데…'],['…화이…팅… 쿨쿨','(쿨쿨…)'],['몇 시…? 지금 몇 시예요?!','(쿨쿨…)']],
+  eat:[['밥만 다 먹고 비켜 줄게요','지금 밥 먹는 중이에요!'],['들켰다!','한 입만요…','배고파서 공부가 안 돼요'],['(오물오물) 죄송해요','쩝… 조용히 먹을게요'],['밥 먹고 바로 할게요!','같이 먹을래요?'],['밥심으로 화이팅!','고마워요 (오물오물)'],['밥 먹고 밤까지 할 거예요','배부르면 졸린데…']],
+  snack:[['과자 다 먹고요~','이거 하나만 먹고요'],['한 입만요…','하나 줄까요?','들켰다!'],['바스락… 죄송해요','과자 봉지 소리 줄일게요'],['과자 먹고 바로 할게요!','같이 먹으면서 해요'],['당 충전 완료! 화이팅!','고마워요'],['과자 다 먹을 때까지요 ㅋㅋ','오늘 늦게까지 해요']],
+  rest:[['잠깐 쉬는 중이라 금방 비킬게요','기지개만 펴고요~'],['안 먹었어요, 스트레칭 중이에요','저 쉬는 중이에요'],['아 죄송해요','쉿, 알겠어요'],['좋아요, 쉬고 바로 해요!','같이 해요!'],['화이팅! 쉬고 달려요','고마워요'],['쉬고 나서 2시간 더요','목표까진 아직 멀었어요']],
+  hand:[['선생님 기다리는 중이에요!','질문하고 비켜 줄게요'],['아니에요, 질문하려고요','저 손든 거예요'],['네, 조용히 기다릴게요','앗 죄송해요'],['좋아요! 이 문제 같이 봐요','같이 해요!'],['고마워요, 화이팅!','화이팅!!'],['이 문제 풀고 정할래요','모르는 거 다 풀 때까지요']]};
+const T_REPLY={0:['손들고 기다리면 갈게요','무슨 문제예요? 번호 알려 줘요'],1:['다녀와요~ 가방 두고 가요'],2:['도서관은 언제든 열려 있어요'],3:['오늘은 없어요. 대신 단어 한 번 더 봐요!','시험은 없지만 복습은 해요~']};
 const talkBox=$('talk');let talkTarget=null;
 function whoKey(a){if(a===teacher)return 'teacher';const ni=npcs.indexOf(a);if(ni>=0)return 'npc'+ni;for(const [id,b] of others)if(b===a)return id;return null}
 function nameOf(a){return a.el.querySelector('.n').textContent}
@@ -703,9 +712,14 @@ function doTalk(a,i){
   const p=me.g.position,q=a.g.position;if(me.seat<0)me.g.rotation.y=Math.atan2(-(q.x-p.x),-(q.z-p.z));
   const list=a===teacher?TO_TEACHER:TO_STUDENT;const text=list[i];say(me,text);
   const key=whoKey(a);ch&&ch.send({type:'broadcast',event:'say',payload:{id:ME.id,text,to:key}});
-  const pool=a===teacher?T_REPLY[i]:(npcs.includes(a)?NPC_REPLY[i]:null);
+  const pool=a===teacher?T_REPLY[i]:(npcs.includes(a)?(NPC_REPLY[a.state]||NPC_REPLY.sit)[i]:null);
   if(pool){const rep=pool[Math.floor(Math.random()*pool.length)];setTimeout(()=>{say(a,rep,a===teacher);ch&&ch.send({type:'broadcast',event:'npcsay',payload:{to:key,text:rep}})},1100)}
   sync()}
+const REPLY_CHOICES=['네, 좋아요!','잠깐만요~','싫어요!','ㅋㅋㅋ 들켰다','화이팅!','쉿, 공부 중이에요'];
+let repT=0;
+function openReply(a,id,text){const box=$('rep');box.innerHTML='<b></b>';box.querySelector('b').textContent=nameOf(a)+': '+text+' · 답장 고르기';
+  REPLY_CHOICES.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{box.hidden=true;say(me,t);ch&&ch.send({type:'broadcast',event:'say',payload:{id:ME.id,text:t,to:id,rep:true}})};box.appendChild(b)});
+  box.hidden=false;clearTimeout(repT);repT=setTimeout(()=>{box.hidden=true},20000)}
 function byKey(k){if(k==='teacher')return teacher;if(k&&k.startsWith('npc'))return npcs[+k.slice(3)];return k===ME.id?me:others.get(k)}
 
 /* ---------- 이름 바꾸기 · 이름 코드 ---------- */
@@ -771,7 +785,8 @@ async function join(n){
     drawRank();drawBags();tryAutoSeat();
   });
   ch.on('broadcast',{event:'cheer'},({payload:p})=>{const a=others.get(p.id);if(a)heart(a)});
-  ch.on('broadcast',{event:'say'},({payload:p})=>{const a=others.get(p.id);if(a)say(a,p.text);if(p.to===ME.id)flash((a?nameOf(a):'누군가')+'님이 말을 걸었어요: '+p.text)});
+  ch.on('broadcast',{event:'say'},({payload:p})=>{const a=others.get(p.id);if(a)say(a,p.text);if(p.to!==ME.id)return;
+    if(p.rep||!a){flash((a?nameOf(a):'누군가')+'님: '+p.text);return}openReply(a,p.id,p.text)});
   ch.on('broadcast',{event:'npcsay'},({payload:p})=>{const a=byKey(p.to);if(a)say(a,p.text,p.to==='teacher')});
   ch.subscribe(st=>{if(st==='SUBSCRIBED')sync()});
 }
