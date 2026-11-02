@@ -391,7 +391,7 @@ const BUILD={
     for(const [x,z] of [[-15.5,-6],[15.5,4]]){put(g,BX(1,2,.8),em('#e8e8ea'),x,1,z);put(g,BX(.8,1,.05),glow('#bfe6ff'),x,1.35,z+.42*(x<0?1:1))}
     const cl=new THREE.PointLight('#ff6a4a',18,16,1.5);cl.position.set(-15,3,-2);g.add(cl);const cl2=new THREE.PointLight('#4fc3ff',18,16,1.5);cl2.position.set(15,3,10);g.add(cl2);
     // 전깃줄
-    for(let i=0;i<4;i++)put(g,CY(.02,.02,38,4),em('#111'),0,6.5-i*.3,-14+i*10,{rz:Math.PI/2,cast:false});
+    for(let i=0;i<4;i++)put(g,CY(.02,.02,38,4),em('#111'),0,7.2-i*.3,-18+i*11,{rz:Math.PI/2,cast:false});
     for(const sx of [-1,1])for(let i=0;i<3;i++)put(g,CY(.12,.14,7,6),em('#5c5c62'),sx*16,3.5,-14+i*14)},
   santorini(g){sea(g,-17,'#1f6fb8');
     const r=rng(81);const blues=['#1f5fb8','#2a74d0'];
@@ -441,16 +441,61 @@ function drawAd(name){const a=adOf(name),g=adCanvas.getContext('2d'),W2=1024,H2=
   g.fillStyle=a&&a.bg||'#fffaf0';g.fillRect(0,0,W2,H2);g.textAlign='center';
   const text=()=>{g.fillStyle=a&&a.color||'#1d2433';g.font='800 112px "SUIT Variable", sans-serif';g.fillText(a?a.text:'이 자리에 광고하세요',W2/2,a&&a.sub?250:262,960);
     g.font='600 50px "SUIT Variable", sans-serif';g.fillStyle='#6b7280';g.fillText(a?(a.sub||''):ROOM_LIST.find(x=>x[0]===name)?.[1]+' 광고 문의 · contact@perfect-toeic.com',W2/2,a&&a.sub?345:350,960);adTex.needsUpdate=true};
-  if(a&&a.logo&&!a.img){const im=new Image();im.onload=()=>{if(envNow!==name)return;g.fillStyle=a.bg||'#fffaf0';g.fillRect(0,0,W2,H2);g.drawImage(im,60,96,320,320);g.textAlign='left';
-      g.fillStyle=a.color||'#1d2433';g.font='800 80px "SUIT Variable", sans-serif';g.fillText(a.text,420,240,560);g.font='700 48px "SUIT Variable", sans-serif';g.fillStyle='#1f5fd6';g.fillText(a.sub||'',420,330,560);adTex.needsUpdate=true};im.onerror=text;im.src=a.logo;return}
+  if(a&&a.logo&&!a.img){const im=new Image();im.onload=()=>{if(envNow!==name)return;g.fillStyle='#ffffff';g.fillRect(0,0,W2,H2);
+      const lh=300,lw=im.width*lh/im.height;g.drawImage(im,70,(H2-lh)/2,lw,lh);g.fillStyle='#e5e5e5';g.fillRect(110+lw,110,4,H2-220);g.textAlign='left';const tx=150+lw,mw=W2-tx-50;
+      g.fillStyle='#111111';g.font='800 84px "SUIT Variable", sans-serif';g.fillText(a.text,tx,240,mw);g.font='700 52px "SUIT Variable", sans-serif';g.fillStyle='#333333';g.fillText(a.sub||'',tx,320,mw);adTex.needsUpdate=true};im.onerror=text;im.src=a.logo;return}
   if(a&&a.img){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{if(envNow!==name)return;g.fillRect(0,0,W2,H2);const s=Math.max(W2/im.width,H2/im.height);g.drawImage(im,(W2-im.width*s)/2,(H2-im.height*s)/2,im.width*s,im.height*s);adTex.needsUpdate=true};im.onerror=text;im.src=a.img}
   else text();adTex.needsUpdate=true}
-function placeAd(name){const lib=name==='library',w=lib?4.2:7,h=w/2,cy=lib?2.9:4.4,z=lib?-11.3:-14.2;
-  adG.position.set(0,0,z);adFace.scale.set(w,h,1);adFace.position.set(0,cy,.07);
-  adBorder.scale.set(w+.3,h+.3,.12);adBorder.position.set(0,cy,0);
-  adPosts.forEach((p,k)=>{p.scale.set(.18,cy-h/2+.1,.18);p.position.set((k?1:-1)*(w/2-.4),(cy-h/2)/2,0)});
-  const c=AD_FRAME[name]||'#5b3a22';adBorder.material.color.set(c);adPosts.forEach(p=>p.material.color.set(c));
-  adBorder.material.emissive.set(name==='tokyo'||name==='newyork'?c:'#000000');adBorder.material.emissiveIntensity=name==='tokyo'?.9:.3;
+const adDeco=new THREE.Group();adG.add(adDeco);
+function placeAd(name){const lib=name==='library',w=lib?4.2:6.4,h=w/2,cy=lib?2.9:4.2,z=lib?-11.3:-14.2,top=cy+h/2,bot=cy-h/2;
+  adG.position.set(0,0,z);adFace.scale.set(w,h,1);adFace.position.set(0,cy,name==='newyork'?.15:.08);
+  const c=AD_FRAME[name]||'#5b3a22';adBorder.material.color.set(c);adBorder.material.emissive.set('#000000');adBorder.material.emissiveIntensity=0;
+  adBorder.scale.set(w+.3,h+.3,.12);adBorder.position.set(0,cy,0);adPosts.forEach(p=>{p.visible=true;p.material.color.set(c)});
+  const post=(x,wd=.18)=>{const p=adPosts[x<0?0:1];p.scale.set(wd,bot+.1,wd);p.position.set(x,bot/2,0)};post(-(w/2-.4));post(w/2-.4);
+  while(adDeco.children.length)adDeco.remove(adDeco.children[0]);
+  const d=(geo,mat,x,y,zz,o={})=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,zz);if(o.rx)m.rotation.x=o.rx;if(o.ry)m.rotation.y=o.ry;if(o.rz)m.rotation.z=o.rz;if(o.s)m.scale.set(...o.s);m.castShadow=o.cast!==false;adDeco.add(m);return m};
+  switch(name){
+    case 'library': // 나무 이젤 게시판
+      post(-(w/2-.3),.12);post(w/2-.3,.12);d(BX(.12,top+.5,.12),M('#5b3a22'),0,(top+.5)/2,-.4,{rx:.18});d(BX(w+.1,.12,.25),M('#5b3a22'),0,bot-.06,.1);break;
+    case 'beach': // 해변 오두막 간판: 굵은 야자 기둥 + 짚 지붕 + 밧줄
+      post(-(w/2+.1),.32);post(w/2+.1,.32);adPosts.forEach(p=>p.scale.y=top+.6);adPosts.forEach(p=>p.position.y=(top+.6)/2);
+      d(new THREE.ConeGeometry(w*.72,1.1,4,1),M('#d9b35f',{flatShading:true}),0,top+1.0,0,{ry:Math.PI/4,s:[1,1,.35]});
+      for(const sx of [-1,1])d(new THREE.TorusGeometry(.2,.04,6,12),M('#c8a46a'),sx*(w/2+.1),bot+.3,.18,{rx:Math.PI/2});
+      d(BX(w+.6,.15,.2),M('#8a6a45'),0,bot-.1,0);break;
+    case 'camp': // 통나무 기둥 + 거친 판자 + 작은 등불
+      post(-(w/2+.05),.36);post(w/2+.05,.36);adPosts.forEach(p=>{p.scale.y=top+.4;p.position.y=(top+.4)/2});
+      for(let k=0;k<3;k++)d(BX(w+.9,.22,.18),M(['#6b4a32','#5e4029','#7a5538'][k]),0,top+.25+k*.001,-.02,{rz:(k-1)*.02});
+      d(CY(.12,.12,.6,8),M('#2b2b2b'),w/2+.05,top+.75,0);d(new THREE.SphereGeometry(.17,10,8),new THREE.MeshBasicMaterial({color:'#ffd27a'}),w/2+.05,top+.6,0,{cast:false});break;
+    case 'sakura': // 공원 안내판: 흰 틀 + 분홍 박공지붕
+      d(new THREE.ConeGeometry(w*.75,.9,4,1),M('#f2a7c0',{flatShading:true}),0,top+.55,0,{ry:Math.PI/4,s:[1,1,.3]});
+      for(const sx of [-1,1])d(new THREE.IcosahedronGeometry(.35,1),M('#f6b9cc',{flatShading:true}),sx*(w/2+.2),top+.2,.1);break;
+    case 'snow': // 나무 판에 눈이 쌓이고 고드름
+      d(BX(w+.5,.3,.5),M('#f5f8fc'),0,top+.25,0,{s:[1,1,1]});d(new THREE.SphereGeometry(.45,10,8),M('#f5f8fc'),-w/2+.2,top+.3,0,{s:[1.4,.6,1]});
+      for(let k=0;k<9;k++)d(new THREE.ConeGeometry(.06,.35+((k*7)%3)*.15,6),M('#dff1ff',{roughness:.2}),-w/2+.4+k*(w-.8)/8,bot-.3,.08,{rx:Math.PI,cast:false});break;
+    case 'rooftop': // 옥상 광고탑: 철골 기둥 + 발판 + 조명등
+      adPosts.forEach(p=>p.visible=false);for(const x of [-w/2+.4,w/2-.4])for(const zz of [-.4,.4])d(BX(.12,bot+.1,.12),M('#3a3f4a',{metalness:.5}),x,bot/2,zz-.3);
+      for(let k=0;k<4;k++)d(BX(.06,1.4,.06),M('#3a3f4a'),-w/2+.4+(k%2)*(w-.8),bot*.5,-.3,{rz:(k<2?1:-1)*.6,cast:false});
+      d(BX(w+.6,.08,.9),M('#4a505c',{metalness:.5}),0,bot-.25,.35);d(BX(w+.6,.05,.05),M('#4a505c'),0,bot+.25,.78,{cast:false});
+      for(let k=0;k<3;k++){const x=-w/3+k*w/3;d(CY(.03,.03,.6,5),M('#2a2a2a'),x,top+.2,.3,{rx:.8,cast:false});d(new THREE.SphereGeometry(.13,10,8),new THREE.MeshBasicMaterial({color:'#fff3c4'}),x,top+.35,.55,{cast:false})}break;
+    case 'paris': // 파리 거리 게시판: 짙은 초록 틀 + 작은 돔 + 금색 장식
+      adBorder.material.color.set('#2f4a3a');adPosts.forEach(p=>p.material.color.set('#2f4a3a'));
+      d(new THREE.SphereGeometry(w*.2,20,10,0,Math.PI*2,0,Math.PI/2),M('#2f4a3a'),0,top+.1,0,{s:[1,.6,.35]});d(new THREE.SphereGeometry(.12,10,8),M('#c9a34a',{metalness:.7,roughness:.3}),0,top+.1+w*.12+.1,0);
+      for(const sx of [-1,1])d(new THREE.SphereGeometry(.1,10,8),M('#c9a34a',{metalness:.7,roughness:.3}),sx*(w/2+.15),top+.15,0);break;
+    case 'newyork': // 전광판: 검은 얇은 틀 + 테두리 불빛
+      adBorder.scale.set(w+.18,h+.18,.25);adPosts.forEach(p=>p.material.color.set('#26282e'));
+      for(let k=0;k<14;k++){const t=k/13;d(new THREE.SphereGeometry(.06,6,4),new THREE.MeshBasicMaterial({color:'#ffd56b'}),-w/2+t*w,top+.15,.12,{cast:false});d(new THREE.SphereGeometry(.06,6,4),new THREE.MeshBasicMaterial({color:'#ffd56b'}),-w/2+t*w,bot-.15,.12,{cast:false})}break;
+    case 'tokyo': // 네온 간판: 빛나는 분홍 테두리 + 양옆 세로 간판
+      adBorder.material.color.set('#20141c');adPosts.forEach(p=>p.material.color.set('#20141c'));
+      const neon=new THREE.MeshBasicMaterial({color:'#ff4fa0'});d(BX(w+.2,.07,.07),neon,0,top+.05,.1,{cast:false});d(BX(w+.2,.07,.07),neon,0,bot-.05,.1,{cast:false});d(BX(.07,h+.2,.07),neon,-w/2-.05,cy,.1,{cast:false});d(BX(.07,h+.2,.07),neon,w/2+.05,cy,.1,{cast:false});
+      for(const [sx,col] of [[-1,'#4fd1ff'],[1,'#ffd24f']])d(BX(.5,h+.6,.15),new THREE.MeshBasicMaterial({color:col}),sx*(w/2+.55),cy,.05,{cast:false});break;
+    case 'santorini': // 흰 회벽 + 파란 틀 + 파란 돔
+      adBorder.material.color.set('#1f5fb8');adPosts.forEach(p=>p.visible=false);d(BX(w+1.2,top+.3,.5),M('#fbfaf6'),0,(top+.3)/2,-.32);
+      d(new THREE.SphereGeometry(.9,20,10,0,Math.PI*2,0,Math.PI/2),M('#1f5fb8'),0,top+.3,-.32);d(CY(.03,.03,.5,5),M('#e8e2d0'),0,top+1.4,-.32);d(BX(.3,.04,.04),M('#e8e2d0'),0,top+1.5,-.32);break;
+    case 'dubai': // 모래색 돌 틀 + 아치 지붕
+      adBorder.material.color.set('#d9b07a');adPosts.forEach(p=>p.visible=false);d(BX(w+1,top+.2,.45),M('#c99a62'),0,(top+.2)/2,-.3);
+      d(new THREE.CylinderGeometry(w/2+.5,w/2+.5,.45,24,1,false,-Math.PI/2,Math.PI),M('#c99a62'),0,top+.2,-.3,{rx:Math.PI/2,s:[1,1,.55]});
+      for(const sx of [-1,1])d(CY(.18,.22,top+.2,10),M('#e2c08e'),sx*(w/2+.5),(top+.2)/2,0);break;
+  }
   drawAd(name)}
 function openAd(){const a=adOf(envNow);const url=a?a.url:'mailto:contact@perfect-toeic.com?subject='+encodeURIComponent('모두의 도서관 광고 문의 ('+(ROOM_LIST.find(x=>x[0]===envNow)?.[1]||'')+')');
   if(url)window.open(url,'_blank','noopener')}
