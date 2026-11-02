@@ -422,8 +422,43 @@ function setEnv(name){if(!ENVS[name])name='library';if(envNow===name)return;envN
   controls.maxPolarAngle=name==='library'?1.25:1.42;
   // 바깥 배경은 카메라를 낮춰 하늘과 멀리 있는 것이 보이게
   if(!makerOn)camera.position.copy(controls.target).add(name==='library'?new THREE.Vector3(0,9.3,11.5):new THREE.Vector3(0,5.2,13.5));
+  placeAd(name);
   const lab=$('envName');if(lab)lab.textContent=ENV_NAMES[name]}
 function envTick(dt,t){const g=envGroups[envNow];if(g&&g.visible)for(const f of g.userData.tick)f(dt,t)}
+
+/* ---------- 열람실 광고판 ---------- */
+// 광고 내용은 같은 폴더 ads.json 에서 읽는다. 열람실 이름(library·beach…)마다 {name, text, sub, img, url}. 비어 있으면 "광고 문의" 판.
+let ADS={};
+const AD_FRAME={library:'#5b3a22',beach:'#8a6a45',camp:'#6b4a32',sakura:'#f4f1ea',snow:'#5b3e2a',rooftop:'#3a3f4a',paris:'#2c2c2c',newyork:'#1d1f24',tokyo:'#ff4f7b',santorini:'#1f5fb8',dubai:'#c08a55'};
+const adCanvas=document.createElement('canvas');adCanvas.width=1024;adCanvas.height=512;
+const adTex=new THREE.CanvasTexture(adCanvas);adTex.colorSpace=THREE.SRGBColorSpace;
+const adG=new THREE.Group();scene.add(adG);
+const adFace=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:adTex,toneMapped:false}));adG.add(adFace);
+const adBorder=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),M('#5b3a22'));adBorder.castShadow=true;adG.add(adBorder);
+const adPosts=[0,1].map(()=>{const m=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),M('#5b3a22'));m.castShadow=true;adG.add(m);return m});
+function adOf(name){return ADS[name]&&(ADS[name].text||ADS[name].img)?ADS[name]:null}
+function drawAd(name){const a=adOf(name),g=adCanvas.getContext('2d'),W2=1024,H2=512;
+  g.fillStyle=a&&a.bg||'#fffaf0';g.fillRect(0,0,W2,H2);g.textAlign='center';
+  const text=()=>{g.fillStyle=a&&a.color||'#1d2433';g.font='800 112px "SUIT Variable", sans-serif';g.fillText(a?a.text:'이 자리에 광고하세요',W2/2,a&&a.sub?250:262,960);
+    g.font='600 50px "SUIT Variable", sans-serif';g.fillStyle='#6b7280';g.fillText(a?(a.sub||''):ROOM_LIST.find(x=>x[0]===name)?.[1]+' 광고 문의 · contact@perfect-toeic.com',W2/2,a&&a.sub?345:350,960);adTex.needsUpdate=true};
+  if(a&&a.img){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{if(envNow!==name)return;g.fillRect(0,0,W2,H2);const s=Math.max(W2/im.width,H2/im.height);g.drawImage(im,(W2-im.width*s)/2,(H2-im.height*s)/2,im.width*s,im.height*s);adTex.needsUpdate=true};im.onerror=text;im.src=a.img}
+  else text();adTex.needsUpdate=true}
+function placeAd(name){const lib=name==='library',w=lib?4.2:7,h=w/2,cy=lib?2.9:4.4,z=lib?-11.3:-14.2;
+  adG.position.set(0,0,z);adFace.scale.set(w,h,1);adFace.position.set(0,cy,.07);
+  adBorder.scale.set(w+.3,h+.3,.12);adBorder.position.set(0,cy,0);
+  adPosts.forEach((p,k)=>{p.scale.set(.18,cy-h/2+.1,.18);p.position.set((k?1:-1)*(w/2-.4),(cy-h/2)/2,0)});
+  const c=AD_FRAME[name]||'#5b3a22';adBorder.material.color.set(c);adPosts.forEach(p=>p.material.color.set(c));
+  adBorder.material.emissive.set(name==='tokyo'||name==='newyork'?c:'#000000');adBorder.material.emissiveIntensity=name==='tokyo'?.9:.3;
+  drawAd(name)}
+function openAd(){const a=adOf(envNow);const url=a?a.url:'mailto:contact@perfect-toeic.com?subject='+encodeURIComponent('모두의 도서관 광고 문의 ('+(ROOM_LIST.find(x=>x[0]===envNow)?.[1]||'')+')');
+  if(url)window.open(url,'_blank','noopener')}
+const adsReady=fetch('ads.json',{cache:'no-store'}).then(r=>r.ok?r.json():{}).then(d=>{ADS=d||{};if(envNow)placeAd(envNow)}).catch(()=>{});
+// 들어올 때·열람실 바꿀 때 로딩 화면에 "OOO 제공" (광고주가 있을 때만 2.5초)
+let introT=0;
+function roomIntro(n){const name=ROOM_LIST[n-1][0];Promise.race([adsReady,new Promise(r=>setTimeout(r,1500))]).then(()=>{
+  const a=adOf(name),L=$('loading');if(!L)return;L.querySelector('b').textContent=ROOM_LIST[n-1][1];
+  L.querySelector('span').textContent=a?(a.name||a.text)+' 제공':'열람실 불을 켜는 중이에요';
+  L.style.display='grid';L.style.opacity=1;clearTimeout(introT);introT=setTimeout(()=>{L.style.opacity=0;introT=setTimeout(()=>{L.style.display='none'},700)},a?2500:500)})}
 
 /* ---------- 책상 24개 ---------- */
 const COLS=6,ROWS=4,DX=4,DZ=4.4,X0=-10,Z0=-5;
@@ -775,7 +810,7 @@ function applyPeer(id,d){
 function removePeer(id){const a=others.get(id);if(!a)return;if(a.seat>=0)lampOn(a.seat,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g);others.delete(id)}
 async function join(n){
   if(ch){await sb.removeChannel(ch);ch=null;for(const id of [...others.keys()])removePeer(id)}
-  roomNo=n;history.replaceState(null,'','?room='+ROOM_LIST[n-1][0]);$('roomSel').value=n;spawnNpcs(n);setEnv(qs.get('env')||ROOM_LIST[n-1][0]);
+  roomNo=n;history.replaceState(null,'','?room='+ROOM_LIST[n-1][0]);$('roomSel').value=n;spawnNpcs(n);roomIntro(n);setEnv(qs.get('env')||ROOM_LIST[n-1][0]);
   ch=sb.channel('modu-'+ROOM_LIST[n-1][0],{config:{presence:{key:ME.id},broadcast:{self:false}}});
   ch.on('presence',{event:'sync'},()=>{
     const st=ch.presenceState();const ids=new Set(Object.keys(st));peersCount=ids.size||1;$('cnt').textContent=(peersCount+npcs.length)+'명 공부 중';
@@ -823,6 +858,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   mv.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mv,camera);talkBox.hidden=true;
   const ppl=[...others.values(),...npcs,teacher].map(a=>a.hit);const ph=ray.intersectObjects(ppl,false)[0];
   if(ph){openTalk(ph.object.userData.who,e.clientX,e.clientY);$('help').style.opacity=0;return}
+  if(ray.intersectObject(adFace,false)[0]){openAd();return}
   const hit=ray.intersectObjects(pickables,false)[0];if(!hit)return;$('help').style.opacity=0;
   if(hit.object.userData.seat!=null){const st=seats[hit.object.userData.seat];markAt(st.x,st.z);goSeat(hit.object.userData.seat)}
   else{if(inDesk({x:hit.point.x,z:hit.point.z})){flash('책상 사이 통로나 빈 바닥을 눌러 주세요');return}markAt(hit.point.x,hit.point.z);walkTo({x:hit.point.x,z:hit.point.z})}
@@ -938,6 +974,6 @@ if(qs.get('demo')){const steps=qs.get('demo').split(',');let k=0;const runStep=(
   if(c==='sit')goSeat(+v);else if(c==='act'){const b=document.querySelector(`[data-act="${v}"]`);if(b)b.click()}else if(c==='bag')$('bBag').click();else if(c==='hand')$('bHand').click();else if(c==='cheer')$('bCheer').click();else if(c==='seatbtn')$('bSit').click();else if(c==='walk'){const [x,z]=v.split('/');markAt(+x,+z);walkTo({x:+x,z:+z})}else if(c==='talknpc'){talkTo(npcs[+v]||npcs[0],1)}else if(c==='talkt'){talkTo(teacher,0)}else if(c==='maker'){openMaker()}else if(c==='mk'){const [k,val]=v.split('=');const btn=document.querySelector(`#maker [data-k="${k}"] button[data-v="${val}"]`);btn&&btn.click()}else if(c==='zoom'){controls.minDistance=2.5;camOff0=+v||4}else if(c==='wait')w=(+v)*1000;
   setTimeout(runStep,w)};setTimeout(runStep,2500)}
 if(qs.get('as')){/* 시험용 다른 손님: 이름·색을 새로 만든다 */}
-setTimeout(()=>{$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),700)},500);
+
 </script>
 </body></html>

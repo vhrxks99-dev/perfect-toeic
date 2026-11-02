@@ -1,0 +1,14 @@
+{
+  "_설명": "열람실마다 광고. text(큰 글씨), sub(작은 글씨), name(로딩 화면 'OOO 제공'), url(누르면 가는 곳), img(광고 그림 주소, 있으면 글씨 대신). 비워 두면 '이 자리에 광고하세요'가 나와요.",
+  "library": {},
+  "beach": {},
+  "camp": {},
+  "sakura": {},
+  "snow": {},
+  "rooftop": {},
+  "paris": {},
+  "newyork": {},
+  "tokyo": {},
+  "santorini": {},
+  "dubai": {}
+}
