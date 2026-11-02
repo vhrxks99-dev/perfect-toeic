@@ -1202,7 +1202,17 @@ funBox.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
   if(act==='rest')setTimeout(()=>{if(me.state==='rest')setMe(me.seat>=0?'sit':'idle')},6000);
   flash({sleep:'쿨쿨… 자는 동안은 공부 시간이 안 올라가요',eat:'선생님 몰래… 먹는 동안은 공부 시간이 멈춰요',snack:'간식 냠냠',rest:'으으~ 기지개'}[act]);
 });
-$('bHand').onclick=()=>{if(me.seat<0){flash('책상에 앉아서 손들 수 있어요');return}setMe(me.state==='hand'?'sit':'hand')};
+$('bHand').onclick=()=>{if(me.seat<0){flash('책상에 앉아서 손들 수 있어요');return}setMe(me.state==='hand'?'sit':'hand');
+  if(me.state==='hand'&&appKey)sb.rpc('modu_hand',{p_key:appKey}).then(({data})=>{if(data)flash('담당 선생님께 손들었다고 알렸어요')})};
+// 완토앱에서 열었을 때만: 앱이 준 코드를 열쇠로 바꿔 두고, 공부 시간을 앱 「내 학습」에 쌓는다(열람실 화면은 누구나 똑같다)
+let appKey=null;try{appKey=localStorage.getItem('modu_key')}catch(e){}
+{const c=qs.get('c');if(c){sb.rpc('modu_claim',{p_code:c}).then(({data})=>{if(data){appKey=data;try{localStorage.setItem('modu_key',data)}catch(e){}}});
+  qs.delete('c');history.replaceState(null,'','?'+qs.toString())}}
+let repAt=0;
+setInterval(()=>{sb.rpc('modu_ping',{p_sid:ME.id,p_room:ROOM_LIST[roomNo-1][0]}).then(()=>{},()=>{});
+  if(!appKey)return;const now=Date.now();const live=focusStart&&counting(me.state);
+  if(live&&repAt){const sec=Math.round((now-Math.max(repAt,focusStart))/1000);if(sec>0)sb.rpc('modu_add',{p_key:appKey,p_sec:Math.min(600,sec)}).then(()=>{},()=>{})}
+  repAt=live?now:0},60000);
 $('bCheer').onclick=()=>{heart(me);ch&&ch.send({type:'broadcast',event:'cheer',payload:{id:ME.id}})};
 function refreshBtns(){$('bHand').classList.toggle('on',me.state==='hand');$('bBag').classList.toggle('on',bagAlive(myBag))}
 // 오늘의 공부 표는 접어 두고, 작은 시간 칸을 누르면 펼친다(원장님 11/2 A안)
