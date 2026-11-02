@@ -422,7 +422,7 @@ const BUILD={
     // 금색 액자 초상화(김태완)
     const tex=new THREE.TextureLoader().load('portrait.jpg');tex.colorSpace=THREE.SRGBColorSpace;
     put(g,BX(2.9,3.5,.18),M('#b8902e',{metalness:.8,roughness:.3}),0,4.4,-D/2+.32,{cast:false});
-    const pic=put(g,new THREE.PlaneGeometry(2.4,3),new THREE.MeshBasicMaterial({map:tex}),0,4.4,-D/2+.43,{cast:false});pic.userData.toy='portrait';
+    const pic=put(g,new THREE.PlaneGeometry(2.25,3),new THREE.MeshBasicMaterial({map:tex}),0,4.4,-D/2+.43,{cast:false});pic.userData.toy='portrait';
     const pl=new THREE.PointLight('#ffd9a0',8,7,1.6);pl.position.set(0,4.4,-D/2+2);g.add(pl);
     // 빨간 띠 글귀
     const ban=cTex(1024,128,(c,w,h)=>{c.fillStyle='#b3241c';c.fillRect(0,0,w,h);c.fillStyle='#fff3d6';c.font='800 64px "SUIT Variable", sans-serif';c.textAlign='center';c.fillText('오늘도 한 문제 더! 토익 만점을 향하여',w/2,86)});
