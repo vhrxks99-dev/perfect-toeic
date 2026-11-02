@@ -1208,9 +1208,10 @@ $('bHand').onclick=()=>{if(me.seat<0){flash('책상에 앉아서 손들 수 있�
 let appKey=null;try{appKey=localStorage.getItem('modu_key')}catch(e){}
 {const c=qs.get('c');if(c){sb.rpc('modu_claim',{p_code:c}).then(({data})=>{if(data){appKey=data;try{localStorage.setItem('modu_key',data)}catch(e){}}});
   qs.delete('c');history.replaceState(null,'','?'+qs.toString())}}
-let repAt=0;
+let repAt=0,sentNick=null; // 공부왕은 캐릭터 이름으로(원장님 11/2)
 setInterval(()=>{sb.rpc('modu_ping',{p_sid:ME.id,p_room:ROOM_LIST[roomNo-1][0]}).then(()=>{},()=>{});
-  if(!appKey)return;const now=Date.now();const live=focusStart&&counting(me.state);
+  if(!appKey)return;if(sentNick!==ME.name){sentNick=ME.name;sb.rpc('modu_nick',{p_key:appKey,p_nick:ME.name}).then(()=>{},()=>{})}
+  const now=Date.now();const live=focusStart&&counting(me.state);
   if(live&&repAt){const sec=Math.round((now-Math.max(repAt,focusStart))/1000);if(sec>0)sb.rpc('modu_add',{p_key:appKey,p_sec:Math.min(600,sec)}).then(()=>{},()=>{})}
   repAt=live?now:0},60000);
 $('bCheer').onclick=()=>{heart(me);ch&&ch.send({type:'broadcast',event:'cheer',payload:{id:ME.id}})};
