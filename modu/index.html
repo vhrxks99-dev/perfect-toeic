@@ -186,7 +186,8 @@ const OLD_ROOM={'toeic-1':'library','toeic-2':'beach','toeic-3':'paris','gong-1'
 const ROOMS=ROOM_LIST.length;
 const BOT=new URLSearchParams(location.search).has('bot'); // 시험용 손님: 화면을 그리지 않는다
 const qs=new URLSearchParams(location.search);
-const APPCODE=qs.get('c'); // 앱이 새로 준 코드(있으면 예전 열쇠로 선생님 판단 안 함)
+const APPCODE=qs.get('c');
+const AS_STUDENT=qs.get('as')==='student'; // 앱 「학생 화면 보기」에서 열면 원장·선생님도 학생으로 // 앱이 새로 준 코드(있으면 예전 열쇠로 선생님 판단 안 함)
 let staffMode=false; // 앱에서 선생님이 들어오면 감독 선생님
 let roomNo=(()=>{let r=qs.get('room')||'library';r=OLD_ROOM[r]||r;const i=ROOM_LIST.findIndex(x=>x[0]===r);return i>=0?i+1:Math.min(ROOMS,Math.max(1,parseInt(r,10)||1))})();
 const $=id=>document.getElementById(id);
@@ -1259,7 +1260,7 @@ $('bHand').onclick=()=>{if(me.seat<0){flash('책상에 앉아서 손들 수 있�
 let appKey=null;try{appKey=localStorage.getItem('modu_key')}catch(e){}
 {const c=qs.get('c');if(c){sb.rpc('modu_claim',{p_code:c}).then(({data})=>{if(data){appKey=data;try{localStorage.setItem('modu_key',data)}catch(e){}sb.rpc('modu_is_staff',{p_key:data}).then(({data:st})=>{if(st)enterTeacherMode()})}});
   qs.delete('c');history.replaceState(null,'','?'+qs.toString())}}
-function enterTeacherMode(){if(staffMode)return;staffMode=true;
+function enterTeacherMode(){if(staffMode||AS_STUDENT)return;staffMode=true;
   $('maker').classList.remove('on');makerOn=false;controls.minDistance=7;leaveSeat();
   const keep={pos:me.g.position.clone(),ry:me.g.rotation.y};me.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(me.g);
   const n=makeChar('#3b4252','감독 선생님',true,'tch-'+ME.id,TEACHER_LOOK);Object.assign(me,n,{path:[],seat:-1,state:'idle',pendingSeat:null});dressTeacher(me);
