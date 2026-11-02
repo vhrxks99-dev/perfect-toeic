@@ -100,7 +100,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div class="hud help" id="help">바닥을 누르면 걷고, 빈 책상을 누르면 앉아요 · 사람을 누르면 말을 걸어요</div>
 <aside class="hud side" id="side">
   <h2>오늘의 공부</h2><div class="me" id="meName"></div>
-  <div class="timer"><b id="tNow">00:00:00</b><span id="tSub">책상에 앉으면 시작돼요</span></div>
+  <div class="timer"><b id="tNow">00:00:00</b><span id="tSub">책상에 앉으면 오늘 공부 시간이 올라가요</span></div>
   <div class="snd" role="group" aria-label="배경 소리"><button data-snd="rain">빗소리</button><button data-snd="hum">잔잔한 소음</button><button data-snd="off" class="on">끄기</button></div>
   <h3>오늘 공부 시간 (이 방)</h3><ol class="rank" id="rank"></ol>
 </aside>
@@ -113,6 +113,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 </div>
 <div class="hud full" id="full"><b>이 방이 가득 찼어요</b><p>옆 방으로 가 볼까요?</p><button id="goNext" class="close">다음 방으로</button></div>
 <div class="talk" id="talk" hidden role="menu" aria-label="말 걸기"></div>
+<div class="modal" id="back"><div class="card" role="dialog" aria-label="돌아왔어요"><h3>다시 왔네요</h3><p class="pg" id="backTxt"></p>
+  <button class="close" id="backGo">다시 공부 시작</button><button class="close" id="backStop" style="background:oklch(32% .03 262)">그만하기</button></div></div>
+<div class="modal" id="chk"><div class="card" role="dialog" aria-label="공부 확인"><h3>아직 공부 중이에요?</h3><p class="pg" id="chkTxt"></p>
+  <button class="close" id="chkYes">네, 공부 중이에요</button></div></div>
 <div class="modal" id="quiz"><div class="card" role="dialog" aria-label="단어 퀴즈"><h3>완토 VOCA 10문제</h3><div class="pg" id="qPg"></div><div class="q" id="qWord"></div><div class="opts" id="qOpts"></div><button class="close" id="qClose">닫기</button></div></div>
 
 <script type="module">
@@ -289,6 +293,7 @@ function makeChar(color,name,isMe,seedKey){
   scene.add(g);
   const ref={g,upper,head,eyes,mouth,armL,armR,legL,legR,body,el:lbl,hit,bowl,sticks,snack,chip,path:[],state:'idle',seat:-1,walkT:Math.random()*9,rotY:0,pos:new THREE.Vector3()};hit.userData.who=ref;return ref;
 }
+function fade(a,on){if(a.faded===on)return;a.faded=on;a.g.traverse(o=>{if(o.isMesh&&o!==a.hit){const m=o.material;if(!m.userData.base){m.userData.base={t:m.transparent,o:m.opacity}}m.transparent=on?true:m.userData.base.t;m.opacity=on?.35:m.userData.base.o;m.needsUpdate=true}})}
 function setLabel(a,txt,cls){const s=a.el.querySelector('.s');if(!txt){s.hidden=true;return}s.hidden=false;s.textContent=txt;s.className='s'+(cls?' '+cls:'')}
 function say(a,text,teacher){if(!a||!a.el)return;const old=a.el.querySelector('.say');if(old)old.remove();const b=document.createElement('span');b.className='say'+(teacher?' t':'');b.textContent=text;a.el.prepend(b);clearTimeout(a.sayT);a.sayT=setTimeout(()=>b.remove(),3800)}
 function heart(a){const h=document.createElement('span');h.className='heart';h.textContent='힘내요';a.el.prepend(h);setTimeout(()=>h.remove(),1700)}
@@ -317,9 +322,11 @@ function step(a,dt,t){
     return;
   }
   if(a===me&&st==='wander'){wanderNext();return}
+  fade(a,st==='away');
   const sit=a.seat>=0,ph=t+a.walkT;
   if(!sit){a.legL.rotation.x=a.legR.rotation.x=0}
   switch(st){
+    case 'away': a.upper.rotation.x=.1;a.head.rotation.x=.2;setArm(a.armR,-.5,-1.3,.12);setArm(a.armL,-.5,-1.35,-.2);break;
     case 'sit': // 필기: 오른손은 끄적끄적, 왼손은 책 누르기
       a.upper.rotation.x=.1;a.head.rotation.x=.3;
       setArm(a.armR,-.55+Math.sin(ph*7)*.06,-1.3+Math.sin(ph*11)*.1,.12);setArm(a.armL,-.5,-1.35,-.2);break;
@@ -366,8 +373,11 @@ function tryAutoSeat(){if(me.state!=='wander')return;const f=freeSeat();if(f>=0)
 
 /* ---------- 공부 시간 ---------- */
 let focusStart=0;
-function startFocus(){focusStart=Date.now();$('tSub').textContent='집중 중 · 일어나면 오늘 기록에 더해져요'}
-function stopFocus(){if(!focusStart)return;todaySec+=Math.round((Date.now()-focusStart)/1000);focusStart=0;try{localStorage.setItem(todayKey,todaySec)}catch(e){}$('tSub').textContent='오늘 합계 '+fmt(todaySec)}
+let wake=null,lastCheck=0;
+async function wakeOn(){try{if('wakeLock' in navigator&&!wake){wake=await navigator.wakeLock.request('screen');wake.addEventListener('release',()=>{wake=null})}}catch(e){}}
+function wakeOff(){try{wake&&wake.release()}catch(e){}wake=null}
+function startFocus(){focusStart=Date.now();lastCheck=Date.now();wakeOn();$('tSub').textContent='집중 중 · 화면을 켜 두는 동안만 시간이 올라가요'}
+function stopFocus(){wakeOff();if(!focusStart)return;todaySec+=Math.round((Date.now()-focusStart)/1000);focusStart=0;try{localStorage.setItem(todayKey,todaySec)}catch(e){}$('tSub').textContent='오늘 합계 '+fmt(todaySec)}
 const fmt=s=>{s=Math.max(0,s|0);const h=s/3600|0,m=s%3600/60|0,x=s%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0')};
 const fmtKo=s=>{const h=s/3600|0,m=s%3600/60|0;return h?`${h}시간 ${m}분`:`${m}분`};
 const liveSec=(base,start)=>base+(start?(Date.now()-start)/1000:0);
@@ -405,13 +415,13 @@ function teacherTick(dt,t){
   setArm(teacher.armL,-w*.5,-.3);setArm(teacher.armR,.2,-1.6,.1);teacher.head.rotation.y=Math.sin(t*.8)*.5;teacher.g.position.y=Math.abs(Math.cos(teacher.walkT))*.04;
 }
 const caught=new Map();
-const CATCH={eat:'몰래 먹으면 안 돼요~ 쉬는 시간에 먹어요!',snack:'과자는 잠깐 넣어 둘까요?',sleep:'일어나요! 조금만 더 힘내요',hand:'네, 무슨 질문이에요?'};
+const CATCH={away:'어디 갔지? 자리만 있네~',eat:'몰래 먹으면 안 돼요~ 쉬는 시간에 먹어요!',snack:'과자는 잠깐 넣어 둘까요?',sleep:'일어나요! 조금만 더 힘내요',hand:'네, 무슨 질문이에요?'};
 function patrolCheck(){
   const tp=teacher.g.position, now=Date.now();
   const all=[['me',me],...[...others].map(([id,a])=>[id,a]),...npcs.map((a,i)=>['npc'+i,a])];
   for(const [key,a] of all){if(!CATCH[a.state])continue;if(Math.hypot(a.g.position.x-tp.x,a.g.position.z-tp.z)>2.2)continue;if(now-(caught.get(key)||0)<25000)continue;
     caught.set(key,now);say(teacher,CATCH[a.state],true);
-    if(a===me&&a.state!=='hand'){flash('감독 선생님한테 걸렸어요!');setTimeout(()=>{if(CATCH[me.state]&&me.state!=='hand')setMe(me.seat>=0?'sit':'idle')},1300)}
+    if(a===me&&a.state!=='hand'&&a.state!=='away'){flash('감독 선생님한테 걸렸어요!');setTimeout(()=>{if(CATCH[me.state]&&me.state!=='hand')setMe(me.seat>=0?'sit':'idle')},1300)}
     break}
 }
 
@@ -567,7 +577,7 @@ document.querySelectorAll('[data-snd]').forEach(b=>b.onclick=()=>{document.query
   if(snd){snd.stop();snd=null}if(b.dataset.snd!=='off')snd=noise(b.dataset.snd)});
 
 /* ---------- 돌리기 ---------- */
-const LAB={hand:['질문 있어요','hand'],rest:['기지개','rest'],sleep:['쿨쿨','sleep'],eat:['몰래 먹는 중','eat'],snack:['간식 냠냠','eat'],wander:['자리 찾는 중','wander']};
+const LAB={away:['자리 비움','rest'],hand:['질문 있어요','hand'],rest:['기지개','rest'],sleep:['쿨쿨','sleep'],eat:['몰래 먹는 중','eat'],snack:['간식 냠냠','eat'],wander:['자리 찾는 중','wander']};
 function labFor(a,fs){return LAB[a.state]?LAB[a.state]:(a.seat>=0&&fs?[fmt(liveSec(0,fs)).slice(0,5),'']:['',''])}
 let camOff0=0;
 const clk=new THREE.Clock();let bagT=0,rankT=0,camOff=new THREE.Vector3();
@@ -582,13 +592,32 @@ function loop(){
   for(const a of others.values()){const d=a.data||{};const [tx,c]=labFor(a,d.fs);setLabel(a,tx,c)}
   for(const a of npcs){const [tx,c]=labFor(a,a.npc.start);setLabel(a,tx,c)}
   if((bagT+=dt)>1){bagT=0;drawBags();refreshBtns();npcTick();patrolCheck()}
-  $('tNow').textContent=fmt(liveSec(0,focusStart)||0);
+  $('tNow').textContent=fmt(liveSec(todaySec,focusStart));
   if((rankT+=dt)>2){rankT=0;drawRank()}
   if(!BOT){renderer.render(scene,camera);labels.render(scene,camera);requestAnimationFrame(loop)}else setTimeout(loop,50);
 }
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);labels.setSize(innerWidth,innerHeight)});
 addEventListener('beforeunload',()=>{stopFocus()});
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&focusStart){stopFocus();startFocus()}});
+// 폰에서 뒤로가기·홈·다른 앱·화면 꺼짐 → 화면이 안 보이는 순간 공부 시간을 멈춘다. 돌아오면 직접 눌러야 다시 시작
+let awayAt=0,awayPrev=null;
+function goAway(){if(document.visibilityState!=='hidden'||me.state==='away')return;awayPrev=me.state;awayAt=Date.now();
+  if(focusStart)stopFocus();if(me.seat>=0||awayPrev==='sit'){me.state='away';if(me.seat>=0)lampOn(me.seat,false);refreshBtns();if(ch)ch.track(payload()).catch(()=>{})}}
+function comeBack(){if(document.visibilityState!=='visible')return;if(me.state!=='away'){if(me.seat>=0&&counting(me.state)&&!focusStart)startFocus();return}
+  const sec=Math.round((Date.now()-awayAt)/1000);$('backTxt').textContent=`자리 비운 시간 ${fmtKo(sec)||'1분 미만'} · 그동안은 공부 시간에 안 들어갔어요.`;
+  if(sec<60)$('backTxt').textContent=`자리 비운 시간 ${sec}초 · 그동안은 공부 시간에 안 들어갔어요.`;
+  $('back').classList.add('on')}
+document.addEventListener('visibilitychange',()=>{document.visibilityState==='hidden'?goAway():comeBack()});
+addEventListener('pagehide',goAway);
+$('backGo').onclick=()=>{$('back').classList.remove('on');if(me.seat>=0){lampOn(me.seat,true);setMe('sit')}else setMe('idle')};
+$('backStop').onclick=()=>{$('back').classList.remove('on');me.state='idle';leaveSeat();sync()};
+// 25분마다 "아직 공부 중이에요?" — 60초 안에 안 누르면 멈추고 엎드려 잔다
+let chkT=0,chkLeft=0;
+setInterval(()=>{
+  if($('chk').classList.contains('on')){chkLeft--;$('chkTxt').textContent=`${chkLeft}초 안에 눌러 주세요. 안 누르면 공부 시간이 멈추고 캐릭터가 잠들어요.`;
+    if(chkLeft<=0){$('chk').classList.remove('on');setMe('sleep');flash('대답이 없어서 공부 시간을 멈췄어요. 쿨쿨…')}return}
+  if(focusStart&&counting(me.state)&&Date.now()-lastCheck>25*60*1000){chkLeft=60;$('chkTxt').textContent='60초 안에 눌러 주세요.';$('chk').classList.add('on')}
+},1000);
+$('chkYes').onclick=()=>{$('chk').classList.remove('on');lastCheck=Date.now();flash('좋아요, 계속 가 봐요!')};
 loop();join(roomNo);drawRank();
 // 시험용: ?demo=sit:5,wait:2,act:sleep 처럼 행동을 차례로 한다(평소엔 쓰지 않음)
 if(qs.get('demo')){const steps=qs.get('demo').split(',');let k=0;const runStep=()=>{if(k>=steps.length)return;const [c,v]=steps[k++].split(':');let w=1500;
