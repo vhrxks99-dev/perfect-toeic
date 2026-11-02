@@ -497,25 +497,30 @@ function makeChar(color,name,isMe,seedKey,look){
   // 머리카락
   const cap=new THREE.Mesh(new THREE.SphereGeometry(.545,32,24,0,Math.PI*2,0,Math.PI*(L.hair==='buzz'?.38:.5)),hair);cap.rotation.x=-.22;cap.position.set(0,.07,.05);head.add(cap);
   if(L.hair!=='buzz'){const bang=new THREE.Mesh(new THREE.SphereGeometry(.53,24,12,Math.PI*1.15,Math.PI*.7,Math.PI*.24,Math.PI*.12),hair);bang.position.set(0,.04,0);head.add(bang)}
-  if(L.hair==='bob'){const bob=new THREE.Mesh(new THREE.CylinderGeometry(.56,.6,.42,28,1,true,Math.PI*.25,Math.PI*1.5),hair);bob.position.y=-.12;bob.rotation.y=Math.PI;head.add(bob)}
-  if(L.hair==='long'){const bk=new THREE.Mesh(new THREE.CylinderGeometry(.55,.5,.95,28,1,true,Math.PI*.3,Math.PI*1.4),hair);bk.position.y=-.38;bk.rotation.y=Math.PI;head.add(bk)}
+  if(L.hair==='bob'){const bob=new THREE.Mesh(new THREE.CylinderGeometry(.56,.63,.62,28,1,true,Math.PI*.27,Math.PI*1.46),hair);bob.position.y=-.2;bob.rotation.y=Math.PI;head.add(bob)}
+  if(L.hair==='long'){const bk=new THREE.Mesh(new THREE.CylinderGeometry(.555,.62,1.2,28,1,true,Math.PI*.28,Math.PI*1.44),hair);bk.position.y=-.5;bk.rotation.y=Math.PI;head.add(bk);
+    const bf=new THREE.Mesh(new THREE.SphereGeometry(.6,24,12,0,Math.PI*2,Math.PI*.5,Math.PI*.5),hair);bf.scale.set(1.03,.25,1.03);bf.position.set(0,-1.1,.02);head.add(bf)}
   if(L.hair==='bun'){const bun=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),hair);bun.position.set(0,.52,.12);head.add(bun)}
   if(L.hair==='pony'){const pt=new THREE.Mesh(new THREE.SphereGeometry(.17,14,10),hair);pt.scale.set(1,1.5,1);pt.position.set(0,.02,.56);head.add(pt);
     const rb=new THREE.Mesh(new THREE.TorusGeometry(.08,.03,8,14),M('#ff6b81'));rb.position.set(0,.2,.5);head.add(rb)}
   if(L.hair==='spiky'){for(const [x,z,rz] of [[-.12,-.05,.5],[.1,.0,-.4],[0,.12,0]]){const sp=new THREE.Mesh(new THREE.ConeGeometry(.09,.22,8),hair);sp.position.set(x,.52,z);sp.rotation.z=rz;head.add(sp)}}
   if(L.hair==='side'){const sd=new THREE.Mesh(new THREE.SphereGeometry(.3,16,10),hair);sd.scale.set(1.3,.45,1);sd.position.set(.18,.36,-.22);sd.rotation.z=-.4;head.add(sd)}
+  if(L.g==='f'){const lockLen=L.hair==='long'?.75:L.hair==='bob'?.38:.3;
+    for(const sx of [-1,1]){const lk=new THREE.Mesh(new THREE.CapsuleGeometry(.1,lockLen,6,12),hair);lk.position.set(sx*.45,.02-lockLen/2-.08,-.16);lk.rotation.z=sx*.12;lk.rotation.x=.1;head.add(lk)}
+    if(L.hair==='bob'||L.hair==='long'){const pin=new THREE.Mesh(new THREE.BoxGeometry(.16,.05,.05),M('#ff7a9a',{roughness:.4}));pin.position.set(.3,.3,-.38);pin.rotation.z=-.5;head.add(pin);
+      const st=new THREE.Mesh(new THREE.SphereGeometry(.05,10,8),M('#ffd166'));st.position.set(.36,.34,-.4);head.add(st)}}
   // 눈
   const eyes=[];for(const dx of [-.18,.18]){const e=new THREE.Group();e.position.set(dx,-.07,-.465);head.add(e);
     if(L.eye==='smile'){const arc=new THREE.Mesh(new THREE.TorusGeometry(.06,.016,6,14,Math.PI),dark);arc.position.z=-.01;e.add(arc)}
     else if(L.eye==='sleepy'){const lid=new THREE.Mesh(new THREE.BoxGeometry(.13,.022,.02),dark);e.add(lid)}
-    else{const pupil=new THREE.Mesh(new THREE.SphereGeometry(L.eye==='sparkle'?.1:.085,16,12),dark);pupil.scale.set(.85,1.15,.45);e.add(pupil);
+    else{const pupil=new THREE.Mesh(new THREE.SphereGeometry((L.eye==='sparkle'?.1:.085)*(L.g==='f'?1.15:1),16,12),L.g==='f'?M('#2a1a14',{roughness:.3}):dark);pupil.scale.set(.85,1.15,.45);e.add(pupil);
       const hl=new THREE.Mesh(new THREE.SphereGeometry(L.eye==='sparkle'?.034:.026,8,6),white);hl.position.set(.025,.04,-.035);e.add(hl);
       const hl2=new THREE.Mesh(new THREE.SphereGeometry(.012,6,4),white);hl2.position.set(-.02,-.03,-.035);e.add(hl2)}
-    if(L.g==='f'&&L.eye!=='sleepy'){const lash=new THREE.Mesh(new THREE.BoxGeometry(.05,.012,.012),dark);lash.position.set(dx>0?.075:-.075,.08,-.02);lash.rotation.z=dx>0?-.5:.5;e.add(lash)}
+    if(L.g==='f'&&L.eye!=='sleepy'){const o=dx>0?1:-1;for(const [lx,ly,rz] of [[.07,.1,-.55],[.095,.07,-.9],[.03,.12,-.25]]){const lash=new THREE.Mesh(new THREE.BoxGeometry(.06,.016,.014),dark);lash.position.set(o*lx,ly,-.02);lash.rotation.z=o*rz;e.add(lash)}}
     eyes.push(e)}
   if(L.gl){const gm=M('#2a2a2a');for(const dx of [-.18,.18]){const r=new THREE.Mesh(new THREE.TorusGeometry(.11,.018,8,20),gm);r.position.set(dx,-.07,-.5);head.add(r)}const br=new THREE.Mesh(new THREE.BoxGeometry(.1,.02,.02),gm);br.position.set(0,-.05,-.52);head.add(br)}
   for(const dx of [-.3,.3]){const bl=new THREE.Mesh(new THREE.CircleGeometry(.075,16),new THREE.MeshBasicMaterial({color:'#ff9aa8',transparent:true,opacity:.65}));bl.position.set(dx,-.2,-.43);bl.lookAt(bl.position.clone().multiplyScalar(3));head.add(bl)}
-  const mouth=new THREE.Mesh(new THREE.SphereGeometry(.05,12,8),M('#8a3a3a'));mouth.position.set(0,-.25,-.46);mouth.scale.set(1,.3,.4);head.add(mouth);
+  const mouth=new THREE.Mesh(new THREE.SphereGeometry(L.g==='f'?.045:.05,12,8),M(L.g==='f'?'#e2536f':'#8a3a3a'));mouth.position.set(0,-.25,-.46);mouth.scale.set(1,.3,.4);head.add(mouth);
   // 팔(어깨-팔꿈치), 동그란 손
   function arm(side){
     const sh=new THREE.Group();sh.position.set(side*.34,.48,0);upper.add(sh);
