@@ -78,6 +78,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 .opts button.no{border-color:oklch(65% .18 25);background:oklch(40% .12 25 / .4)}
 .card .close{margin-top:16px;width:100%;padding:12px;border-radius:12px;border:0;background:var(--acc);font-weight:700}
 .full{left:50%;top:50%;translate:-50% -50%;display:none;padding:24px;border-radius:18px;background:var(--panel);text-align:center}
+.focus{position:fixed;inset:0;z-index:35;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#000;color:#6b7280;text-align:center;padding:24px;cursor:pointer}
+.focus.on{display:flex}
+.focus b{font-size:clamp(56px,16vw,120px);font-weight:600;color:#9aa3b2;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.focus .who{font-size:14px}.focus .hint{font-size:13px;color:#4b5563}
+.focus .ask{display:none;margin-top:8px;padding:14px 18px;border-radius:14px;border:1px solid #374151;color:#e5e7eb;font-size:16px;line-height:1.5}
+.focus.asking .ask{display:block}.focus.asking b{color:#fbbf24}
 .loading{position:fixed;inset:0;z-index:40;display:grid;place-items:center;background:oklch(18% .03 262);transition:opacity .6s}
 .loading b{font-family:Hahmlet,serif;font-size:28px}.loading span{display:block;margin-top:8px;color:var(--mut);font-size:14px;text-align:center}
 @media (max-width:760px){
@@ -112,6 +118,8 @@ button{font:inherit;color:inherit;cursor:pointer}
   <button data-act="sleep">엎드려 자기</button><button data-act="eat">몰래 밥먹기</button><button data-act="snack">간식 먹기</button><button data-act="rest">기지개 켜기</button>
 </div>
 <div class="hud full" id="full"><b>이 방이 가득 찼어요</b><p>옆 방으로 가 볼까요?</p><button id="goNext" class="close">다음 방으로</button></div>
+<div class="focus" id="focus" role="button" aria-label="화면을 누르면 자습실로 돌아가요"><div class="who" id="fWho"></div><b id="fTime">00:00:00</b>
+  <div class="ask" id="fAsk"></div><div class="hint" id="fHint">공부 중이에요 · 화면을 톡 치면 자습실로 돌아가요</div></div>
 <div class="talk" id="talk" hidden role="menu" aria-label="말 걸기"></div>
 <div class="modal" id="back"><div class="card" role="dialog" aria-label="돌아왔어요"><h3>다시 왔네요</h3><p class="pg" id="backTxt"></p>
   <button class="close" id="backGo">다시 공부 시작</button><button class="close" id="backStop" style="background:oklch(32% .03 262)">그만하기</button></div></div>
@@ -594,13 +602,13 @@ function loop(){
   if((bagT+=dt)>1){bagT=0;drawBags();refreshBtns();npcTick();patrolCheck()}
   $('tNow').textContent=fmt(liveSec(todaySec,focusStart));
   if((rankT+=dt)>2){rankT=0;drawRank()}
-  if(!BOT){renderer.render(scene,camera);labels.render(scene,camera);requestAnimationFrame(loop)}else setTimeout(loop,50);
+  if(BOT)setTimeout(loop,50);else if(focusOn)setTimeout(loop,1000);else{renderer.render(scene,camera);labels.render(scene,camera);requestAnimationFrame(loop)}
 }
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);labels.setSize(innerWidth,innerHeight)});
 addEventListener('beforeunload',()=>{stopFocus()});
 // 폰에서 뒤로가기·홈·다른 앱·화면 꺼짐 → 화면이 안 보이는 순간 공부 시간을 멈춘다. 돌아오면 직접 눌러야 다시 시작
 let awayAt=0,awayPrev=null;
-function goAway(){if(document.visibilityState!=='hidden'||me.state==='away')return;awayPrev=me.state;awayAt=Date.now();
+function goAway(){if(document.visibilityState!=='hidden'||me.state==='away')return;focusOff();askAt=0;awayPrev=me.state;awayAt=Date.now();
   if(focusStart)stopFocus();if(me.seat>=0||awayPrev==='sit'){me.state='away';if(me.seat>=0)lampOn(me.seat,false);refreshBtns();if(ch)ch.track(payload()).catch(()=>{})}}
 function comeBack(){if(document.visibilityState!=='visible')return;if(me.state!=='away'){if(me.seat>=0&&counting(me.state)&&!focusStart)startFocus();return}
   const sec=Math.round((Date.now()-awayAt)/1000);$('backTxt').textContent=`자리 비운 시간 ${fmtKo(sec)||'1분 미만'} · 그동안은 공부 시간에 안 들어갔어요.`;
@@ -610,14 +618,34 @@ document.addEventListener('visibilitychange',()=>{document.visibilityState==='hi
 addEventListener('pagehide',goAway);
 $('backGo').onclick=()=>{$('back').classList.remove('on');if(me.seat>=0){lampOn(me.seat,true);setMe('sit')}else setMe('idle')};
 $('backStop').onclick=()=>{$('back').classList.remove('on');me.state='idle';leaveSeat();sync()};
-// 25분마다 "아직 공부 중이에요?" — 60초 안에 안 누르면 멈추고 엎드려 잔다
-let chkT=0,chkLeft=0;
+// 50분마다 확인: 집중 화면에 문구 + 띵 소리 + 진동. 5분 안에 아무 데나 톡 하면 그대로 이어진다(시간 안 깎임).
+// 5분이 지나도 없으면 그때 멈추고, 확인 문구가 뜬 시각까지만 기록한다.
+const CHECK_EVERY=qs.has('fastcheck')?20000:50*60*1000, CHECK_WAIT=qs.has('fastcheck')?12000:5*60*1000;
+let askAt=0;
+function ding(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(.0001,actx.currentTime);g.gain.exponentialRampToValueAtTime(.25,actx.currentTime+.02);g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+1.2);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+1.3)}catch(e){}
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
+function confirmStudy(){if(!askAt)return;askAt=0;lastCheck=Date.now();$('focus').classList.remove('asking');$('chk').classList.remove('on');flash('좋아요, 계속 가 봐요!')}
 setInterval(()=>{
-  if($('chk').classList.contains('on')){chkLeft--;$('chkTxt').textContent=`${chkLeft}초 안에 눌러 주세요. 안 누르면 공부 시간이 멈추고 캐릭터가 잠들어요.`;
-    if(chkLeft<=0){$('chk').classList.remove('on');setMe('sleep');flash('대답이 없어서 공부 시간을 멈췄어요. 쿨쿨…')}return}
-  if(focusStart&&counting(me.state)&&Date.now()-lastCheck>25*60*1000){chkLeft=60;$('chkTxt').textContent='60초 안에 눌러 주세요.';$('chk').classList.add('on')}
+  if(!(focusStart&&counting(me.state))){return}
+  if(!askAt&&Date.now()-lastCheck>CHECK_EVERY){askAt=Date.now();ding();
+    const mins=Math.round((Date.now()-lastCheck)/60000);$('fAsk').textContent=`${mins}분 공부했어요! 계속 공부 중이면 화면을 한 번 톡 쳐 주세요`;
+    if(focusOn){$('focus').classList.add('asking')}else{$('chkTxt').textContent='5분 안에 눌러 주세요. 안 누르면 여기까지만 기록하고 멈춰요.';$('chk').classList.add('on')}}
+  if(askAt&&Date.now()-askAt>CHECK_WAIT){const cut=askAt;askAt=0;$('focus').classList.remove('asking');$('chk').classList.remove('on');
+    if(focusStart){todaySec+=Math.max(0,Math.round((cut-focusStart)/1000));focusStart=0;wakeOff();try{localStorage.setItem(todayKey,todaySec)}catch(e){}}
+    focusOff();me.state='sleep';if(me.seat>=0)lampOn(me.seat,false);refreshBtns();sync();$('tSub').textContent='오늘 합계 '+fmt(todaySec);flash('대답이 없어서 확인 문구가 뜬 때까지만 기록하고 멈췄어요. 쿨쿨…')}
 },1000);
-$('chkYes').onclick=()=>{$('chk').classList.remove('on');lastCheck=Date.now();flash('좋아요, 계속 가 봐요!')};
+
+// 집중 화면: 앉아서 공부 중이고 20초 동안 안 만지면 3D 를 멈추고 까만 화면에 타이머만
+let focusOn=false,lastTouch=Date.now();
+function focusOnNow(){if(focusOn)return;focusOn=true;$('fWho').textContent=ME.name+' · '+roomNo+'번 방';$('focus').classList.add('on')}
+function focusOff(){if(!focusOn)return;focusOn=false;$('focus').classList.remove('on','asking');lastTouch=Date.now()}
+['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{lastTouch=Date.now()},{passive:true,capture:true}));
+$('focus').addEventListener('click',()=>{if(askAt)confirmStudy();focusOff()});
+setInterval(()=>{
+  if(focusOn){$('fTime').textContent=fmt(liveSec(todaySec,focusStart));if(!(focusStart&&counting(me.state)))focusOff();return}
+  if(focusStart&&counting(me.state)&&Date.now()-lastTouch>20000&&!document.querySelector('.modal.on')&&talkBox.hidden)focusOnNow();
+},1000);
+$('chkYes').onclick=confirmStudy;
 loop();join(roomNo);drawRank();
 // 시험용: ?demo=sit:5,wait:2,act:sleep 처럼 행동을 차례로 한다(평소엔 쓰지 않음)
 if(qs.get('demo')){const steps=qs.get('demo').split(',');let k=0;const runStep=()=>{if(k>=steps.length)return;const [c,v]=steps[k++].split(':');let w=1500;
