@@ -387,7 +387,7 @@ const BUILD={
       const lc=put(g,new THREE.SphereGeometry(.32,10,8),glow('#ff5a3c'),x-sx*3.2,2.1,z-1.2,{s:[1,1.3,1],cast:false});}
     for(let i=0;i<6;i++){const x=-15+i*6,h=7+r()*7;put(g,BX(5.6,h,5),new THREE.MeshStandardMaterial({map:winTex('#2b2a35','#ffd9a0',3,5,'tokyo'),emissive:'#ffffff',emissiveMap:winTex('#2b2a35','#ffd9a0',3,5,'tokyo'),emissiveIntensity:.5,roughness:.8}),x,h/2,-21,{cast:false});
       put(g,BX(1.4,2.6,.25),new THREE.MeshBasicMaterial({color:sign[(i+3)%6]}),x+(i%2?1.4:-1.4),3.6+r()*2,-18.3,{cast:false});put(g,BX(6,.18,1.4),em('#222'),x,2.4,-18.2,{cast:false})}
-    for(let k=0;k<12;k++)put(g,new THREE.SphereGeometry(.28,10,8),glow(k%2?'#ff5a3c':'#ffb347'),-13+k*2.36,6.9-Math.sin(k/11*Math.PI)*.6,-16.8,{s:[1,1.3,1],cast:false});
+    for(let k=0;k<12;k++)put(g,new THREE.SphereGeometry(.28,10,8),glow(k%2?'#ff5a3c':'#ffb347'),-13+k*2.36,8.6-Math.sin(k/11*Math.PI)*.5,-16.8,{s:[1,1.3,1],cast:false});
     for(const [x,z] of [[-15.5,-6],[15.5,4]]){put(g,BX(1,2,.8),em('#e8e8ea'),x,1,z);put(g,BX(.8,1,.05),glow('#bfe6ff'),x,1.35,z+.42*(x<0?1:1))}
     const cl=new THREE.PointLight('#ff6a4a',18,16,1.5);cl.position.set(-15,3,-2);g.add(cl);const cl2=new THREE.PointLight('#4fc3ff',18,16,1.5);cl2.position.set(15,3,10);g.add(cl2);
     // 전깃줄
@@ -421,10 +421,10 @@ function setEnv(name){if(!ENVS[name])name='library';if(envNow===name)return;envN
   outer.visible=!!E.ground;if(E.ground){outer.material.map=GROUNDS[E.ground](E.gr||40);outer.material.needsUpdate=true}
   controls.maxPolarAngle=name==='library'?1.25:1.42;
   // 바깥 배경은 카메라를 낮춰 하늘과 멀리 있는 것이 보이게
-  if(!makerOn)camera.position.copy(controls.target).add(name==='library'?new THREE.Vector3(0,9.3,11.5):new THREE.Vector3(0,5.2,13.5));
+  if(!makerOn)camera.position.copy(controls.target).add(name==='library'?new THREE.Vector3(0,9.3,11.5):new THREE.Vector3(0,3.8,13.5));
   placeAd(name);
   const lab=$('envName');if(lab)lab.textContent=ENV_NAMES[name]}
-function envTick(dt,t){const g=envGroups[envNow];if(g&&g.visible)for(const f of g.userData.tick)f(dt,t)}
+function envTick(dt,t){const g=envGroups[envNow];if(g&&g.visible)for(const f of g.userData.tick)f(dt,t);if(adTick)adTick(dt,t)}
 
 /* ---------- 열람실 광고판 ---------- */
 // 광고 내용은 같은 폴더 ads.json 에서 읽는다. 열람실 이름(library·beach…)마다 {name, text, sub, img, url}. 비어 있으면 "광고 문의" 판.
@@ -447,7 +447,71 @@ function drawAd(name){const a=adOf(name),g=adCanvas.getContext('2d'),W2=1024,H2=
   if(a&&a.img){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{if(envNow!==name)return;g.fillRect(0,0,W2,H2);const s=Math.max(W2/im.width,H2/im.height);g.drawImage(im,(W2-im.width*s)/2,(H2-im.height*s)/2,im.width*s,im.height*s);adTex.needsUpdate=true};im.onerror=text;im.src=a.img}
   else text();adTex.needsUpdate=true}
 const adDeco=new THREE.Group();adG.add(adDeco);
-function placeAd(name){const lib=name==='library',w=lib?4.2:6.4,h=w/2,cy=lib?2.9:4.2,z=lib?-11.3:-14.2,top=cy+h/2,bot=cy-h/2;
+const adRoot=new THREE.Group();scene.add(adRoot);let adHit=adFace,adTick=null;
+const adMat=new THREE.MeshBasicMaterial({map:adTex,toneMapped:false,side:THREE.DoubleSide});
+// 천 현수막 펄럭임: pin 쪽(top/left)은 고정, 멀어질수록 크게 흔들린다
+function flutter(mesh,amp,speed,pin){const g=mesh.geometry,pos=g.attributes.position,base=Float32Array.from(pos.array),w=g.parameters.width,h=g.parameters.height;
+  return t=>{for(let i=0;i<pos.count;i++){const x=base[i*3],y=base[i*3+1];const k=pin==='left'?(x+w/2)/w:(h/2-y)/h;
+    pos.array[i*3+2]=Math.sin(x*1.1-t*speed+y*.6)*amp*k}pos.needsUpdate=true}}
+function adBox(w,h,d,c,x,y,z,o={}){const m=new THREE.Mesh(BX(w,h,d),o.mat||M(c,o));m.position.set(x,y,z);if(o.ry)m.rotation.y=o.ry;m.castShadow=o.cast!==false;adRoot.add(m);return m}
+function hangBanner(x,y,z,w,h,poleC,poleH,deco){const b=new THREE.Mesh(new THREE.PlaneGeometry(w,h,20,6),adMat);b.position.set(x,y,z);adRoot.add(b);adHit=b;
+  for(const sx of [-1,1]){adBox(.22,poleH,.22,poleC,x+sx*(w/2+.3),poleH/2,z);if(deco)deco(x+sx*(w/2+.3),poleH)}
+  const rope=new THREE.Mesh(CY(.025,.025,w+.6,5),M('#d8cfb8'));rope.rotation.z=Math.PI/2;rope.position.set(x,y+h/2+.02,z);adRoot.add(rope);
+  const f=flutter(b,.18,2.2,'top');adTick=(dt,t)=>f(t);return b}
+function specialAd(name){
+  switch(name){
+    case 'library':{ // 뒤 벽 창문 하나 자리에 액자로 건다
+      libG.children.forEach(o=>{if(Math.abs(o.position.x-3)<.3&&o.position.z<-11.4&&o.position.y>1.9)o.visible=false});
+      adBox(4.9,2.75,.12,'#3b2a1c',3,3.9,-11.68);adBox(4.6,2.45,.05,'#f4efe4',3,3.9,-11.6,{cast:false});
+      const f=new THREE.Mesh(new THREE.PlaneGeometry(4.3,2.15),adMat);f.position.set(3,3.9,-11.56);adRoot.add(f);adHit=f;
+      const lamp=adBox(1.2,.08,.25,'#2a2f38',3,5.35,-11.5);return true}
+    case 'beach':{ // 비행기가 광고 현수막을 끌고 바다 위를 지나간다
+      const pl=new THREE.Group();adRoot.add(pl);const wc=M('#f4f4f4'),rc=M('#e8534a');
+      const body=new THREE.Mesh(new THREE.CapsuleGeometry(.45,2.6,6,12),wc);body.rotation.z=Math.PI/2;pl.add(body);
+      const nose=new THREE.Mesh(new THREE.SphereGeometry(.42,12,10),rc);nose.position.x=1.75;pl.add(nose);
+      const wing=new THREE.Mesh(BX(.9,.08,5.2),wc);wing.position.set(.3,.15,0);pl.add(wing);const tail=new THREE.Mesh(BX(.6,.9,.08),rc);tail.position.set(-1.6,.55,0);pl.add(tail);
+      const tw=new THREE.Mesh(BX(.5,.06,1.8),wc);tw.position.set(-1.6,.1,0);pl.add(tw);const prop=new THREE.Mesh(BX(.06,1.3,.12),M('#333'));prop.position.x=2.2;pl.add(prop);
+      const win=new THREE.Mesh(BX(.7,.3,.92),M('#4a7ea8',{roughness:.2}));win.position.set(.6,.35,0);pl.add(win);
+      const bw=12,bh=3;const ban=new THREE.Mesh(new THREE.PlaneGeometry(bw,bh,28,6),adMat);ban.position.set(-2.4-3-bw/2,-.6,0);pl.add(ban);adHit=ban;
+      const rope=new THREE.Mesh(CY(.03,.03,3,4),M('#555'));rope.rotation.z=Math.PI/2;rope.position.set(-2.4-1.5,-.3,0);pl.add(rope);
+      const f=flutter(ban,.5,4,'left');let x=-5;
+      adTick=(dt,t)=>{x+=dt*3.6;if(x>58)x=-42;pl.position.set(x,6+Math.sin(t*.6)*.3,-24);pl.rotation.z=Math.sin(t*.6)*.03;prop.rotation.x+=dt*40;f(t)};return true}
+    case 'camp': // 나무 기둥 두 개 사이에 천 현수막
+      hangBanner(0,4.2,-19.5,7,3.5,'#6b4a32',6.2,(x,h)=>{const l=new THREE.Mesh(new THREE.SphereGeometry(.2,10,8),new THREE.MeshBasicMaterial({color:'#ffd27a'}));l.position.set(x,h-.6,-19.2);adRoot.add(l)});return true;
+    case 'sakura': // 가로등 두 개 사이에 걸린 현수막
+      hangBanner(0,4,-15,7,3.5,'#2c2f36',5.6,(x,h)=>{const l=new THREE.Mesh(new THREE.SphereGeometry(.3,12,10),new THREE.MeshBasicMaterial({color:'#ffe2a0'}));l.position.set(x,h+.2,-15);adRoot.add(l)});return true;
+    case 'rooftop':{ // 길 건너 빌딩 벽에 큰 현수막
+      const bd=adBox(22,60,10,null,0,-14,-33,{mat:new THREE.MeshStandardMaterial({map:winTex('#3b3550','#ffd79a'),emissive:'#ffffff',emissiveMap:winTex('#3b3550','#ffd79a'),emissiveIntensity:.5,roughness:.8}),cast:false});
+      const b=new THREE.Mesh(new THREE.PlaneGeometry(10,5,20,6),adMat);b.position.set(0,6.6,-27.9);adRoot.add(b);adHit=b;
+      for(const sx of [-1,1])adBox(.12,.12,.6,'#888',sx*5,9.15,-28.1,{cast:false});
+      const f=flutter(b,.25,1.6,'top');adTick=(dt,t)=>f(t);return true}
+    case 'paris':{ // 파리 거리의 둥근 광고 기둥
+      const g=M('#2f4a3a');
+      const c=new THREE.Mesh(CY(1.35,1.45,.5,28),g);c.position.set(0,.25,-13.8);adRoot.add(c);
+      const col=new THREE.Mesh(CY(1.25,1.25,2.6,32),M('#e9e2cf'));col.position.set(0,1.8,-13.8);adRoot.add(col);
+      const f=new THREE.Mesh(new THREE.CylinderGeometry(1.27,1.27,2.3,40,1,true,-Math.PI*.6,Math.PI*1.2),adMat);f.position.set(0,1.8,-13.8);adRoot.add(f);adHit=f;
+      const cap=new THREE.Mesh(CY(1.45,1.35,.35,28),g);cap.position.set(0,3.27,-13.8);adRoot.add(cap);
+      const dome=new THREE.Mesh(new THREE.SphereGeometry(1.2,24,12,0,Math.PI*2,0,Math.PI/2),g);dome.scale.y=.7;dome.position.set(0,3.44,-13.8);adRoot.add(dome);
+      const fin=new THREE.Mesh(new THREE.SphereGeometry(.16,10,8),M('#c9a34a',{metalness:.7,roughness:.3}));fin.position.set(0,4.4,-13.8);adRoot.add(fin);return true}
+    case 'newyork':{ // 뒤 빌딩 벽면 대형 전광판
+      adBox(24,46,12,null,0,23,-38,{mat:new THREE.MeshStandardMaterial({map:winTex('#7d8ea3','#d7e6f5'),roughness:.7}),cast:false});
+      adBox(12.8,6.6,.4,'#16181c',0,7.6,-31.9,{cast:false});const f=new THREE.Mesh(new THREE.PlaneGeometry(12,6),adMat);f.position.set(0,7.6,-31.65);adRoot.add(f);adHit=f;
+      for(let k=0;k<16;k++)for(const y of [4.4,10.8]){const l=new THREE.Mesh(new THREE.SphereGeometry(.12,6,4),new THREE.MeshBasicMaterial({color:'#ffd56b'}));l.position.set(-6+k*12/15,y,-31.6);adRoot.add(l)}return true}
+    case 'tokyo':{ // 뒤 건물 벽에 붙은 네온 간판
+      adBox(7.6,3.9,.3,'#20141c',0,5.4,-18.35,{cast:false});const f=new THREE.Mesh(new THREE.PlaneGeometry(7,3.5),adMat);f.position.set(0,5.4,-18.15);adRoot.add(f);adHit=f;
+      const neon=new THREE.MeshBasicMaterial({color:'#ff4fa0'});for(const [w,h,x,y] of [[7.4,.08,0,7.2],[7.4,.08,0,3.6],[.08,3.7,-3.7,5.4],[.08,3.7,3.7,5.4]])adBox(w,h,.08,null,x,y,-18.1,{mat:neon,cast:false});
+      let on=1;adTick=(dt,t)=>{const v=Math.sin(t*3)>-.95?1:.3;if(v!==on){on=v;neon.color.set(v>.5?'#ff4fa0':'#5a1d3a')}};return true}
+    case 'dubai':{ // 열기구에 매달린 광고
+      const bg=new THREE.Group();adRoot.add(bg);const env=new THREE.Mesh(new THREE.SphereGeometry(3.4,20,16),M('#e8534a',{flatShading:true}));env.scale.y=1.2;bg.add(env);
+      for(let k=0;k<6;k++){const st=new THREE.Mesh(new THREE.SphereGeometry(3.42,4,16,k*Math.PI/3,Math.PI/9),M('#ffd24f',{flatShading:true}));st.scale.y=1.2;bg.add(st)}
+      const bk=new THREE.Mesh(BX(1.4,1,1.4),M('#8a6a45'));bk.position.y=-5.4;bg.add(bk);for(const [sx,sz] of [[1,1],[1,-1],[-1,1],[-1,-1]]){const r=new THREE.Mesh(CY(.03,.03,2.4,4),M('#555'));r.position.set(sx*.9,-4.1,sz*.9);r.rotation.set(sz*.3,0,-sx*.3);bg.add(r)}
+      const ban=new THREE.Mesh(new THREE.PlaneGeometry(7,3.5,20,6),adMat);ban.position.set(0,-8,0);bg.add(ban);adHit=ban;for(const sx of [-1,1]){const r=new THREE.Mesh(CY(.03,.03,1.3,4),M('#555'));r.position.set(sx*.6+sx*1.2,-6.4,0);r.rotation.z=sx*.9;bg.add(r)}
+      const f=flutter(ban,.15,1.5,'top');adTick=(dt,t)=>{bg.position.set(Math.sin(t*.04)*12,11.5+Math.sin(t*.35)*.5,-30);f(t)};return true}
+  }
+  return false}
+function placeAd(name){while(adRoot.children.length)adRoot.remove(adRoot.children[0]);adTick=null;adHit=adFace;libG.children.forEach(o=>{if(!o.visible&&o.userData.adHidden!==false)o.visible=true});
+  if(specialAd(name)){adG.visible=false;drawAd(name);return}adG.visible=true;
+  const lib=name==='library',w=lib?4.2:6.4,h=w/2,cy=lib?2.9:4.2,z=lib?-11.3:-14.2,top=cy+h/2,bot=cy-h/2;
   adG.position.set(0,0,z);adFace.scale.set(w,h,1);adFace.position.set(0,cy,name==='newyork'?.15:.08);
   const c=AD_FRAME[name]||'#5b3a22';adBorder.material.color.set(c);adBorder.material.emissive.set('#000000');adBorder.material.emissiveIntensity=0;
   adBorder.scale.set(w+.3,h+.3,.12);adBorder.position.set(0,cy,0);adPosts.forEach(p=>{p.visible=true;p.material.color.set(c)});
@@ -905,7 +969,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   mv.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mv,camera);talkBox.hidden=true;
   const ppl=[...others.values(),...npcs,teacher].map(a=>a.hit);const ph=ray.intersectObjects(ppl,false)[0];
   if(ph){openTalk(ph.object.userData.who,e.clientX,e.clientY);$('help').style.opacity=0;return}
-  if(ray.intersectObject(adFace,false)[0]){openAd();return}
+  if(adHit&&ray.intersectObject(adHit,false)[0]){openAd();return}
   const hit=ray.intersectObjects(pickables,false)[0];if(!hit)return;$('help').style.opacity=0;
   if(hit.object.userData.seat!=null){const st=seats[hit.object.userData.seat];markAt(st.x,st.z);goSeat(hit.object.userData.seat)}
   else{if(inDesk({x:hit.point.x,z:hit.point.z})){flash('책상 사이 통로나 빈 바닥을 눌러 주세요');return}markAt(hit.point.x,hit.point.z);walkTo({x:hit.point.x,z:hit.point.z})}
