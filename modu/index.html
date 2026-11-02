@@ -137,7 +137,7 @@ body.staff #bSit,body.staff #bBag,body.staff #bFun,body.staff #bHand,body.staff 
   <h3>오늘 공부 시간 (이 열람실)</h3><ol class="rank" id="rank"></ol>
   <div class="mine"><button id="bName">캐릭터 꾸미기</button></div>
 </aside>
-<div class="hud cam" role="group" aria-label="화면 보기"><button id="camIn" aria-label="가까이">＋</button><button id="camOut" aria-label="멀리">－</button><button id="camTurn" aria-label="옆으로 돌리기">↻</button><button id="camHome" aria-label="처음 보기">⌂</button></div>
+<div class="hud cam" role="group" aria-label="화면 보기"><button id="camHome" aria-label="처음 보기">⌂</button></div>
 <button class="hud tog" id="tog" aria-expanded="false" aria-controls="side"><b id="togT">00:00:00</b><span id="togR"></span><i id="togI">펼치기</i></button>
 <nav class="hud bar" aria-label="행동">
   <button id="bMk">캐릭터 꾸미기</button><button id="bSit">빈 자리 앉기</button><button id="bBag">자리 맡기</button><button id="bFun" aria-expanded="false" aria-controls="fun">딴짓하기</button><button id="bHand">질문 손들기</button><button id="bCheer">응원 보내기</button>
@@ -214,7 +214,7 @@ Object.assign(labels.domElement.style,{position:'fixed',inset:'0',pointerEvents:
 const scene=new THREE.Scene(); scene.background=new THREE.Color('#1b2233'); scene.fog=new THREE.Fog('#1b2233',30,60);
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,200); camera.position.set(0,10.5,21.5);
 const controls=new OrbitControls(camera,renderer.domElement);
-controls.enableDamping=true; controls.dampingFactor=.08; controls.enablePan=false; controls.enableRotate=false; // 손가락으로 돌리기는 끄고 오른쪽 버튼으로(원장님 11/2)
+controls.enableDamping=true; controls.dampingFactor=.08; controls.enablePan=false; // 한 손가락 끌기=돌리기, 두 손가락=확대·축소, 오른쪽 ⌂=처음 보기(원장님 11/2)
 controls.minDistance=7; controls.maxDistance=34; controls.minPolarAngle=.35; controls.maxPolarAngle=1.25; controls.target.set(0,1.2,10);
 
 const hemi=new THREE.HemisphereLight('#dfe8ff','#5a4a3a',.75);scene.add(hemi);
@@ -1113,9 +1113,6 @@ $('mkGo').onclick=()=>{ME.name=$('mkA').value+' '+$('mkB').value;ME.look=draft;M
 
 /* ---------- 화면 보기 버튼: 가까이·멀리·옆으로·처음 ---------- */
 function camSet(fn){const off=camera.position.clone().sub(controls.target);fn(off);camera.position.copy(controls.target).add(off);controls.update()}
-$('camIn').onclick=()=>camSet(o=>o.setLength(Math.max(controls.minDistance,o.length()-3)));
-$('camOut').onclick=()=>camSet(o=>o.setLength(Math.min(controls.maxDistance,o.length()+3)));
-$('camTurn').onclick=()=>camSet(o=>o.applyAxisAngle(new THREE.Vector3(0,1,0),Math.PI/2));
 $('camHome').onclick=()=>camSet(o=>o.copy(envNow==='library'?new THREE.Vector3(0,9.3,11.5):new THREE.Vector3(0,3.8,13.5)));
 
 /* ---------- 실시간 ---------- */
