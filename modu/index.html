@@ -715,7 +715,7 @@ function doTalk(a,i){
   const pool=a===teacher?T_REPLY[i]:(npcs.includes(a)?(NPC_REPLY[a.state]||NPC_REPLY.sit)[i]:null);
   if(pool){const rep=pool[Math.floor(Math.random()*pool.length)];setTimeout(()=>{say(a,rep,a===teacher);ch&&ch.send({type:'broadcast',event:'npcsay',payload:{to:key,text:rep}})},1100)}
   sync()}
-const REPLY_CHOICES=['네, 좋아요!','잠깐만요~','싫어요!','ㅋㅋㅋ 들켰다','화이팅!','쉿, 공부 중이에요'];
+const REPLY_CHOICES=['네, 좋아요!','잠깐만요~','싫어요!','꺼져!','ㅋㅋㅋ 들켰다','화이팅!','쉿, 공부 중이에요'];
 let repT=0;
 function openReply(a,id,text){const box=$('rep');box.innerHTML='<b></b>';box.querySelector('b').textContent=nameOf(a)+': '+text+' · 답장 고르기';
   REPLY_CHOICES.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{box.hidden=true;say(me,t);ch&&ch.send({type:'broadcast',event:'say',payload:{id:ME.id,text:t,to:id,rep:true}})};box.appendChild(b)});
