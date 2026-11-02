@@ -592,11 +592,11 @@ const DESK_STYLE={
   santorini:{top:'#fbfaf6',leg:'#e2ddd2',chair:'#1f5fb8',ch:'chair',lamp:'candle'},
   dubai:{top:'#d9b07a',leg:'#8a6a45',chair:'#b0413e',ch:'stool',lamp:'lantern'}};
 const ROUND_TABLES=[[-6,-1],[6,-1],[-6,7.5],[6,7.5]];
-let deskG=null,LAYOUT='grid';
+let deskG=null,LAYOUT='grid';const lampPicks=[];
 function buildDesks(name){
   const S=DESK_STYLE[name]||DESK_STYLE.library;LAYOUT=S.layout||'grid';
   if(deskG){scene.remove(deskG);deskG.traverse(o=>{if(o.geometry)o.geometry.dispose()})}
-  deskG=new THREE.Group();scene.add(deskG);pickables.length=1;
+  deskG=new THREE.Group();scene.add(deskG);pickables.length=1;lampPicks.length=0;
   const topM=M(S.top,{roughness:.6}),legM=M(S.leg),lampM=M(S.lampC||'#2a2f38',{roughness:.4}),hide=new THREE.MeshBasicMaterial({visible:false});
   const chairC=i=>Array.isArray(S.chair)?S.chair[i%S.chair.length]:S.chair;
   const add=(par,geo,mat,x,y,z,o={})=>{const m=new THREE.Mesh(geo,mat);m.position.set(x,y,z);if(o.rx)m.rotation.x=o.rx;if(o.rz)m.rotation.z=o.rz;m.castShadow=o.cast!==false;m.receiveShadow=true;par.add(m);return m};
@@ -636,6 +636,7 @@ function buildDesks(name){
       default:add(g,BX(.36,.05,.36),lampM,lx,ty+.02,lz);add(g,BX(.05,.7,.05),lampM,lx,ty+.37,lz);
         const shade=add(g,new THREE.ConeGeometry(.24,.28,20,1,true),M(S.lampC||'#2a2f38',{side:THREE.DoubleSide}),lx-.15,ty+.72,lz-.08);shade.rotation.z=.6;
         bulb=add(g,new THREE.SphereGeometry(.09,16,12),bm,lx-.18,ty+.64,lz-.08,{cast:false})}
+    {const lp=add(g,new THREE.SphereGeometry(.38,8,6),hide,bulb.position.x,bulb.position.y,bulb.position.z,{cast:false});lp.userData.lamp=i;lampPicks.push(lp)}
     bulb.userData.lit=S.lamp==='paper'?'#ff7a5a':S.lamp==='candle'?'#ffd27a':'#ffe2a8';
     const pool=add(g,new THREE.CircleGeometry(LAYOUT==='round'?.55:S.shape==='round'?.75:.9,32),new THREE.MeshBasicMaterial({color:S.lamp==='paper'?'#ff9a7a':'#ffd49a',transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}),
       LAYOUT==='round'?.2:.3,ty+.015,LAYOUT==='round'?.05:-.05,{rx:-Math.PI/2,cast:false});
@@ -649,6 +650,7 @@ function buildDesks(name){
     Object.assign(s,{x:sp.x,z:sp.z,deskZ:gz,ry,ax:ap.x,az:ap.z,bulb,pool,bag});
   });
   setLanes()}
+function click(){try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.type='square';o.frequency.value=1800;g.gain.setValueAtTime(.08,actx.currentTime);g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+.05);o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+.06)}catch(e){}}
 function lampOn(i,on){const s=seats[i];if(!s.bulb)return;s.bulb.material.color.set(on?s.bulb.userData.lit:'#444');s.pool.material.opacity=on?.55:0}
 
 /* ---------- 길 찾기(통로로만) ---------- */
@@ -1036,6 +1038,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
   const ppl=[...others.values(),...npcs,teacher].map(a=>a.hit);const ph=ray.intersectObjects(ppl,false)[0];
   if(ph){openTalk(ph.object.userData.who,e.clientX,e.clientY);$('help').style.opacity=0;return}
   if(adHit&&ray.intersectObject(adHit,false)[0]){openAd();return}
+  {const lh=ray.intersectObjects(lampPicks,false)[0];if(lh){const i=lh.object.userData.lamp,on=seats[i].pool.material.opacity>0;lampOn(i,!on);click();return}}
   const hit=ray.intersectObjects(pickables,false)[0];if(!hit)return;$('help').style.opacity=0;
   if(hit.object.userData.seat!=null){const st=seats[hit.object.userData.seat];markAt(st.x,st.z);goSeat(hit.object.userData.seat)}
   else{if(inDesk({x:hit.point.x,z:hit.point.z})){flash('책상 사이 통로나 빈 바닥을 눌러 주세요');return}markAt(hit.point.x,hit.point.z);walkTo({x:hit.point.x,z:hit.point.z})}
