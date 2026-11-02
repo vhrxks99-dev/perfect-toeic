@@ -1,14 +1,80 @@
 {
-  "_설명": "열람실마다 광고. text(큰 글씨), sub(작은 글씨), name(로딩 화면 'OOO 제공'), url(누르면 가는 곳), img(광고 그림 주소, 있으면 글씨 대신). 비워 두면 '이 자리에 광고하세요'가 나와요.",
-  "library": {},
-  "beach": {},
-  "camp": {},
-  "sakura": {},
-  "snow": {},
-  "rooftop": {},
-  "paris": {},
-  "newyork": {},
-  "tokyo": {},
-  "santorini": {},
-  "dubai": {}
+ "_설명": "열람실마다 광고. text(큰 글씨), sub(작은 글씨), name(로딩 화면 'OOO 제공'), url(누르면 가는 곳), logo(왼쪽 로고), img(광고 그림 통째, 있으면 글씨 대신). 칸을 {} 로 비우면 '이 자리에 광고하세요'가 나와요.",
+ "library": {
+  "name": "완벽한토익",
+  "text": "토익은 1:1이 빨라요",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "beach": {
+  "name": "완벽한토익",
+  "text": "토익 끝내고 바다 가자",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "camp": {
+  "name": "완벽한토익",
+  "text": "오늘 밤도 한 문제 더",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "sakura": {
+  "name": "완벽한토익",
+  "text": "벚꽃 필 때 목표 점수",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "snow": {
+  "name": "완벽한토익",
+  "text": "겨울방학 토익 한 번에",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "rooftop": {
+  "name": "완벽한토익",
+  "text": "노을 질 때까지 한 문제 더",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "paris": {
+  "name": "완벽한토익",
+  "text": "토익 점수 들고 떠나요",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "newyork": {
+  "name": "완벽한토익",
+  "text": "토익, 혼자 말고 1:1로",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "tokyo": {
+  "name": "완벽한토익",
+  "text": "늦은 밤에도 같이 공부해요",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "santorini": {
+  "name": "완벽한토익",
+  "text": "점수 나오면 여기 가요",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ },
+ "dubai": {
+  "name": "완벽한토익",
+  "text": "목표 점수까지 1:1로",
+  "sub": "완벽한토익 1:1 과외",
+  "url": "https://perfect-toeic.com/",
+  "logo": "/icon-512.png"
+ }
 }

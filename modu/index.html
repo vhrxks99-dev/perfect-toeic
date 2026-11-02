@@ -387,7 +387,7 @@ const BUILD={
       const lc=put(g,new THREE.SphereGeometry(.32,10,8),glow('#ff5a3c'),x-sx*3.2,2.1,z-1.2,{s:[1,1.3,1],cast:false});}
     for(let i=0;i<6;i++){const x=-15+i*6,h=7+r()*7;put(g,BX(5.6,h,5),new THREE.MeshStandardMaterial({map:winTex('#2b2a35','#ffd9a0',3,5,'tokyo'),emissive:'#ffffff',emissiveMap:winTex('#2b2a35','#ffd9a0',3,5,'tokyo'),emissiveIntensity:.5,roughness:.8}),x,h/2,-21,{cast:false});
       put(g,BX(1.4,2.6,.25),new THREE.MeshBasicMaterial({color:sign[(i+3)%6]}),x+(i%2?1.4:-1.4),3.6+r()*2,-18.3,{cast:false});put(g,BX(6,.18,1.4),em('#222'),x,2.4,-18.2,{cast:false})}
-    for(let k=0;k<12;k++)put(g,new THREE.SphereGeometry(.28,10,8),glow(k%2?'#ff5a3c':'#ffb347'),-13+k*2.36,4.6-Math.sin(k/11*Math.PI)*.8,-14,{s:[1,1.3,1],cast:false});
+    for(let k=0;k<12;k++)put(g,new THREE.SphereGeometry(.28,10,8),glow(k%2?'#ff5a3c':'#ffb347'),-13+k*2.36,6.9-Math.sin(k/11*Math.PI)*.6,-16.8,{s:[1,1.3,1],cast:false});
     for(const [x,z] of [[-15.5,-6],[15.5,4]]){put(g,BX(1,2,.8),em('#e8e8ea'),x,1,z);put(g,BX(.8,1,.05),glow('#bfe6ff'),x,1.35,z+.42*(x<0?1:1))}
     const cl=new THREE.PointLight('#ff6a4a',18,16,1.5);cl.position.set(-15,3,-2);g.add(cl);const cl2=new THREE.PointLight('#4fc3ff',18,16,1.5);cl2.position.set(15,3,10);g.add(cl2);
     // 전깃줄
@@ -441,6 +441,8 @@ function drawAd(name){const a=adOf(name),g=adCanvas.getContext('2d'),W2=1024,H2=
   g.fillStyle=a&&a.bg||'#fffaf0';g.fillRect(0,0,W2,H2);g.textAlign='center';
   const text=()=>{g.fillStyle=a&&a.color||'#1d2433';g.font='800 112px "SUIT Variable", sans-serif';g.fillText(a?a.text:'이 자리에 광고하세요',W2/2,a&&a.sub?250:262,960);
     g.font='600 50px "SUIT Variable", sans-serif';g.fillStyle='#6b7280';g.fillText(a?(a.sub||''):ROOM_LIST.find(x=>x[0]===name)?.[1]+' 광고 문의 · contact@perfect-toeic.com',W2/2,a&&a.sub?345:350,960);adTex.needsUpdate=true};
+  if(a&&a.logo&&!a.img){const im=new Image();im.onload=()=>{if(envNow!==name)return;g.fillStyle=a.bg||'#fffaf0';g.fillRect(0,0,W2,H2);g.drawImage(im,60,96,320,320);g.textAlign='left';
+      g.fillStyle=a.color||'#1d2433';g.font='800 80px "SUIT Variable", sans-serif';g.fillText(a.text,420,240,560);g.font='700 48px "SUIT Variable", sans-serif';g.fillStyle='#1f5fd6';g.fillText(a.sub||'',420,330,560);adTex.needsUpdate=true};im.onerror=text;im.src=a.logo;return}
   if(a&&a.img){const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{if(envNow!==name)return;g.fillRect(0,0,W2,H2);const s=Math.max(W2/im.width,H2/im.height);g.drawImage(im,(W2-im.width*s)/2,(H2-im.height*s)/2,im.width*s,im.height*s);adTex.needsUpdate=true};im.onerror=text;im.src=a.img}
   else text();adTex.needsUpdate=true}
 function placeAd(name){const lib=name==='library',w=lib?4.2:7,h=w/2,cy=lib?2.9:4.4,z=lib?-11.3:-14.2;
