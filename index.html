@@ -784,7 +784,7 @@
       </div></div></div>
       <div class="nx-scene nx-place">
         <div class="nx-ph on"><img src="img/web/s_recep.jpg" alt=""><span class="nx-cap">리셉션</span></div>
-        <div class="nx-ph"><img src="img/web/s_lounge.jpg" alt=""><span class="nx-cap">라운지 자습석</span></div>
+        <div class="nx-ph"><img src="img/web/s_lounge.jpg" alt=""><span class="nx-cap">로비</span></div>
         <div class="nx-ph"><img src="img/web/s_room2.jpg" alt=""><span class="nx-cap">강의장</span></div>
       </div>
     </div></div>
@@ -20687,8 +20687,8 @@ html,body{overflow-x:clip}
 .nx-js .nx-scene{opacity:0;transform:scale(1.05);transition:opacity .42s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
 .nx-js .nx-scene.on{opacity:1;transform:none}
 .nx-scene>img{width:100%;height:100%;object-fit:cover}
-.nx-report{display:grid;place-items:center;padding:24px}
-.nx-report img{width:auto;height:100%;object-fit:contain;border-radius:8px;box-shadow:0 2px 4px oklch(20% .03 262 / .08),0 28px 56px -32px oklch(20% .03 262 / .45)}
+.nx-report{display:flex;align-items:center;justify-content:center;padding:24px}
+.nx-report img{width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;box-shadow:0 2px 4px oklch(20% .03 262 / .08),0 28px 56px -32px oklch(20% .03 262 / .45)}
 .nx-books{background:linear-gradient(180deg,var(--surface-2),oklch(92% .02 255));display:grid;place-items:center}
 .nx-fan{position:relative;width:78%;height:62%}
 .nx-fan img{position:absolute;bottom:0;left:50%;width:42%;border-radius:2px 6px 6px 2px;box-shadow:0 2px 4px oklch(20% .03 262 / .12),0 22px 30px -14px oklch(20% .03 262 / .45);transform-origin:50% 120%;transition:transform .9s cubic-bezier(.16,1,.3,1)}
@@ -20827,6 +20827,8 @@ html,body{overflow-x:clip}
 .nx-ex-note{margin-top:16px;color:var(--muted);font-size:14px}
 .nx-ex-note a{color:var(--accent);font-weight:700}
 @media (max-width:960px){ .nx-exgrid{grid-template-columns:minmax(0,1fr)} }
+/* 폰·태블릿: 진단 리포트는 칸에 꽉 차게(윗부분 기준) — 작게 떠 보인다는 원장님 지적 11/2 */
+@media (max-width:960px){ .nx-report{padding:0} .nx-report img{width:100%;height:100%;max-width:none;max-height:none;object-fit:cover;object-position:top;border-radius:0;box-shadow:none} }
 
 </style>
 <script>
