@@ -20813,6 +20813,11 @@ html,body{overflow-x:clip}
 .nx-pg + .sec{padding-top:72px}
 .nx-h2{font-family:var(--font-display);font-weight:700;font-size:clamp(1.75rem,1.6vw + 1rem,2.5rem);letter-spacing:-.03em;margin-bottom:32px}
 @media (max-width:960px){ .nx-pg{min-height:68svh} .nx-pg-in{padding-block:96px 48px} .nx-pg::before{background:linear-gradient(0deg,oklch(15% .03 262 / .92) 0%,oklch(15% .03 262 / .6) 60%,oklch(15% .03 262 / .35) 100%)} }
+/* 메뉴 첫 화면 사진을 자르지 않고 통째로(원장님 11/2) */
+@media (min-width:961px){ .nx-pg{min-height:0;aspect-ratio:16/9;max-height:none} }
+@media (max-width:960px){ .nx-pg{display:block;min-height:0;background:oklch(19% .03 262)} .nx-pg::before{position:relative;inset:auto;display:block;aspect-ratio:16/9;background:var(--nx-bg) center/cover no-repeat} .nx-pg-in{padding-block:28px 44px} }
+/* 네이버 블로그 아이콘: 초록 바탕에 묻혀서 흰 바탕을 깐다 */
+.foot-sns a.blog img{background:#fff;padding:2px;box-sizing:content-box}
 
 /* ============ 시험 달력 ============ */
 .nx-exams{background:var(--surface-2);border-block:1px solid var(--line)}
