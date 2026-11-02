@@ -20854,6 +20854,11 @@ html,body{overflow-x:clip}
 .site-head .hamburger{background:transparent;border-color:oklch(35% .03 262)}
 .site-head .hamburger span{background:var(--nx-hd-ink)}
 
+/* 메뉴가 6개로 줄어서 900px 까지는 펼쳐 둔다(옛 규칙은 1340px 아래에서 접었음, 원장님 11/2 「흰 글씨로 메뉴 띄워야지」) */
+@media (max-width:1340px){ nav.main{display:flex} .head-cta .btn{display:inline-flex} .hamburger{display:none} }
+@media (max-width:1100px){ .site-head .navitem>a{padding:8px 5px;font-size:12.5px} nav.main{margin-left:0} }
+@media (max-width:900px){ nav.main,.head-cta .btn{display:none} .hamburger{display:flex} }
+
 </style>
 <script>
 /* 2026-11-02 첫 화면: 배경 영상 멈춤 버튼 + 애플식 스크롤(글 위치에 따라 오른쪽 그림이 바뀐다) */
