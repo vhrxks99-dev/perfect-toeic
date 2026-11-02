@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="ko"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>완토 자습실 · 같이 공부해요</title>
-<meta name="description" content="링크 하나로 들어오는 3D 온라인 자습실. 책상에 앉으면 스탠드가 켜지고 공부 시간이 올라가요.">
-<meta property="og:title" content="완토 자습실"><meta property="og:description" content="가입 없이 들어와서 같이 공부해요"><meta property="og:image" content="https://perfect-toeic.com/og.jpg">
+<title>모두의 도서관 · 같이 공부해요</title>
+<meta name="description" content="가입 없이 들어오는 3D 온라인 도서관. 전국의 공부하는 사람들과 같은 열람실에 앉아 공부해요.">
+<meta property="og:title" content="모두의 도서관"><meta property="og:description" content="가입 없이 들어와서 같이 공부해요"><meta property="og:image" content="https://perfect-toeic.com/og.jpg">
 <link rel="icon" href="/favicon.ico">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sun-typeface/SUIT@2.0.5/fonts/variable/woff2/SUIT-Variable.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@700&display=swap">
@@ -40,6 +40,25 @@ button{font:inherit;color:inherit;cursor:pointer}
 .rank li{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;padding:7px 10px;border-radius:10px;background:oklch(19% .03 262)}
 .rank li.mine{outline:1px solid var(--acc)}
 .rank em{font-style:normal;color:var(--mut);font-variant-numeric:tabular-nums}
+.made{left:16px;bottom:22px;font-size:12px;color:var(--mut);text-decoration:none;padding:6px 10px;border-radius:999px;background:oklch(20% .03 262 / .6)}
+.made:hover{color:var(--ink)}
+@media (max-width:760px){.made{display:none}}
+.mine{display:flex;gap:6px;margin-top:14px}.mine button{flex:1;padding:8px 0;border-radius:10px;border:1px solid var(--line);background:none;font-size:12.5px}
+.namegrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}.namegrid select{padding:10px;border-radius:10px;border:1px solid var(--line);background:oklch(19% .03 262);color:var(--ink);font:inherit}
+.sw{display:flex;gap:8px;margin-top:12px}.sw button{width:30px;height:30px;border-radius:50%;border:2px solid transparent}.sw button.on{border-color:#fff}
+.code{margin-top:14px;font-size:30px;font-weight:800;letter-spacing:.08em;text-align:center}.card input{width:100%;margin-top:10px;padding:11px;border-radius:10px;border:1px solid var(--line);background:oklch(19% .03 262);color:var(--ink);font:inherit;font-size:18px;text-align:center;letter-spacing:.08em;text-transform:uppercase}
+.maker{position:fixed;inset:0;z-index:38;display:none;pointer-events:none}
+.maker.on{display:block}
+.mk-panel{pointer-events:auto;position:absolute;left:16px;top:16px;bottom:16px;width:min(380px,calc(100vw - 32px));overflow:auto;padding:20px;border-radius:20px;background:oklch(21% .03 262 / .96);border:1px solid var(--line)}
+.mk-panel h2{margin:0;font-family:Hahmlet,serif;font-size:24px}.mk-panel p{margin:6px 0 0;color:var(--mut);font-size:13.5px}
+.mk-row{margin-top:16px}.mk-row b{display:block;font-size:13px;color:var(--mut);font-weight:600;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips button{padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:none;font-size:13.5px}
+.chips button.on{background:var(--acc);border-color:var(--acc)}
+.dots{display:flex;flex-wrap:wrap;gap:8px}.dots button{width:30px;height:30px;border-radius:50%;border:2px solid transparent}.dots button.on{border-color:#fff;box-shadow:0 0 0 2px var(--acc)}
+.mk-name{display:grid;grid-template-columns:1fr 1fr;gap:8px}.mk-name select{padding:10px;border-radius:10px;border:1px solid var(--line);background:oklch(18% .03 262);color:var(--ink);font:inherit}
+.mk-go{display:flex;gap:8px;margin-top:20px}.mk-go button{flex:1;padding:13px;border-radius:12px;border:0;font-weight:700}
+.mk-go .go{background:var(--acc)}.mk-go .rnd{background:oklch(32% .03 262)}
+@media (max-width:760px){.mk-panel{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:58vh}}
 .tog{right:16px;top:16px;display:none;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
 .label{display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;transform:translateY(-6px)}
 .label .n{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:oklch(18% .03 262 / .75);white-space:nowrap}
@@ -99,16 +118,17 @@ button{font:inherit;color:inherit;cursor:pointer}
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head><body>
-<div class="loading" id="loading"><div><b>완토 자습실</b><span>책상을 닦는 중이에요</span></div></div>
+<div class="loading" id="loading"><div><b>모두의 도서관</b><span>열람실 불을 켜는 중이에요</span></div></div>
 
-<div class="hud top"><a href="/" aria-label="완벽한토익 홈으로">완벽한토익</a><b>자습실</b>
+<div class="hud top"><b>모두의 도서관</b>
   <select id="roomSel" aria-label="방 고르기"></select><span class="cnt" id="cnt">0명</span></div>
 <div class="hud help" id="help">바닥을 누르면 걷고, 빈 책상을 누르면 앉아요 · 사람을 누르면 말을 걸어요</div>
 <aside class="hud side" id="side">
   <h2>오늘의 공부</h2><div class="me" id="meName"></div>
   <div class="timer"><b id="tNow">00:00:00</b><span id="tSub">책상에 앉으면 오늘 공부 시간이 올라가요</span></div>
   <div class="snd" role="group" aria-label="배경 소리"><button data-snd="rain">빗소리</button><button data-snd="hum">잔잔한 소음</button><button data-snd="off" class="on">끄기</button></div>
-  <h3>오늘 공부 시간 (이 방)</h3><ol class="rank" id="rank"></ol>
+  <h3>오늘 공부 시간 (이 열람실)</h3><ol class="rank" id="rank"></ol>
+  <div class="mine"><button id="bName">캐릭터 꾸미기</button></div>
 </aside>
 <button class="hud tog" id="tog">공부 기록</button>
 <nav class="hud bar" aria-label="행동">
@@ -117,14 +137,31 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div class="hud fun" id="fun" hidden>
   <button data-act="sleep">엎드려 자기</button><button data-act="eat">몰래 밥먹기</button><button data-act="snack">간식 먹기</button><button data-act="rest">기지개 켜기</button>
 </div>
+<a class="hud made" href="https://perfect-toeic.com/" target="_blank" rel="noopener">완벽한토익이 만든 도서관</a>
 <div class="hud full" id="full"><b>이 방이 가득 찼어요</b><p>옆 방으로 가 볼까요?</p><button id="goNext" class="close">다음 방으로</button></div>
-<div class="focus" id="focus" role="button" aria-label="화면을 누르면 자습실로 돌아가요"><div class="who" id="fWho"></div><b id="fTime">00:00:00</b>
-  <div class="ask" id="fAsk"></div><div class="hint" id="fHint">공부 중이에요 · 화면을 톡 치면 자습실로 돌아가요</div></div>
+<div class="focus" id="focus" role="button" aria-label="화면을 누르면 도서관으로 돌아가요"><div class="who" id="fWho"></div><b id="fTime">00:00:00</b>
+  <div class="ask" id="fAsk"></div><div class="hint" id="fHint">공부 중이에요 · 화면을 톡 치면 도서관으로 돌아가요</div></div>
 <div class="talk" id="talk" hidden role="menu" aria-label="말 걸기"></div>
 <div class="modal" id="back"><div class="card" role="dialog" aria-label="돌아왔어요"><h3>다시 왔네요</h3><p class="pg" id="backTxt"></p>
   <button class="close" id="backGo">다시 공부 시작</button><button class="close" id="backStop" style="background:oklch(32% .03 262)">그만하기</button></div></div>
 <div class="modal" id="chk"><div class="card" role="dialog" aria-label="공부 확인"><h3>아직 공부 중이에요?</h3><p class="pg" id="chkTxt"></p>
   <button class="close" id="chkYes">네, 공부 중이에요</button></div></div>
+<div class="maker" id="maker"><div class="mk-panel" role="dialog" aria-label="내 캐릭터 만들기">
+  <h2>내 캐릭터 만들기</h2><p>고르는 대로 오른쪽 캐릭터가 바로 바뀌어요. 나중에 언제든 바꿀 수 있어요.</p>
+  <div class="mk-row"><b>성별</b><div class="chips" data-k="g"><button data-v="f">여자</button><button data-v="m">남자</button></div></div>
+  <div class="mk-row"><b>머리 모양</b><div class="chips" data-k="hair" id="mkHair"></div></div>
+  <div class="mk-row"><b>머리 색</b><div class="dots" data-k="hc" id="mkHc"></div></div>
+  <div class="mk-row"><b>얼굴</b><div class="chips" data-k="eye" id="mkEye"></div></div>
+  <div class="mk-row"><b>안경</b><div class="chips" data-k="gl"><button data-v="0">안 써요</button><button data-v="1">써요</button></div></div>
+  <div class="mk-row"><b>피부</b><div class="dots" data-k="skin" id="mkSkin"></div></div>
+  <div class="mk-row"><b>옷</b><div class="chips" data-k="top" id="mkTop"></div></div>
+  <div class="mk-row"><b>옷 색</b><div class="dots" data-k="color" id="mkColor"></div></div>
+  <div class="mk-row"><b>이름</b><div class="mk-name"><select id="mkA" aria-label="앞 단어"></select><select id="mkB" aria-label="뒤 단어"></select></div></div>
+  <div class="mk-go"><button class="rnd" id="mkRnd">아무거나</button><button class="go" id="mkGo">이걸로 입장</button></div>
+</div></div>
+<div class="modal" id="nameM"><div class="card" role="dialog" aria-label="이름 바꾸기"><h3>내 이름 바꾸기</h3><div class="pg">두 단어를 골라 이름을 만들어요</div>
+  <div class="namegrid"><select id="nA" aria-label="앞 단어"></select><select id="nB" aria-label="뒤 단어"></select></div><div class="sw" id="nC" aria-label="옷 색"></div>
+  <button class="close" id="nSave">이렇게 할게요</button><button class="close" id="nCancel" style="background:oklch(32% .03 262)">닫기</button></div></div>
 <div class="modal" id="quiz"><div class="card" role="dialog" aria-label="단어 퀴즈"><h3>완토 VOCA 10문제</h3><div class="pg" id="qPg"></div><div class="q" id="qWord"></div><div class="opts" id="qOpts"></div><button class="close" id="qClose">닫기</button></div></div>
 
 <script type="module">
@@ -134,10 +171,13 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 
 const SB_URL='https://guaqfsuwrvqjffmbiwpw.supabase.co', SB_KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
-const ROOM_CAP=40, ROOMS=10;
+const ROOM_CAP=40;
+const ROOM_LIST=[['toeic-1','토익 1열람실'],['toeic-2','토익 2열람실'],['toeic-3','토익 3열람실'],['gong-1','공무원 1열람실'],['gong-2','공무원 2열람실'],
+  ['suneung-1','수능 1열람실'],['suneung-2','수능 2열람실'],['cert-1','자격증 열람실'],['univ-1','대학생 열람실'],['free-1','자유 1열람실'],['free-2','자유 2열람실']];
+const ROOMS=ROOM_LIST.length;
 const BOT=new URLSearchParams(location.search).has('bot'); // 시험용 손님: 화면을 그리지 않는다
 const qs=new URLSearchParams(location.search);
-let roomNo=Math.min(ROOMS,Math.max(1,parseInt(qs.get('room')||'1',10)||1));
+let roomNo=(()=>{const r=qs.get('room')||'toeic-1';const i=ROOM_LIST.findIndex(x=>x[0]===r);return i>=0?i+1:Math.min(ROOMS,Math.max(1,parseInt(r,10)||1))})();
 const $=id=>document.getElementById(id);
 
 /* ---------- 나 ---------- */
@@ -192,7 +232,7 @@ for(const x of [-9,-3,3,9]){
 }
 // 칠판
 const boardTex=(()=>{const c=document.createElement('canvas');c.width=1024;c.height=256;const g=c.getContext('2d');g.fillStyle='#2c3e36';g.fillRect(0,0,1024,256);
-  g.fillStyle='#e9f1ea';g.font='700 92px Hahmlet, serif';g.textAlign='center';g.fillText('완토 자습실',512,140);g.font='500 34px "SUIT Variable", sans-serif';g.fillStyle='#b8cbbf';g.fillText('오늘도 한 문제씩',512,205);
+  g.fillStyle='#e9f1ea';g.font='700 92px Hahmlet, serif';g.textAlign='center';g.fillText('모두의 도서관',512,140);g.font='500 34px "SUIT Variable", sans-serif';g.fillStyle='#b8cbbf';g.fillText('오늘도 한 문제씩',512,205);
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t})();
 const board=new THREE.Mesh(new THREE.PlaneGeometry(8,2),new THREE.MeshStandardMaterial({map:boardTex,roughness:.95}));board.position.set(-W/2+.22,3.6,-2);board.rotation.y=Math.PI/2;scene.add(board);
 // 책장·화분
@@ -245,35 +285,57 @@ function route(from,to){
 }
 
 /* ---------- 캐릭터 ---------- */
-const HAIRS=['#2b2320','#4a3226','#1d1d24','#6b4a2f','#2f2a3a'];
+const HAIRS=['#2b2320','#5a3a26','#1d1d24','#8a5a32','#c98a4b','#6e4a8e'];
+const SKINS=['#f8dcc4','#f0c7a3','#d9a57e','#b07d58'];
+const HAIR_STYLES={m:[['short','짧은 머리'],['spiky','까치 머리'],['side','옆 가르마'],['buzz','까까 머리']],f:[['bob','단발'],['long','긴 생머리'],['pony','포니테일'],['bun','똥머리']]};
+const EYES=[['round','동글 눈'],['smile','웃는 눈'],['sleepy','졸린 눈'],['sparkle','반짝 눈']];
+const TOPS=[['tee','티셔츠'],['hood','후드티'],['uniform','교복'],['knit','니트']];
 function hashStr(t){let h=0;for(const ch of String(t))h=(h*31+ch.charCodeAt(0))|0;return Math.abs(h)}
-function makeChar(color,name,isMe,seedKey){
-  const hs=hashStr(seedKey||name);
-  const g=new THREE.Group(); const skin=M('#f6d2b5',{roughness:.7}),shirt=M(color,{roughness:.7}),pants=M('#3a4456'),hair=M(HAIRS[hs%HAIRS.length],{roughness:.6}),dark=M('#18161c',{roughness:.3}),white=new THREE.MeshBasicMaterial({color:'#ffffff'});
+function randomLook(seed){const r=typeof seed==='function'?seed:Math.random;const g=r()<.5?'m':'f';
+  return {g,hair:HAIR_STYLES[g][Math.floor(r()*4)][0],hc:Math.floor(r()*4),skin:Math.floor(r()*3),eye:EYES[Math.floor(r()*4)][0],gl:r()<.2,top:TOPS[Math.floor(r()*4)][0],color:COLORS[Math.floor(r()*COLORS.length)]}}
+function lookFromSeed(key){let h=hashStr(key)||1;return randomLook(()=>{h=(h*1664525+1013904223)>>>0;return h/4294967296})}
+function makeChar(color,name,isMe,seedKey,look){
+  const L=Object.assign(lookFromSeed(seedKey||name),{color},look||{});
+  const g=new THREE.Group();
+  const skin=M(SKINS[L.skin]||SKINS[0],{roughness:.7}),shirt=M(L.color,{roughness:.75}),pants=M(L.top==='uniform'?'#2e3a55':'#3a4456'),hair=M(HAIRS[L.hc]||HAIRS[0],{roughness:.55}),dark=M('#18161c',{roughness:.3}),white=new THREE.MeshBasicMaterial({color:'#ffffff'});
   const limb=(r,h,mat,foot)=>{const p=new THREE.Group();const m=new THREE.Mesh(new THREE.CapsuleGeometry(r,h,4,10),mat);m.position.y=-h/2-r;m.castShadow=true;p.add(m);
-    if(foot){const f=new THREE.Mesh(new THREE.SphereGeometry(r*1.25,12,10),M('#f4f1ea'));f.scale.set(1,.7,1.35);f.position.set(0,-h-r*1.6,-.05);p.add(f)}return p};
+    if(foot){const f=new THREE.Mesh(new THREE.SphereGeometry(r*1.25,12,10),M(L.top==='uniform'?'#2b2b2b':'#f4f1ea'));f.scale.set(1,.7,1.35);f.position.set(0,-h-r*1.6,-.05);p.add(f)}return p};
   const legL=limb(.11,.2,pants,true),legR=limb(.11,.2,pants,true);legL.position.set(-.14,.48,0);legR.position.set(.14,.48,0);g.add(legL,legR);
+  if(L.g==='f'&&L.top==='uniform'){const sk=new THREE.Mesh(new THREE.CylinderGeometry(.25,.36,.3,20),M('#2e3a55'));sk.position.y=.46;g.add(sk)}
   const upper=new THREE.Group();upper.position.y=.5;g.add(upper);
-  const body=new THREE.Mesh(new THREE.CapsuleGeometry(.3,.24,8,16),shirt);body.position.y=.27;body.scale.set(1,1,.9);body.castShadow=true;upper.add(body);
-  const collar=new THREE.Mesh(new THREE.TorusGeometry(.17,.035,8,20),M('#ffffff'));collar.rotation.x=Math.PI/2;collar.position.y=.56;upper.add(collar);
+  const bodyMat=L.top==='uniform'?M('#f5f5f2'):shirt;
+  const body=new THREE.Mesh(new THREE.CapsuleGeometry(L.g==='f'?.28:.3,.24,8,16),bodyMat);body.position.y=.27;body.scale.set(1,1,.9);body.castShadow=true;upper.add(body);
+  if(L.top==='tee'){const collar=new THREE.Mesh(new THREE.TorusGeometry(.17,.035,8,20),M('#ffffff'));collar.rotation.x=Math.PI/2;collar.position.y=.56;upper.add(collar)}
+  if(L.top==='hood'){const hood=new THREE.Mesh(new THREE.TorusGeometry(.24,.09,10,24,Math.PI*1.3),shirt);hood.rotation.set(Math.PI/2,0,Math.PI*1.35);hood.position.set(0,.58,.08);upper.add(hood);
+    const pk=new THREE.Mesh(new THREE.BoxGeometry(.32,.14,.04),M(L.color));pk.position.set(0,.12,-.27);upper.add(pk);for(const dx of [-.07,.07]){const st=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.18,6),M('#ffffff'));st.position.set(dx,.42,-.27);upper.add(st)}}
+  if(L.top==='uniform'){const bl=new THREE.Mesh(new THREE.CapsuleGeometry(L.g==='f'?.29:.31,.22,8,16,),shirt);bl.position.y=.26;bl.scale.set(1.02,1,.92);upper.add(bl);
+    const v=new THREE.Mesh(new THREE.ConeGeometry(.13,.3,3),M('#f5f5f2'));v.rotation.set(Math.PI,0,0);v.position.set(0,.43,-.27);v.scale.z=.3;upper.add(v);
+    const tie=L.g==='f'?new THREE.Mesh(new THREE.TorusGeometry(.06,.025,8,12),M('#d6303a')):new THREE.Mesh(new THREE.BoxGeometry(.07,.24,.03),M('#d6303a'));tie.position.set(0,L.g==='f'?.48:.38,-.29);upper.add(tie)}
+  if(L.top==='knit'){for(let k=0;k<4;k++){const ln=new THREE.Mesh(new THREE.TorusGeometry(.305,.012,6,30),M('#ffffff',{transparent:true,opacity:.35}));ln.rotation.x=Math.PI/2;ln.position.y=.08+k*.12;upper.add(ln)}}
   const head=new THREE.Group();head.position.y=1.02;upper.add(head);
   const hd=new THREE.Mesh(new THREE.SphereGeometry(.52,32,24),skin);hd.scale.set(1,.94,.96);hd.castShadow=true;head.add(hd);
-  // 머리카락: 기본 반구 + 모양(단발·똥머리·포니테일·까치머리)
-  const cap=new THREE.Mesh(new THREE.SphereGeometry(.545,32,24,0,Math.PI*2,0,Math.PI*.5),hair);cap.rotation.x=-.32;cap.position.set(0,.03,.04);head.add(cap);
-  const bang=new THREE.Mesh(new THREE.SphereGeometry(.5,24,12,Math.PI*1.15,Math.PI*.7,Math.PI*.3,Math.PI*.18),hair);bang.position.set(0,.02,0);head.add(bang);
-  const style=hs%4;
-  if(style===0){const bob=new THREE.Mesh(new THREE.CylinderGeometry(.56,.6,.42,28,1,true,Math.PI*.25,Math.PI*1.5),hair);bob.position.y=-.12;bob.rotation.y=Math.PI;head.add(bob)}
-  if(style===1){const bun=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),hair);bun.position.set(0,.52,.12);head.add(bun)}
-  if(style===2){const pt=new THREE.Mesh(new THREE.SphereGeometry(.17,14,10),hair);pt.scale.set(1,1.5,1);pt.position.set(0,.02,.56);head.add(pt);
-    const tie=new THREE.Mesh(new THREE.TorusGeometry(.08,.03,8,14),M('#ff6b81'));tie.position.set(0,.2,.5);head.add(tie)}
-  if(style===3){for(const [x,z,rz] of [[-.12,-.05,.5],[.1,.0,-.4],[0,.12,0]]){const sp=new THREE.Mesh(new THREE.ConeGeometry(.09,.22,8),hair);sp.position.set(x,.52,z);sp.rotation.z=rz;head.add(sp)}}
-  // 얼굴: 큰 눈 + 반짝이, 볼터치, 작은 입
-  const eyes=[];for(const dx of [-.18,.18]){const e=new THREE.Group();e.position.set(dx,-.02,-.47);head.add(e);
-    const pupil=new THREE.Mesh(new THREE.SphereGeometry(.085,16,12),dark);pupil.scale.set(.85,1.15,.45);e.add(pupil);
-    const hl=new THREE.Mesh(new THREE.SphereGeometry(.026,8,6),white);hl.position.set(.025,.04,-.035);e.add(hl);
-    const hl2=new THREE.Mesh(new THREE.SphereGeometry(.012,6,4),white);hl2.position.set(-.02,-.03,-.035);e.add(hl2);eyes.push(e)}
-  for(const dx of [-.3,.3]){const bl=new THREE.Mesh(new THREE.CircleGeometry(.075,16),new THREE.MeshBasicMaterial({color:'#ff9aa8',transparent:true,opacity:.65}));bl.position.set(dx,-.15,-.44);bl.rotation.y=dx>0?-.5:.5;bl.lookAt(bl.position.clone().multiplyScalar(3));head.add(bl)}
-  const mouth=new THREE.Mesh(new THREE.SphereGeometry(.05,12,8),M('#8a3a3a'));mouth.position.set(0,-.2,-.48);mouth.scale.set(1,.3,.4);head.add(mouth);
+  // 머리카락
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(.545,32,24,0,Math.PI*2,0,Math.PI*(L.hair==='buzz'?.38:.5)),hair);cap.rotation.x=-.22;cap.position.set(0,.07,.05);head.add(cap);
+  if(L.hair!=='buzz'){const bang=new THREE.Mesh(new THREE.SphereGeometry(.53,24,12,Math.PI*1.15,Math.PI*.7,Math.PI*.24,Math.PI*.12),hair);bang.position.set(0,.04,0);head.add(bang)}
+  if(L.hair==='bob'){const bob=new THREE.Mesh(new THREE.CylinderGeometry(.56,.6,.42,28,1,true,Math.PI*.25,Math.PI*1.5),hair);bob.position.y=-.12;bob.rotation.y=Math.PI;head.add(bob)}
+  if(L.hair==='long'){const bk=new THREE.Mesh(new THREE.CylinderGeometry(.55,.5,.95,28,1,true,Math.PI*.3,Math.PI*1.4),hair);bk.position.y=-.38;bk.rotation.y=Math.PI;head.add(bk)}
+  if(L.hair==='bun'){const bun=new THREE.Mesh(new THREE.SphereGeometry(.2,16,12),hair);bun.position.set(0,.52,.12);head.add(bun)}
+  if(L.hair==='pony'){const pt=new THREE.Mesh(new THREE.SphereGeometry(.17,14,10),hair);pt.scale.set(1,1.5,1);pt.position.set(0,.02,.56);head.add(pt);
+    const rb=new THREE.Mesh(new THREE.TorusGeometry(.08,.03,8,14),M('#ff6b81'));rb.position.set(0,.2,.5);head.add(rb)}
+  if(L.hair==='spiky'){for(const [x,z,rz] of [[-.12,-.05,.5],[.1,.0,-.4],[0,.12,0]]){const sp=new THREE.Mesh(new THREE.ConeGeometry(.09,.22,8),hair);sp.position.set(x,.52,z);sp.rotation.z=rz;head.add(sp)}}
+  if(L.hair==='side'){const sd=new THREE.Mesh(new THREE.SphereGeometry(.3,16,10),hair);sd.scale.set(1.3,.45,1);sd.position.set(.18,.36,-.22);sd.rotation.z=-.4;head.add(sd)}
+  // 눈
+  const eyes=[];for(const dx of [-.18,.18]){const e=new THREE.Group();e.position.set(dx,-.07,-.465);head.add(e);
+    if(L.eye==='smile'){const arc=new THREE.Mesh(new THREE.TorusGeometry(.06,.016,6,14,Math.PI),dark);arc.position.z=-.01;e.add(arc)}
+    else if(L.eye==='sleepy'){const lid=new THREE.Mesh(new THREE.BoxGeometry(.13,.022,.02),dark);e.add(lid)}
+    else{const pupil=new THREE.Mesh(new THREE.SphereGeometry(L.eye==='sparkle'?.1:.085,16,12),dark);pupil.scale.set(.85,1.15,.45);e.add(pupil);
+      const hl=new THREE.Mesh(new THREE.SphereGeometry(L.eye==='sparkle'?.034:.026,8,6),white);hl.position.set(.025,.04,-.035);e.add(hl);
+      const hl2=new THREE.Mesh(new THREE.SphereGeometry(.012,6,4),white);hl2.position.set(-.02,-.03,-.035);e.add(hl2)}
+    if(L.g==='f'&&L.eye!=='sleepy'){const lash=new THREE.Mesh(new THREE.BoxGeometry(.05,.012,.012),dark);lash.position.set(dx>0?.075:-.075,.08,-.02);lash.rotation.z=dx>0?-.5:.5;e.add(lash)}
+    eyes.push(e)}
+  if(L.gl){const gm=M('#2a2a2a');for(const dx of [-.18,.18]){const r=new THREE.Mesh(new THREE.TorusGeometry(.11,.018,8,20),gm);r.position.set(dx,-.07,-.5);head.add(r)}const br=new THREE.Mesh(new THREE.BoxGeometry(.1,.02,.02),gm);br.position.set(0,-.05,-.52);head.add(br)}
+  for(const dx of [-.3,.3]){const bl=new THREE.Mesh(new THREE.CircleGeometry(.075,16),new THREE.MeshBasicMaterial({color:'#ff9aa8',transparent:true,opacity:.65}));bl.position.set(dx,-.2,-.43);bl.lookAt(bl.position.clone().multiplyScalar(3));head.add(bl)}
+  const mouth=new THREE.Mesh(new THREE.SphereGeometry(.05,12,8),M('#8a3a3a'));mouth.position.set(0,-.25,-.46);mouth.scale.set(1,.3,.4);head.add(mouth);
   // 팔(어깨-팔꿈치), 동그란 손
   function arm(side){
     const sh=new THREE.Group();sh.position.set(side*.34,.48,0);upper.add(sh);
@@ -299,14 +361,14 @@ function makeChar(color,name,isMe,seedKey){
   const lab=new CSS2DObject(lbl);lab.position.y=2.3;g.add(lab);
   const hit=new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,2.1,10),new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));hit.position.y=1.05;g.add(hit);
   scene.add(g);
-  const ref={g,upper,head,eyes,mouth,armL,armR,legL,legR,body,el:lbl,hit,bowl,sticks,snack,chip,path:[],state:'idle',seat:-1,walkT:Math.random()*9,rotY:0,pos:new THREE.Vector3()};hit.userData.who=ref;return ref;
+  const ref={look:L,g,upper,head,eyes,mouth,armL,armR,legL,legR,body,el:lbl,hit,bowl,sticks,snack,chip,path:[],state:'idle',seat:-1,walkT:Math.random()*9,rotY:0,pos:new THREE.Vector3()};hit.userData.who=ref;return ref;
 }
 function fade(a,on){if(a.faded===on)return;a.faded=on;a.g.traverse(o=>{if(o.isMesh&&o!==a.hit){const m=o.material;if(!m.userData.base){m.userData.base={t:m.transparent,o:m.opacity}}m.transparent=on?true:m.userData.base.t;m.opacity=on?.35:m.userData.base.o;m.needsUpdate=true}})}
 function setLabel(a,txt,cls){const s=a.el.querySelector('.s');if(!txt){s.hidden=true;return}s.hidden=false;s.textContent=txt;s.className='s'+(cls?' '+cls:'')}
 function say(a,text,teacher){if(!a||!a.el)return;const old=a.el.querySelector('.say');if(old)old.remove();const b=document.createElement('span');b.className='say'+(teacher?' t':'');b.textContent=text;a.el.prepend(b);clearTimeout(a.sayT);a.sayT=setTimeout(()=>b.remove(),3800)}
 function heart(a){const h=document.createElement('span');h.className='heart';h.textContent='힘내요';a.el.prepend(h);setTimeout(()=>h.remove(),1700)}
 
-const me=makeChar(ME.color,ME.name,true,ME.id);
+const me=makeChar(ME.color,ME.name,true,ME.id,ME.look);
 me.g.position.set(0,0,D/2-2);me.g.rotation.y=Math.PI;
 const others=new Map();
 
@@ -399,7 +461,7 @@ function spawnNpcs(n){
   for(const a of npcs){if(a.seat>=0)lampOn(a.seat,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g)}npcs.length=0;
   const r=rng(n*7919+13);const cnt=6+Math.floor(r()*4);const used=new Set();
   for(let k=0;k<cnt;k++){let si;do{si=Math.floor(r()*seats.length)}while(used.has(si));used.add(si);
-    const a=makeChar(COLORS[Math.floor(r()*COLORS.length)],NPC_NAMES[(k+n)%NPC_NAMES.length],false,'npc'+n+'-'+k);
+    const a=makeChar(COLORS[Math.floor(r()*COLORS.length)],NPC_NAMES[(k+n)%NPC_NAMES.length],false,'npc'+n+'-'+k,randomLook(r));
     const st=seats[si];a.g.position.set(st.x,0,st.z);a.g.rotation.y=Math.PI;a.seat=si;poseSit(a,true);lampOn(si,true);
     a.npc={off:Math.floor(r()*1000),start:Date.now()-Math.floor(r()*5400)*1000};a.state='sit';npcs.push(a)}
 }
@@ -408,7 +470,7 @@ function npcTick(){const slot=Math.floor(Date.now()/40000);
   for(const a of npcs){const st=NPC_ACTS[(slot*7+a.npc.off)%NPC_ACTS.length];if(a.state!==st){a.state=st;lampOn(a.seat,st!=='sleep')}}}
 
 /* ---------- 감독 선생님: 통로를 따라 돌아다닌다(시각으로 위치를 정해 누구에게나 같은 곳에 보인다) ---------- */
-const teacher=makeChar('#3b4252','감독 선생님',false,'teacher-wanto');
+const teacher=makeChar('#3b4252','감독 선생님',false,'teacher-wanto',{g:'m',hair:'side',hc:0,skin:0,eye:'round',gl:false,top:'tee'});
 teacher.g.scale.setScalar(1.12);
 {const gm=M('#222'),fr=new THREE.Group();for(const dx of [-.18,.18]){const r=new THREE.Mesh(new THREE.TorusGeometry(.1,.018,8,20),gm);r.position.set(dx,-.02,-.5);fr.add(r)}
  const br=new THREE.Mesh(new THREE.BoxGeometry(.12,.02,.02),gm);br.position.set(0,0,-.52);fr.add(br);teacher.head.add(fr);
@@ -437,7 +499,7 @@ function patrolCheck(){
 const TO_STUDENT=['자리 좀 비켜 줄래요?','몰래 간식 먹지 마요!','쉿, 조용히 해 주세요','같이 공부해요!','화이팅!','몇 시까지 해요?'];
 const TO_TEACHER=['질문 있어요!','화장실 다녀와도 돼요?','몇 시에 끝나요?','오늘 단어시험 있어요?'];
 const NPC_REPLY={0:['싫어요~ 제가 먼저 왔어요','5분만 더 하고 비켜 줄게요','여기 제 자리예요!'],1:['한 입만요…','들켰다!','아무것도 안 먹었는데요?'],2:['앗 죄송해요','쉿!'],3:['좋아요!','오늘 몇 시간 할 거예요?'],4:['화이팅!!','고마워요'],5:['밤 10시까지요','목표 3시간이요']};
-const T_REPLY={0:['손들고 기다리면 갈게요','무슨 문제예요? 번호 알려 줘요'],1:['다녀와요~ 가방 두고 가요'],2:['자습실은 언제든 열려 있어요'],3:['단어 퀴즈 버튼 눌러 봐요!']};
+const T_REPLY={0:['손들고 기다리면 갈게요','무슨 문제예요? 번호 알려 줘요'],1:['다녀와요~ 가방 두고 가요'],2:['도서관은 언제든 열려 있어요'],3:['단어 퀴즈 버튼 눌러 봐요!']};
 const talkBox=$('talk');let talkTarget=null;
 function whoKey(a){if(a===teacher)return 'teacher';const ni=npcs.indexOf(a);if(ni>=0)return 'npc'+ni;for(const [id,b] of others)if(b===a)return id;return null}
 function nameOf(a){return a.el.querySelector('.n').textContent}
@@ -460,14 +522,49 @@ function doTalk(a,i){
   sync()}
 function byKey(k){if(k==='teacher')return teacher;if(k&&k.startsWith('npc'))return npcs[+k.slice(3)];return k===ME.id?me:others.get(k)}
 
+/* ---------- 이름 바꾸기 · 이름 코드 ---------- */
+function saveMe(){try{localStorage.setItem('wt_sr_me',JSON.stringify(ME))}catch(e){}}
+function renameMe(){me.el.querySelector('.n').textContent='나 · '+ME.name;$('meName').textContent='나: '+ME.name;me.body.material.color.set(ME.color);me.armL.sh.children[0].material.color.set(ME.color);sync();drawRank()}
+$('bName').onclick=()=>{openMaker()};
+$('bNameOld')&&(()=>{const [a,b]=ME.name.split(' ');$('nA').innerHTML=ADJ.map(x=>`<option${x===a?' selected':''}>${x}</option>`).join('');$('nB').innerHTML=NOUN.map(x=>`<option${x===b?' selected':''}>${x}</option>`).join('');
+  $('nC').innerHTML=COLORS.map(c=>`<button style="background:${c}" data-c="${c}" class="${c===ME.color?'on':''}" aria-label="옷 색"></button>`).join('');
+  $('nC').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('nC').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))});$('nameM').classList.add('on')})();
+$('nCancel').onclick=()=>$('nameM').classList.remove('on');
+$('nSave').onclick=()=>{ME.name=$('nA').value+' '+$('nB').value;const c=$('nC').querySelector('.on');if(c)ME.color=c.dataset.c;saveMe();renameMe();$('nameM').classList.remove('on');flash('이름을 바꿨어요: '+ME.name)};
+/* ---------- 내 캐릭터 만들기(처음 들어오면 뜬다) ---------- */
+let draft=null,makerOn=false;
+function rebuildMe(){const keep={pos:me.g.position.clone(),ry:me.g.rotation.y,seat:me.seat,state:me.state,path:me.path,pendingSeat:me.pendingSeat};
+  me.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(me.g);
+  const n=makeChar(ME.color,ME.name,true,ME.id,ME.look);Object.assign(me,n,{path:keep.path,seat:keep.seat,state:keep.state,pendingSeat:keep.pendingSeat});
+  me.g.position.copy(keep.pos);me.g.rotation.y=keep.ry;if(me.seat>=0)poseSit(me,true);me.hit.userData.who=me;$('meName').textContent='나: '+ME.name}
+function mkFill(){const L=draft;
+  $('mkHair').innerHTML=HAIR_STYLES[L.g].map(([v,t])=>`<button data-v="${v}">${t}</button>`).join('');
+  $('mkHc').innerHTML=HAIRS.map((c,i)=>`<button data-v="${i}" style="background:${c}" aria-label="머리 색"></button>`).join('');
+  $('mkEye').innerHTML=EYES.map(([v,t])=>`<button data-v="${v}">${t}</button>`).join('');
+  $('mkSkin').innerHTML=SKINS.map((c,i)=>`<button data-v="${i}" style="background:${c}" aria-label="피부"></button>`).join('');
+  $('mkTop').innerHTML=TOPS.map(([v,t])=>`<button data-v="${v}">${t}</button>`).join('');
+  $('mkColor').innerHTML=COLORS.map(c=>`<button data-v="${c}" style="background:${c}" aria-label="옷 색"></button>`).join('');
+  const [a,b]=ME.name.split(' ');$('mkA').innerHTML=ADJ.map(x=>`<option${x===a?' selected':''}>${x}</option>`).join('');$('mkB').innerHTML=NOUN.map(x=>`<option${x===b?' selected':''}>${x}</option>`).join('');
+  document.querySelectorAll('#maker [data-k]').forEach(row=>{const k=row.dataset.k;row.querySelectorAll('button').forEach(btn=>{
+    const v=btn.dataset.v;const cur=k==='gl'?(L.gl?'1':'0'):String(L[k]);btn.classList.toggle('on',v===cur);
+    btn.onclick=()=>{if(k==='gl')L.gl=v==='1';else if(k==='hc'||k==='skin')L[k]=+v;else L[k]=v;
+      if(k==='g'&&!HAIR_STYLES[v].some(h=>h[0]===L.hair))L.hair=HAIR_STYLES[v][0][0];
+      if(k==='color')ME.color=v;ME.look=L;rebuildMe();mkFill()}})})}
+function openMaker(){draft=Object.assign({},me.look||lookFromSeed(ME.id));draft.color=ME.color;ME.look=draft;$('maker').classList.add('on');mkFill();
+  controls.minDistance=2.5;camOff0=innerWidth<760?6.2:4.2;makerOn=true;$('side').classList.add('hide')}
+$('mkRnd').onclick=()=>{draft=randomLook();ME.color=draft.color;ME.look=draft;rebuildMe();mkFill()};
+$('mkGo').onclick=()=>{ME.name=$('mkA').value+' '+$('mkB').value;ME.look=draft;ME.color=draft.color;saveMe();rebuildMe();$('maker').classList.remove('on');
+  controls.minDistance=7;camOff0=11;makerOn=false;if(innerWidth>=760)$('side').classList.remove('hide');sync();drawRank();flash(ME.name+' 님, 어서 와요!')};
+
 /* ---------- 실시간 ---------- */
 const sb=createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:10}}});
 let ch=null, peersCount=1;
-function payload(){const p=me.g.position;return{name:ME.name,color:ME.color,x:+p.x.toFixed(2),z:+p.z.toFixed(2),ry:+me.g.rotation.y.toFixed(2),state:me.state,seat:me.seat,pend:me.pendingSeat??-1,today:todaySec,fs:focusStart,path:me.path.slice(0,6),bag:bagAlive(myBag)?myBag:null}}
+function payload(){const p=me.g.position;return{name:ME.name,color:ME.color,lk:ME.look||null,x:+p.x.toFixed(2),z:+p.z.toFixed(2),ry:+me.g.rotation.y.toFixed(2),state:me.state,seat:me.seat,pend:me.pendingSeat??-1,today:todaySec,fs:focusStart,path:me.path.slice(0,6),bag:bagAlive(myBag)?myBag:null}}
 let syncT=0;function sync(){if(!ch)return;clearTimeout(syncT);syncT=setTimeout(()=>ch.track(payload()).catch(()=>{}),60)}
 function applyPeer(id,d){
   let a=others.get(id);
-  if(!a){a=makeChar(d.color||'#2f6fe4',d.name||'손님',false,id);a.g.position.set(d.x,0,d.z);others.set(id,a)}
+  if(a&&d.lk&&JSON.stringify(d.lk)!==JSON.stringify(a.lkSent)){removePeer(id);a=null}
+  if(!a){a=makeChar(d.color||'#2f6fe4',d.name||'손님',false,id,d.lk||undefined);a.lkSent=d.lk;a.g.position.set(d.x,0,d.z);others.set(id,a)}
   a.data=d;
   const wasSeat=a.seat;
   if(d.path&&d.path.length){a.path=d.path.map(q=>({x:q.x,z:q.z}));a.pendingSeat=d.pend>=0?d.pend:null;if(a.seat>=0){lampOn(a.seat,false);a.seat=-1;poseSit(a,false)}}
@@ -478,8 +575,8 @@ function applyPeer(id,d){
 function removePeer(id){const a=others.get(id);if(!a)return;if(a.seat>=0)lampOn(a.seat,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g);others.delete(id)}
 async function join(n){
   if(ch){await sb.removeChannel(ch);ch=null;for(const id of [...others.keys()])removePeer(id)}
-  roomNo=n;history.replaceState(null,'','?room='+n);$('roomSel').value=n;spawnNpcs(n);
-  ch=sb.channel('wt-studyroom-'+n,{config:{presence:{key:ME.id},broadcast:{self:false}}});
+  roomNo=n;history.replaceState(null,'','?room='+ROOM_LIST[n-1][0]);$('roomSel').value=n;spawnNpcs(n);
+  ch=sb.channel('modu-'+ROOM_LIST[n-1][0],{config:{presence:{key:ME.id},broadcast:{self:false}}});
   ch.on('presence',{event:'sync'},()=>{
     const st=ch.presenceState();const ids=new Set(Object.keys(st));peersCount=ids.size||1;$('cnt').textContent=peersCount+'명 공부 중';
     for(const id of ids){if(id===ME.id)continue;const d=st[id][st[id].length-1];applyPeer(id,d)}
@@ -492,9 +589,9 @@ async function join(n){
   ch.on('broadcast',{event:'npcsay'},({payload:p})=>{const a=byKey(p.to);if(a)say(a,p.text,p.to==='teacher')});
   ch.subscribe(st=>{if(st==='SUBSCRIBED')sync()});
 }
-const sel=$('roomSel');for(let i=1;i<=ROOMS;i++){const o=document.createElement('option');o.value=i;o.textContent=i+'번 방';sel.appendChild(o)}
+const sel=$('roomSel');ROOM_LIST.forEach(([slug,label],i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=label;sel.appendChild(o)});
 sel.onchange=()=>{standUp(me);stopFocus();join(+sel.value)};
-$('goNext').onclick=()=>{$('full').style.display='none';join(roomNo+1)};
+$('goNext').onclick=()=>{$('full').style.display='none';const cat=ROOM_LIST[roomNo-1][0].split('-')[0];const nx=ROOM_LIST.findIndex((x,i)=>i>=roomNo&&x[0].startsWith(cat));join(nx>=0?nx+1:Math.min(ROOMS,roomNo+1))};
 
 /* ---------- 순위 ---------- */
 function drawRank(){
@@ -593,7 +690,7 @@ function loop(){
   const dt=Math.min(clk.getDelta(),.05),t=clk.elapsedTime;
   step(me,dt,t);for(const a of others.values())step(a,dt,t);for(const a of npcs)step(a,dt,t);teacherTick(dt,t);markTick(dt);
   // 카메라가 나를 부드럽게 따라온다
-  const p=me.g.position;camOff.copy(camera.position).sub(controls.target);if(camOff0){camOff.set(1.2,2.2,camOff0);camOff0=0}controls.target.lerp(new THREE.Vector3(p.x,1.2,p.z),Math.min(1,dt*3));camera.position.copy(controls.target).add(camOff);
+  const p=me.g.position;camOff.copy(camera.position).sub(controls.target);if(camOff0){camOff.set(1.2,2.2,camOff0);camOff0=0}controls.target.lerp(new THREE.Vector3(p.x+(makerOn&&innerWidth>=760?-1.1:0),makerOn?(innerWidth<760?.15:1.1):1.2,p.z),Math.min(1,dt*3));camera.position.copy(controls.target).add(camOff);
   controls.update();
   // 이름표 상태
   {const [tx,c]=labFor(me,focusStart);setLabel(me,tx,c)}
@@ -637,7 +734,7 @@ setInterval(()=>{
 
 // 집중 화면: 앉아서 공부 중이고 20초 동안 안 만지면 3D 를 멈추고 까만 화면에 타이머만
 let focusOn=false,lastTouch=Date.now();
-function focusOnNow(){if(focusOn)return;focusOn=true;$('fWho').textContent=ME.name+' · '+roomNo+'번 방';$('focus').classList.add('on')}
+function focusOnNow(){if(focusOn)return;focusOn=true;$('fWho').textContent=ME.name+' · '+ROOM_LIST[roomNo-1][1];$('focus').classList.add('on')}
 function focusOff(){if(!focusOn)return;focusOn=false;$('focus').classList.remove('on','asking');lastTouch=Date.now()}
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,()=>{lastTouch=Date.now()},{passive:true,capture:true}));
 $('focus').addEventListener('click',()=>{if(askAt)confirmStudy();focusOff()});
@@ -647,9 +744,10 @@ setInterval(()=>{
 },1000);
 $('chkYes').onclick=confirmStudy;
 loop();join(roomNo);drawRank();
+if(!ME.look&&!qs.get('demo'))setTimeout(openMaker,700);
 // 시험용: ?demo=sit:5,wait:2,act:sleep 처럼 행동을 차례로 한다(평소엔 쓰지 않음)
 if(qs.get('demo')){const steps=qs.get('demo').split(',');let k=0;const runStep=()=>{if(k>=steps.length)return;const [c,v]=steps[k++].split(':');let w=1500;
-  if(c==='sit')goSeat(+v);else if(c==='act'){const b=document.querySelector(`[data-act="${v}"]`);if(b)b.click()}else if(c==='bag')$('bBag').click();else if(c==='hand')$('bHand').click();else if(c==='cheer')$('bCheer').click();else if(c==='seatbtn')$('bSit').click();else if(c==='walk'){const [x,z]=v.split('/');markAt(+x,+z);walkTo({x:+x,z:+z})}else if(c==='talknpc'){talkTo(npcs[+v]||npcs[0],1)}else if(c==='talkt'){talkTo(teacher,0)}else if(c==='zoom'){controls.minDistance=2.5;camOff0=+v||4}else if(c==='wait')w=(+v)*1000;
+  if(c==='sit')goSeat(+v);else if(c==='act'){const b=document.querySelector(`[data-act="${v}"]`);if(b)b.click()}else if(c==='bag')$('bBag').click();else if(c==='hand')$('bHand').click();else if(c==='cheer')$('bCheer').click();else if(c==='seatbtn')$('bSit').click();else if(c==='walk'){const [x,z]=v.split('/');markAt(+x,+z);walkTo({x:+x,z:+z})}else if(c==='talknpc'){talkTo(npcs[+v]||npcs[0],1)}else if(c==='talkt'){talkTo(teacher,0)}else if(c==='maker'){openMaker()}else if(c==='mk'){const [k,val]=v.split('=');const btn=document.querySelector(`#maker [data-k="${k}"] button[data-v="${val}"]`);btn&&btn.click()}else if(c==='zoom'){controls.minDistance=2.5;camOff0=+v||4}else if(c==='wait')w=(+v)*1000;
   setTimeout(runStep,w)};setTimeout(runStep,2500)}
 if(qs.get('as')){/* 시험용 다른 손님: 이름·색을 새로 만든다 */}
 setTimeout(()=>{$('loading').style.opacity=0;setTimeout(()=>$('loading').remove(),700)},500);
