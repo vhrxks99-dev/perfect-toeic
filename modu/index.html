@@ -59,6 +59,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .mk-go{display:flex;gap:8px;margin-top:20px}.mk-go button{flex:1;padding:13px;border-radius:12px;border:0;font-weight:700}
 .mk-go .go{background:var(--acc)}.mk-go .rnd{background:oklch(32% .03 262)}
 @media (max-width:760px){.mk-panel{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:58vh}}
+.cam{right:16px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px}
+.cam button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:20px;font-weight:700;backdrop-filter:blur(8px);display:grid;place-items:center}
+.cam button:active{transform:scale(.92)}
 .tog{right:16px;top:16px;display:flex;align-items:center;gap:12px;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(8px)}
 .tog b{font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.tog span{color:#ffd166;font-weight:700;font-size:14px}.tog span:empty{display:none}.tog i{font-style:normal;color:var(--mut);font-size:13px}
 @media (min-width:761px){.side{top:72px}}
@@ -134,6 +137,7 @@ body.staff #bSit,body.staff #bBag,body.staff #bFun,body.staff #bHand,body.staff 
   <h3>오늘 공부 시간 (이 열람실)</h3><ol class="rank" id="rank"></ol>
   <div class="mine"><button id="bName">캐릭터 꾸미기</button></div>
 </aside>
+<div class="hud cam" role="group" aria-label="화면 보기"><button id="camIn" aria-label="가까이">＋</button><button id="camOut" aria-label="멀리">－</button><button id="camTurn" aria-label="옆으로 돌리기">↻</button><button id="camHome" aria-label="처음 보기">⌂</button></div>
 <button class="hud tog" id="tog" aria-expanded="false" aria-controls="side"><b id="togT">00:00:00</b><span id="togR"></span><i id="togI">펼치기</i></button>
 <nav class="hud bar" aria-label="행동">
   <button id="bMk">캐릭터 꾸미기</button><button id="bSit">빈 자리 앉기</button><button id="bBag">자리 맡기</button><button id="bFun" aria-expanded="false" aria-controls="fun">딴짓하기</button><button id="bHand">질문 손들기</button><button id="bCheer">응원 보내기</button>
@@ -210,7 +214,7 @@ Object.assign(labels.domElement.style,{position:'fixed',inset:'0',pointerEvents:
 const scene=new THREE.Scene(); scene.background=new THREE.Color('#1b2233'); scene.fog=new THREE.Fog('#1b2233',30,60);
 const camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.1,200); camera.position.set(0,10.5,21.5);
 const controls=new OrbitControls(camera,renderer.domElement);
-controls.enableDamping=true; controls.dampingFactor=.08; controls.enablePan=false;
+controls.enableDamping=true; controls.dampingFactor=.08; controls.enablePan=false; controls.enableRotate=false; // 손가락으로 돌리기는 끄고 오른쪽 버튼으로(원장님 11/2)
 controls.minDistance=7; controls.maxDistance=34; controls.minPolarAngle=.35; controls.maxPolarAngle=1.25; controls.target.set(0,1.2,10);
 
 const hemi=new THREE.HemisphereLight('#dfe8ff','#5a4a3a',.75);scene.add(hemi);
@@ -987,12 +991,13 @@ const liveSec=(base,start)=>base+(start?(Date.now()-start)/1000:0);
 
 /* ---------- 같이 공부하는 손님(분위기용) ---------- */
 // 위의 인원수에는 같이 세고 순위에는 넣지 않는다. 방 번호와 시각으로 정해서 누구에게나 같은 자리·같은 행동으로 보인다.
-const NPC_NAMES=['조용한 고래','말랑한 두부','성실한 다람쥐','반짝이는 펭귄','꾸벅꾸벅 곰','새벽의 올빼미','느릿한 달팽이','씩씩한 병아리','차분한 수달','부지런한 개미'];
+const NPC_NAMES=['조용한 고래','말랑한 두부','성실한 다람쥐','반짝이는 펭귄','꾸벅꾸벅 곰','새벽의 올빼미','느릿한 달팽이','씩씩한 병아리','차분한 수달','부지런한 개미','단단한 감자','포근한 고양이','맑은 하늘','용감한 토끼','느긋한 판다','작은 별','상냥한 사슴','든든한 바위','바쁜 꿀벌','졸린 코알라'];
 const npcs=[];
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
 function spawnNpcs(n){
   for(const a of npcs){if(a.seat>=0)lampOn(a.seat,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g)}npcs.length=0;
-  const r=rng(n*7919+13);const cnt=6+Math.floor(r()*4);const used=new Set();
+  // 열람실마다 4~15명으로 들쭉날쭉(원장님 11/2 「전부 8명이라 봇 티 나」). 합계 105명 = 서버 modu_count
+  const r=rng(hashStr(ROOM_LIST[n-1][0])*7919+13);r();r();const cnt=4+Math.floor(r()*12);const used=new Set();
   for(let k=0;k<cnt;k++){let si;do{si=Math.floor(r()*seats.length)}while(used.has(si));used.add(si);
     const a=makeChar(COLORS[Math.floor(r()*COLORS.length)],NPC_NAMES[(k+n)%NPC_NAMES.length],false,'npc'+n+'-'+k,randomLook(r));
     const st=seats[si];a.g.position.set(st.x,0,st.z);a.g.rotation.y=st.ry+Math.PI;a.seat=si;poseSit(a,true);lampOn(si,true);
@@ -1012,7 +1017,7 @@ function dressTeacher(a){a.g.scale.setScalar(1.12);
   const n=a.el.querySelector('.n');n.classList.add('me');n.style.background='#e0a800';n.style.color='#1a1a1a';a.tch=true}
 dressTeacher(teacher);
 function realTeacherHere(){return staffMode||[...others.values()].some(a=>a.tch)}
-function teacherTick(dt,t){teacher.g.visible=!realTeacherHere();if(!teacher.g.visible)return;
+function teacherTick(dt,t){teacher.g.visible=!realTeacherHere();teacher.g.traverse(o=>{if(o.isCSS2DObject)o.visible=teacher.g.visible});if(!teacher.g.visible)return;
   let d=(Date.now()/1000*1.1)%TLEN, i=0;
   for(;i<TP.length;i++){const a=TP[i],b=TP[(i+1)%TP.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(d<=L){const k=d/L;teacher.g.position.set(a[0]+(b[0]-a[0])*k,0,a[1]+(b[1]-a[1])*k);teacher.g.rotation.y=Math.atan2(-(b[0]-a[0]),-(b[1]-a[1]));break}d-=L}
   teacher.walkT+=dt*7;const w=Math.sin(teacher.walkT)*.45;teacher.legL.rotation.x=w;teacher.legR.rotation.x=-w;
@@ -1105,6 +1110,13 @@ function openMaker(){if(staffMode){flash('감독 선생님은 꾸미기 없이 �
 $('mkRnd').onclick=()=>{draft=randomLook();ME.color=draft.color;ME.look=draft;rebuildMe();mkFill()};
 $('mkGo').onclick=()=>{ME.name=$('mkA').value+' '+$('mkB').value;ME.look=draft;ME.color=draft.color;saveMe();rebuildMe();$('maker').classList.remove('on');
   controls.minDistance=7;camOff0=11;makerOn=false;sync();drawRank();flash(ME.name+' 님, 어서 와요!')};
+
+/* ---------- 화면 보기 버튼: 가까이·멀리·옆으로·처음 ---------- */
+function camSet(fn){const off=camera.position.clone().sub(controls.target);fn(off);camera.position.copy(controls.target).add(off);controls.update()}
+$('camIn').onclick=()=>camSet(o=>o.setLength(Math.max(controls.minDistance,o.length()-3)));
+$('camOut').onclick=()=>camSet(o=>o.setLength(Math.min(controls.maxDistance,o.length()+3)));
+$('camTurn').onclick=()=>camSet(o=>o.applyAxisAngle(new THREE.Vector3(0,1,0),Math.PI/2));
+$('camHome').onclick=()=>camSet(o=>o.copy(envNow==='library'?new THREE.Vector3(0,9.3,11.5):new THREE.Vector3(0,3.8,13.5)));
 
 /* ---------- 실시간 ---------- */
 const sb=createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:10}}});
