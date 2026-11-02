@@ -186,6 +186,7 @@ const OLD_ROOM={'toeic-1':'library','toeic-2':'beach','toeic-3':'paris','gong-1'
 const ROOMS=ROOM_LIST.length;
 const BOT=new URLSearchParams(location.search).has('bot'); // 시험용 손님: 화면을 그리지 않는다
 const qs=new URLSearchParams(location.search);
+const APPCODE=qs.get('c'); // 앱이 새로 준 코드(있으면 예전 열쇠로 선생님 판단 안 함)
 let staffMode=false; // 앱에서 선생님이 들어오면 감독 선생님
 let roomNo=(()=>{let r=qs.get('room')||'library';r=OLD_ROOM[r]||r;const i=ROOM_LIST.findIndex(x=>x[0]===r);return i>=0?i+1:Math.min(ROOMS,Math.max(1,parseInt(r,10)||1))})();
 const $=id=>document.getElementById(id);
@@ -205,7 +206,8 @@ $('meName').textContent='나: '+ME.name;
 /* ---------- 장면 ---------- */
 const app=document.body;
 const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight);
+const MOBILE=matchMedia('(max-width:760px)').matches||/iPhone|Android/i.test(navigator.userAgent);
+renderer.setPixelRatio(Math.min(devicePixelRatio,MOBILE?1.5:2)); renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
 app.prepend(renderer.domElement);
@@ -220,7 +222,7 @@ controls.minDistance=7; controls.maxDistance=34; controls.minPolarAngle=.35; con
 const hemi=new THREE.HemisphereLight('#dfe8ff','#5a4a3a',.75);scene.add(hemi);
 const fill=new THREE.DirectionalLight('#ffe9d2',.9);fill.position.set(4,9,18);scene.add(fill); // 얼굴 쪽을 밝혀 주는 빛
 const sun=new THREE.DirectionalLight('#fff1dc',1.6); sun.position.set(-8,18,-12); sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-20,right:20,top:16,bottom:-16,near:1,far:60}); sun.shadow.bias=-.0005; scene.add(sun);
+sun.shadow.mapSize.set(MOBILE?1024:2048,MOBILE?1024:2048); Object.assign(sun.shadow.camera,{left:-20,right:20,top:16,bottom:-16,near:1,far:60}); sun.shadow.bias=-.0005; scene.add(sun);
 
 const M=(c,o={})=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.8},o));
 const box=(w,h,d,mat,x,y,z,cast=true)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=true;scene.add(m);return m};
@@ -933,7 +935,7 @@ function makeChar(color,name,isMe,seedKey,look){
   const ref={look:L,g,upper,head,eyes,mouth,armL,armR,legL,legR,body,el:lbl,hit,bowl,sticks,snack,chip,path:[],state:'idle',seat:-1,walkT:Math.random()*9,rotY:0,pos:new THREE.Vector3()};hit.userData.who=ref;return ref;
 }
 function fade(a,on){if(a.faded===on)return;a.faded=on;a.g.traverse(o=>{if(o.isMesh&&o!==a.hit){const m=o.material;if(!m.userData.base){m.userData.base={t:m.transparent,o:m.opacity}}m.transparent=on?true:m.userData.base.t;m.opacity=on?.35:m.userData.base.o;m.needsUpdate=true}})}
-function setLabel(a,txt,cls){const s=a.el.querySelector('.s');if(!txt){s.hidden=true;return}s.hidden=false;s.textContent=txt;s.className='s'+(cls?' '+cls:'')}
+function setLabel(a,txt,cls){const s=a._s||(a._s=a.el.querySelector('.s'));if(!txt){if(!s.hidden)s.hidden=true;return}if(s.hidden)s.hidden=false;if(s.textContent!==txt)s.textContent=txt;const c='s'+(cls?' '+cls:'');if(s.className!==c)s.className=c}
 function say(a,text,teacher){if(!a||!a.el)return;const old=a.el.querySelector('.say');if(old)old.remove();const b=document.createElement('span');b.className='say'+(teacher?' t':'');b.textContent=text;a.el.prepend(b);clearTimeout(a.sayT);a.sayT=setTimeout(()=>b.remove(),3800)}
 function heart(a){const h=document.createElement('span');h.className='heart';h.textContent='힘내요';a.el.prepend(h);setTimeout(()=>h.remove(),1700)}
 
@@ -1265,7 +1267,7 @@ function enterTeacherMode(){if(staffMode)return;staffMode=true;
   $('tog').style.display='none';document.body.classList.add('staff');sync();flash('감독 선생님으로 들어왔어요. 돌아다니며 학생들을 봐 주세요')}
 function staffBlock(){if(!staffMode)return false;flash('감독 선생님은 앉지 않고 돌아다니며 감독해요');return true}
 if(qs.get('demo')&&qs.has('staff'))setTimeout(enterTeacherMode,1500);
-if(appKey)sb.rpc('modu_is_staff',{p_key:appKey}).then(({data})=>{if(data)enterTeacherMode()});
+if(appKey&&!APPCODE)sb.rpc('modu_is_staff',{p_key:appKey}).then(({data})=>{if(data)enterTeacherMode()});
 let repAt=0,sentNick=null; // 공부왕은 캐릭터 이름으로(원장님 11/2)
 setInterval(()=>{sb.rpc('modu_ping',{p_sid:ME.id,p_room:ROOM_LIST[roomNo-1][0]}).then(()=>{},()=>{});
   if(!appKey)return;if(sentNick!==ME.name){sentNick=ME.name;sb.rpc('modu_nick',{p_key:appKey,p_nick:ME.name}).then(()=>{},()=>{})}
