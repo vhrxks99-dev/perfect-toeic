@@ -82,6 +82,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 .talk{position:fixed;z-index:25;min-width:200px;padding:8px;border-radius:14px;background:oklch(23% .03 262 / .97);border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.4)}
 .talk[hidden]{display:none}
+body.staff #bSit,body.staff #bBag,body.staff #bFun,body.staff #bHand,body.staff #bMk,body.staff #bName{display:none}
 .talk.rep{left:50%;bottom:92px;transform:translateX(-50%);max-width:calc(100vw - 32px)}
 .talk b{display:block;padding:6px 8px 8px;font-size:13px;color:var(--mut);font-weight:600}
 .talk button{display:block;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:9px;font-size:14px}
@@ -181,6 +182,7 @@ const OLD_ROOM={'toeic-1':'library','toeic-2':'beach','toeic-3':'paris','gong-1'
 const ROOMS=ROOM_LIST.length;
 const BOT=new URLSearchParams(location.search).has('bot'); // 시험용 손님: 화면을 그리지 않는다
 const qs=new URLSearchParams(location.search);
+let staffMode=false; // 앱에서 선생님이 들어오면 감독 선생님
 let roomNo=(()=>{let r=qs.get('room')||'library';r=OLD_ROOM[r]||r;const i=ROOM_LIST.findIndex(x=>x[0]===r);return i>=0?i+1:Math.min(ROOMS,Math.max(1,parseInt(r,10)||1))})();
 const $=id=>document.getElementById(id);
 
@@ -1002,12 +1004,15 @@ function npcTick(){const slot=Math.floor(Date.now()/40000);
 
 /* ---------- 감독 선생님: 통로를 따라 돌아다닌다(시각으로 위치를 정해 누구에게나 같은 곳에 보인다) ---------- */
 const teacher=makeChar('#3b4252','감독 선생님',false,'teacher-wanto',{g:'m',hair:'side',hc:0,skin:0,eye:'round',gl:false,top:'tee'});
-teacher.g.scale.setScalar(1.12);
-{const gm=M('#222'),fr=new THREE.Group();for(const dx of [-.18,.18]){const r=new THREE.Mesh(new THREE.TorusGeometry(.1,.018,8,20),gm);r.position.set(dx,-.02,-.5);fr.add(r)}
- const br=new THREE.Mesh(new THREE.BoxGeometry(.12,.02,.02),gm);br.position.set(0,0,-.52);fr.add(br);teacher.head.add(fr);
- const tie=new THREE.Mesh(new THREE.BoxGeometry(.09,.3,.04),M('#c0392b'));tie.position.set(0,.36,-.28);teacher.upper.add(tie)}
-teacher.el.querySelector('.n').classList.add('me');teacher.el.querySelector('.n').style.background='#e0a800';teacher.el.querySelector('.n').style.color='#1a1a1a';
-function teacherTick(dt,t){
+const TEACHER_LOOK={g:'m',hair:'side',hc:0,skin:0,eye:'round',gl:false,top:'tee'};
+function dressTeacher(a){a.g.scale.setScalar(1.12);
+  const gm=M('#222'),fr=new THREE.Group();for(const dx of [-.18,.18]){const r=new THREE.Mesh(new THREE.TorusGeometry(.1,.018,8,20),gm);r.position.set(dx,-.02,-.5);fr.add(r)}
+  const br=new THREE.Mesh(new THREE.BoxGeometry(.12,.02,.02),gm);br.position.set(0,0,-.52);fr.add(br);a.head.add(fr);
+  const tie=new THREE.Mesh(new THREE.BoxGeometry(.09,.3,.04),M('#c0392b'));tie.position.set(0,.36,-.28);a.upper.add(tie);
+  const n=a.el.querySelector('.n');n.classList.add('me');n.style.background='#e0a800';n.style.color='#1a1a1a';a.tch=true}
+dressTeacher(teacher);
+function realTeacherHere(){return staffMode||[...others.values()].some(a=>a.tch)}
+function teacherTick(dt,t){teacher.g.visible=!realTeacherHere();if(!teacher.g.visible)return;
   let d=(Date.now()/1000*1.1)%TLEN, i=0;
   for(;i<TP.length;i++){const a=TP[i],b=TP[(i+1)%TP.length],L=Math.hypot(b[0]-a[0],b[1]-a[1]);if(d<=L){const k=d/L;teacher.g.position.set(a[0]+(b[0]-a[0])*k,0,a[1]+(b[1]-a[1])*k);teacher.g.rotation.y=Math.atan2(-(b[0]-a[0]),-(b[1]-a[1]));break}d-=L}
   teacher.walkT+=dt*7;const w=Math.sin(teacher.walkT)*.45;teacher.legL.rotation.x=w;teacher.legR.rotation.x=-w;
@@ -1015,7 +1020,7 @@ function teacherTick(dt,t){
 }
 const caught=new Map();
 const CATCH={away:'어디 갔지? 자리만 있네~',eat:'몰래 먹으면 안 돼요~ 쉬는 시간에 먹어요!',snack:'과자는 잠깐 넣어 둘까요?',sleep:'일어나요! 조금만 더 힘내요',hand:'네, 무슨 질문이에요?'};
-function patrolCheck(){
+function patrolCheck(){if(!teacher.g.visible)return;
   const tp=teacher.g.position, now=Date.now();
   const all=[['me',me],...[...others].map(([id,a])=>[id,a]),...npcs.map((a,i)=>['npc'+i,a])];
   for(const [key,a] of all){if(!CATCH[a.state])continue;if(Math.hypot(a.g.position.x-tp.x,a.g.position.z-tp.z)>2.2)continue;if(now-(caught.get(key)||0)<25000)continue;
@@ -1026,6 +1031,7 @@ function patrolCheck(){
 
 /* ---------- 말 걸기 ---------- */
 const TO_STUDENT=['자리 좀 비켜 줄래요?','몰래 간식 먹지 마요!','쉿, 조용히 해 주세요','같이 공부해요!','화이팅!','몇 시까지 해요?'];
+const TO_STUDENT_T=['몰래 간식 먹지 마요!','일어나요! 조금만 더 힘내요','휴대폰은 잠깐 넣어 둘까요?','잘하고 있어요, 화이팅!','모르는 거 있으면 손들어요','오늘 목표까지 얼마 남았어요?'];
 const TO_TEACHER=['질문 있어요!','화장실 다녀와도 돼요?','몇 시에 끝나요?','오늘 단어시험 있어요?'];
 // 말 순서: 0 자리 비켜 / 1 간식 먹지 마 / 2 조용히 / 3 같이 공부 / 4 화이팅 / 5 몇 시까지
 const NPC_REPLY={
@@ -1039,7 +1045,7 @@ const T_REPLY={0:['손들고 기다리면 갈게요','무슨 문제예요? 번�
 const talkBox=$('talk');let talkTarget=null;
 function whoKey(a){if(a===teacher)return 'teacher';const ni=npcs.indexOf(a);if(ni>=0)return 'npc'+ni;for(const [id,b] of others)if(b===a)return id;return null}
 function nameOf(a){return a.el.querySelector('.n').textContent}
-function openTalk(a,x,y){talkTarget=a;const list=a===teacher?TO_TEACHER:TO_STUDENT;
+function openTalk(a,x,y){talkTarget=a;const list=a===teacher?TO_TEACHER:staffMode?TO_STUDENT_T:TO_STUDENT;
   talkBox.innerHTML='<b></b>';talkBox.querySelector('b').textContent=nameOf(a)+'에게 말 걸기';
   list.forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{talkBox.hidden=true;talkTo(a,i)};talkBox.appendChild(b)});
   if(envNow==='snow'&&a!==teacher){const b=document.createElement('button');b.textContent='눈뭉치 던지기';b.onclick=()=>{talkBox.hidden=true;throwSnow(me,a)};talkBox.appendChild(b)}
@@ -1094,7 +1100,7 @@ function mkFill(){const L=draft;
     btn.onclick=()=>{if(k==='gl')L.gl=v==='1';else if(k==='hc'||k==='skin')L[k]=+v;else L[k]=v;
       if(k==='g'&&!HAIR_STYLES[v].some(h=>h[0]===L.hair))L.hair=HAIR_STYLES[v][0][0];
       if(k==='color')ME.color=v;ME.look=L;rebuildMe();mkFill()}})})}
-function openMaker(){draft=Object.assign({},me.look||lookFromSeed(ME.id));draft.color=ME.color;ME.look=draft;$('maker').classList.add('on');mkFill();
+function openMaker(){if(staffMode){flash('감독 선생님은 꾸미기 없이 들어가요');return}draft=Object.assign({},me.look||lookFromSeed(ME.id));draft.color=ME.color;ME.look=draft;$('maker').classList.add('on');mkFill();
   controls.minDistance=2.5;camOff0=innerWidth<760?6.2:4.2;makerOn=true;sideOpen(false)}
 $('mkRnd').onclick=()=>{draft=randomLook();ME.color=draft.color;ME.look=draft;rebuildMe();mkFill()};
 $('mkGo').onclick=()=>{ME.name=$('mkA').value+' '+$('mkB').value;ME.look=draft;ME.color=draft.color;saveMe();rebuildMe();$('maker').classList.remove('on');
@@ -1103,12 +1109,13 @@ $('mkGo').onclick=()=>{ME.name=$('mkA').value+' '+$('mkB').value;ME.look=draft;M
 /* ---------- 실시간 ---------- */
 const sb=createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:10}}});
 let ch=null, peersCount=1;
-function payload(){const p=me.g.position;return{name:ME.name,color:ME.color,lk:ME.look||null,x:+p.x.toFixed(2),z:+p.z.toFixed(2),ry:+me.g.rotation.y.toFixed(2),state:me.state,seat:me.seat,pend:me.pendingSeat??-1,today:todaySec,fs:focusStart,path:me.path.slice(0,6),bag:bagAlive(myBag)?myBag:null}}
+function payload(){const p=me.g.position;return{name:ME.name,color:ME.color,lk:ME.look||null,x:+p.x.toFixed(2),z:+p.z.toFixed(2),ry:+me.g.rotation.y.toFixed(2),state:me.state,seat:me.seat,pend:me.pendingSeat??-1,today:todaySec,fs:focusStart,path:me.path.slice(0,6),bag:bagAlive(myBag)?myBag:null,tch:staffMode?1:0,name:staffMode?'감독 선생님':ME.name}}
 let syncT=0;function sync(){if(!ch)return;clearTimeout(syncT);syncT=setTimeout(()=>ch.track(payload()).catch(()=>{}),60)}
 function applyPeer(id,d){
   let a=others.get(id);
   if(a&&d.lk&&JSON.stringify(d.lk)!==JSON.stringify(a.lkSent)){removePeer(id);a=null}
-  if(!a){a=makeChar(d.color||'#2f6fe4',d.name||'손님',false,id,d.lk||undefined);a.lkSent=d.lk;a.g.position.set(d.x,0,d.z);others.set(id,a)}
+  if(a&&!!d.tch!==!!a.tch){removePeer(id);a=null}
+  if(!a){a=d.tch?makeChar('#3b4252','감독 선생님',false,'tch-'+id,TEACHER_LOOK):makeChar(d.color||'#2f6fe4',d.name||'손님',false,id,d.lk||undefined);if(d.tch)dressTeacher(a);a.lkSent=d.lk;a.g.position.set(d.x,0,d.z);others.set(id,a)}
   a.data=d;
   const wasSeat=a.seat;
   if(d.path&&d.path.length){a.path=d.path.map(q=>({x:q.x,z:q.z}));a.pendingSeat=d.pend>=0?d.pend:null;if(a.seat>=0){lampOn(a.seat,false);a.seat=-1;poseSit(a,false)}}
@@ -1183,7 +1190,7 @@ renderer.domElement.addEventListener('pointerup',e=>{
 function seatTaken(i){for(const a of npcs)if(a.seat===i)return true;for(const a of others.values()){if(a.seat===i||a.pendingSeat===i)return true;const b=a.data&&a.data.bag;if(bagAlive(b)&&b.seat===i)return true}return false}
 function leaveSeat(){if(me.seat>=0){stopFocus();standUp(me)}if(me.onBench){me.onBench=false;poseSit(me,false)}me.pendingBench=null;me.state='idle'}
 function walkTo(p){if(inDesk(p))return;leaveSeat();me.pendingSeat=null;me.path=route(me.g.position,p);me.state='walk';sync()}
-function goSeat(i){if(me.seat===i)return;if(seatTaken(i)){flash('누가 먼저 맡은 자리예요. 다른 자리를 골라 주세요');return}if(myBag)myBag=null;leaveSeat();const s=seats[i];me.pendingSeat=i;me.path=route(me.g.position,{x:s.ax,z:s.az});me.path.push({x:s.x,z:s.z});me.state='walk';sync()}
+function goSeat(i){if(staffBlock())return;if(me.seat===i)return;if(seatTaken(i)){flash('누가 먼저 맡은 자리예요. 다른 자리를 골라 주세요');return}if(myBag)myBag=null;leaveSeat();const s=seats[i];me.pendingSeat=i;me.path=route(me.g.position,{x:s.ax,z:s.az});me.path.push({x:s.x,z:s.z});me.state='walk';sync()}
 function flash(t){const h=$('help');h.textContent=t;h.style.opacity=1;clearTimeout(flash.t);flash.t=setTimeout(()=>h.style.opacity=0,2200)}
 $('bSit').onclick=()=>{const f=freeSeat();if(f>=0){goSeat(f);return}
   leaveSeat();setMe('wander');flash('자리가 다 찼어요. 빈 자리가 날 때까지 돌아다녀요');wanderNext()};
@@ -1206,8 +1213,17 @@ $('bHand').onclick=()=>{if(me.seat<0){flash('책상에 앉아서 손들 수 있�
   if(me.state==='hand'&&appKey)sb.rpc('modu_hand',{p_key:appKey}).then(({data})=>{if(data)flash('담당 선생님께 손들었다고 알렸어요')})};
 // 완토앱에서 열었을 때만: 앱이 준 코드를 열쇠로 바꿔 두고, 공부 시간을 앱 「내 학습」에 쌓는다(열람실 화면은 누구나 똑같다)
 let appKey=null;try{appKey=localStorage.getItem('modu_key')}catch(e){}
-{const c=qs.get('c');if(c){sb.rpc('modu_claim',{p_code:c}).then(({data})=>{if(data){appKey=data;try{localStorage.setItem('modu_key',data)}catch(e){}}});
+{const c=qs.get('c');if(c){sb.rpc('modu_claim',{p_code:c}).then(({data})=>{if(data){appKey=data;try{localStorage.setItem('modu_key',data)}catch(e){}sb.rpc('modu_is_staff',{p_key:data}).then(({data:st})=>{if(st)enterTeacherMode()})}});
   qs.delete('c');history.replaceState(null,'','?'+qs.toString())}}
+function enterTeacherMode(){if(staffMode)return;staffMode=true;
+  $('maker').classList.remove('on');makerOn=false;controls.minDistance=7;leaveSeat();
+  const keep={pos:me.g.position.clone(),ry:me.g.rotation.y};me.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(me.g);
+  const n=makeChar('#3b4252','감독 선생님',true,'tch-'+ME.id,TEACHER_LOOK);Object.assign(me,n,{path:[],seat:-1,state:'idle',pendingSeat:null});dressTeacher(me);
+  me.g.position.copy(keep.pos);me.g.rotation.y=keep.ry;me.hit.userData.who=me;$('meName').textContent='나: 감독 선생님';
+  $('tog').style.display='none';document.body.classList.add('staff');sync();flash('감독 선생님으로 들어왔어요. 돌아다니며 학생들을 봐 주세요')}
+function staffBlock(){if(!staffMode)return false;flash('감독 선생님은 앉지 않고 돌아다니며 감독해요');return true}
+if(qs.get('demo')&&qs.has('staff'))setTimeout(enterTeacherMode,1500);
+if(appKey)sb.rpc('modu_is_staff',{p_key:appKey}).then(({data})=>{if(data)enterTeacherMode()});
 let repAt=0,sentNick=null; // 공부왕은 캐릭터 이름으로(원장님 11/2)
 setInterval(()=>{sb.rpc('modu_ping',{p_sid:ME.id,p_room:ROOM_LIST[roomNo-1][0]}).then(()=>{},()=>{});
   if(!appKey)return;if(sentNick!==ME.name){sentNick=ME.name;sb.rpc('modu_nick',{p_key:appKey,p_nick:ME.name}).then(()=>{},()=>{})}
