@@ -59,7 +59,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .mk-go{display:flex;gap:8px;margin-top:20px}.mk-go button{flex:1;padding:13px;border-radius:12px;border:0;font-weight:700}
 .mk-go .go{background:var(--acc)}.mk-go .rnd{background:oklch(32% .03 262)}
 @media (max-width:760px){.mk-panel{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:58vh}}
-.tog{right:16px;top:16px;display:none;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}
+.tog{right:16px;top:16px;display:flex;align-items:center;gap:12px;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--panel);backdrop-filter:blur(8px)}
+.tog b{font-size:20px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}.tog span{color:#ffd166;font-weight:700;font-size:14px}.tog span:empty{display:none}.tog i{font-style:normal;color:var(--mut);font-size:13px}
+@media (min-width:761px){.side{top:72px}}
 .label{display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none;transform:translateY(-6px)}
 .label .n{font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;background:oklch(18% .03 262 / .75);white-space:nowrap}
 .label .n.me{background:var(--acc)}
@@ -108,7 +110,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .loading b{font-family:Hahmlet,serif;font-size:28px}.loading span{display:block;margin-top:8px;color:var(--mut);font-size:14px;text-align:center}
 @media (max-width:760px){
   .side{left:12px;right:12px;width:auto;top:auto;bottom:84px;max-height:52vh;overflow:auto}
-  .tog{display:block;top:auto;bottom:84px;right:12px}
+  .tog{top:auto;bottom:84px;right:12px;padding:8px 14px}.tog b{font-size:17px}
   .side.hide{transform:translateY(calc(100% + 120px))}
   .top{left:12px;top:12px;padding:8px 12px}.top b{font-size:16px}
   .bar{left:8px;right:8px;translate:none;justify-content:space-between;overflow-x:auto}
@@ -131,7 +133,7 @@ button{font:inherit;color:inherit;cursor:pointer}
   <h3>오늘 공부 시간 (이 열람실)</h3><ol class="rank" id="rank"></ol>
   <div class="mine"><button id="bName">캐릭터 꾸미기</button></div>
 </aside>
-<button class="hud tog" id="tog">공부 기록</button>
+<button class="hud tog" id="tog" aria-expanded="false" aria-controls="side"><b id="togT">00:00:00</b><span id="togR"></span><i id="togI">펼치기</i></button>
 <nav class="hud bar" aria-label="행동">
   <button id="bMk">캐릭터 꾸미기</button><button id="bSit">빈 자리 앉기</button><button id="bBag">자리 맡기</button><button id="bFun" aria-expanded="false" aria-controls="fun">딴짓하기</button><button id="bHand">질문 손들기</button><button id="bCheer">응원 보내기</button>
 </nav>
@@ -960,10 +962,10 @@ function mkFill(){const L=draft;
       if(k==='g'&&!HAIR_STYLES[v].some(h=>h[0]===L.hair))L.hair=HAIR_STYLES[v][0][0];
       if(k==='color')ME.color=v;ME.look=L;rebuildMe();mkFill()}})})}
 function openMaker(){draft=Object.assign({},me.look||lookFromSeed(ME.id));draft.color=ME.color;ME.look=draft;$('maker').classList.add('on');mkFill();
-  controls.minDistance=2.5;camOff0=innerWidth<760?6.2:4.2;makerOn=true;$('side').classList.add('hide')}
+  controls.minDistance=2.5;camOff0=innerWidth<760?6.2:4.2;makerOn=true;sideOpen(false)}
 $('mkRnd').onclick=()=>{draft=randomLook();ME.color=draft.color;ME.look=draft;rebuildMe();mkFill()};
 $('mkGo').onclick=()=>{ME.name=$('mkA').value+' '+$('mkB').value;ME.look=draft;ME.color=draft.color;saveMe();rebuildMe();$('maker').classList.remove('on');
-  controls.minDistance=7;camOff0=11;makerOn=false;if(innerWidth>=760)$('side').classList.remove('hide');sync();drawRank();flash(ME.name+' 님, 어서 와요!')};
+  controls.minDistance=7;camOff0=11;makerOn=false;sync();drawRank();flash(ME.name+' 님, 어서 와요!')};
 
 /* ---------- 실시간 ---------- */
 const sb=createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:10}}});
@@ -1010,6 +1012,7 @@ function drawRank(){
   rows.sort((a,b)=>b.sec-a.sec);
   $('rank').innerHTML=rows.slice(0,12).map(r=>`<li class="${r.me?'mine':''}"><span></span><em>${fmtKo(r.sec)}</em></li>`).join('');
   [...$('rank').children].forEach((li,i)=>li.firstChild.textContent=(rows[i].me?'나 · ':'')+rows[i].name);
+  $('togR').textContent=rows.length>1?(rows.findIndex(r=>r.me)+1)+'위':'';
 }
 
 /* ---------- 누른 자리 표시 ---------- */
@@ -1062,8 +1065,10 @@ funBox.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
 $('bHand').onclick=()=>{if(me.seat<0){flash('책상에 앉아서 손들 수 있어요');return}setMe(me.state==='hand'?'sit':'hand')};
 $('bCheer').onclick=()=>{heart(me);ch&&ch.send({type:'broadcast',event:'cheer',payload:{id:ME.id}})};
 function refreshBtns(){$('bHand').classList.toggle('on',me.state==='hand');$('bBag').classList.toggle('on',bagAlive(myBag))}
-$('tog').onclick=()=>$('side').classList.toggle('hide');
-if(innerWidth<760)$('side').classList.add('hide');
+// 오늘의 공부 표는 접어 두고, 작은 시간 칸을 누르면 펼친다(원장님 11/2 A안)
+function sideOpen(on){$('side').classList.toggle('hide',!on);$('togI').textContent=on?'접기':'펼치기';$('tog').setAttribute('aria-expanded',on)}
+$('tog').onclick=()=>sideOpen($('side').classList.contains('hide'));
+sideOpen(false);
 
 $('bMk').onclick=()=>openMaker();
 
@@ -1095,7 +1100,7 @@ function loop(){
   for(const a of others.values()){const d=a.data||{};const [tx,c]=labFor(a,d.fs);setLabel(a,tx,c)}
   for(const a of npcs){const [tx,c]=labFor(a,a.npc.start);setLabel(a,tx,c)}
   if((bagT+=dt)>1){bagT=0;drawBags();refreshBtns();npcTick();patrolCheck()}
-  $('tNow').textContent=fmt(liveSec(todaySec,focusStart));
+  $('tNow').textContent=$('togT').textContent=fmt(liveSec(todaySec,focusStart));
   if((rankT+=dt)>2){rankT=0;drawRank()}
   if(BOT)setTimeout(loop,50);else if(focusOn)setTimeout(loop,1000);else{renderer.render(scene,camera);labels.render(scene,camera);requestAnimationFrame(loop)}
 }
