@@ -1033,15 +1033,28 @@ const liveSec=(base,start)=>base+(start?(Date.now()-start)/1000:0);
 const NPC_NAMES=['조용한 고래','말랑한 두부','성실한 다람쥐','반짝이는 펭귄','꾸벅꾸벅 곰','새벽의 올빼미','느릿한 달팽이','씩씩한 병아리','차분한 수달','부지런한 개미','단단한 감자','포근한 고양이','맑은 하늘','용감한 토끼','느긋한 판다','작은 별','상냥한 사슴','든든한 바위','바쁜 꿀벌','졸린 코알라'];
 const npcs=[];
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
+// 손님 수는 서울 시각·날짜로 정한다: 낮엔 적고 저녁 7~10시에 가장 많고, 날마다 조금씩 다르다(원장님 11/3). 서버 modu_count 도 같은 식
+const GF=[.45,.3,.18,.12,.1,.1,.15,.25,.35,.42,.48,.52,.55,.55,.58,.6,.65,.75,.9,1,1,.98,.85,.65];
+const frac=x=>x-Math.floor(x);
+function guestFactor(t=Date.now()){const s=t/1000+32400,kh=s/3600,h=Math.floor(kh)%24,a=GF[h],b=GF[(h+1)%24],day=Math.floor(s/86400);
+  return (a+(b-a)*frac(kh))*(.88+.24*frac(Math.sin(day*12.9898)*43758.5453))}
+function guestCnt(n,base){const day=Math.floor((Date.now()/1000+32400)/86400);
+  return Math.max(1,Math.min(seats.length-4,Math.round(base*guestFactor()*(.85+.3*frac(Math.sin((day+n*31)*12.9898)*43758.5453)))))}
 function spawnNpcs(n){
   for(const a of npcs){if(a.seat>=0)lampOn(a.seat,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g)}npcs.length=0;
   // 열람실마다 4~15명으로 들쭉날쭉(원장님 11/2 「전부 8명이라 봇 티 나」). 합계 113명(북한 열람실 포함) = 서버 modu_count
-  const r=rng(hashStr(ROOM_LIST[n-1][0])*7919+13);r();r();const cnt=4+Math.floor(r()*12);const used=new Set();
+  const r=rng(hashStr(ROOM_LIST[n-1][0])*7919+13);r();r();const cnt=guestCnt(n,4+Math.floor(r()*12));const used=new Set();npcCnt=cnt;
   for(let k=0;k<cnt;k++){let si;do{si=Math.floor(r()*seats.length)}while(used.has(si));used.add(si);
+    const busy=me.seat===si||me.pendingSeat===si||[...others.values()].some(a=>a.seat===si||a.pendingSeat===si);
     const a=makeChar(COLORS[Math.floor(r()*COLORS.length)],NPC_NAMES[(k+n)%NPC_NAMES.length],false,'npc'+n+'-'+k,randomLook(r));
     const st=seats[si];a.g.position.set(st.x,0,st.z);a.g.rotation.y=st.ry+Math.PI;a.seat=si;poseSit(a,true);lampOn(si,true);
-    a.npc={off:Math.floor(r()*1000),start:Date.now()-Math.floor(r()*5400)*1000};a.state='sit';npcs.push(a)}
+    a.npc={off:Math.floor(r()*1000),start:Date.now()-Math.floor(r()*5400)*1000};a.state='sit';
+    if(busy){lampOn(si,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g);continue}npcs.push(a)}
+  const c=$('cnt');if(c)c.textContent=(peersCount+npcs.length)+'명 공부 중'
 }
+let npcCnt=0;
+// 1분마다 시각에 맞춰 손님 수를 다시 본다. 바뀐 때만 다시 앉힌다(같은 순서라 있던 손님은 그대로 그 자리)
+setInterval(()=>{if(!roomNo)return;const r=rng(hashStr(ROOM_LIST[roomNo-1][0])*7919+13);r();r();if(guestCnt(roomNo,4+Math.floor(r()*12))!==npcCnt){spawnNpcs(roomNo);drawBags()}},60000);
 const NPC_ACTS=['sit','sit','sit','sit','sit','sit','sleep','eat','snack','rest','hand','sit','sit','sleep'];
 function npcTick(){const slot=Math.floor(Date.now()/40000);
   for(const a of npcs){const st=NPC_ACTS[(slot*7+a.npc.off)%NPC_ACTS.length];if(a.state!==st){a.state=st;lampOn(a.seat,st!=='sleep')}}}
