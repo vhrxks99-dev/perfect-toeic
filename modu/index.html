@@ -119,7 +119,7 @@ body.staff #bSit,body.staff #bBag,body.staff #bFun,body.staff #bHand,body.staff 
   .top{left:12px;top:12px;padding:8px 12px}.top b{font-size:16px}
   .bar{left:8px;right:8px;translate:none;justify-content:space-between;overflow-x:auto}
   .bar button{padding:10px 10px;font-size:13px}
-  .help{display:none}
+  .help{top:62px;max-width:calc(100% - 24px);white-space:normal;text-align:center;font-size:12.5px;line-height:1.4;z-index:30}
 }
 @media (prefers-reduced-motion:reduce){.label .heart{animation:none}}
 </style>
@@ -200,7 +200,8 @@ function loadMe(){try{const m=JSON.parse(localStorage.getItem('wt_sr_me')||'null
   const m={id:crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2),name:ADJ[Math.random()*ADJ.length|0]+' '+NOUN[Math.random()*NOUN.length|0],color:COLORS[Math.random()*COLORS.length|0]};
   try{localStorage.setItem('wt_sr_me',JSON.stringify(m))}catch(e){} return m}
 const ME=loadMe();
-const todayKey='wt_sr_day_'+new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+const dayKey=()=>'wt_sr_day_'+new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
+let todayKey='wt_sr_day_'+new Date().toLocaleDateString('sv-SE',{timeZone:'Asia/Seoul'});
 let todaySec=0; try{todaySec=+localStorage.getItem(todayKey)||0}catch(e){}
 $('meName').textContent='나: '+ME.name;
 
@@ -540,12 +541,12 @@ function toyClick(hit){const o=hit.object,k=o.userData.toy,g=envGroups[envNow];
       flash(`조개를 주웠어요! 오늘 ${n}개`);beep(1400,2000,.15,'triangle');burst(hit.point,'#fff4d8',14,1.2,.8,-2,.12);return true}
     case 'fire':{g.userData.fireLvl=Math.min(2.4,g.userData.fireLvl+.35);burst(new THREE.Vector3(g.userData.fire.fx,1.2,g.userData.fire.fz),'#ffb347',40,2.2,1.4,1.2,.18);beep(120,60,.4,'sawtooth',.06);flash('장작을 넣었어요. 불이 커졌어요!');toySend('fire');return true}
     case 'marsh':{const mm=g.userData.marsh;g.userData.marshT++;const c=['#fbf7ee','#f1d29a','#c98a4b','#6b3d1f'][Math.min(3,g.userData.marshT)];mm.material.color.set(c);
-      flash(g.userData.marshT>=3?'앗, 탔다! 그래도 냠냠':g.userData.marshT===2?'노릇노릇 딱 좋아요! 냠':'마시멜로를 굽는 중…');if(g.userData.marshT>=3){setTimeout(()=>{g.userData.marshT=0;mm.material.color.set('#fbf7ee')},2500)}if(g.userData.marshT===2)setMe(me.seat>=0?'snack':'snack');return true}
+      flash(g.userData.marshT>=3?'앗, 탔다! 그래도 냠냠':g.userData.marshT===2?'노릇노릇 딱 좋아요! 냠':'마시멜로를 굽는 중…');if(g.userData.marshT>=3){setTimeout(()=>{g.userData.marshT=0;mm.material.color.set('#fbf7ee')},2500)}if(g.userData.marshT===2)snackFor('snack');return true}
     case 'snowman':{growSnow(.12);toySend('snow');beep(500,300,.2,'triangle',.05);return true}
     case 'eiffel':{g.userData.sparkUntil=Date.now()+12000;flash('에펠탑이 반짝반짝! (정시마다 5분씩 반짝여요)');return true}
-    case 'cafe':{flash('크루아상과 커피를 시켰어요. 잠깐 쉬어 가요');beep(700,900,.1);setMe('snack');return true}
-    case 'hotdog':{flash('핫도그 하나 주세요! 잠깐 먹고 올게요');beep(600,800,.1);setMe('eat');return true}
-    case 'vend':{beep(140,70,.25,'square',.08);setTimeout(()=>beep(220,90,.18,'square',.06),260);flash('덜컹! 음료가 나왔어요');setMe('snack');return true}
+    case 'cafe':{flash('크루아상과 커피를 시켰어요. 잠깐 쉬어 가요');beep(700,900,.1);snackFor('snack');return true}
+    case 'hotdog':{flash('핫도그 하나 주세요! 잠깐 먹고 올게요');beep(600,800,.1);snackFor('eat');return true}
+    case 'vend':{beep(140,70,.25,'square',.08);setTimeout(()=>beep(220,90,.18,'square',.06),260);flash('덜컹! 음료가 나왔어요');snackFor('snack');return true}
     case 'cat':{const meow=()=>{beep(700,1100,.18,'sawtooth',.05);setTimeout(()=>beep(1100,600,.3,'sawtooth',.05),180)};meow();g.userData.catJump();flash('야옹~');return true}
     case 'portrait':{const L=['김태완 원장님: 오늘 숙제는 다 했나?','김태완 원장님: 촛불 아껴 쓰고 한 문제 더!','김태완 원장님: 졸지 말고 Part 5 열 문제!','김태완 원장님: 단어 30개 외우기 전엔 못 나간다'];flash(L[Math.floor(Math.random()*L.length)]);beep(220,180,.3,'triangle',.05);return true}
     case 'camel':{g.userData.camelT=1.2;beep(160,110,.5,'sawtooth',.05);flash('낙타가 좋아해요. 음머~');return true}
@@ -996,6 +997,7 @@ function step(a,dt,t){
 function arrive(a){
   if(a===me&&me.pendingBench){const {pos,ry}=me.pendingBench;me.pendingBench=null;me.g.position.set(pos.x+Math.sin(ry)*.1,0,pos.z+Math.cos(ry)*.1);me.g.rotation.y=ry+Math.PI;poseSit(me,true);me.onBench=true;me.state='rest';sync();return}
   if(a===me&&me.pendingTalk){const {a:tg,i}=me.pendingTalk;me.pendingTalk=null;me.state='idle';a.g.position.y=0;doTalk(tg,i);return}
+  if(a===me&&a.pendingSeat!=null&&a.pendingSeat>=0&&seatTaken(a.pendingSeat)){a.pendingSeat=null;a.state='idle';a.g.position.y=0;flash('그 사이 누가 앉았어요. 다른 자리를 골라 주세요');sync();return}
   if(a.pendingSeat!=null&&a.pendingSeat>=0){const s=seats[a.pendingSeat];a.g.position.set(s.x,0,s.z);a.g.rotation.y=s.ry+Math.PI;a.seat=a.pendingSeat;a.pendingSeat=null;a.state='sit';poseSit(a,true);lampOn(a.seat,true);
     if(a===me){startFocus();sync()}}
   else{a.g.position.y=0;a.legL.rotation.x=a.legR.rotation.x=0}
@@ -1004,7 +1006,8 @@ function standUp(a){if(a.seat>=0){lampOn(a.seat,false);seats[a.seat].by=null;con
 
 /* ---------- 내 상태 · 가방 · 돌아다니기 ---------- */
 const counting=st=>me.seat>=0&&(st==='sit'||st==='hand');
-function setMe(st){const was=counting(me.state);me.state=st;const now=counting(st);if(was&&!now)stopFocus();if(!was&&now)startFocus();
+function snackFor(st,ms=12000){setMe(st);setTimeout(()=>{if(me.state===st)setMe(me.seat>=0?'sit':'idle')},ms)}
+function setMe(st){me.autoSlept=false;const was=counting(me.state);me.state=st;const now=counting(st);if(was&&!now)stopFocus();if(!was&&now)startFocus();
   if(me.seat>=0)lampOn(me.seat,st!=='sleep');refreshBtns();sync()}
 let myBag=null;
 function bagAlive(b){return !!(b&&b.seat>=0&&b.until>Date.now())}
@@ -1019,8 +1022,8 @@ let focusStart=0;
 let wake=null,lastCheck=0;
 async function wakeOn(){try{if('wakeLock' in navigator&&!wake){wake=await navigator.wakeLock.request('screen');wake.addEventListener('release',()=>{wake=null})}}catch(e){}}
 function wakeOff(){try{wake&&wake.release()}catch(e){}wake=null}
-function startFocus(){focusStart=Date.now();lastCheck=Date.now();wakeOn();$('tSub').textContent='집중 중 · 화면을 켜 두는 동안만 시간이 올라가요'}
-function stopFocus(){wakeOff();if(!focusStart)return;todaySec+=Math.round((Date.now()-focusStart)/1000);focusStart=0;try{localStorage.setItem(todayKey,todaySec)}catch(e){}$('tSub').textContent='오늘 합계 '+fmt(todaySec)}
+function startFocus(){focusStart=Date.now();lastCheck=Date.now();try{repAt=focusStart}catch(e){}wakeOn();$('tSub').textContent='집중 중 · 화면을 켜 두는 동안만 시간이 올라가요'}
+function stopFocus(){wakeOff();if(!focusStart)return;try{if(appKey){const sec=Math.round((Date.now()-Math.max(repAt||0,focusStart))/1000);if(sec>0)sb.rpc('modu_add',{p_key:appKey,p_sec:Math.min(600,sec)}).then(()=>{},()=>{})}repAt=0}catch(e){}todaySec+=Math.round((Date.now()-focusStart)/1000);focusStart=0;try{localStorage.setItem(todayKey,todaySec)}catch(e){}$('tSub').textContent='오늘 합계 '+fmt(todaySec)}
 const fmt=s=>{s=Math.max(0,s|0);const h=s/3600|0,m=s%3600/60|0,x=s%60;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0')};
 const fmtKo=s=>{const h=s/3600|0,m=s%3600/60|0;return h?`${h}시간 ${m}분`:`${m}분`};
 const liveSec=(base,start)=>base+(start?(Date.now()-start)/1000:0);
@@ -1066,7 +1069,7 @@ function patrolCheck(){if(!teacher.g.visible)return;
   const all=[['me',me],...[...others].map(([id,a])=>[id,a]),...npcs.map((a,i)=>['npc'+i,a])];
   for(const [key,a] of all){if(!CATCH[a.state])continue;if(Math.hypot(a.g.position.x-tp.x,a.g.position.z-tp.z)>2.2)continue;if(now-(caught.get(key)||0)<25000)continue;
     caught.set(key,now);say(teacher,CATCH[a.state],true);
-    if(a===me&&a.state!=='hand'&&a.state!=='away'){flash('감독 선생님한테 걸렸어요!');setTimeout(()=>{if(CATCH[me.state]&&me.state!=='hand')setMe(me.seat>=0?'sit':'idle')},1300)}
+    if(a===me&&a.state!=='hand'&&a.state!=='away'&&!me.autoSlept){flash('감독 선생님한테 걸렸어요!');setTimeout(()=>{if(CATCH[me.state]&&me.state!=='hand')setMe(me.seat>=0?'sit':'idle')},1300)}
     break}
 }
 
@@ -1089,7 +1092,8 @@ const T_REPLY={0:['손들고 기다리면 갈게요','무슨 문제예요? 번�
 const talkBox=$('talk');let talkTarget=null;
 function whoKey(a){if(a===teacher)return 'teacher';const ni=npcs.indexOf(a);if(ni>=0)return 'npc'+ni;for(const [id,b] of others)if(b===a)return id;return null}
 function nameOf(a){return a.el.querySelector('.n').textContent}
-function openTalk(a,x,y){talkTarget=a;const list=a===teacher?TO_TEACHER:staffMode?TO_STUDENT_T:TO_STUDENT;
+const talkList=a=>(a===teacher||a.tch)?TO_TEACHER:staffMode?TO_STUDENT_T:TO_STUDENT;
+function openTalk(a,x,y){talkTarget=a;const list=talkList(a);
   talkBox.innerHTML='<b></b>';talkBox.querySelector('b').textContent=nameOf(a)+'에게 말 걸기';
   list.forEach((t,i)=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{talkBox.hidden=true;talkTo(a,i)};talkBox.appendChild(b)});
   if(envNow==='snow'&&a!==teacher){const b=document.createElement('button');b.textContent='눈뭉치 던지기';b.onclick=()=>{talkBox.hidden=true;throwSnow(me,a)};talkBox.appendChild(b)}
@@ -1104,15 +1108,17 @@ function talkTo(a,i){
   me.path=route(me.g.position,spot);me.state='walk';sync()}
 function doTalk(a,i){
   const p=me.g.position,q=a.g.position;if(me.seat<0)me.g.rotation.y=Math.atan2(-(q.x-p.x),-(q.z-p.z));
-  const list=a===teacher?TO_TEACHER:staffMode?TO_STUDENT_T:TO_STUDENT;const text=list[i];say(me,text);
+  if(a!==teacher&&!npcs.includes(a)&&![...others.values()].includes(a)){flash(nameOf(a)+'님은 이미 나갔어요');sync();return}
+  const list=talkList(a);const text=list[i];say(me,text);
   const key=whoKey(a);ch&&ch.send({type:'broadcast',event:'say',payload:{id:ME.id,text,to:key}});
   const pool=a===teacher?T_REPLY[i]:(npcs.includes(a)?(staffMode?(a.state==='sleep'?NPC_REPLY_T_SLEEP:NPC_REPLY_T):(NPC_REPLY[a.state]||NPC_REPLY.sit))[i]:null);
   if(pool){const rep=pool[Math.floor(Math.random()*pool.length)];setTimeout(()=>{say(a,rep,a===teacher);ch&&ch.send({type:'broadcast',event:'npcsay',payload:{to:key,text:rep}})},1100)}
   sync()}
-const REPLY_CHOICES=['네, 좋아요!','잠깐만요~','싫어요!','꺼져!','ㅋㅋㅋ 들켰다','화이팅!','쉿, 공부 중이에요'];
+const REPLY_CHOICES=['네, 좋아요!','잠깐만요~','ㅋㅋㅋ 들켰다','화이팅!','고마워요!','쉿, 공부 중이에요'];
+const REPLY_CHOICES_T=['네, 지금 갈게요!','잠깐만 기다려요','좋아요, 다녀와요','오늘은 없어요','화이팅!','조용히 공부해요~'];
 let repT=0;
 function openReply(a,id,text){const box=$('rep');box.innerHTML='<b></b>';box.querySelector('b').textContent=nameOf(a)+': '+text+' · 답장 고르기';
-  REPLY_CHOICES.forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{box.hidden=true;say(me,t);ch&&ch.send({type:'broadcast',event:'say',payload:{id:ME.id,text:t,to:id,rep:true}})};box.appendChild(b)});
+  (staffMode?REPLY_CHOICES_T:REPLY_CHOICES).forEach(t=>{const b=document.createElement('button');b.textContent=t;b.onclick=()=>{box.hidden=true;say(me,t);ch&&ch.send({type:'broadcast',event:'say',payload:{id:ME.id,text:t,to:id,rep:true}})};box.appendChild(b)});
   box.hidden=false;clearTimeout(repT);repT=setTimeout(()=>{box.hidden=true},20000)}
 function byKey(k){if(k==='teacher')return teacher;if(k&&k.startsWith('npc'))return npcs[+k.slice(3)];return k===ME.id?me:others.get(k)}
 
@@ -1156,7 +1162,7 @@ $('camHome').onclick=()=>camSet(o=>o.copy(envNow==='library'||envNow==='northkor
 
 /* ---------- 실시간 ---------- */
 const sb=createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:10}}});
-let ch=null, peersCount=1;
+let ch=null, peersCount=1, joinedAt=0;
 function payload(){const p=me.g.position;return{name:ME.name,color:ME.color,lk:ME.look||null,x:+p.x.toFixed(2),z:+p.z.toFixed(2),ry:+me.g.rotation.y.toFixed(2),state:me.state,seat:me.seat,pend:me.pendingSeat??-1,today:todaySec,fs:focusStart,path:me.path.slice(0,6),bag:bagAlive(myBag)?myBag:null,tch:staffMode?1:0,name:staffMode?'감독 선생님':ME.name}}
 let syncT=0;function sync(){if(!ch)return;clearTimeout(syncT);syncT=setTimeout(()=>ch.track(payload()).catch(()=>{}),60)}
 function applyPeer(id,d){
@@ -1173,14 +1179,15 @@ function applyPeer(id,d){
 }
 function removePeer(id){const a=others.get(id);if(!a)return;if(a.seat>=0)lampOn(a.seat,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g);others.delete(id)}
 async function join(n){
+  if(me.seat>=0||me.onBench)leaveSeat();me.path=[];me.pendingSeat=null;me.pendingTalk=null;me.pendingBench=null;myBag=null;joinedAt=Date.now();$('full').style.display='none';
   if(ch){await sb.removeChannel(ch);ch=null;for(const id of [...others.keys()])removePeer(id)}
-  roomNo=n;history.replaceState(null,'','?room='+ROOM_LIST[n-1][0]);$('roomSel').value=n;setEnv(qs.get('env')||ROOM_LIST[n-1][0]);roomIntro(n);spawnNpcs(n);
+  roomNo=n;history.replaceState(null,'','?room='+ROOM_LIST[n-1][0]+(AS_STUDENT?'&as=student':''));$('roomSel').value=n;setEnv(qs.get('env')||ROOM_LIST[n-1][0]);roomIntro(n);spawnNpcs(n);
   ch=sb.channel('modu-'+ROOM_LIST[n-1][0],{config:{presence:{key:ME.id},broadcast:{self:false}}});
   ch.on('presence',{event:'sync'},()=>{
     const st=ch.presenceState();const ids=new Set(Object.keys(st));peersCount=ids.size||1;$('cnt').textContent=(peersCount+npcs.length)+'명 공부 중';
     for(const id of ids){if(id===ME.id)continue;const d=st[id][st[id].length-1];applyPeer(id,d)}
     for(const id of [...others.keys()])if(!ids.has(id))removePeer(id);
-    if(peersCount>ROOM_CAP&&n<ROOMS){$('full').style.display='block'}
+    $('full').style.display=(peersCount>ROOM_CAP&&n<ROOMS&&me.seat<0&&Date.now()-joinedAt<8000)?'block':'none';
     drawRank();drawBags();tryAutoSeat();
   });
   ch.on('broadcast',{event:'cheer'},({payload:p})=>{const a=others.get(p.id);if(a)heart(a)});
@@ -1196,7 +1203,7 @@ $('goNext').onclick=()=>{$('full').style.display='none';join(roomNo%ROOMS+1)};
 
 /* ---------- 순위 ---------- */
 function drawRank(){
-  const rows=[{name:ME.name,sec:liveSec(todaySec,focusStart),me:true}];
+  const rows=[{name:staffMode?'감독 선생님':ME.name,sec:liveSec(todaySec,focusStart),me:true}];
   for(const a of others.values()){const d=a.data||{};rows.push({name:d.name,sec:liveSec(d.today||0,d.fs||0)})}
   rows.sort((a,b)=>b.sec-a.sec);
   $('rank').innerHTML=rows.slice(0,12).map(r=>`<li class="${r.me?'mine':''}"><span></span><em>${fmtKo(r.sec)}</em></li>`).join('');
@@ -1223,7 +1230,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{downAt={x:e.clientX,y:e.c
 renderer.domElement.addEventListener('pointerup',e=>{
   if(!downAt||Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)>6)return;downAt=null;
   mv.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(mv,camera);talkBox.hidden=true;
-  const ppl=[...others.values(),...npcs,teacher].map(a=>a.hit);const ph=ray.intersectObjects(ppl,false)[0];
+  const ppl=[...others.values(),...npcs,...(teacher.g.visible?[teacher]:[])].map(a=>a.hit);const ph=ray.intersectObjects(ppl,false)[0];
   if(ph){openTalk(ph.object.userData.who,e.clientX,e.clientY);$('help').style.opacity=0;return}
   if(adHit&&ray.intersectObject(adHit,false)[0]){openAd();return}
   {const eg=envNow==='library'?libG:envGroups[envNow];if(eg){ray.params.Points.threshold=envNow==='camp'?.6:.01;const fh=ray.intersectObjects(pickables,false)[0];
@@ -1237,8 +1244,8 @@ renderer.domElement.addEventListener('pointerup',e=>{
 });
 function seatTaken(i){for(const a of npcs)if(a.seat===i)return true;for(const a of others.values()){if(a.seat===i||a.pendingSeat===i)return true;const b=a.data&&a.data.bag;if(bagAlive(b)&&b.seat===i)return true}return false}
 function leaveSeat(){if(me.seat>=0){stopFocus();standUp(me)}if(me.onBench){me.onBench=false;poseSit(me,false)}me.pendingBench=null;me.state='idle'}
-function walkTo(p){if(inDesk(p))return;leaveSeat();me.pendingSeat=null;me.path=route(me.g.position,p);me.state='walk';sync()}
-function goSeat(i){if(staffBlock())return;if(me.seat===i)return;if(seatTaken(i)){flash('누가 먼저 맡은 자리예요. 다른 자리를 골라 주세요');return}if(myBag)myBag=null;leaveSeat();const s=seats[i];me.pendingSeat=i;me.path=route(me.g.position,{x:s.ax,z:s.az});me.path.push({x:s.x,z:s.z});me.state='walk';sync()}
+function walkTo(p){if(inDesk(p))return;leaveSeat();me.pendingSeat=null;me.pendingTalk=null;me.path=route(me.g.position,p);me.state='walk';sync()}
+function goSeat(i){if(staffBlock())return;if(me.seat===i)return;if(seatTaken(i)){flash('누가 먼저 맡은 자리예요. 다른 자리를 골라 주세요');return}if(myBag)myBag=null;leaveSeat();me.pendingTalk=null;const s=seats[i];me.pendingSeat=i;me.path=route(me.g.position,{x:s.ax,z:s.az});me.path.push({x:s.x,z:s.z});me.state='walk';sync()}
 function flash(t){const h=$('help');h.textContent=t;h.style.opacity=1;clearTimeout(flash.t);flash.t=setTimeout(()=>h.style.opacity=0,2200)}
 $('bSit').onclick=()=>{const f=freeSeat();if(f>=0){goSeat(f);return}
   leaveSeat();setMe('wander');flash('자리가 다 찼어요. 빈 자리가 날 때까지 돌아다녀요');wanderNext()};
@@ -1341,13 +1348,14 @@ function ding(){try{actx=actx||new (window.AudioContext||window.webkitAudioConte
   try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}
 function confirmStudy(){if(!askAt)return;askAt=0;lastCheck=Date.now();$('focus').classList.remove('asking');$('chk').classList.remove('on');flash('좋아요, 계속 가 봐요!')}
 setInterval(()=>{
+  if(dayKey()!==todayKey){const on=!!focusStart;stopFocus();todayKey=dayKey();todaySec=0;try{localStorage.setItem(todayKey,0)}catch(e){}if(on&&counting(me.state))startFocus();drawRank()}
   if(!(focusStart&&counting(me.state))){return}
   if(!askAt&&Date.now()-lastCheck>CHECK_EVERY){askAt=Date.now();ding();
     const mins=Math.round((Date.now()-lastCheck)/60000);$('fAsk').textContent=`${mins}분 공부했어요! 계속 공부 중이면 화면을 한 번 톡 쳐 주세요`;
     if(focusOn){$('focus').classList.add('asking')}else{$('chkTxt').textContent='5분 안에 눌러 주세요. 안 누르면 여기까지만 기록하고 멈춰요.';$('chk').classList.add('on')}}
   if(askAt&&Date.now()-askAt>CHECK_WAIT){const cut=askAt;askAt=0;$('focus').classList.remove('asking');$('chk').classList.remove('on');
     if(focusStart){todaySec+=Math.max(0,Math.round((cut-focusStart)/1000));focusStart=0;wakeOff();try{localStorage.setItem(todayKey,todaySec)}catch(e){}}
-    focusOff();me.state='sleep';if(me.seat>=0)lampOn(me.seat,false);refreshBtns();sync();$('tSub').textContent='오늘 합계 '+fmt(todaySec);flash('대답이 없어서 확인 문구가 뜬 때까지만 기록하고 멈췄어요. 쿨쿨…')}
+    focusOff();me.state='sleep';me.autoSlept=true;if(me.seat>=0)lampOn(me.seat,false);refreshBtns();sync();$('tSub').textContent='오늘 합계 '+fmt(todaySec);flash('대답이 없어서 확인 문구가 뜬 때까지만 기록하고 멈췄어요. 쿨쿨…')}
 },1000);
 
 // 집중 화면: 앉아서 공부 중이고 20초 동안 안 만지면 3D 를 멈추고 까만 화면에 타이머만
