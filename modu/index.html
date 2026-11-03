@@ -1082,6 +1082,9 @@ const NPC_REPLY={
   snack:[['과자 다 먹고요~','이거 하나만 먹고요'],['한 입만요…','하나 줄까요?','들켰다!'],['바스락… 죄송해요','과자 봉지 소리 줄일게요'],['과자 먹고 바로 할게요!','같이 먹으면서 해요'],['당 충전 완료! 화이팅!','고마워요'],['과자 다 먹을 때까지요 ㅋㅋ','오늘 늦게까지 해요']],
   rest:[['잠깐 쉬는 중이라 금방 비킬게요','기지개만 펴고요~'],['안 먹었어요, 스트레칭 중이에요','저 쉬는 중이에요'],['아 죄송해요','쉿, 알겠어요'],['좋아요, 쉬고 바로 해요!','같이 해요!'],['화이팅! 쉬고 달려요','고마워요'],['쉬고 나서 2시간 더요','목표까진 아직 멀었어요']],
   hand:[['선생님 기다리는 중이에요!','질문하고 비켜 줄게요'],['아니에요, 질문하려고요','저 손든 거예요'],['네, 조용히 기다릴게요','앗 죄송해요'],['좋아요! 이 문제 같이 봐요','같이 해요!'],['고마워요, 화이팅!','화이팅!!'],['이 문제 풀고 정할래요','모르는 거 다 풀 때까지요']]};
+// 감독 선생님이 거는 말(TO_STUDENT_T)에 대한 대답. 순서: 0 간식 / 1 일어나요 / 2 휴대폰 / 3 잘하고 있어요 / 4 손들어요 / 5 목표
+const NPC_REPLY_T=[['앗, 죄송해요! 넣을게요','한 입만 먹은 거예요…','들켰다!'],['네! 다시 할게요','안 잤어요! 눈만 감았어요','힘낼게요!'],['네, 넣어 둘게요','앗… 알람만 확인했어요'],['감사합니다!','선생님 덕분이에요','더 열심히 할게요!'],['네! 모르면 바로 손들게요','지금 하나 있어요!'],['한 시간 남았어요','오늘 목표 거의 다 했어요!','아직 반밖에 못 했어요…']];
+const NPC_REPLY_T_SLEEP=[['(쿨쿨…) 간식…?','…어? 안 먹었어요'],['…어? 저 안 잤어요!','5분만요… 음냐'],['(쿨쿨…)','…휴대폰…? 쿨쿨'],['…감사… 쿨쿨','(잠꼬대) 화이팅…'],['(쿨쿨…)','…손… 들게요… 쿨쿨'],['…몇 시예요?!','(쿨쿨…)']];
 const T_REPLY={0:['손들고 기다리면 갈게요','무슨 문제예요? 번호 알려 줘요'],1:['다녀와요~ 가방 두고 가요'],2:['도서관은 언제든 열려 있어요'],3:['오늘은 없어요. 대신 단어 한 번 더 봐요!','시험은 없지만 복습은 해요~']};
 const talkBox=$('talk');let talkTarget=null;
 function whoKey(a){if(a===teacher)return 'teacher';const ni=npcs.indexOf(a);if(ni>=0)return 'npc'+ni;for(const [id,b] of others)if(b===a)return id;return null}
@@ -1101,9 +1104,9 @@ function talkTo(a,i){
   me.path=route(me.g.position,spot);me.state='walk';sync()}
 function doTalk(a,i){
   const p=me.g.position,q=a.g.position;if(me.seat<0)me.g.rotation.y=Math.atan2(-(q.x-p.x),-(q.z-p.z));
-  const list=a===teacher?TO_TEACHER:TO_STUDENT;const text=list[i];say(me,text);
+  const list=a===teacher?TO_TEACHER:staffMode?TO_STUDENT_T:TO_STUDENT;const text=list[i];say(me,text);
   const key=whoKey(a);ch&&ch.send({type:'broadcast',event:'say',payload:{id:ME.id,text,to:key}});
-  const pool=a===teacher?T_REPLY[i]:(npcs.includes(a)?(NPC_REPLY[a.state]||NPC_REPLY.sit)[i]:null);
+  const pool=a===teacher?T_REPLY[i]:(npcs.includes(a)?(staffMode?(a.state==='sleep'?NPC_REPLY_T_SLEEP:NPC_REPLY_T):(NPC_REPLY[a.state]||NPC_REPLY.sit))[i]:null);
   if(pool){const rep=pool[Math.floor(Math.random()*pool.length)];setTimeout(()=>{say(a,rep,a===teacher);ch&&ch.send({type:'broadcast',event:'npcsay',payload:{to:key,text:rep}})},1100)}
   sync()}
 const REPLY_CHOICES=['네, 좋아요!','잠깐만요~','싫어요!','꺼져!','ㅋㅋㅋ 들켰다','화이팅!','쉿, 공부 중이에요'];
