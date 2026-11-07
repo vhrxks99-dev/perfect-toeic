@@ -5630,7 +5630,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
                (2026-08-17 최소 횟수 제한 자체를 없앴다 — 4회만 끊는 학생도 있다.) -->
           <!-- 2026-08-25 「환불」을 뺐다(원장 지시). 아래 「🧾 환불 계산기」가 회차·강사 몫까지
                한 번에 처리하는데, 여기서 금액만 손으로 넣으면 그 계산을 건너뛰게 된다. -->
-          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="book">책 판매</option></select><select id="pyBook" style="display:none"></select><input type="number" id="pyBookQty" min="1" value="1" style="display:none;width:70px" title="권수"><select id="pyRentalItem" style="display:none"><option value="보증금">보증금</option><option value="월 대여료">월 대여료</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
+          <label style="flex:.8">구분<select id="pyKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="book">책 판매</option><option value="mock">모의고사</option></select><select id="pyBook" style="display:none"></select><input type="number" id="pyBookQty" min="1" value="1" style="display:none;width:70px" title="권수"><select id="pyRentalItem" style="display:none"><option value="보증금">보증금</option><option value="월 대여료">월 대여료</option></select><span class="wa-hint">환불은 아래 🧾 환불 계산기로</span></label>
           <label>학생<input type="text" id="pyStudentSearch" placeholder="이름 검색" autocomplete="off" style="margin-bottom:4px"><select id="pyStudent"></select></label>
           <label>금액(원)<input type="number" id="pyAmount" min="0" step="1000" placeholder="예: 200000"></label>
           <label>수업 횟수권(회)<input type="number" id="pySessions" min="0" placeholder="예: 8"></label>
@@ -6277,7 +6277,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="wa-sub" id="pyeStudent"></div>
     <div class="wa-form on" style="display:flex">
       <div class="wa-row pye-grid">
-        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="book">책 판매</option><option value="refund">환불</option></select></label>
+        <label>구분<select id="pyeKind"><option value="payment">수납</option><option value="ot">사전 OT</option><option value="study">스터디</option><option value="rental">태블릿 대여</option><option value="book">책 판매</option><option value="mock">모의고사</option><option value="refund">환불</option></select></label>
         <label>금액(원)<input type="number" id="pyeAmount" min="0" step="1000"></label>
         <label>정산 월<input type="month" id="pyeMonth"></label>
         <label>횟수권(회)<input type="number" id="pyeSessions" min="0" placeholder="예: 8"></label>
@@ -14500,7 +14500,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       loadPayroll();
     }; });
   }
-  function isAcademyKey(k){ return k==='__study__' || k==='__rental__' || k==='__book__'; }
+  function isAcademyKey(k){ return k==='__study__' || k==='__rental__' || k==='__book__' || k==='__mock__'; }
   function isTeacherKey(k){ return !!k && !isAcademyKey(k); }
   function renderPayroll(rows, month){
     var box=$('prBox'); if(!box) return;
@@ -14514,8 +14514,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     rows.forEach(function(p){
       // 스터디비용은 학원 몫이다. 강사 정산에 섞이면 안 되고,
       // 담당이 비어 있다고 '담당 빠뜨림' 경고에 잡혀서도 안 된다(원장 지적 2026-09-03).
-      var key=(p.kind==='study') ? '__study__' : (p.kind==='rental') ? '__rental__' : (p.kind==='book') ? '__book__' : (p.teacher_id||'');
-      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':key==='__rental__'?'태블릿 대여 (학원 몫)':key==='__book__'?'교재 판매 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, vat:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
+      var key=(p.kind==='study') ? '__study__' : (p.kind==='rental') ? '__rental__' : (p.kind==='book') ? '__book__' : (p.kind==='mock') ? '__mock__' : (p.teacher_id||'');
+      if(!groups[key]){ groups[key]={ name:(key==='__study__'?'스터디 (학원 몫)':key==='__rental__'?'태블릿 대여 (학원 몫)':key==='__book__'?'교재 판매 (학원 몫)':key==='__mock__'?'모의고사 응시료 (학원 몫)':(key?(p.teacher_name||tmap[key]||'(이름 없음)'):'담당 강사 미지정')), amount:0, vat:0, gross:0, fee:0, tax:0, net:0, rates:{}, items:[], allRefund:true }; order.push(key); }
       if(!isRefundSide(p)) groups[key].allRefund=false;
       var s=payShare(p);
       // 담당 미지정·스터디는 배분 자체를 안 하므로 '배분율 없음' 경고 대상이 아니다.
@@ -14534,8 +14534,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(groups['']){ groups[''].gross=0; groups[''].fee=0; groups[''].cardN=0; groups[''].tax=0; groups[''].net=0; }
     // 스터디비용도 마찬가지 — 학원이 갖는 돈이라 강사 몫·원천징수가 없다.
     // 🚨 2026-10-12 원장님 「책 카드결제라서 카드수수료 빠져야 해 1.5%」 — 학원 몫(스터디·태블릿·책)도 카드면 수수료는 남겨 두고 학원 몫에서 뺀다.
-    ['__study__','__rental__','__book__'].forEach(function(ak){ if(groups[ak]){ var _st=groups[ak]; _st.gross=0; _st.tax=0; _st.net=0; } });
-    var acadFee=0; ['__study__','__rental__','__book__'].forEach(function(ak){ if(groups[ak]) acadFee+=groups[ak].fee||0; });
+    ['__study__','__rental__','__book__','__mock__'].forEach(function(ak){ if(groups[ak]){ var _st=groups[ak]; _st.gross=0; _st.tax=0; _st.net=0; } });
+    var acadFee=0; ['__study__','__rental__','__book__','__mock__'].forEach(function(ak){ if(groups[ak]) acadFee+=groups[ak].fee||0; });
     var totAmount=0, totGross=0, totTax=0, totNet=0;
     order.forEach(function(k){ totAmount+=groups[k].amount; totGross+=groups[k].gross; totTax+=groups[k].tax; totNet+=groups[k].net; });
     // 강사 먼저, 미지정은 맨 뒤로
@@ -14811,7 +14811,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     /** 카드사가 실제로 떼는 % · 1.5% 중 나머지(잉여금) % */
     const CARD_REAL = 0.4;
     const CARD_SURPLUS = 1.1;
-    const ACADEMY_KINDS = ['book', 'study', 'rental'];
+    const ACADEMY_KINDS = ['book', 'study', 'rental', 'mock'];
     const n = (v) => Number(v) || 0;
     const R = (x) => Math.round(x);
     const g = (r) => n(r.amount) + n(r.vat);
@@ -14893,7 +14893,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
             };
             // 3. 책 매출 (스터디·태블릿 대여도 학원 몫이라 같이)
             const bookRows = rows.filter((r) => ACADEMY_KINDS.includes(r.kind || '') && bizOf(r) === A.key).sort(byPaid);
-            const kindWhat = (r) => r.kind === 'study' ? '스터디' : r.kind === 'rental' ? '태블릿 대여' : (r.memo || '책').replace(/완벽한토익 /g, '').split(' · ')[0].slice(0, 30);
+            const kindWhat = (r) => r.kind === 'study' ? '스터디' : r.kind === 'rental' ? '태블릿 대여' : r.kind === 'mock' ? '모의고사' : (r.memo || '책').replace(/완벽한토익 /g, '').split(' · ')[0].slice(0, 30);
             const book = {
                 title: bookRows.some((r) => r.kind !== 'book') ? '책·학원 매출' : '책 매출',
                 items: bookRows.map((r) => ({ date: md(r.paid_at), student: r.student_name || '', what: kindWhat(r), method: r.method || '', amount: g(r) })),
@@ -15630,15 +15630,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 앱 screens/work/BizSplit.tsx 와 같은 기준. 결제금액 = amount + vat(환불 제외), 남는 돈 = 결제금액 − 환불 − 부가세 − 카드수수료.
   var pySplitMode=null, pySplitOpen={}, pySplitRows=[], pySplitFee=null;
   var PY_SPLIT_CATS=[
-    {key:'lesson',label:'수업료',test:function(k){ return ['ot','book','study','rental','refund'].indexOf(k)<0; }},
+    {key:'lesson',label:'수업료',test:function(k){ return ['ot','book','study','rental','mock','refund'].indexOf(k)<0; }},
     {key:'ot',label:'사전 OT',test:function(k){ return k==='ot'; }},
     {key:'book',label:'책',test:function(k){ return k==='book'; }},
     {key:'study',label:'스터디',test:function(k){ return k==='study'; }},
-    {key:'rental',label:'태블릿 대여',test:function(k){ return k==='rental'; }}
+    {key:'rental',label:'태블릿 대여',test:function(k){ return k==='rental'; }},
+    {key:'mock',label:'모의고사',test:function(k){ return k==='mock'; }}
   ];
   function pySplitBiz(p){ return (p.biz==='wanto'||p.biz==='ajlabs')?p.biz:'none'; }
   function pySplitMd(d){ return d?(Number(String(d).slice(5,7))+'/'+Number(String(d).slice(8,10))):''; }
-  function pySplitKind(k){ return k==='ot'?'OT':k==='book'?'책':k==='study'?'스터디':k==='rental'?'대여':'수업료'; }
+  function pySplitKind(k){ return k==='ot'?'OT':k==='book'?'책':k==='study'?'스터디':k==='rental'?'대여':k==='mock'?'모의고사':'수업료'; }
   function pySplitDraw(){
     var box=$('pySplit'); if(!box) return;
     if(!pySplitMode){ box.style.display='none'; box.innerHTML=''; return; }
@@ -15805,6 +15806,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var vat = p.vat ? '<span style="color:var(--muted)">'+won(p.vat)+'</span>' : '-';
       var otTag = (p.kind==='ot') ? ' <span style="font-size:11px;font-weight:800;color:#8a5a00;background:#fff6e5;border-radius:5px;padding:2px 5px">사전 OT</span>' : '';
       // 스터디비용도 딱지를 붙인다 — 수업료와 섞여 보이면 매출을 잘못 읽는다.
+      if(p.kind==='mock') otTag = ' <span style="font-size:11px;font-weight:800;color:#1F62E0;background:#eaf1fd;border-radius:5px;padding:2px 5px">모의고사</span>';
       if(p.kind==='study') otTag = ' <span style="font-size:11px;font-weight:800;color:#0a6b4a;background:#e8f6ef;border-radius:5px;padding:2px 5px">스터디</span>';
       if(p.kind==='rental') otTag = ' <span style="font-size:11px;font-weight:800;color:#a85b12;background:#fbf3e8;border-radius:5px;padding:2px 5px">태블릿 대여</span>';
       if(p.kind==='book') otTag = ' <span style="font-size:11px;font-weight:800;color:#6d28d9;background:#f1ebff;border-radius:5px;padding:2px 5px">책 판매</span>';
@@ -15994,7 +15996,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 🚨 2026-10-30 원장님 새 방식(11월 결제부터): 창희쌤 수업료·OT만 이창희 사업자, 책·스터디·대여와 다른 선생님은 전부 김태완 사업자 (앱 PaymentAddScreen 과 같다)
   function pyBizExpect(t){
     var kv=$('pyKind')?$('pyKind').value:'payment', m=($('pyMonth')&&$('pyMonth').value)||kymd().slice(0,7);
-    if((kv==='book'||kv==='study'||kv==='rental') && m>='2026-11') return 'wanto';
+    if((kv==='book'||kv==='study'||kv==='rental'||kv==='mock') && m>='2026-11') return 'wanto';
     return (t&&_tbMap&&_tbMap[t])||'';
   }
   function pyBizWarn(){
@@ -16044,7 +16046,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(isBook){ pyBookLoad().then(pyBookFill); }
     var sc=$('pySessions'); if(sc){ sc.disabled=isRent; if(isRent) sc.value=''; }
     // 스터디·태블릿 대여 = 학원 몫 → 담당 강사·배분율·원천징수 칸을 비우고 잠근다(2026-09-23 원장님).
-    var isAcad = isRent || isBook || this.value==='study';
+    var isAcad = isRent || isBook || this.value==='study' || this.value==='mock';
     ['pyTeacher','pyRate','pyWithhold'].forEach(function(id){ var el=$(id); if(!el) return; el.disabled=isAcad; if(isAcad) el.value=''; });
     // 다시 수납·OT 로 바꾸면 학생 담당쌤·배분율을 도로 채운다
     if(!isAcad && $('pyTeacher') && !$('pyTeacher').value && typeof syncPayTeacher==='function') syncPayTeacher();
@@ -16163,7 +16165,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!month){ err.textContent='정산 월을 선택하세요.'; return; }
     var kv=$('pyKind')?$('pyKind').value:'payment';
     // 아는 종류면 그대로 쓴다. 모르는 값이 오면 수납으로 본다.
-    var kind=(['refund','ot','study','rental','book'].indexOf(kv)>=0)?kv:'payment';
+    var kind=(['refund','ot','study','rental','book','mock'].indexOf(kv)>=0)?kv:'payment';
     // 환불은 돌려준 횟수만큼 남은 횟수에서 빼야 한다(원장 지시 2026-08-18).
     // 전에는 0으로 지웠는데, 그러면 결제 때 더한 횟수가 그대로 남는다.
     // 2026-08-18 김지영 건 — 오티 1회를 환불했는데 횟수가 안 빠져서, 나중에 정규 등록을
@@ -16178,11 +16180,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     var tid=$('pyTeacher')?$('pyTeacher').value:'';
     // 🚨 태블릿 대여는 학원 몫이다 — 강사 칸에 학생 담당쌤이 자동으로 채워져 있어도 비운다(2026-09-23 원장님 지적:
     //    김예진 보증금·대여료가 이창희 정산 100% 로 들어가 있었다).
-    if(kind==='rental'||kind==='study'||kind==='book') tid='';   // 스터디·책 판매도 학원 몫
+    if(kind==='rental'||kind==='study'||kind==='book'||kind==='mock') tid='';   // 스터디·책 판매·모의고사도 학원 몫
     var rate=parseFloat($('pyRate')?$('pyRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyWithhold')?$('pyWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ err.textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
-    if(!tid && kind!=='rental' && kind!=='study' && kind!=='book' && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
+    if(!tid && kind!=='rental' && kind!=='study' && kind!=='book' && kind!=='mock' && !confirm('담당 강사를 지정하지 않았습니다.\n이 결제는 강사 배분에서 빠집니다. 그대로 등록할까요?')) return;
     // 횟수권을 빠뜨리면 학생의 남은 수업 횟수가 안 올라가는데, 화면에는 아무 표시가 없어
     // 나중에야 알게 된다. 등록을 실패했다가 다시 넣을 때 특히 잘 빠진다.
     if(kind==='payment' && !sessions && !confirm('수업 횟수권을 넣지 않았습니다.\n이 학생의 남은 수업 횟수가 늘어나지 않습니다.\n\n횟수권 없는 결제라면 그대로 등록하세요.')) return;
@@ -16192,7 +16194,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         + '첫 정규 결제는 OT 1회를 빼야 합니다 — 8회면 7회, 12회면 11회.\n'
         + '지금 '+sessions+'회로 되어 있어요. 이대로 저장할까요?')) return;
     // 스터디비용은 수업 횟수와 상관없다. 회차 계산도 payment·ot 만 세므로 남은 횟수에 영향이 없다.
-    if(kind==='study') sessions=0;
+    if(kind==='study'||kind==='mock') sessions=0;
     // 책 판매: 어떤 책 몇 권 — 재고는 서버 트리거가 깎는다. 메모 앞에 책 이름·권수.
     var bookId=null, bookQty=null;
     if(kind==='book'){
@@ -16299,7 +16301,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     editingPayId=p.id;
     if($('pyeStudent')) $('pyeStudent').textContent=(p.student_name||'')+' · '+(p.month||'');
     if($('pyeKind')){
-      $('pyeKind').value=(['refund','ot','study','rental','book'].indexOf(p.kind)>=0)?p.kind:'payment';
+      $('pyeKind').value=(['refund','ot','study','rental','book','mock'].indexOf(p.kind)>=0)?p.kind:'payment';
       // 이미 환불인 줄은 그대로 고칠 수 있어야 하지만, 멀쩡한 수납을 여기서 환불로
       // 바꾸는 길은 막는다. 새 환불은 환불 계산기로만 만든다(2026-08-25 원장 지시).
       var _ro=$('pyeKind').querySelector('option[value="refund"]');
@@ -16376,12 +16378,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     if(!$('pyeMonth').value){ $('pyeErr').textContent='정산 월을 선택하세요.'; return; }
     var sessions=parseInt($('pyeSessions').value,10)||0;
     var ekv=$('pyeKind')?$('pyeKind').value:'payment';
-    var ekind=(['refund','ot','study','rental','book'].indexOf(ekv)>=0)?ekv:'payment';
+    var ekind=(['refund','ot','study','rental','book','mock'].indexOf(ekv)>=0)?ekv:'payment';
     if(ekind==='refund') sessions=-Math.abs(sessions);   // 등록 폼과 같은 규칙(2026-08-18)
-    if(ekind==='study'||ekind==='rental'||ekind==='book') sessions=0;    // 수업 횟수와 무관
+    if(ekind==='study'||ekind==='rental'||ekind==='book'||ekind==='mock') sessions=0;    // 수업 횟수와 무관
     // 최소 횟수 제한 없음 — 등록 폼과 같은 이유(원장 지시 2026-08-17).
     var tid=$('pyeTeacher')?$('pyeTeacher').value:'';
-    if(ekind==='rental'||ekind==='study'||ekind==='book') tid='';   // 스터디·태블릿 대여·책 판매 = 학원 몫(등록 폼과 같은 규칙)
+    if(ekind==='rental'||ekind==='study'||ekind==='book'||ekind==='mock') tid='';   // 스터디·태블릿 대여·책 판매 = 학원 몫(등록 폼과 같은 규칙)
     var rate=parseFloat($('pyeRate')?$('pyeRate').value:''); if(isNaN(rate)) rate=tid?teacherRate(tid):null;
     var wh=parseFloat($('pyeWithhold')?$('pyeWithhold').value:''); if(isNaN(wh)) wh=DEFAULT_WITHHOLD;
     if(tid && (rate<0||rate>100)){ $('pyeErr').textContent='배분율은 0에서 100 사이로 넣어주세요.'; return; }
