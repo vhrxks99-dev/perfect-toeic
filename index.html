@@ -15996,7 +15996,8 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 🚨 2026-10-30 원장님 새 방식(11월 결제부터): 창희쌤 수업료·OT만 이창희 사업자, 책·스터디·대여와 다른 선생님은 전부 김태완 사업자 (앱 PaymentAddScreen 과 같다)
   function pyBizExpect(t){
     var kv=$('pyKind')?$('pyKind').value:'payment', m=($('pyMonth')&&$('pyMonth').value)||kymd().slice(0,7);
-    if((kv==='book'||kv==='study'||kv==='rental'||kv==='mock') && m>='2026-11') return 'wanto';
+    if(kv==='mock') return 'ajlabs';   // 모의고사 응시료는 전부 퍼펙트웍스(2026-11-07 원장님)
+    if((kv==='book'||kv==='study'||kv==='rental') && m>='2026-11') return 'wanto';
     return (t&&_tbMap&&_tbMap[t])||'';
   }
   function pyBizWarn(){
