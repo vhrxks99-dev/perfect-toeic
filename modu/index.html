@@ -958,7 +958,8 @@ function poseSit(a,on){
   a.g.position.y=on?.36:0;a.legL.rotation.x=a.legR.rotation.x=on?-Math.PI/2:0;
 }
 // 팔 자세: 어깨 앞뒤(x), 팔꿈치 굽힘(음수가 앞으로), 어깨 벌림(z)
-function setArm(A,sx,ex,sz=0){A.sh.rotation.x=sx;A.el.rotation.x=ex;A.sh.rotation.z=sz}
+// 모델 앞쪽이 반대라 앞뒤를 뒤집어 넣는다(11/7 원장님 「손이 책상 반대로 가」)
+function setArm(A,sx,ex,sz=0){A.sh.rotation.x=-sx;A.el.rotation.x=-ex;A.sh.rotation.z=sz}
 function step(a,dt,t){
   const st=a.state;
   a.bowl.visible=a.sticks.visible=st==='eat';a.snack.visible=a.chip.visible=st==='snack';
@@ -1038,7 +1039,7 @@ const fmtKo=s=>{const h=s/3600|0,m=s%3600/60|0;return h?`${h}시간 ${m}분`:`${
 const liveSec=(base,start)=>base+(start?(Date.now()-start)/1000:0);
 
 /* ---------- 같이 공부하는 손님(분위기용) ---------- */
-// 위의 인원수에는 같이 세고 순위에는 넣지 않는다. 방 번호와 시각으로 정해서 누구에게나 같은 자리·같은 행동으로 보인다.
+// 위의 인원수와 오늘 공부 시간 목록에 같이 넣는다(11/7부터). 방 번호와 시각으로 정해서 누구에게나 같은 자리·같은 행동으로 보인다.
 const NPC_NAMES=['조용한 고래','말랑한 두부','성실한 다람쥐','반짝이는 펭귄','꾸벅꾸벅 곰','새벽의 올빼미','느릿한 달팽이','씩씩한 병아리','차분한 수달','부지런한 개미','단단한 감자','포근한 고양이','맑은 하늘','용감한 토끼','느긋한 판다','작은 별','상냥한 사슴','든든한 바위','바쁜 꿀벌','졸린 코알라'];
 const npcs=[];
 function rng(seed){return()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}}
@@ -1055,13 +1056,16 @@ function spawnNpcs(n){
   const r=rng(hashStr(ROOM_LIST[n-1][0])*7919+13);r();r();const cnt=guestCnt(n,4+Math.floor(r()*12));const used=new Set();npcCnt=cnt;
   for(let k=0;k<cnt;k++){let si;do{si=Math.floor(r()*seats.length)}while(used.has(si));used.add(si);
     const busy=me.seat===si||me.pendingSeat===si||[...others.values()].some(a=>a.seat===si||a.pendingSeat===si);
-    const a=makeChar(COLORS[Math.floor(r()*COLORS.length)],NPC_NAMES[(k+n)%NPC_NAMES.length],false,'npc'+n+'-'+k,randomLook(r));
+    const a=makeChar(COLORS[Math.floor(r()*COLORS.length)],NPC_NAMES[(k+n)%NPC_NAMES.length],false,'npc'+n+'-'+k,randomLook(r));a.name=NPC_NAMES[(k+n)%NPC_NAMES.length];
     const st=seats[si];a.g.position.set(st.x,0,st.z);a.g.rotation.y=st.ry+Math.PI;a.seat=si;poseSit(a,true);lampOn(si,true);
     a.npc={off:Math.floor(r()*1000),start:Date.now()-Math.floor(r()*5400)*1000};a.state='sit';
     if(busy){lampOn(si,false);a.g.traverse(o=>{if(o.isCSS2DObject)o.element.remove()});scene.remove(a.g);continue}npcs.push(a)}
   const c=$('cnt');if(c)c.textContent=(peersCount+npcs.length)+'명 공부 중'
 }
 let npcCnt=0;
+// 손님 오늘 공부 시간: 서울 날짜·이름으로 정해서 누구 화면에서나 같고, 하루 동안 조금씩 늘어난다(11/7 원장님 「봇도 순위에 넣어」)
+function npcSec(a){const s=Date.now()/1000+32400,day=Math.floor(s/86400),sod=s-day*86400,k=frac(Math.sin((day*7+hashStr(a.name||''))*12.9898)*43758.5453);
+  return Math.max(0,Math.round((sod-(6+k*5)*3600)*(.3+.4*frac(k*97.31))))}
 // 1분마다 시각에 맞춰 손님 수를 다시 본다. 바뀐 때만 다시 앉힌다(같은 순서라 있던 손님은 그대로 그 자리)
 setInterval(()=>{if(!roomNo)return;const r=rng(hashStr(ROOM_LIST[roomNo-1][0])*7919+13);r();r();if(guestCnt(roomNo,4+Math.floor(r()*12))!==npcCnt){spawnNpcs(roomNo);drawBags()}},60000);
 const NPC_ACTS=['sit','sit','sit','sit','sit','sit','sleep','eat','snack','rest','hand','sit','sit','sleep'];
@@ -1227,6 +1231,7 @@ $('goNext').onclick=()=>{$('full').style.display='none';join(roomNo%ROOMS+1)};
 function drawRank(){
   const rows=[{name:staffMode?'감독 선생님':ME.name,sec:liveSec(todaySec,focusStart),me:true}];
   for(const a of others.values()){const d=a.data||{};rows.push({name:d.name,sec:liveSec(d.today||0,d.fs||0)})}
+  for(const a of npcs)rows.push({name:a.name,sec:npcSec(a)});
   rows.sort((a,b)=>b.sec-a.sec);
   $('rank').innerHTML=rows.slice(0,12).map(r=>`<li class="${r.me?'mine':''}"><span></span><em>${fmtKo(r.sec)}</em></li>`).join('');
   [...$('rank').children].forEach((li,i)=>li.firstChild.textContent=(rows[i].me?'나 · ':'')+rows[i].name);
