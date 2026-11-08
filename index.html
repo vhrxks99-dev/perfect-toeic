@@ -5713,7 +5713,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
         <label class="exrc-no"><input type="checkbox" id="exrcNo" style="width:auto;margin:0"> 증빙 없음으로 넣기 (자동이체처럼 영수증이 원래 없는 지출)</label>
         <p class="wa-err" id="exErr"></p>
         <p class="wa-ok" id="exOk" style="display:none"></p>
-        <button class="btn btn-primary" id="exAdd" type="button">지출 추가</button>
+        <button class="btn btn-primary" id="exAdd" type="button">지출 추가</button> <a class="wa-link" id="exEditCancel" style="display:none;margin-left:8px">고치기 그만</a>
         <div id="exList" style="margin-top:14px"></div>
       </details>
 
@@ -14325,7 +14325,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
            + (hasRc ? '<td data-l="증빙">' + ((x.receipts || []).length ? '<a class="exrc-tag on" data-exrcopen="' + x.id + '">📎 ' + x.receipts.length + '</a>'
                      : x.no_receipt ? '<a class="exrc-tag off" data-exrcopen="' + x.id + '">안 받음</a>'
                      : '<a class="exrc-tag miss" data-exrcopen="' + x.id + '">없음 · 붙이기</a>') + '</td>' : '')
-           + '<td class="ex-del"><a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>'
+           + '<td class="ex-del"><a class="wa-link" data-exedit="' + x.id + '">고치기</a> · <a class="wa-link" data-exdel="' + x.id + '">지우기</a></td></tr>'
            + (hasRc ? '<tr data-exrcrow="' + x.id + '" style="display:' + (exrcOpen[String(x.id)] ? '' : 'none') + '"><td colspan="8" data-exrcbox="' + x.id + '"></td></tr>' : '');
       });
       h += '</table></div>';
@@ -14340,6 +14340,21 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       };
     });
     Object.keys(exrcOpen).forEach(function(k){ if(exrcOpen[k]) exrcDrawBox(k); });
+    // 고치기 (2026-11-08 원장님 「만들어 수정하는거」) — 위 넣기 칸을 그 지출 값으로 채운다. 증빙은 「📎」 칸에서 따로.
+    box.querySelectorAll('[data-exedit]').forEach(function(a){
+      a.onclick = function(){
+        var x = exrcRows[String(this.getAttribute('data-exedit'))]; if(!x) return;
+        exEditId = x.id;
+        var set = function(id, v){ if($(id)) $(id).value = (v == null ? '' : v); };
+        set('exDate', x.spent_on); set('exCat', x.category || '기타'); set('exAmt', x.amount);
+        set('exBiz', (x.biz === 'wanto' || x.biz === 'ajlabs') ? x.biz : '');
+        set('exVendor', x.vendor); set('exMethod', x.method || '계좌이체'); set('exMemo', x.memo);
+        if($('exAdd')) $('exAdd').textContent = '고치기 저장';
+        if($('exEditCancel')) $('exEditCancel').style.display = '';
+        if($('exOk')){ $('exOk').textContent = '✏️ 고치는 중 · ' + (x.vendor || x.category || '') + ' ' + won(x.amount || 0) + ' (증빙은 표의 📎 칸에서)'; $('exOk').style.display = ''; }
+        if($('exDate')) $('exDate').scrollIntoView({ block: 'center' });
+      };
+    });
     box.querySelectorAll('[data-exdel]').forEach(function(a){
       a.onclick = async function(){
         if(!confirm('이 지출을 지울까요?')) return;
@@ -14356,6 +14371,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   // 로그인·미리보기로 역할이 바뀌면 지출칸을 다시 판단한다
   window.addEventListener('wt-auth', function(){ try{ exSyncBox(); }catch(e){} });
   if($('exWrap')) $('exWrap').addEventListener('toggle', function(){ if(this.open) exLoad(); });
+  var exEditId = null;
+  function exEditEnd(){
+    exEditId = null;
+    if($('exAdd')) $('exAdd').textContent = '지출 추가';
+    if($('exEditCancel')) $('exEditCancel').style.display = 'none';
+    ['exAmt','exVendor','exMemo'].forEach(function(id){ if($(id)) $(id).value = ''; });
+  }
+  if($('exEditCancel')) $('exEditCancel').onclick = function(){ exEditEnd(); if($('exOk')) $('exOk').style.display = 'none'; };
   if($('exAdd')) $('exAdd').onclick = async function(){
     var err = $('exErr'), ok = $('exOk');
     if(err) err.textContent = ''; if(ok) ok.style.display = 'none';
@@ -14370,6 +14393,25 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // 🚨 사업자를 안 고르면 저장하지 않는다 (2026-09-29 원장님)
     if($('exBiz') && !$('exBiz').value){ say('사업자를 골라주세요. (김태완 / 이창희)'); $('exBiz').focus(); return; }
     var btn = this; btn.disabled = true;
+    if(exEditId){
+      try{
+        var u = await sb.from('expenses').update({
+          spent_on: d, month: m,
+          category: ($('exCat') && $('exCat').value) || '기타',
+          amount: amt,
+          vendor: (($('exVendor') && $('exVendor').value) || '').trim() || null,
+          method: ($('exMethod') && $('exMethod').value) || null,
+          memo: (($('exMemo') && $('exMemo').value) || '').trim() || null,
+          biz: ($('exBiz') && $('exBiz').value) || null
+        }).eq('id', exEditId);
+        if(u.error){ say('고치지 못했습니다: ' + u.error.message); return; }
+        exEditEnd();
+        if(ok){ ok.textContent = '✅ ' + won(amt) + ' 로 고쳤습니다.'; ok.style.display = ''; }
+        await exLoad();
+        try{ await loadPayroll(); }catch(e){}
+      } finally { btn.disabled = false; }
+      return;
+    }
     try{
       var exRow = {
         spent_on: d, month: m,
