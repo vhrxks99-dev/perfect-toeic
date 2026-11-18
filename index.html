@@ -11194,6 +11194,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
           }
         }catch(e){}   // study.sql 미실행이면 그냥 통과 — 서버 트리거도 아직 없다
       }
+      // 2026-11-18 창희쌤 — 같은 선생님이 그 시간에 다른 학생 수업이 있으면 묻는다(혜인쌤 강지윤·남윤호 더블부킹).
+      //   휴강·결석·대기는 안 세고, 2:1 짝 학생과 시작·끝이 똑같은 수업만 뺀다.
+      if(teacher){
+        try{
+          // 2:1 짝(lesson_pairs)이고 시작·끝이 똑같으면 원래 같이 하는 수업 — 짝이 아니면 시간이 똑같아도 겹침
+          var tpar={};
+          if(student){ var pq=await sb.from('lesson_pairs').select('student_id,partner_id').or('student_id.eq.'+student.id+',partner_id.eq.'+student.id);
+            (pq.data||[]).forEach(function(r){ tpar[r.student_id===student.id?r.partner_id:r.student_id]=1; }); }
+          var tq=await sb.from('schedules').select('id,student_id,student_name,starts_at,ends_at,status')
+                  .eq('teacher_id',teacher.id).lt('starts_at',endISO).gt('ends_at',startISO);
+          var tb=(tq.data||[]).filter(function(x){ var st=x.status||'confirmed'; return st!=='canceled' && st!=='noshow' && st!=='pending'; })
+                  .filter(function(x){ return !(x.student_id && tpar[x.student_id] && new Date(x.starts_at).getTime()===new Date(startISO).getTime() && new Date(x.ends_at).getTime()===new Date(endISO).getTime()); });
+          if(tb.length){
+            var tl=tb.map(function(x){ return '· '+(x.student_name||'학생')+' '+fmtDT(x.starts_at); }).join('\n');
+            if(!confirm((teacher.name||'선생님')+' 선생님은 그 시간에 다른 수업이 있어요.\n'+tl+'\n\n그래도 넣을까요?')){ scSay(false,'선생님 수업이 겹쳐서 넣지 않았어요.'); return; }
+          }
+        }catch(e){}
+      }
       var isOt=!!($('scIsOt') && $('scIsOt').checked);
       var payload={ room_id:roomId, teacher_id:(teacher?teacher.id:null), teacher_name:(teacher?teacher.name:null), student_id:(student?student.id:null), student_name:(student?student.name:null), subject:$('scSubject').value, starts_at:startISO, ends_at:endISO, memo:($('scMemo').value.trim()||null), is_ot:isOt };
       if(pickMode) payload.lesson_mode = pickMode;   // 이번 수업 형태를 수업에 적는다
