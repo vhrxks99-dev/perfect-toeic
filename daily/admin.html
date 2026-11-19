@@ -41,6 +41,7 @@ td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
   <label>이름<input id="f_name" placeholder="홍길동"></label>
   <label>휴대폰<input id="f_phone" placeholder="01012345678" inputmode="numeric"></label>
   <label>첫 문제 받는 날(평일)<input id="f_start" type="date"></label>
+  <label>이용 기간<select id="f_plan"><option value="365">365일 · 39,990원 (정가 79,980)</option><option value="180">180일 · 32,500원 (정가 65,000)</option></select></label>
   <label>결제 금액<input id="f_amount" type="number" value="39990"></label>
   <label>결제일<input id="f_paid" type="date"></label>
   <label>결제 방법<select id="f_method"><option>결제선생</option><option>계좌이체</option><option>카드</option></select></label>
@@ -52,7 +53,7 @@ td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 <div class="card"><h2>구매자 목록</h2>
  <div class="fil"><select id="q_prod"><option value="">전체 반</option><option value="rc">RC반</option><option value="lc">LC반</option></select><select id="q_stat"><option value="active">이용 중</option><option value="">전체</option><option value="refunded">환불</option><option value="ended">종료</option></select><input id="q_txt" placeholder="이름·번호 찾기"></div>
  <div style="overflow-x:auto"><table><thead><tr><th>반</th><th>이름</th><th class="hide-m">휴대폰</th><th>이용 기간</th><th>이번 달 (■=다 풂)</th><th>오늘</th><th>환불하면</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
- <div class="muted" style="margin-top:10px">환불 계산: 첫 문제 받은 날부터 3일 안 = 전액 / 그 뒤 = 결제액 − 정가 79,980원 × 이용일/365 − 위약금 15,996원(정가 20%), 0원 아래면 0원. 참고용이에요.</div>
+ <div class="muted" style="margin-top:10px">환불 계산: 첫 문제 받은 날부터 3일 안 = 전액 / 그 뒤 = 결제액 − 정가 × 이용일/이용 기간 − 위약금(정가 20%), 0원 아래면 0원. 정가 365일 79,980원 · 180일 65,000원. 참고용이에요.</div>
 </div>
 </div>
 <div class="lock" id="lock" style="display:none"></div>
@@ -68,7 +69,8 @@ const won=n=>Number(n).toLocaleString('ko-KR')+'원';
 const LINK=t=>`https://perfect-toeic.com/daily/?k=${t}`;
 let SUBS=[],PROG=[],TODAY=kst();
 function weekdaysUpTo(from,to){let n=0,x=from;while(x<=to){if(dow(x)%6)n++;x=addD(x,1)}return n}
-function refund(s){if(s.status!=='active')return'-';const used=Math.max(0,Math.round((new Date(TODAY)-new Date(s.start_date))/864e5)+1);if(TODAY<s.start_date)return won(s.amount)+' (시작 전)';if(used<=3)return won(s.amount)+' (3일 안)';const v=Math.floor(s.amount-79980*used/365-15996);return won(Math.max(0,v))+` (${used}일)`}
+const PLAN={365:{price:39990,list:79980},180:{price:32500,list:65000}};
+function refund(s){if(s.status!=='active')return'-';const L=(PLAN[s.plan_days]||PLAN[365]).list,pd=s.plan_days||365;const used=Math.max(0,Math.round((new Date(TODAY)-new Date(s.start_date))/864e5)+1);if(TODAY<s.start_date)return won(s.amount)+' (시작 전)';if(used<=3)return won(s.amount)+' (3일 안)';const v=Math.floor(s.amount-L*used/pd-L*0.2);return won(Math.max(0,v))+` (${used}일)`}
 function msgFor(s){return `${s.name}님, 완벽한토익 데일리 ${s.product=='rc'?'RC':'LC'}반 결제 확인됐어요.\n\n${s.start_date}(평일) 아침 7시부터 매일 카카오 알림톡으로 오늘의 문제가 가요.\n알림톡의 「오늘의 학습 페이지 바로가기」를 누르면 아래 개인 페이지가 열려요. 다른 사람과 공유하지 말아 주세요.\n\n${LINK(s.token)}\n\n이용 기간: ${s.start_date} ~ ${s.end_date}`}
 async function load(){
  const [a,b]=await Promise.all([sb.from('daily_subs').select('*').order('created_at',{ascending:false}),sb.from('daily_progress').select('sub_id,day_date,part').gte('day_date',TODAY.slice(0,8)+'01')]);
@@ -85,7 +87,7 @@ function render(){
  const rows=SUBS.filter(s=>(!qp||s.product==qp)&&(!qs||s.status==qs)&&(!qt||s.name.includes(qt)||s.phone.includes(qt)));
  const days=[];let x=m1;while(x<=TODAY){if(dow(x)%6)days.push(x);x=addD(x,1)}
  $('#list').innerHTML=rows.map(s=>{const p=by[s.id]||{};const t=p[TODAY]||0;
-  return `<tr><td><span class="tag t-${s.product}">${s.product.toUpperCase()}</span></td><td><b>${esc(s.name)}</b>${elig(s)&&s.status=='active'?' <span class="tag t-act">환급 후보</span>':''}<div class="muted">${s.status=='active'?'':`<span class="tag ${s.status=='refunded'?'t-ref':'t-end'}">${s.status=='refunded'?'환불':'종료'}</span>`} ${esc(s.memo||'')}</div></td><td class="hide-m">${esc(s.phone)}</td><td class="muted">${s.start_date}<br>~ ${s.end_date}</td>
+  return `<tr><td><span class="tag t-${s.product}">${s.product.toUpperCase()}</span></td><td><b>${esc(s.name)}</b>${elig(s)&&s.status=='active'?' <span class="tag t-act">환급 후보</span>':''}<div class="muted">${s.status=='active'?'':`<span class="tag ${s.status=='refunded'?'t-ref':'t-end'}">${s.status=='refunded'?'환불':'종료'}</span>`} ${esc(s.memo||'')}</div></td><td class="hide-m">${esc(s.phone)}</td><td class="muted">${s.plan_days||365}일<br>${s.start_date} ~ ${s.end_date}</td>
   <td><div class="dots">${days.map(d=>`<i class="${d<s.start_date?'':(p[d]||0)>=need(s)?'f':(p[d]?'h':'')}" title="${d} ${p[d]||0}/${need(s)}"></i>`).join('')}</div><div class="muted">${fullDays(s)}일 다 풂</div></td>
   <td>${t}/${need(s)}</td><td class="muted">${refund(s)}</td>
   <td style="white-space:nowrap"><button class="btn s gh" data-copy="${s.id}">안내문 복사</button> ${s.status=='active'?`<button class="btn s rd" data-ref="${s.id}">환불</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="8" class="muted" style="padding:20px">아직 없어요.</td></tr>';
@@ -95,13 +97,13 @@ $('#f_save').onclick=async()=>{
  const v={product:$('#f_product').value,name:$('#f_name').value.trim(),phone:$('#f_phone').value.replace(/\D/g,''),start_date:$('#f_start').value,amount:+$('#f_amount').value||0,paid_at:$('#f_paid').value||null,pay_method:$('#f_method').value,memo:$('#f_memo').value.trim()||null};
  if(!v.name||v.phone.length<10||!v.start_date){alert('이름·휴대폰·첫 날을 확인해 주세요.');return}
  if(dow(v.start_date)%6==0){alert('첫 날은 평일로 골라 주세요.');return}
- v.end_date=addD(addD(v.start_date,365),-1);
+ v.plan_days=+$('#f_plan').value;v.list_price=PLAN[v.plan_days].list;v.end_date=addD(addD(v.start_date,v.plan_days),-1);
  const dup=SUBS.find(s=>s.phone==v.phone&&s.product==v.product&&s.status=='active');if(dup&&!confirm(`${dup.name}(${dup.phone}) ${v.product.toUpperCase()}반이 이미 이용 중이에요. 그래도 등록할까요?`))return;
  const r=await sb.from('daily_subs').insert(v).select().single();if(r.error){alert(r.error.message);return}
  const o=$('#f_out');o.classList.add('show');o.innerHTML=`<b>${esc(r.data.name)}</b> 등록됐어요. 개인 링크: <code>${LINK(r.data.token)}</code><div class="msg">${esc(msgFor(r.data))}</div><button class="btn s" style="margin-top:8px" id="cp">안내문 복사</button>`;
  $('#cp').onclick=()=>{navigator.clipboard.writeText(msgFor(r.data));$('#cp').textContent='복사됨 ✓'};
  ['f_name','f_phone','f_memo'].forEach(i=>$('#'+i).value='');load()};
-['q_prod','q_stat'].forEach(i=>$('#'+i).onchange=render);$('#q_txt').oninput=render;
+['q_prod','q_stat'].forEach(i=>$('#'+i).onchange=render);$('#f_plan').onchange=()=>{$('#f_amount').value=PLAN[$('#f_plan').value].price};$('#q_txt').oninput=render;
 (async()=>{$('#f_start').value=nextWk(TODAY);$('#f_paid').value=TODAY;
  const {data:{user}}=await sb.auth.getUser();
  if(!user){$('#lock').style.display='block';$('#lock').innerHTML='원장·실장 계정으로 로그인해야 볼 수 있어요.<br><a href="/" style="color:#0f8a7b;font-weight:800">perfect-toeic.com 에서 로그인</a> 후 다시 열어 주세요.';return}

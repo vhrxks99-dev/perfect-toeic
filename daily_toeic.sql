@@ -139,3 +139,7 @@ select s.id, s.name, s.phone, s.product, date_trunc('month', p.day_date)::date a
   from public.daily_subs s
   join (select sub_id, day_date, count(*) cnt from public.daily_progress group by 1,2) p on p.sub_id = s.id
  group by 1,2,3,4,5;
+
+-- 11/19 추가: 180일/365일 기간
+alter table public.daily_subs add column if not exists plan_days int not null default 365 check (plan_days in (180,365));
+alter table public.daily_subs add column if not exists list_price int not null default 79980;
