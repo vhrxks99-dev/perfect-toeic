@@ -1,0 +1,136 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>완벽한토익 데일리 RC</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;-webkit-tap-highlight-color:transparent}
+:root{--bg:#f6f4ef;--g:#0f8a7b;--gd:#0b6d61;--gl:#e3f4f0;--ink:#191f28;--sub:#6b7684;--line:#ebe8e1;--red:#e5484d;--rl:#fdecec;--y:#ffd43b}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);background:var(--bg);max-width:480px;margin:0 auto;min-height:100vh;letter-spacing:-.2px}
+.hd{padding:20px 20px 6px;display:flex;justify-content:space-between;align-items:flex-start}
+.hd .d{font-size:13px;color:var(--sub);font-weight:600}
+.hd h1{font-size:24px;font-weight:800;margin-top:2px}
+.fire{background:#fff;border-radius:20px;padding:7px 12px;font-size:14px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.steps{display:flex;gap:6px;padding:10px 20px 4px}
+.steps i{flex:1;height:6px;border-radius:3px;background:#e2ded5}.steps i.on{background:var(--g)}
+.tabs{display:flex;gap:6px;padding:12px 16px 4px;position:sticky;top:0;background:var(--bg);z-index:5}
+.tab{flex:1;background:#fff;border-radius:14px;padding:10px 0 9px;text-align:center;font-size:14px;font-weight:700;color:var(--sub);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tab small{display:block;font-size:11px;font-weight:600;color:#a3aab3;margin-top:1px}
+.tab.on{background:var(--ink);color:#fff}.tab.on small{color:#c9ced6}
+.tab.fin:not(.on){background:var(--gl);color:var(--gd)}.tab.fin:not(.on) small{color:var(--g)}
+.pane{display:none;padding:12px 16px 120px}.pane.on{display:block}
+.card{background:#fff;border-radius:22px;padding:20px 18px;box-shadow:0 4px 18px rgba(0,0,0,.05);margin-bottom:12px}
+.qn{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.qn b{font-size:13px;color:var(--g);background:var(--gl);border-radius:20px;padding:4px 10px;font-weight:800}
+.qn span{font-size:13px;color:var(--sub);font-weight:600}
+.qt{font-size:19px;line-height:1.6;font-weight:600;margin-bottom:18px}
+.bl{display:inline-block;min-width:72px;height:26px;vertical-align:-5px;border-radius:8px;background:#fff3c4;border:2px dashed #f0c419}
+.bl.fill{border-style:solid;background:var(--gl);border-color:var(--g);color:var(--gd);font-weight:800;text-align:center;padding:0 8px;line-height:22px;height:auto}
+.opt{display:flex;align-items:center;gap:12px;background:#fafaf8;border:2px solid #efece6;border-radius:16px;padding:14px 14px;font-size:17px;font-weight:600;margin-bottom:10px;cursor:pointer;transition:transform .08s}
+.opt:active{transform:scale(.98)}
+.opt i{font-style:normal;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #e2ded5;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--sub);flex:none}
+.opt.right{background:var(--gl);border-color:var(--g)}.opt.right i{background:var(--g);border-color:var(--g);color:#fff}
+.opt.wrong{background:var(--rl);border-color:var(--red)}.opt.wrong i{background:var(--red);border-color:var(--red);color:#fff}
+.opt.dim{opacity:.45}
+.fb{display:none;border-radius:16px;padding:14px 16px;font-size:15px;line-height:1.7;margin-top:6px}
+.fb.show{display:block}
+.fb.ok{background:var(--gl)}.fb.no{background:var(--rl)}
+.fb .t{font-size:17px;font-weight:800;margin-bottom:4px}.fb.ok .t{color:var(--gd)}.fb.no .t{color:var(--red)}
+.fb .kr{color:var(--sub);font-size:14px;margin-top:6px}
+.psg{font-size:16px;line-height:1.85;color:#2b333d}
+.psg .ph{font-size:13px;color:var(--sub);line-height:1.6;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.psg h4{font-size:17px;margin-bottom:8px}
+.nb{display:inline-block;min-width:86px;border-bottom:2px solid #8b95a1;margin:0 3px;padding:0 6px 1px;text-align:center;font-size:0;line-height:1.5;vertical-align:baseline}
+.nb:before{content:'(' attr(data-l) ')';font-size:13px;font-weight:800;color:#8b95a1}
+.nb.cur{background:#fff3c4;border-bottom-color:#f0c419;border-radius:6px 6px 0 0}.nb.cur:before{color:#b88a00}
+.nb.fill{font-size:15px;font-weight:700;min-width:0;border-radius:6px 6px 0 0}.nb.fill:before{content:'(' attr(data-l) ') ';font-size:12px}
+.nb.fill.ok{background:var(--gl);border-bottom-color:var(--g);color:var(--gd)}.nb.fill.ok:before{color:var(--g)}
+.nb.fill.no{background:var(--rl);border-bottom-color:var(--red);color:var(--red)}.nb.fill.no:before{color:var(--red)}
+.psgtog{font-size:13px;color:var(--g);font-weight:700;margin-top:10px;cursor:pointer}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:480px;padding:12px 16px 22px;background:linear-gradient(rgba(246,244,239,0),var(--bg) 30%)}
+.btn{display:block;width:100%;border:0;background:var(--g);color:#fff;font-family:inherit;font-weight:800;font-size:17px;border-radius:18px;padding:17px;cursor:pointer;box-shadow:0 6px 16px rgba(15,138,123,.28)}
+.btn:disabled{background:#cfd4d9;box-shadow:none}
+.done{text-align:center;padding:30px 10px}
+.done .big{font-size:54px}.done h2{font-size:22px;margin:8px 0 4px}.done p{color:var(--sub);font-size:15px;line-height:1.6}
+.done .sc{display:inline-block;margin-top:14px;background:var(--gl);color:var(--gd);font-weight:800;border-radius:14px;padding:10px 18px;font-size:16px}
+/* words */
+.wd-top{display:flex;justify-content:space-between;align-items:center;margin:4px 4px 12px;font-size:14px;color:var(--sub);font-weight:600}
+.flip{background:#fff;border-radius:26px;box-shadow:0 6px 22px rgba(0,0,0,.07);height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;cursor:pointer;position:relative}
+.flip .en{font-size:38px;font-weight:800;letter-spacing:-.5px}
+.flip .hint{font-size:14px;color:#a3aab3;margin-top:14px}
+.flip .ko{font-size:19px;font-weight:600;line-height:1.6;margin-top:16px;color:var(--gd);display:none}
+.flip.open .ko{display:block}.flip.open .hint{display:none}
+.flip .cnt{position:absolute;top:18px;left:20px;font-size:13px;color:var(--sub);font-weight:700}
+.two{display:flex;gap:10px;margin-top:14px}
+.two button{flex:1;border:0;border-radius:18px;padding:16px;font-family:inherit;font-weight:800;font-size:16px;cursor:pointer}
+.two .no{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.05)}.two .yes{background:var(--g);color:#fff}
+.dots{display:flex;gap:5px;justify-content:center;margin-top:16px}.dots i{width:8px;height:8px;border-radius:50%;background:#dcd8cf}.dots i.k{background:var(--g)}.dots i.u{background:var(--y)}
+</style></head><body>
+<div class="hd"><div><div class="d">11월 24일 월요일 · RC반</div><h1>오늘의 토익 RC</h1></div><div class="fire">🔥 12일째</div></div>
+<div class="steps"><i></i><i></i><i></i><i></i></div>
+<div class="tabs">
+ <div class="tab on" data-t="p5">Part 5<small>3문제</small></div>
+ <div class="tab" data-t="p6">Part 6<small>1세트</small></div>
+ <div class="tab" data-t="p7">Part 7<small>1세트</small></div>
+ <div class="tab" data-t="wd">단어<small>10개</small></div>
+</div>
+<div class="pane on" id="p5"></div><div class="pane" id="p6"></div><div class="pane" id="p7"></div><div class="pane" id="wd"></div>
+<div class="bar"><button class="btn" id="go" disabled>답을 골라 주세요</button></div>
+<div class="msg" id="msg" style="display:none"></div>
+<style>
+.msg{padding:60px 24px;text-align:center;font-size:16px;line-height:1.7;color:#4e5968}.msg .big{font-size:48px;margin-bottom:10px}.msg b{color:#191f28}
+.kbtn{display:inline-block;margin-top:16px;background:#fee500;color:#191f28;font-weight:800;border-radius:14px;padding:12px 18px;text-decoration:none}
+.trn{margin-top:12px;font-size:14px;color:var(--g);font-weight:700;cursor:pointer;text-align:left}
+.trbox{display:none;text-align:left;background:#f7f6f2;border-radius:14px;padding:14px;font-size:14.5px;line-height:1.75;margin-top:10px;color:#333d4b}.trbox.show{display:block}
+.wkn{background:#fff8e6;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;margin:10px 16px 0}
+</style>
+<script>
+const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
+const TOKEN=new URLSearchParams(location.search).get('k')||'';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const L='ABCD',PARTS=['p5','p6','p7','wd'],NX={p5:'p6',p6:'p7',p7:'wd',wd:null},NM={p5:'Part 5',p6:'Part 6',p7:'Part 7',wd:'오늘의 단어'};
+let D=null,W=[],INFO=null,cur='p5';
+const st={p5:{i:0,ok:0,pick:null,end:false,picks:[]},p6:{i:0,ok:0,pick:null,end:false,picks:[]},p7:{i:0,ok:0,pick:null,end:false,picks:[]},wd:{i:0,open:false,k:[],end:false}};
+async function rpc(fn,body){const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
+function msg(big,html){$$('.hd,.steps,.tabs,.pane,.bar').forEach(x=>x.style.display='none');const m=$('#msg');m.style.display='block';m.innerHTML=`<div class="big">${big}</div>${html}<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>`}
+function btn(txt,dis,fn){const b=$('#go');b.textContent=txt;b.disabled=!!dis;b.onclick=fn||null}
+function steps(){$$('.steps i').forEach((x,i)=>x.classList.toggle('on',st[PARTS[i]].end));$$('.tab').forEach(t=>t.classList.toggle('fin',st[t.dataset.t].end))}
+function fire(n){$('.fire').textContent=n>0?`🔥 ${n}일째`:'🔥 오늘 시작'}
+function mark(t,score,total){if(!TOKEN||INFO.weekend)return;rpc('daily_mark',{p_token:TOKEN,p_part:t,p_score:score,p_total:total}).then(r=>{if(r&&r.streak!=null){INFO.streak=r.streak;fire(r.streak)}}).catch(()=>{})}
+function blankify(t,s){return t.replace('___',s?`<span class="bl fill">${s}</span>`:'<span class="bl"></span>')}
+function trans(d){return d.psg_k?`<div class="trn" onclick="this.nextElementSibling.classList.toggle('show')">지문 해석 보기 ▾</div><div class="trbox">${d.psg_k}</div>`:''}
+function fillPsg(t,root){const d=D[t],s=st[t];if(!root)return;root.querySelectorAll('.nb').forEach(n=>{const k=+n.dataset.n,q=d.qs[k];n.dataset.l=k+1;n.className='nb';n.textContent='';const pk=s.picks[k];if(pk!=null&&q){n.textContent=q.o[pk];n.classList.add('fill',pk==q.a?'ok':'no')}else if(!s.end&&k==s.i)n.classList.add('cur')})}
+function allDone(){return PARTS.every(p=>st[p].end)}
+function renderQ(t){const d=D[t],s=st[t],p=$('#'+t);const qs=t=='p5'?d:d.qs;
+ if(s.end){p.innerHTML=`<div class="card done"><div class="big">${s.ok==qs.length?'🎉':'👍'}</div><h2>${NM[t]} 끝!</h2><p>틀린 문제는 해설을 한 번 더 읽어 보세요.</p>${s.ok!=null?`<div class="sc">${qs.length}문제 중 ${s.ok}개 정답</div>`:''}${t!='p5'?trans(d):''}</div>`+(t!='p5'?`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`:'');if(t!='p5')fillPsg(t,$('#psg'));
+  btn(NX[t]?`다음: ${NM[NX[t]]} →`:'오늘 끝!',0,()=>show(NX[t]));return}
+ const q=qs[s.i];let h='';
+ if(t!='p5')h+=`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`;
+ h+=`<div class="card"><div class="qn"><b>Q${s.i+1}</b><span>${s.i+1} / ${qs.length}</span></div><div class="qt">${blankify(q.t,s.pick!==null?q.o[s.pick]:null)}</div>`;
+ h+=q.o.map((o,i)=>`<div class="opt${s.pick===null?'':i==q.a?' right':i==s.pick?' wrong':' dim'}" data-i="${i}"><i>${L[i]}</i>${o}</div>`).join('');
+ if(s.pick!==null){const ok=s.pick==q.a;h+=`<div class="fb show ${ok?'ok':'no'}"><div class="t">${ok?'정답이에요! 👏':'아쉬워요, 정답은 ('+L[q.a]+')'}</div>${q.e}${q.k?`<div class="kr">해석: ${q.k}</div>`:''}</div>`}
+ h+='</div>';p.innerHTML=h;
+ if(t!='p5')fillPsg(t,$('#psg'));
+ p.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{if(s.pick!==null)return;s.pick=+o.dataset.i;s.picks[s.i]=s.pick;if(s.pick==q.a)s.ok++;renderQ(t)});
+ if(s.pick===null)btn('답을 골라 주세요',1);else btn(s.i+1<qs.length?'다음 문제':'결과 보기',0,()=>{s.i++;s.pick=null;if(s.i>=qs.length){s.end=true;steps();mark(t,s.ok,qs.length)}renderQ(t);scrollTo(0,0)})}
+function renderW(){const s=st.wd,p=$('#wd');$('.bar').style.display='none';
+ if(s.end){const n=INFO.weekend?'주말 복습 끝! 월요일 아침 7시에 새 문제가 와요.':allDone()?`「매일 풀기」 ${Math.max(INFO.streak,1)}일째가 채워졌어요.<br>내일 아침 7시에 또 만나요.`:'남은 파트도 마저 풀면 오늘 「매일 풀기」가 채워져요.';
+  p.innerHTML=`<div class="card done"><div class="big">🔥</div><h2>${allDone()?'오늘 할 것 다 했어요!':'단어 끝!'}</h2><p>${n}</p>${s.k.length?`<div class="sc">아는 단어 ${s.k.filter(x=>x).length} / ${W.length}</div>`:''}</div>`+W.map(w=>`<div class="card" style="padding:14px 18px;margin-bottom:8px"><b style="font-size:17px">${w[0]}</b><div style="color:var(--gd);margin-top:3px">${w[1]}</div></div>`).join('');return}
+ const w=W[s.i];p.innerHTML=`<div class="wd-top"><span>완토 VOCA</span><span>${s.i+1} / ${W.length}</span></div><div class="flip${s.open?' open':''}" id="fl"><div class="cnt">${s.i+1}</div><div class="en">${w[0]}</div><div class="hint">눌러서 뜻 보기</div><div class="ko">${w[1]}</div></div><div class="two"><button class="no" id="wn">몰라요</button><button class="yes" id="wy">알아요</button></div><div class="dots">${W.map((x,i)=>`<i class="${s.k[i]===true?'k':s.k[i]===false?'u':''}"></i>`).join('')}</div>`;
+ $('#fl').onclick=()=>{s.open=!s.open;renderW()};
+ const nx=v=>{s.k[s.i]=v;s.i++;s.open=false;if(s.i>=W.length){s.end=true;steps();mark('wd',s.k.filter(x=>x).length,W.length)}renderW()};$('#wn').onclick=()=>nx(false);$('#wy').onclick=()=>nx(true)}
+function show(t){if(!t)return;cur=t;$('.bar').style.display='';$$('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t==t));$$('.pane').forEach(x=>x.classList.toggle('on',x.id==t));t=='wd'?renderW():renderQ(t);scrollTo(0,0)}
+$$('.tab').forEach(x=>x.onclick=()=>show(x.dataset.t));
+function start(r){INFO=r;const it=r.items;D={p5:it.p5,p6:it.p6,p7:it.p7};W=it.words||[];
+ const wd=['일','월','화','수','목','금','토'][new Date(r.date+'T12:00:00Z').getUTCDay()];
+ $('.hd .d').textContent=`${+r.date.slice(5,7)}월 ${+r.date.slice(8,10)}일 ${wd}요일 · ${r.product=='rc'?'RC반':'LC반'}`;
+ $('.hd h1').textContent=r.weekend?'주말 복습':'오늘의 토익 RC';fire(r.streak||0);
+ $('.tabs .tab[data-t=p5] small').textContent=D.p5.length+'문제';$('.tabs .tab[data-t=wd] small').textContent=W.length+'개';
+ if(r.weekend)$('.steps').insertAdjacentHTML('afterend','<div class="wkn">주말엔 새 문제 대신 <b>금요일 문제 복습</b>이에요. 기록에는 안 들어가요.</div>');
+ const pr=r.progress||{};PARTS.forEach(p=>{if(pr[p]){st[p].end=true;st[p].ok=pr[p].score}});steps();
+ show(PARTS.find(p=>!st[p].end)||'wd')}
+(async()=>{
+ if(!TOKEN){msg('🔒','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「오늘의 학습 페이지 바로가기」</b> 버튼으로 들어와 주세요.');return}
+ try{const r=await rpc('daily_today',{p_token:TOKEN});
+  if(r.error){const E={no_sub:['🔒','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['⏸️','이용이 끝났거나 멈춘 상태예요.'],not_started:['⏰',`<b>${r.start_date}</b>부터 문제가 시작돼요.`],expired:['📅',`이용 기간이 <b>${r.end_date}</b>에 끝났어요.`],no_items:['🛠️','오늘 문제를 준비하고 있어요. 잠시 뒤 다시 열어 주세요.']}[r.error]||['⚠️','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
+  start(r)}catch(e){msg('⚠️','인터넷 연결을 확인하고 다시 열어 주세요.')}
+})();
+</script></body></html>

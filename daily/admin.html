@@ -1,0 +1,111 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>데일리 관리 · 완벽한토익</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all}
+:root{--bg:#f6f4ef;--g:#0f8a7b;--gd:#0b6d61;--gl:#e3f4f0;--ink:#191f28;--sub:#6b7684;--line:#ebe8e1;--red:#e5484d;--rl:#fdecec;--y:#fff3c4}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;background:var(--bg);color:var(--ink);padding:24px 20px 60px;max-width:1180px;margin:0 auto}
+h1{font-size:24px;font-weight:800}.sub{color:var(--sub);font-size:14px;margin:4px 0 20px}
+.card{background:#fff;border-radius:20px;padding:20px;box-shadow:0 3px 14px rgba(0,0,0,.05);margin-bottom:16px}
+.card h2{font-size:17px;margin-bottom:14px}
+.kpi{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}.kpi div{flex:1;min-width:150px;background:#fff;border-radius:18px;padding:16px 18px;box-shadow:0 3px 14px rgba(0,0,0,.05)}
+.kpi b{display:block;font-size:26px;font-weight:800;margin-top:4px}.kpi span{font-size:13px;color:var(--sub);font-weight:600}
+.form{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.form label{font-size:12px;color:var(--sub);font-weight:700;display:flex;flex-direction:column;gap:5px}
+input,select,textarea{font-family:inherit;font-size:15px;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--g)}
+.btn{border:0;background:var(--g);color:#fff;font-family:inherit;font-weight:800;font-size:15px;border-radius:12px;padding:11px 16px;cursor:pointer}
+.btn.s{padding:6px 10px;font-size:13px;border-radius:9px}.btn.gh{background:#fff;color:var(--g);border:1.5px solid var(--g)}.btn.rd{background:#fff;color:var(--red);border:1.5px solid #f3b6b8}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12px;color:var(--sub);font-weight:700;padding:8px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap}
+td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tag{display:inline-block;font-size:12px;font-weight:800;border-radius:20px;padding:3px 9px}
+.t-rc{background:var(--gl);color:var(--gd)}.t-lc{background:#e8efff;color:#3557c9}
+.t-act{background:var(--gl);color:var(--gd)}.t-ref{background:var(--rl);color:var(--red)}.t-end{background:#eee;color:#666}
+.dots{display:flex;gap:3px}.dots i{width:9px;height:9px;border-radius:2px;background:#e2ded5}.dots i.f{background:var(--g)}.dots i.h{background:#9ad6cc}
+.out{display:none;margin-top:14px;background:var(--y);border-radius:14px;padding:14px 16px;font-size:14px;line-height:1.7}
+.out.show{display:block}.out code{background:#fff;border-radius:6px;padding:2px 6px;font-size:13px}
+.msg{white-space:pre-wrap;background:#fff;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13.5px}
+.lock{text-align:center;padding:80px 20px;color:var(--sub);font-size:16px;line-height:1.8}
+.muted{color:var(--sub);font-size:12px}
+.fil{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+@media(max-width:760px){.form{grid-template-columns:1fr 1fr}table{font-size:13px}.hide-m{display:none}}
+</style></head><body>
+<div id="app" style="display:none">
+<h1>완토 데일리 관리</h1><div class="sub">구매자 등록 → 개인 링크 발급 · 매일 푼 기록 · 이번 달 환급 후보 · 환불 계산</div>
+<div class="kpi"><div><span>이용 중</span><b id="k1">-</b></div><div><span>오늘 다 푼 사람</span><b id="k2">-</b></div><div><span>이번 달 환급 후보</span><b id="k3">-</b></div><div><span>이번 달 평일(오늘까지)</span><b id="k4">-</b></div></div>
+<div class="card"><h2>구매자 등록</h2>
+ <div class="form">
+  <label>반<select id="f_product"><option value="rc">RC반</option><option value="lc">LC반</option></select></label>
+  <label>이름<input id="f_name" placeholder="홍길동"></label>
+  <label>휴대폰<input id="f_phone" placeholder="01012345678" inputmode="numeric"></label>
+  <label>첫 문제 받는 날(평일)<input id="f_start" type="date"></label>
+  <label>결제 금액<input id="f_amount" type="number" value="39990"></label>
+  <label>결제일<input id="f_paid" type="date"></label>
+  <label>결제 방법<select id="f_method"><option>결제선생</option><option>계좌이체</option><option>카드</option></select></label>
+  <label>메모<input id="f_memo" placeholder="인스타 광고 등"></label>
+ </div>
+ <div style="margin-top:12px"><button class="btn" id="f_save">등록하고 링크 만들기</button></div>
+ <div class="out" id="f_out"></div>
+</div>
+<div class="card"><h2>구매자 목록</h2>
+ <div class="fil"><select id="q_prod"><option value="">전체 반</option><option value="rc">RC반</option><option value="lc">LC반</option></select><select id="q_stat"><option value="active">이용 중</option><option value="">전체</option><option value="refunded">환불</option><option value="ended">종료</option></select><input id="q_txt" placeholder="이름·번호 찾기"></div>
+ <div style="overflow-x:auto"><table><thead><tr><th>반</th><th>이름</th><th class="hide-m">휴대폰</th><th>이용 기간</th><th>이번 달 (■=다 풂)</th><th>오늘</th><th>환불하면</th><th></th></tr></thead><tbody id="list"></tbody></table></div>
+ <div class="muted" style="margin-top:10px">환불 계산: 첫 문제 받은 날부터 3일 안 = 전액 / 그 뒤 = 결제액 − 정가 79,980원 × 이용일/365 − 위약금 15,996원(정가 20%), 0원 아래면 0원. 참고용이에요.</div>
+</div>
+</div>
+<div class="lock" id="lock" style="display:none"></div>
+<script>
+const sb=window.supabase.createClient('https://guaqfsuwrvqjffmbiwpw.supabase.co','sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C');
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const kst=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+const addD=(d,n)=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const dow=d=>new Date(d+'T12:00:00Z').getUTCDay();
+const nextWk=d=>{let x=addD(d,1);while(dow(x)==0||dow(x)==6)x=addD(x,1);return x};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const won=n=>Number(n).toLocaleString('ko-KR')+'원';
+const LINK=t=>`https://perfect-toeic.com/daily/?k=${t}`;
+let SUBS=[],PROG=[],TODAY=kst();
+function weekdaysUpTo(from,to){let n=0,x=from;while(x<=to){if(dow(x)%6)n++;x=addD(x,1)}return n}
+function refund(s){if(s.status!=='active')return'-';const used=Math.max(0,Math.round((new Date(TODAY)-new Date(s.start_date))/864e5)+1);if(TODAY<s.start_date)return won(s.amount)+' (시작 전)';if(used<=3)return won(s.amount)+' (3일 안)';const v=Math.floor(s.amount-79980*used/365-15996);return won(Math.max(0,v))+` (${used}일)`}
+function msgFor(s){return `${s.name}님, 완벽한토익 데일리 ${s.product=='rc'?'RC':'LC'}반 결제 확인됐어요.\n\n${s.start_date}(평일) 아침 7시부터 매일 카카오 알림톡으로 오늘의 문제가 가요.\n알림톡의 「오늘의 학습 페이지 바로가기」를 누르면 아래 개인 페이지가 열려요. 다른 사람과 공유하지 말아 주세요.\n\n${LINK(s.token)}\n\n이용 기간: ${s.start_date} ~ ${s.end_date}`}
+async function load(){
+ const [a,b]=await Promise.all([sb.from('daily_subs').select('*').order('created_at',{ascending:false}),sb.from('daily_progress').select('sub_id,day_date,part').gte('day_date',TODAY.slice(0,8)+'01')]);
+ if(a.error){$('#lock').style.display='block';$('#app').style.display='none';$('#lock').innerHTML='표를 읽지 못했어요.<br>'+esc(a.error.message);return}
+ SUBS=a.data;PROG=b.data||[];render()}
+function render(){
+ const m1=TODAY.slice(0,8)+'01',wk=weekdaysUpTo(m1,TODAY);const need=s=>s.product=='rc'?4:2;
+ const by={};PROG.forEach(p=>{(by[p.sub_id]??={})[p.day_date]=(by[p.sub_id][p.day_date]||0)+1});
+ const act=SUBS.filter(s=>s.status=='active');
+ const fullDays=s=>Object.entries(by[s.id]||{}).filter(([d,c])=>c>=need(s)).length;
+ const elig=s=>{const from=s.start_date>m1?s.start_date:m1;const w=weekdaysUpTo(from,TODAY);return w>0&&fullDays(s)>=w};
+ $('#k1').textContent=act.length+'명';$('#k2').textContent=act.filter(s=>((by[s.id]||{})[TODAY]||0)>=need(s)).length+'명';$('#k3').textContent=act.filter(elig).length+'명';$('#k4').textContent=wk+'일';
+ const qp=$('#q_prod').value,qs=$('#q_stat').value,qt=$('#q_txt').value.trim();
+ const rows=SUBS.filter(s=>(!qp||s.product==qp)&&(!qs||s.status==qs)&&(!qt||s.name.includes(qt)||s.phone.includes(qt)));
+ const days=[];let x=m1;while(x<=TODAY){if(dow(x)%6)days.push(x);x=addD(x,1)}
+ $('#list').innerHTML=rows.map(s=>{const p=by[s.id]||{};const t=p[TODAY]||0;
+  return `<tr><td><span class="tag t-${s.product}">${s.product.toUpperCase()}</span></td><td><b>${esc(s.name)}</b>${elig(s)&&s.status=='active'?' <span class="tag t-act">환급 후보</span>':''}<div class="muted">${s.status=='active'?'':`<span class="tag ${s.status=='refunded'?'t-ref':'t-end'}">${s.status=='refunded'?'환불':'종료'}</span>`} ${esc(s.memo||'')}</div></td><td class="hide-m">${esc(s.phone)}</td><td class="muted">${s.start_date}<br>~ ${s.end_date}</td>
+  <td><div class="dots">${days.map(d=>`<i class="${d<s.start_date?'':(p[d]||0)>=need(s)?'f':(p[d]?'h':'')}" title="${d} ${p[d]||0}/${need(s)}"></i>`).join('')}</div><div class="muted">${fullDays(s)}일 다 풂</div></td>
+  <td>${t}/${need(s)}</td><td class="muted">${refund(s)}</td>
+  <td style="white-space:nowrap"><button class="btn s gh" data-copy="${s.id}">안내문 복사</button> ${s.status=='active'?`<button class="btn s rd" data-ref="${s.id}">환불</button>`:''}</td></tr>`}).join('')||'<tr><td colspan="8" class="muted" style="padding:20px">아직 없어요.</td></tr>';
+ $$('[data-copy]').forEach(b=>b.onclick=()=>{const s=SUBS.find(x=>String(x.id)===b.dataset.copy);navigator.clipboard.writeText(msgFor(s));b.textContent='복사됨 ✓'});
+ $$('[data-ref]').forEach(b=>b.onclick=async()=>{const s=SUBS.find(x=>String(x.id)===b.dataset.ref);if(!confirm(`${s.name} 환불 처리할까요? 링크가 바로 막혀요.\n참고 환불액: ${refund(s)}`))return;const r=await sb.from('daily_subs').update({status:'refunded',memo:((s.memo||'')+' · 환불 '+TODAY).trim()}).eq('id',s.id);if(r.error)alert(r.error.message);load()})}
+$('#f_save').onclick=async()=>{
+ const v={product:$('#f_product').value,name:$('#f_name').value.trim(),phone:$('#f_phone').value.replace(/\D/g,''),start_date:$('#f_start').value,amount:+$('#f_amount').value||0,paid_at:$('#f_paid').value||null,pay_method:$('#f_method').value,memo:$('#f_memo').value.trim()||null};
+ if(!v.name||v.phone.length<10||!v.start_date){alert('이름·휴대폰·첫 날을 확인해 주세요.');return}
+ if(dow(v.start_date)%6==0){alert('첫 날은 평일로 골라 주세요.');return}
+ v.end_date=addD(addD(v.start_date,365),-1);
+ const dup=SUBS.find(s=>s.phone==v.phone&&s.product==v.product&&s.status=='active');if(dup&&!confirm(`${dup.name}(${dup.phone}) ${v.product.toUpperCase()}반이 이미 이용 중이에요. 그래도 등록할까요?`))return;
+ const r=await sb.from('daily_subs').insert(v).select().single();if(r.error){alert(r.error.message);return}
+ const o=$('#f_out');o.classList.add('show');o.innerHTML=`<b>${esc(r.data.name)}</b> 등록됐어요. 개인 링크: <code>${LINK(r.data.token)}</code><div class="msg">${esc(msgFor(r.data))}</div><button class="btn s" style="margin-top:8px" id="cp">안내문 복사</button>`;
+ $('#cp').onclick=()=>{navigator.clipboard.writeText(msgFor(r.data));$('#cp').textContent='복사됨 ✓'};
+ ['f_name','f_phone','f_memo'].forEach(i=>$('#'+i).value='');load()};
+['q_prod','q_stat'].forEach(i=>$('#'+i).onchange=render);$('#q_txt').oninput=render;
+(async()=>{$('#f_start').value=nextWk(TODAY);$('#f_paid').value=TODAY;
+ const {data:{user}}=await sb.auth.getUser();
+ if(!user){$('#lock').style.display='block';$('#lock').innerHTML='원장·실장 계정으로 로그인해야 볼 수 있어요.<br><a href="/" style="color:#0f8a7b;font-weight:800">perfect-toeic.com 에서 로그인</a> 후 다시 열어 주세요.';return}
+ const {data:me}=await sb.from('profiles').select('role,name').eq('id',user.id).single();
+ if(!me||!['master','manager'].includes(me.role)){$('#lock').style.display='block';$('#lock').textContent='원장·실장만 볼 수 있어요.';return}
+ $('#app').style.display='block';load()})();
+</script></body></html>
