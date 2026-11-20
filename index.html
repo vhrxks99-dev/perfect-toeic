@@ -683,6 +683,18 @@
   .ph-a{background:linear-gradient(150deg,#2f6fe0,#12315f)}
   .ph-b{background:linear-gradient(150deg,#1f4f9e,#0e2140)}
   .ph-c{background:linear-gradient(150deg,#4a6a9c,#1c2b44)}
+
+  /* 2:1 짝 수업 같이 옮기기 (2026-11-20) — pr21- 로 시작하는 이름만 쓴다 */
+  .pr21-box{margin:0 0 12px}
+  .pr21-label{font-weight:800;font-size:13px;color:#6b7280;margin-bottom:6px}
+  .pr21-card{background:#EDF3FE;border:1px solid #b9cdf6;border-radius:12px;padding:10px 12px}
+  .pr21-head{display:flex;align-items:center;gap:8px;font-size:14.5px}
+  .pr21-badge{background:#2F6BE8;color:#fff;font-weight:800;font-size:12px;border-radius:6px;padding:1px 7px}
+  .pr21-names{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+  .pr21-name{background:#fff;border:1px solid #e3e6ea;border-radius:10px;padding:4px 10px;font-weight:700;font-size:13px}
+  .pr21-sw{display:flex !important;align-items:center;gap:8px;font-weight:700;font-size:13.5px;margin:0 !important;cursor:pointer}
+  .pr21-sw input{width:auto !important;margin:0}
+  .pr21-hint{display:block;font-size:12px;color:#6b7280;margin-top:4px}
 </style>
 
 <a href="#apply-form" class="btn btn-primary" style="position:absolute;left:-9999px">본문 바로가기</a>
@@ -4073,6 +4085,16 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <button class="wa-x" id="waSeClose" aria-label="닫기">&times;</button>
     <div class="wa-head">수업 수정</div>
     <div class="wa-sub" id="waSeWho"></div>
+    <!-- 함께 듣는 수업 (2:1) — lesson_pairs 에 등록된 짝이 같은 선생님·같은 시작·끝일 때만 뜬다 (2026-11-20 시안 ①) -->
+    <div class="pr21-box" id="waSePair" style="display:none">
+      <div class="pr21-label">함께 듣는 수업</div>
+      <div class="pr21-card">
+        <div class="pr21-head"><span class="pr21-badge">2:1</span><b id="waSePairT"></b></div>
+        <div class="pr21-names" id="waSePairNames"></div>
+        <label class="pr21-sw"><input type="checkbox" id="waSePairOn" checked> 두 학생 같이 바꾸기</label>
+        <span class="pr21-hint" id="waSePairHint"></span>
+      </div>
+    </div>
     <!-- 수업 결과 — 확정이 곧 출석이라 평소에는 누를 일이 없다.
          지금 상태에 따라 필요한 버튼만 그린다(fillSchedResult). -->
     <div id="waSeResult" style="display:none;margin:0 0 12px">
@@ -11076,6 +11098,40 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     return t(row.starts_at)===t(startISO) && t(row.ends_at)===t(endISO)
         && String(row.teacher_id||'')===String(teacherId||'');
   }
+  // ── 2:1 짝 (2026-11-20 원장님 「2:1 짝 수업 같이 옮기기」) ──
+  //    🚨 짝 = lesson_pairs 에 등록된 짝 + 시작·끝이 똑같은 수업만. 같은 선생님·같은 방·같은 시간이라도
+  //       짝 등록이 없으면 따로 수업이다(김인태·원서희). 자동 추측 금지.
+  async function waPartnerSet(studentId){
+    var o={}; if(!studentId||!sb) return o;
+    try{
+      var q=await sb.from('lesson_pairs').select('student_id,partner_id').or('student_id.eq.'+studentId+',partner_id.eq.'+studentId);
+      (q.data||[]).forEach(function(r){ o[String(String(r.student_id)===String(studentId)?r.partner_id:r.student_id)]=1; });
+    }catch(e){}
+    return o;
+  }
+  function waSameTime(row, startISO, endISO){
+    return new Date(row.starts_at).getTime()===new Date(startISO).getTime() && new Date(row.ends_at).getTime()===new Date(endISO).getTime();
+  }
+  // 짝의 같은 시간 수업을 겹침 목록에서 뺀다
+  function waDropPairRows(rows, par, startISO, endISO){
+    return (rows||[]).filter(function(x){ return !(x.student_id && par[String(x.student_id)] && waSameTime(x, startISO, endISO)); });
+  }
+  // 이 수업과 같이 듣는 짝 수업(같은 선생님·시작·끝 동일, 휴강·결석 제외). 없으면 null
+  async function waPairLessonOf(s){
+    if(!s||!s.student_id||!s.teacher_id||!sb) return null;
+    var par=await waPartnerSet(s.student_id);
+    if(!Object.keys(par).length) return null;
+    var t0=new Date(s.starts_at).getTime();
+    try{
+      var q=await sb.from('schedules').select('id,student_id,student_name,subject,memo,room_id,starts_at,ends_at,status,teacher_id')
+        .eq('teacher_id',s.teacher_id).gte('starts_at',new Date(t0-60000).toISOString()).lte('starts_at',new Date(t0+60000).toISOString());
+      if(q.error) return null;
+      return (q.data||[]).filter(function(x){
+        var st=x.status||'confirmed';
+        return String(x.id)!==String(s.id) && x.student_id && par[String(x.student_id)] && st!=='canceled' && st!=='noshow' && waSameTime(x, s.starts_at, s.ends_at);
+      })[0]||null;
+    }catch(e){ return null; }
+  }
   function roomCap(id){
     var r=(_rooms||[]).filter(function(x){ return String(x.id)===String(id); })[0];
     return (r && Number(r.capacity)>0) ? Number(r.capacity) : 99;
@@ -11091,9 +11147,11 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     sel.disabled=true;
     try{
       if(roomId!=null){
-        var c=await sb.from('schedules').select('id,teacher_id,teacher_name,student_name,starts_at,ends_at,status')
+        var c=await sb.from('schedules').select('id,teacher_id,teacher_name,student_id,student_name,starts_at,ends_at,status')
                 .eq('room_id',roomId).lt('starts_at',row.ends_at).gt('ends_at',row.starts_at).neq('id',id);
         var busy=(c.data||[]).filter(function(x){ var st=x.status||'confirmed'; return st!=='canceled' && st!=='noshow'; });
+        // 2:1 짝의 같은 시간 수업은 원래 같이 하는 수업 — 겹침·합반 확인에서 뺀다 (2026-11-20)
+        busy=waDropPairRows(busy, await waPartnerSet(row.student_id), row.starts_at, row.ends_at);
         var same=busy.filter(function(x){ return sameSlot(x, row.starts_at, row.ends_at, row.teacher_id); });
         if(busy.length && same.length!==busy.length){
           var o=busy.filter(function(x){ return !sameSlot(x, row.starts_at, row.ends_at, row.teacher_id); })[0];
@@ -11114,6 +11172,15 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       var r=await sb.from('schedules').update({room_id:roomId}).eq('id',id);
       if(r.error){ alert('강의장 저장 실패: '+r.error.message); sel.value=prev; return; }
       row.room_id=roomId;
+      // 2:1 짝 수업도 같은 강의장으로 옮길지 묻는다 (2026-11-20)
+      try{
+        var pl=await waPairLessonOf(row);
+        if(pl && String(pl.room_id==null?'':pl.room_id)!==String(roomId==null?'':roomId)
+           && confirm('같은 시간 2:1 짝 '+(pl.student_name||'학생')+' 수업도 '+(roomId?roomName(roomId):'미배정')+'(으)로 같이 옮길까요?')){
+          var r3=await sb.from('schedules').update({room_id:roomId}).eq('id',pl.id);
+          if(r3.error) alert('짝 수업 강의장은 못 옮겼어요: '+r3.error.message);
+        }
+      }catch(e){}
       sel.classList.toggle('none', roomId==null);
       await loadSchedules(); await renderCalendar(); updateScFree();
     } finally { sel.disabled=false; }
@@ -11166,12 +11233,14 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     btn.disabled=true; btn.textContent='추가하는 중...';
     try{
       if(roomId){
-        var c=await sb.from('schedules').select('id,teacher_id,student_name,starts_at,ends_at,status')
+        var c=await sb.from('schedules').select('id,teacher_id,student_id,student_name,starts_at,ends_at,status')
                 .eq('room_id',roomId).lt('starts_at',endISO).gt('ends_at',startISO);
         // 서버 트리거와 같은 기준으로 본다(2026-08-13):
         //   · 휴강·결석한 수업은 방을 놓은 것이라 겹침으로 안 센다
         //   · 시작·끝이 똑같고 같은 선생님이면 2:1 합반이라 같이 넣을 수 있다
         var busy=(c.data||[]).filter(function(x){ var st=x.status||'confirmed'; return st!=='canceled' && st!=='noshow'; });
+        // 2:1 짝(lesson_pairs)의 같은 시간 수업은 겹침에서 뺀다 (2026-11-20)
+        if(student) busy=waDropPairRows(busy, await waPartnerSet(student.id), startISO, endISO);
         var same=busy.filter(function(x){ return sameSlot(x, startISO, endISO, teacher?teacher.id:null); });
         if(busy.length && same.length!==busy.length){
           scSay(false,'해당 시간에 그 강의장이 이미 예약돼 있어요.'); return;
@@ -11292,13 +11361,38 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     $('waSeMemo').value=s.memo||'';
     if($('waSeIsOt')) $('waSeIsOt').checked=isOtLesson(s);
     // 시간을 실제로 바꿨을 때만 사유를 묻기 위해 원래 값을 기억해 둔다.
-    _seOrig={ d:$('waSeDate').value, s:$('waSeStart').value, e:$('waSeEnd').value };
+    _seOrig={ d:$('waSeDate').value, s:$('waSeStart').value, e:$('waSeEnd').value, room:(s.room_id==null?'':String(s.room_id)) };
+    seLoadPair(s);
     if($('waSeReason')) $('waSeReason').value='';
     if($('waSeNote')) $('waSeNote').value='';
     seToggleReason();
     $('waSeErr').textContent='';
     $('waSchedEdit').classList.add('on');
   }
+  // 2:1 짝 수업 같이 바꾸기 (2026-11-20 시안 ①) — 짝이 있으면 카드를 띄우고 기본은 같이 바꾸기
+  var _sePair=null, _seRow=null;
+  function seSubmitBtn(){ var f=$('waSchedEditForm'); return f ? f.querySelector('button[type=submit]') : null; }
+  function seSyncPairUi(){
+    var on=!!(_sePair && $('waSePairOn') && $('waSePairOn').checked);
+    var b=seSubmitBtn(); if(b) b.textContent = on ? '2명 수업 저장하기' : '저장';
+    if($('waSePairHint')) $('waSePairHint').textContent = !_sePair ? ''
+      : on ? '날짜·시간·강의장이 짝 수업에도 똑같이 바뀌어요.'
+           : ((_seRow&&_seRow.student_name)||'이 학생')+' 수업만 바뀌어요.';
+  }
+  async function seLoadPair(s){
+    _sePair=null; _seRow=s;
+    if($('waSePair')) $('waSePair').style.display='none';
+    if($('waSePairOn')) $('waSePairOn').checked=true;
+    seSyncPairUi();
+    var pl=await waPairLessonOf(s);
+    if(!pl || String(_seId)!==String(s.id)) return;   // 그사이 다른 수업을 열었으면 버린다
+    _sePair=pl;
+    if($('waSePairT')) $('waSePairT').textContent=(s.teacher_name ? s.teacher_name+' 선생님 수업' : '2:1 수업');
+    if($('waSePairNames')) $('waSePairNames').innerHTML=[s.student_name||'학생', pl.student_name||'학생'].map(function(n){ return '<span class="pr21-name">'+esc(n)+'</span>'; }).join('');
+    if($('waSePair')) $('waSePair').style.display='';
+    seSyncPairUi();
+  }
+  if($('waSePairOn')) $('waSePairOn').addEventListener('change', seSyncPairUi);
   // 시간이 바뀌었나 — 바뀌었을 때만 사유 칸을 보여준다(강의장·메모만 고치는 경우가 훨씬 많다).
   var _seOrig=null;
   function seTimeChanged(){
@@ -11356,7 +11450,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
          : r==='mistake' ? '학원 일정 정정'
          : '사유 미기재';
   }
-  function closeSchedEdit(){ if($('waSchedEdit')) $('waSchedEdit').classList.remove('on'); _seId=null; _seRetry=null; }
+  function closeSchedEdit(){ if($('waSchedEdit')) $('waSchedEdit').classList.remove('on'); _seId=null; _seRetry=null; _sePair=null; _seRow=null; }
   // 사유를 고르는 순간, 아까 막혔던 동작을 이어서 실행한다.
   // 확인창은 그대로 뜨므로 실수로 처리될 일은 없다.
   if($('waSeReason')) $('waSeReason').addEventListener('change', function(){
@@ -11513,6 +11607,19 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
       });
       return;
     }
+    // 2:1 짝 같이 옮기기 — 날짜·시간·강의장이 바뀔 때만 묻는다 (2026-11-20 시안 ②)
+    var withPair=null;
+    if(_sePair && $('waSePairOn') && $('waSePairOn').checked){
+      var roomChanged = String(roomId==null?'':roomId)!==String((_seOrig&&_seOrig.room)||'');
+      if(seTimeChanged() || roomChanged){
+        var me=(_seRow&&_seRow.student_name)||'이 학생';
+        var pmsg='2:1 수업을 같이 옮길게요\n두 학생 수업이 함께 바뀌어요.\n\n'+me+' · '+(_sePair.student_name||'학생')+'\n'
+          + (_seOrig ? (_seOrig.d+' '+_seOrig.s+'~'+_seOrig.e) : '') + ' → ' + d+' '+s1+'~'+e1 + '\n'
+          + '강의장 ' + (roomId?roomName(roomId):'미배정');
+        if(confirm(pmsg+'\n\n[확인] 2명 같이 옮기기     [취소] 다른 선택')) withPair=_sePair;
+        else if(!confirm(me+'만 옮길까요?\n(짝 '+(_sePair.student_name||'학생')+' 수업은 지금 그대로 남아요)\n\n[확인] '+me+'만 옮기기     [취소] 저장 안 함')) return;
+      }
+    }
     // 저장은 save_schedule_edit 로만 한다 — 그래야 원래 시간이 기록에 남는다.
     var r=await sb.rpc('save_schedule_edit',{
       p_id:_seId, p_starts:startISO, p_ends:endISO, p_room:roomId,
@@ -11525,14 +11632,30 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     }
     // 겹침·강의장 규칙은 서버가 막는다. 그 메시지를 그대로 보여준다.
     if(r.error){ err.textContent=r.error.message; return; }
+    // 2:1 짝 수업도 같은 날짜·시간·강의장으로 (2026-11-20). 과목·메모·OT 는 짝 것 그대로.
+    //   내 수업이 승인 대기면 짝도 같이 요청해 둔다(원장님이 둘 다 승인).
+    var pairMsg='';
+    if(withPair && !(r.data && r.data.ok===false)){
+      try{
+        var r2=await sb.rpc('save_schedule_edit',{
+          p_id:withPair.id, p_starts:startISO, p_ends:endISO, p_room:roomId,
+          p_subject:(withPair.subject||$('waSeSubject').value), p_memo:(withPair.memo||null), p_is_ot:null,
+          p_reason: reason||null, p_note: ('2:1 짝 수업 같이 변경'+(($('waSeNote')&&$('waSeNote').value.trim())?(' · '+$('waSeNote').value.trim()):'')) });
+        if(r2.error) pairMsg=r2.error.message;
+        else if(r2.data && r2.data.ok===false) pairMsg=r2.data.msg||'저장하지 못했습니다.';
+      }catch(e2){ pairMsg=String(e2&&e2.message||e2); }
+      if(pairMsg) pairMsg='짝 '+(withPair.student_name||'학생')+' 수업은 못 옮겼어요: '+pairMsg+'\n짝 수업을 따로 열어 맞춰 주세요.';
+    }
     // 24시간 안에 있는 수업은 선생님이 바로 못 바꾼다 → 원장님 승인 요청으로 넘어간다(2026-08-14 원장 지시).
     if(r.data && r.data.pending){
       closeSchedEdit();
-      alert('수업 시작까지 24시간이 안 남았습니다.\n\n바로 바꿀 수 없어 원장님께 승인 요청을 보냈습니다.\n승인되면 그때 시간이 바뀌고, 학생 화면에도 그렇게 표시됩니다.');
+      alert('수업 시작까지 24시간이 안 남았습니다.\n\n바로 바꿀 수 없어 원장님께 승인 요청을 보냈습니다.\n승인되면 그때 시간이 바뀌고, 학생 화면에도 그렇게 표시됩니다.'
+        + (withPair ? '\n\n(2:1 짝 '+(withPair.student_name||'')+' 수업도 같이 요청했어요)' : '') + (pairMsg ? '\n\n'+pairMsg : ''));
       try{ await loadTeacherAlerts(); }catch(e){}
       return;
     }
     if(r.data && r.data.ok===false){ err.textContent=r.data.msg||'저장하지 못했습니다.'; return; }
+    if(pairMsg) alert(pairMsg);
     closeSchedEdit();
     await loadSchedules(); await renderCalendar(); await loadRoomAssign(); await loadTeacherAlerts();
     try{ await loadAttendance(); }catch(e){}   // OT 로 바꾸면 남은 횟수가 달라진다
