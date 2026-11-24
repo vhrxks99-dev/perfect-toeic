@@ -47,6 +47,19 @@ button{font-family:inherit}a{color:inherit}
 .sub{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:14px;background:var(--mute);color:var(--ink);font-weight:800;text-decoration:none;margin-top:10px;font-size:15.5px;border:0;width:100%;cursor:pointer}
 .msg{padding:60px 24px;text-align:center;font-size:16px;line-height:1.7;color:#4e5968}
 .kbtn{display:inline-block;margin-top:16px;background:#fee500;color:#191f28;font-weight:800;border-radius:14px;padding:12px 18px;text-decoration:none}
+.qw{margin:16px 16px 0;background:var(--surface);border-radius:24px;padding:26px 20px 22px;text-align:center;box-shadow:0 8px 26px rgba(18,36,90,.10)}
+.qw .tag{display:inline-block;font-size:12.5px;font-weight:800;color:var(--blue-d);background:var(--blue-l);border-radius:20px;padding:5px 11px;margin-bottom:14px}
+.qw .en{font-size:36px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}
+.qw .ask{font-size:14.5px;color:var(--sub);margin-top:8px;font-weight:600}
+.ops{margin:12px 16px 0;display:grid;gap:8px}
+.op{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;text-align:left;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:12px 14px;font-size:16px;font-weight:600;color:var(--ink);cursor:pointer;line-height:1.4;font-family:inherit}
+.op i{flex:0 0 30px;height:30px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:13.5px;font-weight:800;color:var(--sub)}
+.op.sel{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}.op.sel i{background:var(--ink);border-color:var(--ink);color:#fff}
+.op.right{border-color:var(--ok);background:var(--ok-l)}.op.right i{background:var(--ok);border-color:var(--ok);color:#fff}
+.op.wrong{border-color:var(--warn);background:var(--warn-l)}.op.wrong i{background:var(--warn);border-color:var(--warn);color:#fff}
+.op.dim{opacity:.5}
+.verdict{margin:12px 16px 0;font-size:15.5px;font-weight:800;text-align:center}.verdict.ok{color:var(--ok)}.verdict.no{color:var(--warn)}
+.qgo{margin:14px 16px 0;width:calc(100% - 32px)}
 @media (prefers-reduced-motion:reduce){.flip.open .ko{animation:none}.pbar i,.go,.two button{transition:none}}
 </style></head><body>
 <div id="app" style="display:none">
@@ -58,7 +71,7 @@ button{font-family:inherit}a{color:inherit}
  <div id="home">
   <section class="sec">
    <h2>모르는 단어 <small id="cnt"></small></h2>
-   <p class="lead">매일 단어에서 「몰라요」를 누른 단어만 모였어요. 시험에서 두 번 연속 「알아요」면 여기서 빠져요.</p>
+   <p class="lead">매일 단어에서 「몰라요」를 누른 단어만 모였어요. 시험에서 두 번 연속 맞히면 여기서 빠져요.</p>
    <button class="go" id="start" type="button">모르는 단어만 시험 보기</button>
    <div id="list"></div>
   </section>
@@ -66,9 +79,10 @@ button{font-family:inherit}a{color:inherit}
  <div id="quiz">
   <div class="prog"><span id="pn"></span><span id="pk"></span></div>
   <div class="pbar"><i id="pb" style="width:0"></i></div>
-  <button class="flip" id="fl" type="button" aria-live="polite"></button>
-  <div class="two"><button class="no" id="bn" type="button">몰라요</button><button class="yes" id="by" type="button">알아요</button></div>
-  <p class="note">카드를 누르면 뜻이 보여요. 뜻을 보기 전에 먼저 떠올려 보세요.</p>
+  <div class="qw"><span class="tag" id="qtag"></span><div class="en" id="qen"></div><p class="ask">이 단어의 뜻은?</p></div>
+  <div class="ops" id="ops"></div>
+  <p class="verdict" id="vd" aria-live="polite"></p>
+  <button class="go qgo" id="qgo" type="button"></button>
  </div>
  <div id="done" style="display:none"></div>
 </div>
@@ -78,10 +92,10 @@ button{font-family:inherit}a{color:inherit}
 const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
 const Q=new URLSearchParams(location.search),TOKEN=Q.get('k')||'',MOCK=Q.has('mock');
 const $=s=>document.querySelector(s);const MAX=20;   // 한 번 시험에 최대 20개
-let R=null,deck=[],i=0,known=0,grad=0,open=false,busy=false;
+let R=null,deck=[],i=0,known=0,grad=0,sel=null,done=false,busy=false;const LB='ABCD';
 async function rpc(fn,body){
- if(MOCK){if(fn=='daily_words_list')return{name:'김토익',product:'rc',graduated:7,words:[['reimburse','(쓴 돈을) 돌려주다','2026-12-01',1],['tentative','잠정적인','2026-12-02',0],['adhere','(규칙을) 지키다','2026-12-03',0],['comply','따르다, 준수하다','2026-12-04',1],['inventory','재고, 재고 목록','2026-12-08',0],['mandatory','의무적인','2026-12-10',0],['allocate','배정하다','2026-12-11',1],['warranty','품질 보증(서)','2026-12-15',0],['itinerary','여행 일정표','2026-12-16',0]].map(x=>({w:x[0],m:x[1],d:x[2],s:x[3]}))};
-  return{ok:true,streak:body.p_known?1:0,graduated:body.p_known&&deck[i]&&deck[i].s>=1}}
+ if(MOCK){if(fn=='daily_words_list')return{name:'김토익',product:'rc',graduated:7,pool:['연기하다','승인하다','예산','경쟁력 있는','일시적인','추가의','제출하다','(가격을) 매기다','수령인','유효한','번창하다','줄이다','공급업체','견적서'],words:[['reimburse','(쓴 돈을) 돌려주다','2026-12-01',1],['tentative','잠정적인','2026-12-02',0],['adhere','(규칙을) 지키다','2026-12-03',0],['comply','따르다, 준수하다','2026-12-04',1],['inventory','재고, 재고 목록','2026-12-08',0],['mandatory','의무적인','2026-12-10',0],['allocate','배정하다','2026-12-11',1],['warranty','품질 보증(서)','2026-12-15',0],['itinerary','여행 일정표','2026-12-16',0]].map(x=>({w:x[0],m:x[1],d:x[2],s:x[3]}))};
+  return{ok:true,streak:body.p_known?(deck[i].s||0)+1:0,graduated:body.p_known&&deck[i]&&deck[i].s>=1}}
  const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
 function msg(html){$('#app').style.display='none';const m=$('#msg');m.style.display='block';m.innerHTML=html+'<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>'}
 const REC='rec.html?k='+encodeURIComponent(TOKEN)+(MOCK?'&mock=1':'');
@@ -92,22 +106,34 @@ function home(){
  $('#start').disabled=!W.length;$('#start').textContent=W.length>MAX?`모르는 단어 ${MAX}개 시험 보기`:'모르는 단어만 시험 보기';
  $('#list').innerHTML=W.length?'<ul class="wl">'+W.map(w=>`<li><div><b>${w.w}</b><span>${w.m}</span></div><i class="s${w.s?1:0}">${w.s?'한 번 맞힘':'아직'}</i></li>`).join('')+'</ul>'
   :`<p class="empty">${R.graduated?'모르는 단어를 다 비웠어요. 내일 단어에서 「몰라요」를 누르면 다시 여기에 모여요.':'아직 모인 단어가 없어요. 매일 단어 10개를 넘길 때 「몰라요」를 누른 단어가 여기에 쌓여요.'}</p>`}
-function card(){const w=deck[i];$('#pn').textContent=`${i+1} / ${deck.length}`;$('#pk').textContent=`알아요 ${known}`;$('#pb').style.width=(i/deck.length*100)+'%';
- const f=$('#fl');f.className='flip'+(open?' open':'');f.innerHTML=`<span class="tag">${w.s?'한 번 더 맞히면 졸업':'나만의 단어장'}</span><span class="en">${w.w}</span><span class="hint">눌러서 뜻 보기</span><span class="ko">${w.m}</span>`}
-async function answer(k){if(busy)return;busy=true;const w=deck[i];
- try{const r=await rpc('daily_words_mark',{p_token:TOKEN,p_word:w.w,p_known:k});if(r&&r.graduated)grad++;if(r&&r.ok)w.s=r.streak}catch(e){}
- if(k)known++;i++;open=false;busy=false;
- if(i>=deck.length)finish();else card()}
+function shuffle(a){for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a}
+// 보기 4개: 정답 뜻 + 다른 뜻 3개(내 단어장의 다른 단어 → 모자라면 전체 단어에서)
+function options(w){const seen=new Set([w.m]),out=[];
+ for(const m of shuffle(R.words.filter(x=>x.w!=w.w).map(x=>x.m)).concat(shuffle((R.pool||[]).slice()))){if(out.length>=3)break;if(!seen.has(m)){seen.add(m);out.push(m)}}
+ return shuffle(out.concat([w.m]))}
+function card(){const w=deck[i];if(!w.o)w.o=options(w);
+ $('#pn').textContent=`${i+1} / ${deck.length}`;$('#pk').textContent=`맞힌 단어 ${known}`;$('#pb').style.width=(i/deck.length*100)+'%';
+ $('#qtag').textContent=w.s?'한 번 더 맞히면 졸업':'나만의 단어장';$('#qen').textContent=w.w;
+ const a=w.o.indexOf(w.m);
+ $('#ops').innerHTML=w.o.map((m,k)=>`<button type="button" class="op${done?(k==a?' right':k==sel?' wrong':' dim'):(k===sel?' sel':'')}" data-k="${k}"><i>${LB[k]}</i><span>${m}</span></button>`).join('');
+ if(!done)$('#ops').querySelectorAll('.op').forEach(b=>b.onclick=()=>{sel=+b.dataset.k;card()});
+ const v=$('#vd');v.className='verdict'+(done?(sel==a?' ok':' no'):'');v.textContent=done?(sel==a?(w.g?'정답이에요. 이 단어는 졸업했어요.':'정답이에요.'):`아쉬워요. 정답은 (${LB[a]})`):'';
+ const g=$('#qgo');g.disabled=!done&&sel==null;g.textContent=done?(i+1<deck.length?'다음 단어':'결과 보기'):(sel==null?'뜻을 골라 주세요':'확인')}
+async function go(){if(busy)return;const w=deck[i];
+ if(!done){busy=true;const ok=w.o[sel]==w.m;
+  try{const r=await rpc('daily_words_mark',{p_token:TOKEN,p_word:w.w,p_known:ok});if(r&&r.graduated){grad++;w.g=true}}catch(e){}
+  if(ok)known++;done=true;busy=false;card();return}
+ i++;sel=null;done=false;if(i>=deck.length)finish();else{card();scrollTo(0,0)}}
 function finish(){$('#quiz').style.display='none';const d=$('#done');d.style.display='';
- d.innerHTML=`<section class="sec res"><h2 style="justify-content:center">시험 끝</h2><div class="n">${known}<small> / ${deck.length}</small></div><p>${known==deck.length?'전부 알고 있었어요.':known?`${deck.length-known}개는 아직 헷갈려요. 내일 한 번 더 보면 남아요.`:'괜찮아요. 뜻을 한 번씩 본 것만으로도 다음엔 다르게 보여요.'}</p>${grad?`<span class="grad">${grad}개 졸업 · 단어장에서 빠졌어요</span>`:''}
+ d.innerHTML=`<section class="sec res"><h2 style="justify-content:center">시험 끝</h2><div class="n">${known}<small> / ${deck.length}</small></div><p>${known==deck.length?'전부 맞혔어요.':known?`${deck.length-known}개는 아직 헷갈려요. 내일 한 번 더 보면 남아요.`:'괜찮아요. 뜻을 한 번씩 본 것만으로도 다음엔 다르게 보여요.'}</p>${grad?`<span class="grad">${grad}개 졸업 · 단어장에서 빠졌어요</span>`:''}
  <button class="go" id="again" type="button">단어장으로 돌아가기</button><a class="sub" href="${REC}">내 학습 기록 보기</a></section>`;
  $('#again').onclick=load}
-function start(){deck=R.words.slice(0,MAX).map(x=>({...x}));i=0;known=0;grad=0;open=false;$('#home').style.display='none';$('#done').style.display='none';$('#quiz').style.display='block';card();scrollTo(0,0)}
+function start(){deck=R.words.slice(0,MAX).map(x=>({...x}));i=0;known=0;grad=0;sel=null;done=false;$('#home').style.display='none';$('#done').style.display='none';$('#quiz').style.display='block';card();scrollTo(0,0)}
 async function load(){
  try{R=await rpc('daily_words_list',{p_token:TOKEN});
   if(R.error){msg(R.error=='no_sub'?'링크가 맞지 않아요.<br>알림톡의 「내 학습 기록」 버튼으로 다시 들어와 주세요.':'이용이 끝났거나 멈춘 상태예요.');return}
-  $('#app').style.display='';home();if(MOCK&&Q.get('auto')){start();if(Q.get('auto')=='2'){open=true;card()}}}catch(e){msg('인터넷 연결을 확인하고 다시 열어 주세요.')}}
+  $('#app').style.display='';home();if(MOCK&&Q.get('auto')){start();if(Q.get('auto')=='2'){sel=(deck[0].o.indexOf(deck[0].m)+1)%4;card()}if(Q.get('auto')=='3'){sel=(deck[0].o.indexOf(deck[0].m)+1)%4;done=true;card()}}}catch(e){msg('인터넷 연결을 확인하고 다시 열어 주세요.')}}
 $('#back').href=REC;$('#start').onclick=start;
-$('#fl').onclick=()=>{open=!open;card()};$('#bn').onclick=()=>answer(false);$('#by').onclick=()=>answer(true);
+$('#qgo').onclick=go;
 if(!TOKEN&&!MOCK)msg('개인 링크로만 열 수 있어요.<br>알림톡의 「내 학습 기록」 버튼으로 들어와 주세요.');else load();
 </script></body></html>
