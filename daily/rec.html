@@ -1,0 +1,303 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>완벽한토익 데일리 · 내 학습 기록</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+/* 완토 톤: 연한 하늘빛 바탕 + 파랑. 색은 아래 이름표로만 쓴다. */
+:root{--bg:#f3f6fd;--surface:#fff;--ink:#12141c;--sub:#5a6478;--line:#e2e8f6;--blue:#1f5fe0;--blue-d:#1747ad;--blue-l:#e8effe;--navy:#0f2350;
+ --warn:#c2410c;--warn-l:#fff1e7;--ok:#0f7a55;--mute:#eef2fa;--r:20px}
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;-webkit-tap-highlight-color:transparent}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);background:var(--bg);max-width:480px;margin:0 auto;min-height:100dvh;letter-spacing:-.2px;padding-bottom:104px;font-size:16px;line-height:1.5}
+a{color:inherit}button{font-family:inherit}
+:focus-visible{outline:3px solid #ffb703;outline-offset:2px;border-radius:8px}
+.num{font-variant-numeric:tabular-nums}
+/* 머리: 학원 강의실에 들어온 느낌 */
+.top{background:linear-gradient(160deg,var(--navy) 0%,var(--blue-d) 55%,var(--blue) 100%);color:#fff;padding:20px 20px 60px;border-radius:0 0 28px 28px}
+.brand{display:flex;justify-content:space-between;align-items:center}
+.brand img{height:44px;width:auto;display:block}
+.brand span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.16);border-radius:20px;padding:6px 12px}
+.top h1{font-size:24px;font-weight:800;margin-top:20px;line-height:1.3}
+.top p{font-size:14.5px;color:#d5e1ff;margin-top:4px}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:-40px 16px 0}
+.stat div{background:var(--surface);border-radius:18px;padding:14px 8px 12px;text-align:center;box-shadow:0 6px 20px rgba(18,36,90,.10)}
+.stat b{display:block;font-size:23px;font-weight:800;line-height:1.2}
+.stat span{font-size:12.5px;color:var(--sub);font-weight:600}
+.stat .hot b{color:var(--warn)}.stat .hot svg{vertical-align:-3px;margin-right:2px}
+.sec{margin:14px 16px 0;background:var(--surface);border-radius:var(--r);padding:20px 18px;box-shadow:0 4px 16px rgba(18,36,90,.06)}
+.sec h2{font-size:17px;font-weight:800;display:flex;align-items:center;gap:8px}
+.sec h2 small{font-size:12.5px;font-weight:600;color:var(--sub);margin-left:auto}
+.lead{font-size:13.5px;color:var(--sub);margin-top:4px}
+/* 선생님 한마디 */
+.coach{background:linear-gradient(180deg,#fff 0%,var(--blue-l) 140%);border:1.5px solid #cfdcfb}
+.coach .tag{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:var(--blue-d);background:var(--blue-l);border-radius:20px;padding:5px 11px}
+.coach .say{font-size:18px;font-weight:800;line-height:1.5;margin-top:12px}
+.coach .say em{font-style:normal;color:var(--blue)}
+.todo{list-style:none;margin-top:14px;display:grid;gap:10px}
+.todo li{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:15px;line-height:1.55}
+.todo i{width:28px;height:28px;border-radius:9px;background:var(--blue);color:#fff;font-style:normal;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center}
+.todo b{font-weight:800}
+/* 막대 */
+.bars{margin-top:16px;display:grid;gap:14px}
+.bar-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:15px;font-weight:700}
+.bar-h .v{font-weight:800}.bar-h .v small{font-size:12.5px;color:var(--sub);font-weight:600;margin-left:6px}
+.track{height:12px;border-radius:6px;background:var(--mute);margin-top:6px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:6px;background:var(--blue)}
+.weak .track i{background:var(--warn)}.weak .v{color:var(--warn)}
+.few .track i{background:#b9c3d8}.few .v{color:var(--sub)}
+.badge{display:inline-block;font-size:11.5px;font-weight:800;border-radius:6px;padding:2px 7px;margin-left:6px;vertical-align:1px}
+.badge.w{background:var(--warn-l);color:var(--warn)}.badge.g{background:#e3f6ee;color:var(--ok)}.badge.f{background:var(--mute);color:var(--sub)}
+.tipline{font-size:13.5px;color:#3b4252;line-height:1.6;margin-top:7px;background:var(--warn-l);border-radius:10px;padding:9px 11px}
+.empty{font-size:14.5px;color:var(--sub);line-height:1.65;margin-top:12px;background:var(--mute);border-radius:14px;padding:14px}
+/* 4주 추이 */
+.wk{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px;align-items:end;height:150px}
+.wk div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.wk b{font-size:14px;font-weight:800}.wk i{display:block;width:100%;max-width:56px;border-radius:10px 10px 4px 4px;background:#b9cdf8;min-height:6px}
+.wk .now i{background:var(--blue)}.wk span{font-size:12px;color:var(--sub);font-weight:600}
+.wknote{font-size:14px;margin-top:12px;font-weight:700}
+/* 달력 */
+.mh{display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px}
+.mh b{font-size:16px;font-weight:800}
+.mh button{width:44px;height:44px;border:0;border-radius:14px;background:var(--mute);font-size:18px;font-weight:800;color:var(--ink);cursor:pointer}
+.mh button:disabled{opacity:.35;cursor:default}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center}
+.cal .w{font-size:12px;color:var(--sub);font-weight:700;padding-bottom:4px}
+.cal .c{aspect-ratio:1;border-radius:12px;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#aab3c5;border:0;background:none;font-family:inherit}
+.cal .c small{font-size:10px;font-weight:800;height:11px;line-height:11px}
+.cal .c.day{background:var(--mute);color:var(--ink);cursor:pointer}
+.cal .c.full{background:var(--blue);color:#fff}
+.cal .c.part{background:var(--blue-l);color:var(--blue-d)}
+.cal .c.miss{background:var(--mute);color:#7a859b}
+.cal .c.today{box-shadow:inset 0 0 0 2.5px var(--ink)}
+.cal .c.sel{box-shadow:0 0 0 3px #ffb703}
+.lg{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12.5px;color:var(--sub);font-weight:600}
+.lg i{display:inline-block;width:12px;height:12px;border-radius:4px;vertical-align:-1px;margin-right:5px}
+.dd{margin-top:16px;border-top:1px solid var(--line);padding-top:16px}
+.dd h3{font-size:15.5px;font-weight:800;margin-bottom:6px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
+.row:first-of-type{border-top:0}
+.row b{font-weight:800}.row .all{color:var(--ok)}.row .miss{color:var(--warn)}.row .yet{color:#8a94a8;font-weight:600}
+.again{display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:12px;background:var(--ink);color:#fff;border-radius:14px;font-weight:800;text-decoration:none;font-size:15.5px}
+.again.sub{background:var(--mute);color:var(--ink)}
+.tip{font-size:13px;color:var(--sub);margin-top:8px}
+.wl a{display:flex;justify-content:space-between;align-items:center;min-height:48px;border-top:1px solid var(--line);font-size:15px;text-decoration:none}
+.wl a:first-of-type{border-top:0;margin-top:8px}.wl em{font-style:normal;color:var(--warn);font-weight:800;margin-left:6px}.wl span{color:var(--blue-d);font-size:13.5px;font-weight:700}
+/* 학원 안내 */
+.acad{background:var(--navy);color:#fff}
+.acad h2{color:#fff}.acad p{font-size:14.5px;color:#c9d6f5;margin-top:8px;line-height:1.65}
+.acad a{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:14px;font-weight:800;text-decoration:none;font-size:15.5px}
+.acad .ask{margin-top:12px;background:rgba(255,255,255,.10);border-radius:12px;padding:12px 14px;color:#e6edff}.acad .ask b{color:#fff;font-weight:800}
+.acad .kk{margin-top:14px;background:#fee500;color:#191f28}
+.acad .two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.acad .two a{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.28);color:#fff;font-size:15px}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:480px;padding:14px 16px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(243,246,253,0),var(--bg) 32%)}
+.btn{display:flex;align-items:center;justify-content:center;min-height:54px;width:100%;border-radius:16px;background:var(--blue);color:#fff;font-size:17px;font-weight:800;text-decoration:none;box-shadow:0 8px 20px rgba(31,95,224,.28)}
+.btn:active,.again:active,.acad a:active{opacity:.85}
+.msg{padding:60px 24px;text-align:center;font-size:16px;line-height:1.7;color:#4e5968}.msg .big{font-size:48px;margin-bottom:10px}
+.kbtn{display:inline-block;margin-top:16px;background:#fee500;color:#191f28;font-weight:800;border-radius:14px;padding:12px 18px;text-decoration:none}
+/* 움직임 */
+.rv{opacity:0;transform:translateY(16px);transition:opacity .5s ease-out,transform .5s cubic-bezier(.2,.8,.2,1)}
+.rv.in{opacity:1;transform:none}
+.track i{transform:scaleX(0);transform-origin:left center;transition:transform .8s cubic-bezier(.2,.8,.2,1)}
+.in .track i{transform:scaleX(1)}
+.wk i{transform:scaleY(0);transform-origin:center bottom;transition:transform .7s cubic-bezier(.2,.8,.2,1)}
+.in .wk i{transform:scaleY(1)}
+.todo li{opacity:0;transform:translateX(-10px);transition:opacity .4s ease-out,transform .4s ease-out}
+.in .todo li{opacity:1;transform:none}
+.cal .c.day{transition:transform .12s ease-out,box-shadow .15s ease-out}
+.cal .c.day:active{transform:scale(.92)}
+.btn,.again,.acad a,.mh button{transition:transform .12s ease-out,opacity .12s ease-out}
+.btn:active,.again:active,.acad a:active,.mh button:active{transform:scale(.97)}
+.dd.sw{animation:sw .28s ease-out}
+@keyframes sw{from{opacity:.35;transform:translateY(6px)}to{opacity:1;transform:none}}
+.stat .hot svg{animation:fl 1.8s ease-in-out infinite;transform-origin:50% 90%}
+@keyframes fl{0%,100%{transform:scale(1) rotate(-3deg)}50%{transform:scale(1.14) rotate(3deg)}}
+@media (prefers-reduced-motion:reduce){
+ .rv,.todo li{opacity:1;transform:none;transition:none}
+ .track i,.wk i{transform:none;transition:none}
+ .dd.sw,.stat .hot svg{animation:none}
+ .btn,.again,.acad a,.mh button,.cal .c.day{transition:none}
+}
+</style></head><body>
+<div id="app" style="display:none">
+ <header class="top">
+  <div class="brand"><img src="logo_w.png" alt="완벽한토익" width="53" height="44"><span id="cls">데일리 RC반</span></div>
+  <h1><span id="who"></span>님의 학습 기록</h1>
+  <p id="sub"></p>
+ </header>
+ <div class="stat rv">
+  <div class="hot"><b class="num"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/></svg><span id="s1" style="font-size:inherit;color:inherit;font-weight:inherit"></span></b><span>연속으로 푼 날</span></div>
+  <div><b class="num" id="s2"></b><span>다 푼 날</span></div>
+  <div><b class="num" id="s3"></b><span>전체 정답률</span></div>
+ </div>
+
+ <section class="sec coach rv" id="coach" aria-live="polite"></section>
+ <section class="sec rv" id="parts"></section>
+ <section class="sec rv" id="types"></section>
+ <section class="sec rv" id="weeks"></section>
+
+ <section class="sec rv">
+  <h2>날짜별 기록</h2>
+  <div class="mh"><button id="pv" aria-label="지난달 보기">‹</button><b id="mt"></b><button id="nx" aria-label="다음 달 보기">›</button></div>
+  <div class="cal" id="cal"></div>
+  <div class="lg"><span><i style="background:var(--blue)"></i>다 푼 날 ✓</span><span><i style="background:var(--blue-l)"></i>풀다 만 날</span><span><i style="background:var(--mute)"></i>안 푼 날</span></div>
+  <div class="dd" id="dd"></div>
+ </section>
+ <section class="sec wl rv" id="wl" style="display:none"></section>
+
+ <section class="sec acad rv">
+  <h2>혼자 안 잡히는 약점은 1:1로</h2>
+  <p>완벽한토익은 신촌에서 매일 1:1 토익 수업을 하는 학원이에요. 이 기록을 보여 주시면 약한 유형부터 수업을 짜 드려요.</p>
+  <p class="ask"><b>모르겠는 문제는 카카오톡 채널로 질문해 주세요.</b> 문제를 캡처해서 보내 주시면 선생님이 답해 드려요.</p>
+  <a class="kk" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.5 3 2 6.6 2 11c0 2.800 1.800 5.300 4.600 6.700L5.700 21l3.900-2.600c.8.100 1.600.200 2.400.200 5.500 0 10-3.600 10-8S17.500 3 12 3z"/></svg>카카오톡 채널로 물어보기</a>
+  <div class="two">
+   <a id="appl" href="https://play.google.com/store/apps/details?id=com.perfecttoeic.app" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>완토 앱 받기</a>
+   <a href="https://perfect-toeic.com" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.500 3 14.500 0 18M12 3c-3 3.500-3 14.500 0 18"/></svg>홈페이지 보기</a>
+  </div>
+ </section>
+ <div class="bar"><a class="btn" id="go">오늘 문제 풀러 가기</a></div>
+</div>
+<div class="msg" id="msg" style="display:none"></div>
+<script>
+// 내 학습 기록 v2 (2026-11-24): 무엇이 약한지(파트·유형별 정답률)와 무엇을 공부할지를 먼저 보여 준다.
+const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
+const Q=new URLSearchParams(location.search),TOKEN=Q.get('k')||'',MOCK=Q.has('mock');
+const $=s=>document.querySelector(s);
+const NM={p5:'Part 5',p6:'Part 6',p7:'Part 7',wd:'오늘의 단어',lc:'LC'},WD=['일','월','화','수','목','금','토'];
+const MIN=5,WEAK=70;   // 유형은 5문제 넘게 풀어야 판단하고, 정답률 70% 아래면 「보완 필요」
+let R=null,ym=null,sel=null;
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dt=s=>new Date(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10));
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+const LINK=d=>'./?k='+encodeURIComponent(TOKEN)+(d?'&d='+d:'');
+// 유형별 공부법. 유형 이름에 들어 있는 말로 찾는다(문제 파일의 type 표기가 조금씩 달라도 잡히게).
+const TIP=[
+ [/품사/,'빈칸 앞뒤 한 단어만 보고 자리를 정해 보세요. 관사·형용사 뒤는 명사, 동사 앞뒤는 부사예요.'],
+ [/전치사|접속사|전접/,'빈칸 뒤가 명사로 끝나는지, 「주어+동사」가 오는지부터 확인하세요. 명사면 전치사, 문장이면 접속사예요.'],
+ [/동사|시제|태|수일치/,'주어가 단수인지 복수인지 → 뒤에 목적어가 있는지 → 시간 표현 순서로 보세요.'],
+ [/준동사/,'문장에 진짜 동사가 이미 있는지 먼저 세어 보세요. 있으면 빈칸은 to부정사나 -ing 자리예요.'],
+ [/대명사/,'빈칸이 주어 자리인지, 목적어 자리인지, 명사 앞(소유)인지부터 정하세요.'],
+ [/관계/,'빈칸 뒤 문장에 주어가 빠졌는지 목적어가 빠졌는지 확인하세요.'],
+ [/비교/,'than, the, of all 같은 단서 단어를 먼저 찾으세요.'],
+ [/문장/,'빈칸 앞뒤 문장의 this, these, however 같은 말이 보기와 이어지는지 보세요.'],
+ [/연결/,'앞뒤 문장이 같은 방향인지, 반대인지, 원인과 결과인지 먼저 정하세요.'],
+ [/문법/,'빈칸 문장만 보지 말고 앞 문장의 시제와 맞춰 보세요.'],
+ [/어휘/,'뜻만 외우지 말고 같이 다니는 짝(전치사·목적어)까지 묶어서 외우세요. 단어 카드의 「몰라요」부터 다시 보세요.'],
+ [/주제|목적/,'제목과 첫 두 문장에서 답이 나와요. 지문을 다 읽기 전에 먼저 푸세요.'],
+ [/NOT|TRUE/,'보기 네 개를 지문과 하나씩 맞춰 봐야 해서 시간이 걸려요. 그 세트의 마지막에 푸세요.'],
+ [/추론/,'지문에 적힌 사실에서 한 걸음만 나아간 보기가 답이에요. 지문에 없는 내용은 오답이에요.'],
+ [/동의어/,'그 단어 자리에 보기를 하나씩 넣어 읽어 보세요. 사전 뜻보다 문맥이 먼저예요.'],
+ [/의도/,'바로 앞 사람이 한 말에 대한 대답으로 읽으세요.'],
+ [/세부/,'질문의 핵심 단어를 지문에서 그대로 찾고, 그 문장만 꼼꼼히 읽으세요.']];
+const tip=t=>{for(const[r,s]of TIP)if(r.test(t))return s;return'틀린 문제의 해설을 한 번 더 읽고, 같은 유형이 나오면 이유를 말로 설명해 보세요.'};
+const PTIP={p5:'Part 5는 문장 전체를 해석하지 말고 빈칸 앞뒤만 보고 20초 안에 푸는 연습을 하세요.',
+ p6:'Part 6은 빈칸 문장만 보면 틀려요. 앞 문장과 이어지는지 꼭 확인하세요.',
+ p7:'Part 7은 질문부터 읽고 핵심 단어를 지문에서 찾는 순서로 푸세요.',
+ wd:'단어는 「몰라요」로 넘긴 것만 다음 날 한 번 더 보세요. 하루 10개면 충분해요.'};
+async function rpc(fn,body){
+ if(MOCK){const days={};const t=dt('2026-12-18');for(let i=0;i<24;i++){const d=new Date(t);d.setDate(d.getDate()-i);if(d.getDay()%6==0)continue;const k=iso(d);
+   if(i==0)days[k]={p5:{s:3,t:3},p6:{s:3,t:4}};else if(i==9)continue;else if(i==13)days[k]={p5:{s:1,t:3}};else days[k]={p5:{s:i%3==0?2:3,t:3},p6:{s:i%4==1?2:i%3==0?3:4,t:4},p7:{s:i%5==2?1:(i%2?3:2),t:i%2?3:2},wd:{s:7+i%4,t:10}}}
+  const types=[['p5','품사',12,11],['p5','전치사/접속사',10,6],['p5','동사',6,5],['p5','어휘',11,8],['p5','대명사',3,3],['p5','관계사',3,2],
+   ['p6','문법',22,18],['p6','어휘',16,12],['p6','문장 고르기',15,8],['p6','연결어',8,5],
+   ['p7','세부',14,12],['p7','주제·목적',6,6],['p7','추론',9,5],['p7','NOT·TRUE',6,4],['p7','동의어',3,3]].map(x=>({part:x[0],type:x[1],n:x[2],ok:x[3]}));
+  return{name:'김토익',product:'rc',start_date:'2026-11-25',end_date:'2027-11-24',today:'2026-12-18',parts:4,streak:6,full_days:14,days,types}}
+ const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
+function msg(big,html){$('#app').style.display='none';const m=$('#msg');m.style.display='block';m.innerHTML=`<div class="big">${big}</div>${html}<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>`}
+
+// ── 셈 ──
+function sumParts(){const o={};for(const k in R.days)for(const p in R.days[k]){const v=R.days[k][p];o[p]=o[p]||{s:0,t:0};o[p].s+=v.s||0;o[p].t+=v.t||0}return o}
+function weeks(){ // 이번 주 포함 최근 4주, 문제(Part 5~7) 정답률
+ const t=dt(R.today),mon=new Date(t);mon.setDate(t.getDate()-((t.getDay()+6)%7));const out=[];
+ for(let w=3;w>=0;w--){const a=new Date(mon);a.setDate(mon.getDate()-7*w);let s=0,n=0,d=0;
+  for(let i=0;i<5;i++){const x=new Date(a);x.setDate(a.getDate()+i);const p=R.days[iso(x)];if(!p)continue;d++;for(const q of['p5','p6','p7','lc'])if(p[q]){s+=p[q].s;n+=p[q].t}}
+  out.push({lab:w==0?'이번 주':w==1?'지난주':`${a.getMonth()+1}/${a.getDate()} 주`,s,n,d,now:w==0})}
+ return out}
+function bar(name,s,n,cls,extra){const p=pct(s,n);return`<div class="${cls||''}"><div class="bar-h"><span>${name}${extra||''}</span><span class="v num">${n?p+'%':'–'}<small>${n?`${n}문제 중 ${s}개`:'아직 없음'}</small></span></div><div class="track" role="img" aria-label="${name} 정답률 ${p}%"><i style="width:${n?Math.max(p,3):0}%"></i></div></div>`}
+
+function renderTop(P){
+ $('#who').textContent=R.name;$('#cls').textContent='데일리 '+(R.product=='rc'?'RC반':'LC반');
+ const left=Math.max(0,Math.round((dt(R.end_date)-dt(R.today))/864e5));
+ $('#sub').textContent=`${R.start_date.slice(5).replace('-','월 ')}일 시작 · 남은 이용 ${left}일`;
+ let s=0,n=0;for(const p of['p5','p6','p7','lc'])if(P[p]){s+=P[p].s;n+=P[p].t}
+ countUp($('#s1'),R.streak,'일');countUp($('#s2'),R.full_days,'일');if(n)countUp($('#s3'),pct(s,n),'%');else $('#s3').textContent='–';
+ return{s,n}}
+function renderCoach(P,T,all){
+ const el=$('#coach');const head='<span class="tag"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>완토 선생님의 한마디</span>';
+ if(all.n<10){el.innerHTML=head+`<p class="say">아직 푼 문제가 적어서 약한 곳을 말하기 일러요.</p><ul class="todo"><li><i>1</i><div><b>5일만 이어서 풀어 보세요.</b> 문제가 40개쯤 쌓이면 여기에서 약한 유형과 공부할 순서를 알려 드려요.</div></li></ul>`;return}
+ const parts=['p5','p6','p7'].filter(p=>P[p]&&P[p].t>=MIN).map(p=>({p,v:pct(P[p].s,P[p].t)})).sort((a,b)=>a.v-b.v);
+ const weak=T.filter(t=>t.n>=MIN&&pct(t.ok,t.n)<WEAK).sort((a,b)=>pct(a.ok,a.n)-pct(b.ok,b.n));
+ const wp=parts[0];let say,todo=[];
+ if(weak.length){const w=weak[0];say=`지금 가장 먼저 잡을 곳은 <em>${NM[w.part]} ${w.type}</em>예요. ${w.n}문제 중 ${w.n-w.ok}개를 틀렸어요.`;
+  weak.slice(0,2).forEach(w=>todo.push(`<b>${NM[w.part]} ${w.type}</b> ${tip(w.type)}`))}
+ else if(wp&&wp.v<85){say=`크게 무너지는 유형은 없어요. 그중 <em>${NM[wp.p]}</em>(정답률 ${wp.v}%)가 가장 낮아요.`}
+ else say='모든 파트가 고르게 잘 나오고 있어요. 지금 속도를 그대로 지키면 됩니다.';
+ if(wp&&todo.length<3)todo.push(`<b>${NM[wp.p]}</b> ${PTIP[wp.p]}`);
+ if(P.wd&&pct(P.wd.s,P.wd.t)<80&&todo.length<3)todo.push(`<b>단어</b> ${PTIP.wd}`);
+ const wrongDay=Object.keys(R.days).filter(k=>k!=R.today).sort().reverse().find(k=>{const p=R.days[k];return['p5','p6','p7'].some(x=>p[x]&&p[x].s<p[x].t)});
+ if(wrongDay&&todo.length<3){const d=dt(wrongDay);todo.push(`<b>복습</b> ${d.getMonth()+1}월 ${d.getDate()}일 문제를 다시 풀어 보세요. <a href="${LINK(wrongDay)}" style="color:var(--blue-d);font-weight:800">다시 풀기 ›</a>`)}
+ el.innerHTML=head+`<p class="say">${say}</p><h2 style="margin-top:18px;font-size:15px">이번 주엔 이것부터</h2><ul class="todo">${todo.map((t,i)=>`<li><i>${i+1}</i><div>${t}</div></li>`).join('')}</ul>`}
+function renderParts(P){
+ const ks=(R.product=='rc'?['p5','p6','p7','wd']:['lc']);const vals=ks.filter(k=>k!='wd'&&P[k]&&P[k].t>=MIN).map(k=>pct(P[k].s,P[k].t));const lo=vals.length>1?Math.min(...vals):-1;
+ $('#parts').innerHTML='<h2>파트별 정답률<small>지금까지 푼 전부</small></h2><div class="bars">'+ks.map(k=>{const v=P[k]||{s:0,t:0},p=pct(v.s,v.t);const weak=k!='wd'&&v.t>=MIN&&p==lo&&p<85;
+  return bar(k=='wd'?'오늘의 단어 (아는 단어)':NM[k],v.s,v.t,weak?'weak':'',weak?'<span class="badge w">가장 낮아요</span>':'')}).join('')+'</div>'}
+function renderTypes(T){
+ const el=$('#types');let h='<h2>유형별 정답률<small>낮은 것부터</small></h2>';
+ if(!T.length){el.innerHTML=h+'<p class="empty">문제를 풀면 유형마다 몇 개 맞혔는지 여기에 쌓여요. 품사, 전치사, 어휘, 문장 고르기처럼 유형별로 약한 곳이 보이게 됩니다.</p>';return}
+ const big=T.filter(t=>t.n>=MIN).sort((a,b)=>pct(a.ok,a.n)-pct(b.ok,b.n)),few=T.filter(t=>t.n<MIN);
+ h+='<p class="lead">5문제 넘게 푼 유형만 판단해요. 정답률 70% 아래는 주황색으로 표시합니다.</p><div class="bars">';
+ h+=big.map(t=>{const p=pct(t.ok,t.n),w=p<WEAK;return bar(`${NM[t.part]} · ${t.type}`,t.ok,t.n,w?'weak':'',w?'<span class="badge w">보완 필요</span>':p>=90?'<span class="badge g">안정</span>':'').replace('</div></div>',`</div>${w?`<p class="tipline">${tip(t.type)}</p>`:''}</div>`)}).join('');
+ if(few.length)h+=`<div class="few"><div class="bar-h"><span>아직 문제가 적은 유형<span class="badge f">${few.length}개</span></span></div><p class="lead" style="margin-top:6px">${few.map(t=>`${NM[t.part]} ${t.type} ${t.ok}/${t.n}`).join(' · ')}</p></div>`;
+ el.innerHTML=h+'</div>'}
+function renderWeeks(){
+ const W=weeks(),mx=Math.max(...W.map(w=>w.n?pct(w.s,w.n):0),1);
+ let h='<h2>최근 4주 정답률<small>Part 5~7</small></h2><div class="wk">'+W.map(w=>{const p=w.n?pct(w.s,w.n):0;return`<div class="${w.now?'now':''}"><b class="num">${w.n?p+'%':'–'}</b><i style="height:${w.n?Math.max(8,Math.round(p/100*96)):6}px"></i><span>${w.lab}<br>${w.d}일 풂</span></div>`}).join('')+'</div>';
+ const a=W[2],b=W[3];if(a.n>=10&&b.n>=10){const d=pct(b.s,b.n)-pct(a.s,a.n);h+=`<p class="wknote">${d>0?`지난주보다 ${d}%p 올랐어요.`:d<0?`지난주보다 ${-d}%p 내려갔어요. 틀린 날 문제를 다시 풀어 보세요.`:'지난주와 같은 정답률이에요.'}</p>`}
+ $('#weeks').innerHTML=h}
+
+// ── 움직임 ──
+const CALM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function countUp(el,to,suf){if(CALM||!to){el.textContent=to+suf;return}const t0=performance.now(),D=900;
+ const step=t=>{const k=Math.min(1,(t-t0)/D),e=1-Math.pow(1-k,3);el.textContent=Math.round(to*e)+suf;if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
+function motion(){
+ document.querySelectorAll('.bars').forEach(b=>b.querySelectorAll('.track i').forEach((el,i)=>el.style.transitionDelay=(120+i*70)+'ms'));
+ document.querySelectorAll('.wk i').forEach((el,i)=>el.style.transitionDelay=(100+i*90)+'ms');
+ document.querySelectorAll('.todo li').forEach((el,i)=>el.style.transitionDelay=(250+i*110)+'ms');
+ const els=[...document.querySelectorAll('.rv')];
+ if(CALM||!('IntersectionObserver' in window)){els.forEach(e=>e.classList.add('in'));return}
+ const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.12,rootMargin:'0px 0px -6% 0px'});
+ els.forEach(e=>io.observe(e))}
+
+// ── 달력 ──
+function kind(k){if(k<R.start_date||k>R.today||k>R.end_date)return'none';if(dt(k).getDay()%6==0)return'none';const p=R.days[k];if(!p)return k==R.today?'day':'miss';return Object.keys(p).length>=R.parts?'full':'part'}
+function cal(){
+ const y=ym.getFullYear(),m=ym.getMonth();$('#mt').textContent=`${y}년 ${m+1}월`;
+ const first=new Date(y,m,1),n=new Date(y,m+1,0).getDate();let h=WD.map(w=>`<div class="w">${w}</div>`).join('');
+ for(let i=0;i<first.getDay();i++)h+='<div class="c"></div>';
+ for(let d=1;d<=n;d++){const k=iso(new Date(y,m,d)),kd=kind(k),p=R.days[k];const mark=kd=='full'?'✓':kd=='part'?Object.keys(p).length+'/'+R.parts:'';
+  h+=kd=='none'?`<div class="c">${d}<small></small></div>`:`<button type="button" class="c day ${kd}${k==R.today?' today':''}${k==sel?' sel':''}" data-k="${k}" aria-label="${m+1}월 ${d}일 ${kd=='full'?'다 풂':kd=='part'?'풀다 맒':'안 풂'}">${d}<small>${mark}</small></button>`}
+ $('#cal').innerHTML=h;$('#cal').querySelectorAll('[data-k]').forEach(c=>c.onclick=()=>{sel=c.dataset.k;cal();detail()});
+ const s=dt(R.start_date),t=dt(R.today);$('#pv').disabled=(y<s.getFullYear()||(y==s.getFullYear()&&m<=s.getMonth()));$('#nx').disabled=(y>t.getFullYear()||(y==t.getFullYear()&&m>=t.getMonth()))}
+function detail(){
+ const k=sel,d=dt(k),p=R.days[k]||{},kd=kind(k);const parts=R.product=='rc'?['p5','p6','p7','wd']:['lc'];
+ let h=`<h3>${d.getMonth()+1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일${k==R.today?' · 오늘':''}</h3>`;
+ h+=parts.map(x=>{const v=p[x];if(!v)return`<div class="row"><span>${NM[x]}</span><span class="yet">아직 안 풀었어요</span></div>`;
+  return`<div class="row"><span>${NM[x]}</span><b class="${v.s==v.t?'all':'miss'} num">${x=='wd'?`아는 단어 ${v.s} / ${v.t}`:`${v.t}문제 중 ${v.s}개 정답`}</b></div>`}).join('');
+ if(k==R.today)h+=`<a class="again" href="${LINK()}">${kd=='full'?'오늘 문제 다시 보기':'오늘 문제 이어서 풀기'}</a>`;
+ else h+=`<a class="again${kd=='full'?' sub':''}" href="${LINK(k)}">이날 문제 다시 풀기</a><p class="tip">다시 풀어도 처음 푼 기록은 그대로 남아요.</p>`;
+ const dd=$('#dd');dd.innerHTML=h;dd.classList.remove('sw');void dd.offsetWidth;dd.classList.add('sw')}
+function wrongs(){
+ const ks=Object.keys(R.days).filter(k=>k!=R.today).sort().reverse();const out=[];
+ for(const k of ks){const p=R.days[k];let w=0;for(const x of['p5','p6','p7','lc'])if(p[x])w+=p[x].t-p[x].s;if(w>0)out.push([k,w]);if(out.length>=6)break}
+ const el=$('#wl');if(!out.length){el.style.display='none';return}
+ el.style.display='';el.innerHTML='<h2>틀린 문제가 있었던 날</h2>'+out.map(([k,w])=>{const d=dt(k);return`<a href="${LINK(k)}"><div>${d.getMonth()+1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일<em>${w}문제</em></div><span>다시 풀기 ›</span></a>`}).join('')}
+(async()=>{
+ if(!TOKEN&&!MOCK){msg('🔒','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「내 학습 기록」</b> 버튼으로 들어와 주세요.');return}
+ try{R=await rpc('daily_history',{p_token:TOKEN});
+  if(R.error){const E={no_sub:['🔒','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['⏸️','이용이 끝났거나 멈춘 상태예요.']}[R.error]||['⚠️','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
+  R.days=R.days||{};const T=R.types||[],P=sumParts();
+  const all=renderTop(P);renderCoach(P,T,all);renderParts(P);renderTypes(T);renderWeeks();
+  const t=dt(R.today<R.start_date?R.start_date:R.today);ym=new Date(t.getFullYear(),t.getMonth(),1);sel=R.today<R.start_date?R.start_date:R.today;
+  $('#pv').onclick=()=>{ym=new Date(ym.getFullYear(),ym.getMonth()-1,1);cal()};$('#nx').onclick=()=>{ym=new Date(ym.getFullYear(),ym.getMonth()+1,1);cal()};
+  if(/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent))$('#appl').href='https://apps.apple.com/kr/app/id6815950208';
+  $('#go').href=LINK();$('#app').style.display='';cal();detail();wrongs();motion();
+ }catch(e){msg('⚠️','인터넷 연결을 확인하고 다시 열어 주세요.')}
+})();
+</script></body></html>

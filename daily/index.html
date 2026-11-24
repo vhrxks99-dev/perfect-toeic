@@ -80,11 +80,16 @@ body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);backgrou
 .kbtn{display:inline-block;margin-top:16px;background:#fee500;color:#191f28;font-weight:800;border-radius:14px;padding:12px 18px;text-decoration:none}
 .trn{margin-top:12px;font-size:14px;color:var(--g);font-weight:700;cursor:pointer;text-align:left}
 .trbox{display:none;white-space:pre-line;text-align:left;background:#f7f6f2;border-radius:14px;padding:14px;font-size:14.5px;line-height:1.75;margin-top:10px;color:#333d4b}.trbox.show{display:block}
+.recl{display:block;text-align:right;margin-top:6px;font-size:13px;font-weight:700;color:var(--gd);text-decoration:none}
+.wkn a{color:var(--gd);font-weight:800}
+.askk{display:block;margin-top:10px;font-size:13.5px;font-weight:800;color:var(--gd);text-decoration:none}
 .wkn{background:#fff8e6;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;margin:10px 16px 0}
 </style>
 <script>
 const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
 const TOKEN=new URLSearchParams(location.search).get('k')||'';
+const RD=new URLSearchParams(location.search).get('d')||'';   // 지난 날짜 다시 풀기(기록 화면에서 넘어옴)
+const REC='rec.html?k='+encodeURIComponent(TOKEN);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const L='ABCD',PARTS=['p5','p6','p7','wd'],NX={p5:'p6',p6:'p7',p7:'wd',wd:null},NM={p5:'Part 5',p6:'Part 6',p7:'Part 7',wd:'오늘의 단어'};
 let D=null,W=[],INFO=null,cur='p5';
@@ -94,7 +99,8 @@ function msg(big,html){$$('.hd,.steps,.tabs,.pane,.bar').forEach(x=>x.style.disp
 function btn(txt,dis,fn){const b=$('#go');b.textContent=txt;b.disabled=!!dis;b.onclick=fn||null}
 function steps(){$$('.steps i').forEach((x,i)=>x.classList.toggle('on',st[PARTS[i]].end));$$('.tab').forEach(t=>t.classList.toggle('fin',st[t.dataset.t].end))}
 function fire(n){$('.fire').textContent=n>0?`🔥 ${n}일째`:'🔥 오늘 시작'}
-function mark(t,score,total){if(!TOKEN||INFO.weekend)return;rpc('daily_mark',{p_token:TOKEN,p_part:t,p_score:score,p_total:total}).then(r=>{if(r&&r.streak!=null){INFO.streak=r.streak;fire(r.streak)}}).catch(()=>{})}
+function mark(t,score,total){if(!TOKEN||INFO.weekend||INFO.review)return;const up=r=>{if(r&&r.streak!=null){INFO.streak=r.streak;fire(r.streak)}};const b={p_token:TOKEN,p_part:t,p_score:score,p_total:total};
+ rpc('daily_mark2',{...b,p_picks:t=='wd'?st.wd.k:st[t].picks}).then(up).catch(()=>rpc('daily_mark',b).then(up).catch(()=>{}))}   // 새 함수가 아직 없으면 옛 함수로
 function blankify(t,s){return t.replace('___',s?`<span class="bl fill">${s}</span>`:'<span class="bl"></span>')}
 function trans(d){return d.psg_k?`<div class="trn" onclick="this.nextElementSibling.classList.toggle('show')">지문 해석 보기 ▾</div><div class="trbox">${d.psg_k}</div>`:''}
 function fillPsg(t,root){const d=D[t],s=st[t];if(!root)return;root.querySelectorAll('.nb').forEach(n=>{const k=+n.dataset.n,q=d.qs[k];n.dataset.l=k+1;n.className='nb';n.textContent='';const pk=s.picks[k];if(pk!=null&&q){n.textContent=q.o[pk];n.classList.add('fill',pk==q.a?'ok':'no')}else if(!s.end&&k==s.i)n.classList.add('cur')})}
@@ -106,13 +112,13 @@ function renderQ(t){const d=D[t],s=st[t],p=$('#'+t);const qs=t=='p5'?d:d.qs;
  if(t!='p5')h+=`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`;
  h+=`<div class="card"><div class="qn"><b>Q${s.i+1}</b><span>${s.i+1} / ${qs.length}</span></div><div class="qt">${blankify(q.t,s.pick!==null?q.o[s.pick]:null)}</div>`;
  h+=q.o.map((o,i)=>`<div class="opt${s.pick===null?'':i==q.a?' right':i==s.pick?' wrong':' dim'}" data-i="${i}"><i>${L[i]}</i>${o}</div>`).join('');
- if(s.pick!==null){const ok=s.pick==q.a;h+=`<div class="fb show ${ok?'ok':'no'}"><div class="t">${ok?'정답이에요! 👏':'아쉬워요, 정답은 ('+L[q.a]+')'}</div>${q.e}${q.k?`<div class="kr">해석: ${q.k}</div>`:''}</div>`}
+ if(s.pick!==null){const ok=s.pick==q.a;h+=`<div class="fb show ${ok?'ok':'no'}"><div class="t">${ok?'정답이에요! 👏':'아쉬워요, 정답은 ('+L[q.a]+')'}</div>${q.e}${q.k?`<div class="kr">해석: ${q.k}</div>`:''}${ok?'':`<a class="askk" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">해설을 봐도 모르겠으면 카카오톡 채널로 질문해 주세요 ›</a>`}</div>`}
  h+='</div>';p.innerHTML=h;
  if(t!='p5')fillPsg(t,$('#psg'));
  p.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{if(s.pick!==null)return;s.pick=+o.dataset.i;s.picks[s.i]=s.pick;if(s.pick==q.a)s.ok++;renderQ(t)});
  if(s.pick===null)btn('답을 골라 주세요',1);else btn(s.i+1<qs.length?'다음 문제':'결과 보기',0,()=>{s.i++;s.pick=null;if(s.i>=qs.length){s.end=true;steps();mark(t,s.ok,qs.length)}renderQ(t);scrollTo(0,0)})}
 function renderW(){const s=st.wd,p=$('#wd');$('.bar').style.display='none';
- if(s.end){const n=INFO.weekend?'주말 복습 끝! 월요일 아침 7시에 새 문제가 와요.':allDone()?`「매일 풀기」 ${Math.max(INFO.streak,1)}일째가 채워졌어요.<br>내일 아침 7시에 또 만나요.`:'남은 파트도 마저 풀면 오늘 「매일 풀기」가 채워져요.';
+ if(s.end){const n=INFO.review?`다시 풀기 끝! 처음 푼 기록은 그대로예요.<br><a href="${REC}" style="color:var(--gd);font-weight:800">내 학습 기록으로 돌아가기 ›</a>`:INFO.weekend?'주말 복습 끝! 월요일 아침 7시에 새 문제가 와요.':allDone()?`「매일 풀기」 ${Math.max(INFO.streak,1)}일째가 채워졌어요.<br>내일 아침 7시에 또 만나요.`:'남은 파트도 마저 풀면 오늘 「매일 풀기」가 채워져요.';
   p.innerHTML=`<div class="card done"><div class="big">🔥</div><h2>${allDone()?'오늘 할 것 다 했어요!':'단어 끝!'}</h2><p>${n}</p>${s.k.length?`<div class="sc">아는 단어 ${s.k.filter(x=>x).length} / ${W.length}</div>`:''}</div>`+W.map(w=>`<div class="card" style="padding:14px 18px;margin-bottom:8px"><b style="font-size:17px">${w[0]}</b><div style="color:var(--gd);margin-top:3px">${w[1]}</div></div>`).join('');return}
  const w=W[s.i];p.innerHTML=`<div class="wd-top"><span>완토 VOCA</span><span>${s.i+1} / ${W.length}</span></div><div class="flip${s.open?' open':''}" id="fl"><div class="cnt">${s.i+1}</div><div class="en">${w[0]}</div><div class="hint">눌러서 뜻 보기</div><div class="ko">${w[1]}</div></div><div class="two"><button class="no" id="wn">몰라요</button><button class="yes" id="wy">알아요</button></div><div class="dots">${W.map((x,i)=>`<i class="${s.k[i]===true?'k':s.k[i]===false?'u':''}"></i>`).join('')}</div>`;
  $('#fl').onclick=()=>{s.open=!s.open;renderW()};
@@ -122,15 +128,17 @@ $$('.tab').forEach(x=>x.onclick=()=>show(x.dataset.t));
 function start(r){INFO=r;const it=r.items;D={p5:it.p5,p6:it.p6,p7:it.p7};W=it.words||[];
  const wd=['일','월','화','수','목','금','토'][new Date(r.date+'T12:00:00Z').getUTCDay()];
  $('.hd .d').textContent=`${+r.date.slice(5,7)}월 ${+r.date.slice(8,10)}일 ${wd}요일 · ${r.product=='rc'?'RC반':'LC반'}`;
- $('.hd h1').textContent=r.weekend?'주말 복습':'오늘의 토익 RC';fire(r.streak||0);
+ $('.hd h1').textContent=r.review?'지난 문제 다시 풀기':r.weekend?'주말 복습':'오늘의 토익 RC';fire(r.streak||0);
+ $('.hd>div').insertAdjacentHTML('beforeend',`<a class="recl" style="text-align:left" href="${REC}">내 학습 기록 ›</a>`);$('.fire').style.cursor='pointer';$('.fire').onclick=()=>location.href=REC;
+ if(r.review)$('.steps').insertAdjacentHTML('afterend',`<div class="wkn">지난 문제를 <b>다시 푸는 중</b>이에요. 기록에는 안 들어가요. <a href="./?k=${encodeURIComponent(TOKEN)}">오늘 문제로 ›</a></div>`);
  $('.tabs .tab[data-t=p5] small').textContent=D.p5.length+'문제';$('.tabs .tab[data-t=wd] small').textContent=W.length+'개';
  if(r.weekend)$('.steps').insertAdjacentHTML('afterend','<div class="wkn">주말엔 새 문제 대신 <b>금요일 문제 복습</b>이에요. 기록에는 안 들어가요.</div>');
- const pr=r.progress||{};PARTS.forEach(p=>{if(pr[p]){st[p].end=true;st[p].ok=pr[p].score}});steps();
+ const pr=r.review?{}:(r.progress||{});PARTS.forEach(p=>{if(pr[p]){st[p].end=true;st[p].ok=pr[p].score}});steps();
  show(PARTS.find(p=>!st[p].end)||'wd')}
 (async()=>{
  if(!TOKEN){msg('🔒','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「오늘의 학습 페이지 바로가기」</b> 버튼으로 들어와 주세요.');return}
- try{const r=await rpc('daily_today',{p_token:TOKEN});
-  if(r.error){const E={no_sub:['🔒','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['⏸️','이용이 끝났거나 멈춘 상태예요.'],not_started:['⏰',`<b>${r.start_date}</b>부터 문제가 시작돼요.`],expired:['📅',`이용 기간이 <b>${r.end_date}</b>에 끝났어요.`],no_items:['🛠️','오늘 문제를 준비하고 있어요. 잠시 뒤 다시 열어 주세요.']}[r.error]||['⚠️','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
+ try{const r=/^\d{4}-\d\d-\d\d$/.test(RD)?await rpc('daily_day',{p_token:TOKEN,p_date:RD}):await rpc('daily_today',{p_token:TOKEN});
+  if(r.error){const E={no_sub:['🔒','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['⏸️','이용이 끝났거나 멈춘 상태예요.'],not_started:['⏰',`<b>${r.start_date}</b>부터 문제가 시작돼요.`],expired:['📅',`이용 기간이 <b>${r.end_date}</b>에 끝났어요.`],no_items:['🛠️','오늘 문제를 준비하고 있어요. 잠시 뒤 다시 열어 주세요.'],out_of_range:['📅','이 날짜의 문제는 열 수 없어요.'],weekend_day:['📅','주말에는 문제가 없었어요.']}[r.error]||['⚠️','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
   start(r)}catch(e){msg('⚠️','인터넷 연결을 확인하고 다시 열어 주세요.')}
 })();
 </script></body></html>
