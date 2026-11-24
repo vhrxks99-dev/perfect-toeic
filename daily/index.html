@@ -147,13 +147,13 @@ function renderQ(t){const d=D[t],s=st[t],p=$('#'+t);const qs=t=='p5'?d:d.qs;
  h+=`<div class="card"><div class="qn"><b>Q${s.v+1}</b><span>${s.v+1} / ${qs.length}</span></div><div class="qt">${blankify(q.t,graded?q.o[pk]:(sel!=null?q.o[sel]:null),!graded)}</div>`;
  h+=q.o.map((o,i)=>`<div class="opt${graded?(i==q.a?' right':i==pk?' wrong':' dim'):(i===sel?' sel':'')}" data-i="${i}"><i>${L[i]}</i>${o}</div>`).join('');
  if(graded){const ok=pk==q.a;h+=`<div class="fb show ${ok?'ok':'no'}"><div class="t">${ok?IC.ok()+'정답이에요!':IC.no()+'아쉬워요, 정답은 ('+L[q.a]+')'}</div>${q.e}${q.k?`<div class="kr">해석: ${q.k}</div>`:''}${ok?'':`<a class="askk" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">해설을 봐도 모르겠으면 카카오톡 채널로 질문해 주세요 ›</a>`}</div>`}
- else h+=`<p class="pickhint">${sel==null?'보기를 눌러 답을 고르세요.':'다른 보기를 눌러 바꿀 수 있어요. 정했으면 아래 「이 답으로 확인」을 눌러 주세요.'}</p>`;
+ else h+=`<p class="pickhint">${sel==null?'보기를 눌러 답을 고르세요.':'다른 보기를 눌러 바꿀 수 있어요. 정했으면 아래 「확인」을 눌러 주세요.'}</p>`;
  h+='</div>';p.innerHTML=h;
  if(t!='p5')fillPsg(t,$('#psg'));
  if(!graded)p.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{s.sel=+o.dataset.i;renderQ(t)});
  bkBtn(s.v>0,()=>{s.v--;renderQ(t);scrollTo(0,0)});
  if(past)btn('다음 문제 →',0,()=>{s.v++;renderQ(t);scrollTo(0,0)});
- else if(!graded)btn(sel==null?'답을 골라 주세요':'이 답으로 확인',sel==null,()=>{s.pick=s.sel;s.picks[s.i]=s.pick;if(s.pick==q.a)s.ok++;renderQ(t)});
+ else if(!graded)btn(sel==null?'답을 골라 주세요':'확인',sel==null,()=>{s.pick=s.sel;s.picks[s.i]=s.pick;if(s.pick==q.a)s.ok++;renderQ(t)});
  else btn(s.i+1<qs.length?'다음 문제':'결과 보기',0,()=>{s.i++;s.pick=null;s.sel=null;s.v=s.i;if(s.i>=qs.length){s.end=true;steps();mark(t,s.ok,qs.length)}renderQ(t);scrollTo(0,0)})}
 function renderW(){const s=st.wd,p=$('#wd');$('.bar').style.display='none';if($('#bk'))$('#bk').style.display='none';
  if(s.end){const n=INFO.review?`다시 풀기 끝! 처음 푼 기록은 그대로예요.<br><a href="${REC}" style="color:var(--gd);font-weight:800">내 학습 기록으로 돌아가기 ›</a>`:INFO.weekend?'주말 복습 끝! 월요일 아침 7시에 새 문제가 와요.':allDone()?`「매일 풀기」 ${Math.max(INFO.streak,1)}일째가 채워졌어요.<br>내일 아침 7시에 또 만나요.`:'남은 파트도 마저 풀면 오늘 「매일 풀기」가 채워져요.';
