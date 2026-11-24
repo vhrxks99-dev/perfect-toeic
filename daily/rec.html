@@ -75,6 +75,9 @@ a{color:inherit}button{font-family:inherit}
 .row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--line);font-size:15px}
 .row:first-of-type{border-top:0}
 .row b{font-weight:800}.row .all{color:var(--ok)}.row .miss{color:var(--warn)}.row .yet{color:#8a94a8;font-weight:600}
+.vc{display:flex;align-items:baseline;gap:8px;margin-top:10px}.vc b{font-size:34px;font-weight:800;color:var(--blue);line-height:1}.vc span{font-size:14.5px;color:var(--sub);font-weight:600}
+.vchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.vchips i{font-style:normal;font-size:14px;font-weight:700;background:var(--blue-l);color:var(--blue-d);border-radius:8px;padding:5px 10px}
+.vgo{display:flex;align-items:center;justify-content:center;min-height:50px;margin-top:14px;background:var(--blue);color:#fff;border-radius:14px;font-weight:800;text-decoration:none;font-size:16px}
 .again{display:flex;align-items:center;justify-content:center;min-height:48px;margin-top:12px;background:var(--ink);color:#fff;border-radius:14px;font-weight:800;text-decoration:none;font-size:15.5px}
 .again.sub{background:var(--mute);color:var(--ink)}
 .tip{font-size:13px;color:var(--sub);margin-top:8px}
@@ -132,6 +135,7 @@ a{color:inherit}button{font-family:inherit}
  <section class="sec coach rv" id="coach" aria-live="polite"></section>
  <section class="sec rv" id="parts"></section>
  <section class="sec rv" id="types"></section>
+ <section class="sec rv" id="voca" style="display:none"></section>
  <section class="sec rv" id="weeks"></section>
 
  <section class="sec rv">
@@ -235,6 +239,15 @@ function renderCoach(P,T,all){
  const wrongDay=Object.keys(R.days).filter(k=>k!=R.today).sort().reverse().find(k=>{const p=R.days[k];return['p5','p6','p7'].some(x=>p[x]&&p[x].s<p[x].t)});
  if(wrongDay&&todo.length<3){const d=dt(wrongDay);todo.push(`<b>복습</b> ${d.getMonth()+1}월 ${d.getDate()}일 문제를 다시 풀어 보세요. <a href="${LINK(wrongDay)}" style="color:var(--blue-d);font-weight:800">다시 풀기 ›</a>`)}
  el.innerHTML=head+`<p class="say">${say}</p><h2 style="margin-top:18px;font-size:15px">이번 주엔 이것부터</h2><ul class="todo">${todo.map((t,i)=>`<li><i>${i+1}</i><div>${t}</div></li>`).join('')}</ul>`}
+// 나만의 단어장: 「몰라요」 단어만 모인 수와 앞의 몇 개를 보여 주고 단어장으로 보낸다
+async function renderVoca(){
+ let v;try{v=MOCK?{graduated:7,words:['reimburse','tentative','adhere','comply','inventory','mandatory','allocate','warranty','itinerary'].map(w=>({w}))}:await fetch(`${SB}/rest/v1/rpc/daily_words_list`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({p_token:TOKEN})}).then(r=>r.json())}catch(e){return}
+ if(!v||v.error||!v.words)return;const W=v.words,el=$('#voca');el.style.display='';
+ const url='voca.html?k='+encodeURIComponent(TOKEN)+(MOCK?'&mock=1':'');
+ el.innerHTML=`<h2>나만의 단어장<small>졸업 ${v.graduated}개</small></h2>`+(W.length
+  ?`<div class="vc"><b>${W.length}</b><span>개의 모르는 단어가 모였어요</span></div><div class="vchips">${W.slice(0,6).map(w=>`<i>${w.w}</i>`).join('')}${W.length>6?`<i>+${W.length-6}</i>`:''}</div><a class="vgo" href="${url}">모르는 단어만 시험 보기</a>`
+  :`<p style="font-size:14.5px;color:var(--sub);margin-top:8px;line-height:1.65">${v.graduated?'모르는 단어를 다 비웠어요.':'매일 단어에서 「몰라요」를 누른 단어가 여기에 모여요.'} 모인 단어만 따로 시험 볼 수 있어요.</p><a class="vgo" href="${url}" style="background:var(--mute);color:var(--ink)">단어장 열기</a>`);
+ el.classList.add('in')}
 function renderParts(P){
  const ks=(R.product=='rc'?['p5','p6','p7','wd']:['lc']);const vals=ks.filter(k=>k!='wd'&&P[k]&&P[k].t>=MIN).map(k=>pct(P[k].s,P[k].t));const lo=vals.length>1?Math.min(...vals):-1;
  $('#parts').innerHTML='<h2>파트별 정답률<small>지금까지 푼 전부</small></h2><div class="bars">'+ks.map(k=>{const v=P[k]||{s:0,t:0},p=pct(v.s,v.t);const weak=k!='wd'&&v.t>=MIN&&p==lo&&p<85;
@@ -294,7 +307,7 @@ function wrongs(){
  try{R=await rpc('daily_history',{p_token:TOKEN});
   if(R.error){const E={no_sub:['lock','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['pause','이용이 끝났거나 멈춘 상태예요.']}[R.error]||['warn','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
   R.days=R.days||{};const T=R.types||[],P=sumParts();
-  const all=renderTop(P);renderCoach(P,T,all);renderParts(P);renderTypes(T);renderWeeks();
+  const all=renderTop(P);renderCoach(P,T,all);renderParts(P);renderTypes(T);renderWeeks();renderVoca();
   const t=dt(R.today<R.start_date?R.start_date:R.today);ym=new Date(t.getFullYear(),t.getMonth(),1);sel=R.today<R.start_date?R.start_date:R.today;
   $('#pv').onclick=()=>{ym=new Date(ym.getFullYear(),ym.getMonth()-1,1);cal()};$('#nx').onclick=()=>{ym=new Date(ym.getFullYear(),ym.getMonth()+1,1);cal()};
   if(/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent))$('#appl').href='https://apps.apple.com/kr/app/id6815950208';

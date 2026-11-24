@@ -1,0 +1,113 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>완벽한토익 데일리 · 나만의 단어장</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--bg:#f3f6fd;--surface:#fff;--ink:#12141c;--sub:#5a6478;--line:#e2e8f6;--blue:#1f5fe0;--blue-d:#1747ad;--blue-l:#e8effe;--navy:#0f2350;--warn:#c2410c;--warn-l:#fff1e7;--ok:#0f7a55;--ok-l:#e3f6ee;--mute:#eef2fa}
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;-webkit-tap-highlight-color:transparent}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);background:var(--bg);max-width:480px;margin:0 auto;min-height:100dvh;letter-spacing:-.2px;font-size:16px;line-height:1.5;padding-bottom:40px}
+button{font-family:inherit}a{color:inherit}
+:focus-visible{outline:3px solid #ffb703;outline-offset:2px;border-radius:8px}
+.top{background:linear-gradient(160deg,var(--navy) 0%,var(--blue-d) 55%,var(--blue) 100%);color:#fff;padding:18px 20px 22px;border-radius:0 0 26px 26px}
+.brand{display:flex;justify-content:space-between;align-items:center}
+.brand img{height:40px;width:auto;display:block}
+.brand a{font-size:13.5px;font-weight:700;background:rgba(255,255,255,.16);border-radius:20px;padding:9px 14px;text-decoration:none;color:#fff}
+.top h1{font-size:23px;font-weight:800;margin-top:16px}
+.top p{font-size:14.5px;color:#d5e1ff;margin-top:3px}
+.sec{margin:14px 16px 0;background:var(--surface);border-radius:20px;padding:20px 18px;box-shadow:0 4px 16px rgba(18,36,90,.06)}
+.sec h2{font-size:17px;font-weight:800;display:flex;align-items:center}.sec h2 small{margin-left:auto;font-size:13px;color:var(--sub);font-weight:600}
+.lead{font-size:14px;color:var(--sub);margin-top:4px}
+.go{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;border:0;border-radius:16px;background:var(--blue);color:#fff;font-size:17px;font-weight:800;margin-top:16px;cursor:pointer;box-shadow:0 8px 20px rgba(31,95,224,.26);transition:transform .12s ease-out}
+.go:active{transform:scale(.97)}.go:disabled{background:#c5cede;box-shadow:none}
+.wl{list-style:none;margin-top:12px}
+.wl li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.wl li:first-child{border-top:0}
+.wl b{font-size:17px;font-weight:800}.wl span{display:block;font-size:14.5px;color:var(--sub);margin-top:1px}
+.wl i{font-style:normal;font-size:12px;font-weight:800;border-radius:6px;padding:3px 8px;white-space:nowrap}
+.wl i.s0{background:var(--mute);color:var(--sub)}.wl i.s1{background:var(--blue-l);color:var(--blue-d)}
+.empty{font-size:15px;color:var(--sub);line-height:1.7;background:var(--mute);border-radius:14px;padding:16px;margin-top:12px}
+/* 시험 */
+#quiz{display:none}
+.prog{display:flex;justify-content:space-between;align-items:center;margin:18px 20px 0;font-size:14px;font-weight:700;color:var(--sub)}
+.pbar{height:8px;border-radius:4px;background:#dfe6f5;margin:8px 20px 0;overflow:hidden}.pbar i{display:block;height:100%;background:var(--blue);border-radius:4px;transition:width .3s ease-out}
+.flip{margin:16px 16px 0;background:var(--surface);border-radius:24px;min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px 20px;box-shadow:0 8px 26px rgba(18,36,90,.10);cursor:pointer;border:0;width:calc(100% - 32px);font-family:inherit;color:var(--ink)}
+.flip .en{font-size:38px;font-weight:800;line-height:1.25;overflow-wrap:anywhere}
+.flip .hint{font-size:14.5px;color:var(--sub);margin-top:14px;font-weight:600}
+.flip .ko{display:none;font-size:22px;font-weight:700;color:var(--blue-d);margin-top:16px;line-height:1.45}
+.flip.open .ko{display:block;animation:up .25s ease-out}.flip.open .hint{display:none}
+.flip .tag{font-size:12.5px;font-weight:800;color:var(--blue-d);background:var(--blue-l);border-radius:20px;padding:5px 11px;margin-bottom:16px}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 16px 0}
+.two button{min-height:58px;border:0;border-radius:16px;font-size:17px;font-weight:800;cursor:pointer;transition:transform .12s ease-out}
+.two button:active{transform:scale(.97)}
+.two .no{background:var(--warn-l);color:var(--warn)}.two .yes{background:var(--blue);color:#fff}
+.note{font-size:13px;color:var(--sub);text-align:center;margin:12px 20px 0;line-height:1.6}
+.res{text-align:center}.res .n{font-size:46px;font-weight:800;color:var(--blue);line-height:1.1;margin-top:6px}.res .n small{font-size:20px;color:var(--sub);font-weight:700}
+.res p{font-size:15.5px;color:var(--sub);margin-top:10px;line-height:1.65}
+.res .grad{display:inline-block;margin-top:14px;background:var(--ok-l);color:var(--ok);font-weight:800;border-radius:20px;padding:8px 14px;font-size:14.5px}
+.sub{display:flex;align-items:center;justify-content:center;min-height:50px;border-radius:14px;background:var(--mute);color:var(--ink);font-weight:800;text-decoration:none;margin-top:10px;font-size:15.5px;border:0;width:100%;cursor:pointer}
+.msg{padding:60px 24px;text-align:center;font-size:16px;line-height:1.7;color:#4e5968}
+.kbtn{display:inline-block;margin-top:16px;background:#fee500;color:#191f28;font-weight:800;border-radius:14px;padding:12px 18px;text-decoration:none}
+@media (prefers-reduced-motion:reduce){.flip.open .ko{animation:none}.pbar i,.go,.two button{transition:none}}
+</style></head><body>
+<div id="app" style="display:none">
+ <header class="top">
+  <div class="brand"><img src="logo_w.png" alt="완벽한토익" width="53" height="44"><a id="back">‹ 내 학습 기록</a></div>
+  <h1>나만의 단어장</h1>
+  <p id="sub"></p>
+ </header>
+ <div id="home">
+  <section class="sec">
+   <h2>모르는 단어 <small id="cnt"></small></h2>
+   <p class="lead">매일 단어에서 「몰라요」를 누른 단어만 모였어요. 시험에서 두 번 연속 「알아요」면 여기서 빠져요.</p>
+   <button class="go" id="start" type="button">모르는 단어만 시험 보기</button>
+   <div id="list"></div>
+  </section>
+ </div>
+ <div id="quiz">
+  <div class="prog"><span id="pn"></span><span id="pk"></span></div>
+  <div class="pbar"><i id="pb" style="width:0"></i></div>
+  <button class="flip" id="fl" type="button" aria-live="polite"></button>
+  <div class="two"><button class="no" id="bn" type="button">몰라요</button><button class="yes" id="by" type="button">알아요</button></div>
+  <p class="note">카드를 누르면 뜻이 보여요. 뜻을 보기 전에 먼저 떠올려 보세요.</p>
+ </div>
+ <div id="done" style="display:none"></div>
+</div>
+<div class="msg" id="msg" style="display:none"></div>
+<script>
+// 나만의 단어장 (2026-11-24): 「몰라요」 단어만 모아 카드 뒤집기로 다시 본다. 두 번 연속 「알아요」면 졸업.
+const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
+const Q=new URLSearchParams(location.search),TOKEN=Q.get('k')||'',MOCK=Q.has('mock');
+const $=s=>document.querySelector(s);const MAX=20;   // 한 번 시험에 최대 20개
+let R=null,deck=[],i=0,known=0,grad=0,open=false,busy=false;
+async function rpc(fn,body){
+ if(MOCK){if(fn=='daily_words_list')return{name:'김토익',product:'rc',graduated:7,words:[['reimburse','(쓴 돈을) 돌려주다','2026-12-01',1],['tentative','잠정적인','2026-12-02',0],['adhere','(규칙을) 지키다','2026-12-03',0],['comply','따르다, 준수하다','2026-12-04',1],['inventory','재고, 재고 목록','2026-12-08',0],['mandatory','의무적인','2026-12-10',0],['allocate','배정하다','2026-12-11',1],['warranty','품질 보증(서)','2026-12-15',0],['itinerary','여행 일정표','2026-12-16',0]].map(x=>({w:x[0],m:x[1],d:x[2],s:x[3]}))};
+  return{ok:true,streak:body.p_known?1:0,graduated:body.p_known&&deck[i]&&deck[i].s>=1}}
+ const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
+function msg(html){$('#app').style.display='none';const m=$('#msg');m.style.display='block';m.innerHTML=html+'<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>'}
+const REC='rec.html?k='+encodeURIComponent(TOKEN)+(MOCK?'&mock=1':'');
+function home(){
+ $('#home').style.display='';$('#quiz').style.display='none';$('#done').style.display='none';
+ const W=R.words;$('#cnt').textContent=W.length+'개';
+ $('#sub').textContent=`${R.name}님 · 남은 단어 ${W.length}개 · 졸업 ${R.graduated}개`;
+ $('#start').disabled=!W.length;$('#start').textContent=W.length>MAX?`모르는 단어 ${MAX}개 시험 보기`:'모르는 단어만 시험 보기';
+ $('#list').innerHTML=W.length?'<ul class="wl">'+W.map(w=>`<li><div><b>${w.w}</b><span>${w.m}</span></div><i class="s${w.s?1:0}">${w.s?'한 번 맞힘':'아직'}</i></li>`).join('')+'</ul>'
+  :`<p class="empty">${R.graduated?'모르는 단어를 다 비웠어요. 내일 단어에서 「몰라요」를 누르면 다시 여기에 모여요.':'아직 모인 단어가 없어요. 매일 단어 10개를 넘길 때 「몰라요」를 누른 단어가 여기에 쌓여요.'}</p>`}
+function card(){const w=deck[i];$('#pn').textContent=`${i+1} / ${deck.length}`;$('#pk').textContent=`알아요 ${known}`;$('#pb').style.width=(i/deck.length*100)+'%';
+ const f=$('#fl');f.className='flip'+(open?' open':'');f.innerHTML=`<span class="tag">${w.s?'한 번 더 맞히면 졸업':'나만의 단어장'}</span><span class="en">${w.w}</span><span class="hint">눌러서 뜻 보기</span><span class="ko">${w.m}</span>`}
+async function answer(k){if(busy)return;busy=true;const w=deck[i];
+ try{const r=await rpc('daily_words_mark',{p_token:TOKEN,p_word:w.w,p_known:k});if(r&&r.graduated)grad++;if(r&&r.ok)w.s=r.streak}catch(e){}
+ if(k)known++;i++;open=false;busy=false;
+ if(i>=deck.length)finish();else card()}
+function finish(){$('#quiz').style.display='none';const d=$('#done');d.style.display='';
+ d.innerHTML=`<section class="sec res"><h2 style="justify-content:center">시험 끝</h2><div class="n">${known}<small> / ${deck.length}</small></div><p>${known==deck.length?'전부 알고 있었어요.':known?`${deck.length-known}개는 아직 헷갈려요. 내일 한 번 더 보면 남아요.`:'괜찮아요. 뜻을 한 번씩 본 것만으로도 다음엔 다르게 보여요.'}</p>${grad?`<span class="grad">${grad}개 졸업 · 단어장에서 빠졌어요</span>`:''}
+ <button class="go" id="again" type="button">단어장으로 돌아가기</button><a class="sub" href="${REC}">내 학습 기록 보기</a></section>`;
+ $('#again').onclick=load}
+function start(){deck=R.words.slice(0,MAX).map(x=>({...x}));i=0;known=0;grad=0;open=false;$('#home').style.display='none';$('#done').style.display='none';$('#quiz').style.display='block';card();scrollTo(0,0)}
+async function load(){
+ try{R=await rpc('daily_words_list',{p_token:TOKEN});
+  if(R.error){msg(R.error=='no_sub'?'링크가 맞지 않아요.<br>알림톡의 「내 학습 기록」 버튼으로 다시 들어와 주세요.':'이용이 끝났거나 멈춘 상태예요.');return}
+  $('#app').style.display='';home();if(MOCK&&Q.get('auto')){start();if(Q.get('auto')=='2'){open=true;card()}}}catch(e){msg('인터넷 연결을 확인하고 다시 열어 주세요.')}}
+$('#back').href=REC;$('#start').onclick=start;
+$('#fl').onclick=()=>{open=!open;card()};$('#bn').onclick=()=>answer(false);$('#by').onclick=()=>answer(true);
+if(!TOKEN&&!MOCK)msg('개인 링크로만 열 수 있어요.<br>알림톡의 「내 학습 기록」 버튼으로 들어와 주세요.');else load();
+</script></body></html>
