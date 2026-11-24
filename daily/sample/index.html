@@ -1,0 +1,188 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>완벽한토익 데일리 RC 체험판</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all;-webkit-tap-highlight-color:transparent}
+:root{--bg:#f6f4ef;--g:#0f8a7b;--gd:#0b6d61;--gl:#e3f4f0;--ink:#191f28;--sub:#6b7684;--line:#ebe8e1;--red:#e5484d;--rl:#fdecec;--y:#ffd43b}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);background:var(--bg);max-width:480px;margin:0 auto;min-height:100vh;letter-spacing:-.2px}
+.hd{padding:20px 20px 6px;display:flex;justify-content:space-between;align-items:flex-start}
+.hd .d{font-size:13px;color:var(--sub);font-weight:600}
+.hd h1{font-size:24px;font-weight:800;margin-top:2px}
+.fire{background:#fff;border-radius:20px;padding:7px 12px;font-size:14px;font-weight:800;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.steps{display:flex;gap:6px;padding:10px 20px 4px}
+.steps i{flex:1;height:6px;border-radius:3px;background:#e2ded5}.steps i.on{background:var(--g)}
+.tabs{display:flex;gap:6px;padding:12px 16px 4px;position:sticky;top:0;background:var(--bg);z-index:5}
+.tab{flex:1;background:#fff;border-radius:14px;padding:10px 0 9px;text-align:center;font-size:14px;font-weight:700;color:var(--sub);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.tab small{display:block;font-size:11px;font-weight:600;color:#a3aab3;margin-top:1px}
+.tab.on{background:var(--ink);color:#fff}.tab.on small{color:#c9ced6}
+.tab.fin:not(.on){background:var(--gl);color:var(--gd)}.tab.fin:not(.on) small{color:var(--g)}
+.pane{display:none;padding:12px 16px 120px}.pane.on{display:block}
+.card{background:#fff;border-radius:22px;padding:20px 18px;box-shadow:0 4px 18px rgba(0,0,0,.05);margin-bottom:12px}
+.qn{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.qn b{font-size:13px;color:var(--g);background:var(--gl);border-radius:20px;padding:4px 10px;font-weight:800}
+.qn span{font-size:13px;color:var(--sub);font-weight:600}
+.qt{font-size:19px;line-height:1.6;font-weight:600;margin-bottom:18px}
+.bl{display:inline-block;min-width:72px;height:26px;vertical-align:-5px;border-radius:8px;background:#fff3c4;border:2px dashed #f0c419}
+.bl.fill{border-style:solid;background:var(--gl);border-color:var(--g);color:var(--gd);font-weight:800;text-align:center;padding:0 8px;line-height:22px;height:auto}
+.opt{display:flex;align-items:center;gap:12px;background:#fafaf8;border:2px solid #efece6;border-radius:16px;padding:14px 14px;font-size:17px;font-weight:600;margin-bottom:10px;cursor:pointer;transition:transform .08s}
+.opt:active{transform:scale(.98)}
+.opt i{font-style:normal;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid #e2ded5;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--sub);flex:none}
+.opt.right{background:var(--gl);border-color:var(--g)}.opt.right i{background:var(--g);border-color:var(--g);color:#fff}
+.opt.wrong{background:var(--rl);border-color:var(--red)}.opt.wrong i{background:var(--red);border-color:var(--red);color:#fff}
+.opt.dim{opacity:.45}
+.fb{display:none;border-radius:16px;padding:14px 16px;font-size:15px;line-height:1.7;margin-top:6px}
+.fb.show{display:block}
+.fb.ok{background:var(--gl)}.fb.no{background:var(--rl)}
+.fb .t{font-size:17px;font-weight:800;margin-bottom:4px}.fb.ok .t{color:var(--gd)}.fb.no .t{color:var(--red)}
+.fb .kr{color:var(--sub);font-size:14px;margin-top:6px}
+.psg{font-size:16px;line-height:1.85;color:#2b333d}
+.psg .ph{font-size:13px;color:var(--sub);line-height:1.6;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}
+.psg h4{font-size:17px;margin-bottom:8px}.psg p+p{margin-top:12px}
+.nb{display:inline-block;min-width:86px;border-bottom:2px solid #8b95a1;margin:0 3px;padding:0 6px 1px;text-align:center;font-size:0;line-height:1.5;vertical-align:baseline}
+.nb:before{content:'(' attr(data-l) ')';font-size:13px;font-weight:800;color:#8b95a1}
+.nb.cur{background:#fff3c4;border-bottom-color:#f0c419;border-radius:6px 6px 0 0}.nb.cur:before{color:#b88a00}
+.nb.fill{font-size:15px;font-weight:700;min-width:0;border-radius:6px 6px 0 0}.nb.fill:before{content:'(' attr(data-l) ') ';font-size:12px}
+.nb.fill.ok{background:var(--gl);border-bottom-color:var(--g);color:var(--gd)}.nb.fill.ok:before{color:var(--g)}
+.nb.fill.no{background:var(--rl);border-bottom-color:var(--red);color:var(--red)}.nb.fill.no:before{color:var(--red)}
+.psgtog{font-size:13px;color:var(--g);font-weight:700;margin-top:10px;cursor:pointer}
+.bar{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:480px;padding:12px 16px 22px;background:linear-gradient(rgba(246,244,239,0),var(--bg) 30%)}
+.btn{display:block;width:100%;border:0;background:var(--g);color:#fff;font-family:inherit;font-weight:800;font-size:17px;border-radius:18px;padding:17px;cursor:pointer;box-shadow:0 6px 16px rgba(15,138,123,.28)}
+.btn:disabled{background:#cfd4d9;box-shadow:none}
+.done{text-align:center;padding:30px 10px}
+.done .big{font-size:54px}.done h2{font-size:22px;margin:8px 0 4px}.done p{color:var(--sub);font-size:15px;line-height:1.6}
+.done .sc{display:inline-block;margin-top:14px;background:var(--gl);color:var(--gd);font-weight:800;border-radius:14px;padding:10px 18px;font-size:16px}
+/* words */
+.wd-top{display:flex;justify-content:space-between;align-items:center;margin:4px 4px 12px;font-size:14px;color:var(--sub);font-weight:600}
+.flip{background:#fff;border-radius:26px;box-shadow:0 6px 22px rgba(0,0,0,.07);height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;cursor:pointer;position:relative}
+.flip .en{font-size:38px;font-weight:800;letter-spacing:-.5px}
+.flip .hint{font-size:14px;color:#a3aab3;margin-top:14px}
+.flip .ko{font-size:19px;font-weight:600;line-height:1.6;margin-top:16px;color:var(--gd);display:none}
+.flip.open .ko{display:block}.flip.open .hint{display:none}
+.flip .cnt{position:absolute;top:18px;left:20px;font-size:13px;color:var(--sub);font-weight:700}
+.two{display:flex;gap:10px;margin-top:14px}
+.two button{flex:1;border:0;border-radius:18px;padding:16px;font-family:inherit;font-weight:800;font-size:16px;cursor:pointer}
+.two .no{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.05)}.two .yes{background:var(--g);color:#fff}
+.dots{display:flex;gap:5px;justify-content:center;margin-top:16px}.dots i{width:8px;height:8px;border-radius:50%;background:#dcd8cf}.dots i.k{background:var(--g)}.dots i.u{background:var(--y)}
+</style></head><body>
+<div class="hd"><div><div class="d">11월 24일 월요일 · RC반</div><h1>오늘의 토익 RC</h1></div><div class="fire"></div></div>
+<div class="steps"><i></i><i></i><i></i><i></i></div>
+<div class="tabs">
+ <div class="tab on" data-t="p5">Part 5<small>3문제</small></div>
+ <div class="tab" data-t="p6">Part 6<small>1세트</small></div>
+ <div class="tab" data-t="p7">Part 7<small>1세트</small></div>
+ <div class="tab" data-t="wd">단어<small>10개</small></div>
+</div>
+<div class="pane on" id="p5"></div><div class="pane" id="p6"></div><div class="pane" id="p7"></div><div class="pane" id="wd"></div>
+<div class="bar"><button class="btn" id="go" disabled>답을 골라 주세요</button></div>
+<script>
+(function(){window.DAILY_SAMPLE=true;const IT={"day": 1, "p5": [{"t": "The new software allows staff to track inventory levels more ___ than the old system did.", "o": ["accurately", "accurate", "accuracy", "accuracies"], "a": 0, "type": "품사", "e": "빈칸은 동사 track을 꾸며 주는 자리라 부사 <b>accurately</b>가 와요. more가 있다고 형용사 accurate를 고르면 안 돼요. more는 부사 앞에도 붙어요.", "k": "새 소프트웨어 덕분에 직원들은 예전 시스템보다 재고 수준을 더 정확하게 파악할 수 있다."}, {"t": "___ the heavy rain, the outdoor concert at Linden Park will go ahead as planned.", "o": ["Although", "Because of", "Despite", "Even if"], "a": 2, "type": "전치사/접속사", "e": "뒤에 명사(the heavy rain)만 있으니 전치사가 필요하고, 비가 와도 공연을 한다는 뜻이라 <b>Despite</b>(~에도 불구하고)가 맞아요. Although·Even if는 접속사라 뒤에 주어+동사가 와야 하고, Because of는 뜻이 반대예요.", "k": "폭우에도 불구하고 린든 공원 야외 콘서트는 예정대로 진행된다."}, {"t": "Ms. Harlow was ___ to regional manager after five years of outstanding service at Brenford Bank.", "o": ["applied", "promoted", "enrolled", "arrived"], "a": 1, "type": "어휘", "e": "be promoted to + 직책은 「~로 승진하다」예요. 5년 동안 일을 잘한 결과로 자연스러운 건 <b>promoted</b>뿐이에요. applied·enrolled는 직책 앞에 to로 쓰지 않아요.", "k": "할로 씨는 브렌포드 은행에서 5년간 뛰어난 근무를 한 뒤 지역 관리자로 승진했다."}], "p6": {"kind": "공지", "psg": "<h4>NOTICE TO ALL TENANTS — Corvell Tower</h4>Please be advised that the elevators in the east wing will be closed for scheduled maintenance from Monday, March 9, to Wednesday, March 11. During this period, tenants and visitors <span class=\"nb\" data-n=\"0\">1</span> the elevators in the west wing. <span class=\"nb\" data-n=\"1\">2</span><br><br>We understand that this work may cause some inconvenience. <span class=\"nb\" data-n=\"2\">3</span>, it will make the elevators faster and more <span class=\"nb\" data-n=\"3\">4</span>. If you have any questions, please contact the building management office at 555-0142.", "psg_k": "입주자 여러분께 알립니다 — 코벨 타워\n\n동관 엘리베이터가 정기 점검으로 3월 9일 월요일부터 3월 11일 수요일까지 운행을 멈춥니다. 이 기간에 입주자와 방문객은 서관 엘리베이터를 이용해 주십시오. 중앙 로비에서 그곳까지 가는 길을 안내하는 표지판을 붙여 두겠습니다.\n\n이번 공사로 불편하실 수 있다는 점 잘 알고 있습니다. 하지만 이 작업이 끝나면 엘리베이터가 더 빠르고 더 믿을 만해질 것입니다. 궁금한 점이 있으면 건물 관리사무소(555-0142)로 연락해 주십시오.", "qs": [{"t": "빈칸 1에 알맞은 것은?", "o": ["used", "have used", "were using", "should use"], "a": 3, "type": "문법", "e": "앞으로 있을 점검 기간에 「서관 엘리베이터를 이용하라」는 안내라서 <b>should use</b>가 맞아요. used·were using은 과거, have used는 이미 한 일을 말해서 앞으로의 일정과 안 맞아요."}, {"t": "빈칸 2에 들어갈 문장은?", "o": ["Signs will be posted to guide you there from the main lobby.", "The maintenance was completed ahead of schedule.", "Rent payments are due on the first day of each month.", "Thank you for attending last week's tenant meeting."], "a": 0, "type": "문장 고르기", "e": "바로 앞에서 서관 엘리베이터를 쓰라고 했으니, <b>그곳(there)</b>까지 가는 표지판 이야기가 이어지는 게 자연스러워요. 점검이 이미 끝났다는 (B)는 앞으로 할 점검이라는 내용과 맞지 않아요."}, {"t": "빈칸 3에 알맞은 것은?", "o": ["Therefore", "For example", "However", "Similarly"], "a": 2, "type": "연결어", "e": "앞은 「불편할 수 있다」, 뒤는 「더 빠르고 좋아진다」로 서로 반대되는 내용이라 <b>However</b>가 맞아요. Therefore는 앞이 원인, 뒤가 결과일 때 써요."}, {"t": "빈칸 4에 알맞은 것은?", "o": ["frequent", "reliable", "patient", "eager"], "a": 1, "type": "어휘", "e": "엘리베이터가 고장 없이 잘 움직인다는 뜻의 <b>reliable</b>(믿을 수 있는)이 맞아요. patient·eager는 사람의 성격이나 마음을 말할 때 써요."}]}, "p7": {"kind": "이메일", "psg": "<div class=\"ph\">To: Daniel Ortega &lt;dortega@hanfieldlaw.com&gt;<br>From: Customer Service &lt;service@pilwoodsupply.com&gt;<br>Date: April 14<br>Subject: Your order #48210</div>Dear Mr. Ortega,<br><br>Thank you for your recent order of ten office chairs. Unfortunately, the model you selected, the Ardena Pro, is temporarily out of stock because our supplier has experienced production delays. We now expect to ship your order on April 28, about two weeks later than originally scheduled.<br><br>We sincerely apologize for this delay. If you would prefer not to wait, you may choose a similar model, the Ardena Classic, which is available for immediate delivery. Although it does not have adjustable armrests, it comes with the same five-year warranty. Either way, we will take 15 percent off your total as a thank-you for your patience.<br><br>Please reply to this e-mail by April 17 to let us know your decision. If we do not hear from you, we will ship the Ardena Pro chairs as soon as they arrive.<br><br>Sincerely,<br>Karen Whitby<br>Customer Service, Pilwood Office Supplies", "psg_k": "수신: 대니얼 오르테가\n발신: 고객서비스팀\n날짜: 4월 14일\n제목: 주문 번호 48210\n\n오르테가 씨께,\n\n최근 사무용 의자 10개를 주문해 주셔서 감사합니다. 안타깝게도 고르신 모델인 아르데나 프로는 공급업체의 생산이 늦어져 일시적으로 재고가 없습니다. 지금으로서는 처음 일정보다 2주쯤 늦은 4월 28일에 발송할 수 있을 것 같습니다.\n\n늦어지게 되어 진심으로 사과드립니다. 기다리기 어려우시면 바로 배송 가능한 비슷한 모델인 아르데나 클래식을 고르셔도 됩니다. 팔걸이 높이 조절은 안 되지만 보증 기간은 똑같이 5년입니다. 어느 쪽을 고르시든 기다려 주신 데 대한 감사의 뜻으로 전체 금액에서 15퍼센트를 빼 드리겠습니다.\n\n4월 17일까지 이 메일에 답장으로 결정을 알려 주십시오. 답이 없으면 아르데나 프로 의자가 들어오는 대로 발송하겠습니다.\n\n카렌 휘트비 드림\n필우드 사무용품 고객서비스팀", "qs": [{"t": "Why was the e-mail sent?", "o": ["To confirm that an order has been delivered", "To explain a delay in shipping an order", "To request payment for office chairs", "To announce a new line of furniture"], "a": 1, "type": "주제·목적", "e": "첫 문단에서 재고가 없어 발송이 2주 늦어진다고 알리고 있어요. 그래서 <b>발송 지연 설명</b>이 목적이에요. 배송이 이미 끝났다는 (A)는 사실과 반대예요."}, {"t": "What is indicated about the Ardena Classic?", "o": ["It is more expensive than the Ardena Pro.", "It has adjustable armrests.", "It will be available on April 28.", "It is covered by the same warranty as the Ardena Pro."], "a": 3, "type": "NOT·TRUE", "e": "it comes with the same five-year warranty라고 했으니 <b>보증이 같다</b>는 (D)가 맞아요. 팔걸이 조절은 안 된다고 했고(B), 4월 28일은 아르데나 프로 발송일이에요(C)."}, {"t": "What will happen if Mr. Ortega does not respond by April 17?", "o": ["He will receive the chairs he originally ordered.", "His order will be canceled.", "He will lose his discount.", "He will be charged a shipping fee."], "a": 0, "type": "세부", "e": "답이 없으면 아르데나 프로가 들어오는 대로 보낸다고 했어요. 처음 주문한 의자를 받게 되니 <b>(A)</b>가 정답이에요. 할인은 어느 쪽이든 준다고 했으니 (C)는 틀려요."}]}, "words": [["drop", "떨어지다, 감소하다 / 감소, 하락"], ["rise", "오르다, 증가하다 / 증가, 상승"], ["enhance", "강화하다, 향상시키다 (= improve)"], ["exceed", "(특정한 수나 양, 허용 한도를) 넘다, 초과하다"], ["generate", "만들어 내다, 창출하다, 발생시키다"], ["boost", "촉진시키다, 늘리다 / 증가"], ["solidify", "굳히다, (관계·입지를) 확고히 하다"], ["recover", "~을 되찾다, ~을 회복하다 / (~로부터) 회복하다, 복구되다"], ["substitute", "대신하다, 대체하다 / 대신하는 사람(것), 대리자, 대체품"], ["eliminate", "없애다, 제거하다"]]};const d=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+window.fetch=async(u,o)=>({ok:true,json:async()=>String(u).includes('daily_today')||String(u).includes('daily_day')?{name:'체험',product:'rc',date:d,weekend:false,day_no:1,items:IT,progress:{},streak:0,end_date:d}:{ok:true,streak:1}});
+history.replaceState(null,'','?k=sample');})();
+</script><div class="msg" id="msg" style="display:none"></div>
+<style>
+.msg{padding:60px 24px;text-align:center;font-size:16px;line-height:1.7;color:#4e5968}.msg .big{font-size:48px;margin-bottom:10px}.msg b{color:#191f28}
+.kbtn{display:inline-block;margin-top:16px;background:#fee500;color:#191f28;font-weight:800;border-radius:14px;padding:12px 18px;text-decoration:none}
+.trn{margin-top:12px;font-size:14px;color:var(--g);font-weight:700;cursor:pointer;text-align:left}
+.trbox{display:none;white-space:pre-line;text-align:left;background:#f7f6f2;border-radius:14px;padding:14px;font-size:14.5px;line-height:1.75;margin-top:10px;color:#333d4b}.trbox.show{display:block}
+.recl{display:block;text-align:right;margin-top:6px;font-size:13px;font-weight:700;color:var(--gd);text-decoration:none}
+.wkn a{color:var(--gd);font-weight:800}
+.bar{display:flex;gap:8px}
+.btn.bk{flex:0 0 108px;width:auto;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px #dcd8cf;padding-left:0;padding-right:0}
+.opt.sel{border-color:var(--ink);background:#fff;box-shadow:0 0 0 2px var(--ink)}.opt.sel i{background:var(--ink);color:#fff;border-color:var(--ink)}
+.bl.pend{border-style:solid;border-color:var(--ink);background:#fff;color:var(--ink)}
+.nb.cur.pend{font-size:15px;font-weight:700;min-width:0;color:var(--ink);border-bottom-color:var(--ink)}
+/* 빈칸에 들어간 답이 글줄보다 내려앉던 것 바로잡음(11/24) */
+.bl.fill{vertical-align:baseline;line-height:1.3;height:auto;padding:1px 9px 2px;margin:0 2px}
+.ring{display:flex;justify-content:center;margin-bottom:6px;color:var(--g)}.ring.all{color:var(--g)}
+.ring .arc{animation:arc .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes arc{from{stroke-dasharray:0 var(--c)}to{stroke-dasharray:var(--d) var(--c)}}
+.fire{display:inline-flex;align-items:center;gap:5px}.fire svg{color:#f76707}
+.fb .t{display:flex;align-items:center;gap:7px}.fb.ok .t svg{color:var(--g)}.fb.no .t svg{color:var(--red)}
+.msg .big{display:flex;justify-content:center;color:#8b95a1;margin-bottom:14px}
+.redo{display:inline-block;margin-top:14px;font-size:14px;font-weight:800;color:var(--gd);text-decoration:none}
+@media (prefers-reduced-motion:reduce){.ring .arc{animation:none}}
+.pickhint{font-size:13px;color:var(--sub);line-height:1.55;margin-top:4px}
+.askk{display:block;margin-top:10px;font-size:13.5px;font-weight:800;color:var(--gd);text-decoration:none}
+.wkn{background:#fff8e6;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;margin:10px 16px 0}
+</style>
+<script>
+const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
+const TOKEN=new URLSearchParams(location.search).get('k')||'';
+const RD=new URLSearchParams(location.search).get('d')||'';   // 지난 날짜 다시 풀기(기록 화면에서 넘어옴)
+const SAMPLE=!!window.DAILY_SAMPLE;   // 체험판: 서버에 아무것도 안 보내고 기록·단어장은 예시 화면으로
+const REC=SAMPLE?'../rec.html?mock=1':'rec.html?k='+encodeURIComponent(TOKEN);
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const L='ABCD',PARTS=['p5','p6','p7','wd'],NX={p5:'p6',p6:'p7',p7:'wd',wd:null},NM={p5:'Part 5',p6:'Part 6',p7:'Part 7',wd:'오늘의 단어'};
+// 직접 그린 아이콘(이모지 대신). 선 굵기 2, 둥근 끝으로 통일.
+const SV=(d,sz,fill)=>`<svg width="${sz||20}" height="${sz||20}" viewBox="0 0 24 24" fill="${fill?'currentColor':'none'}" stroke="${fill?'none':'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const IC={flame:z=>SV('<path d="M12 2c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>',z,1),
+ ok:z=>`<svg width="${z||22}" height="${z||22}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M7 12.500l3.300 3.300L17 9" fill="none" stroke="#fff" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+ no:z=>`<svg width="${z||22}" height="${z||22}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M8.500 8.500l7 7M15.500 8.500l-7 7" fill="none" stroke="#fff" stroke-width="2.400" stroke-linecap="round"/></svg>`,
+ lock:z=>SV('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',z),
+ pause:z=>SV('<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',z),
+ clock:z=>SV('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',z),
+ cal:z=>SV('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',z),
+ tool:z=>SV('<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M5.600 18.400l2.100-2.100M16.300 7.700l2.100-2.100"/>',z),
+ warn:z=>SV('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.500v.010"/>',z)};
+// 점수 고리: 몇 문제 중 몇 개 맞혔는지 한눈에. 다 맞히면 고리가 꽉 차고 가운데에 체크가 뜬다.
+function ring(ok,n){const R=38,C=2*Math.PI*R,d=n?C*ok/n:0,all=n&&ok==n;
+ return `<div class="ring${all?' all':''}"><svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="${n}개 중 ${ok}개"><circle cx="56" cy="56" r="${R}" fill="none" stroke="#ebe8e1" stroke-width="10"/>${d>0?`<circle class="arc" cx="56" cy="56" r="${R}" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-dasharray="${d} ${C}" style="--d:${d};--c:${C}" transform="rotate(-90 56 56)"/>`:''}<text x="56" y="${all?52:63}" text-anchor="middle" font-size="${all?17:26}" font-weight="800" fill="#191f28">${all?'':ok+'/'+n}</text>${all?`<path d="M42 57l10 10 19-21" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`:''}</svg></div>`}
+let D=null,W=[],INFO=null,cur='p5';
+const st={p5:{i:0,ok:0,pick:null,end:false,picks:[]},p6:{i:0,ok:0,pick:null,end:false,picks:[]},p7:{i:0,ok:0,pick:null,end:false,picks:[]},wd:{i:0,open:false,k:[],end:false}};
+async function rpc(fn,body){const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
+function msg(big,html){$$('.hd,.steps,.tabs,.pane,.bar').forEach(x=>x.style.display='none');const m=$('#msg');m.style.display='block';m.innerHTML=`<div class="big">${(IC[big]||IC.warn)(54)}</div>${html}<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>`}
+function btn(txt,dis,fn){const b=$('#go');b.textContent=txt;b.disabled=!!dis;b.onclick=fn||null}
+function steps(){$$('.steps i').forEach((x,i)=>x.classList.toggle('on',st[PARTS[i]].end));$$('.tab').forEach(t=>t.classList.toggle('fin',st[t.dataset.t].end))}
+function fire(n){$('.fire').innerHTML=IC.flame(17)+(n>0?`${n}일째`:'오늘 시작')}
+function mark(t,score,total){if(!TOKEN||INFO.weekend||INFO.review)return;const up=r=>{if(r&&r.streak!=null){INFO.streak=r.streak;fire(r.streak)}};const b={p_token:TOKEN,p_part:t,p_score:score,p_total:total};
+ rpc('daily_mark2',{...b,p_picks:t=='wd'?st.wd.k:st[t].picks}).then(up).catch(()=>rpc('daily_mark',b).then(up).catch(()=>{}))}   // 새 함수가 아직 없으면 옛 함수로
+function blankify(t,s,pend){return t.replace('___',s?`<span class="bl fill${pend?' pend':''}">${s}</span>`:'<span class="bl"></span>')}
+function trans(d){return d.psg_k?`<div class="trn" onclick="this.nextElementSibling.classList.toggle('show')">지문 해석 보기 ▾</div><div class="trbox">${d.psg_k}</div>`:''}
+function fillPsg(t,root){const d=D[t],s=st[t];if(!root)return;const cur=s.v==null?s.i:s.v;root.querySelectorAll('.nb').forEach(n=>{const k=+n.dataset.n,q=d.qs[k];n.dataset.l=k+1;n.className='nb';n.textContent='';const pk=s.picks[k];if(pk!=null&&q){n.textContent=q.o[pk];n.classList.add('fill',pk==q.a?'ok':'no')}else if(!s.end&&k==cur){n.classList.add('cur');if(q&&s.sel!=null&&cur==s.i&&/^빈칸/.test(q.t)&&q.o[s.sel].length<40){n.textContent=q.o[s.sel];n.classList.add('pend')}}})}
+function allDone(){return PARTS.every(p=>st[p].end)}
+function redo(){if(SAMPLE)return '<br><a class="redo" href="./">처음부터 다시 풀기 ›</a>';return (INFO&&!INFO.review&&!INFO.weekend&&TOKEN)?`<br><a class="redo" href="./?k=${encodeURIComponent(TOKEN)}&d=${INFO.date}">오늘 문제 처음부터 다시 풀기 ›</a>`:''}
+function bkBtn(show,fn){let b=$('#bk');if(!b){$('#go').insertAdjacentHTML('beforebegin','<button class="btn bk" id="bk" type="button">‹ 이전</button>');b=$('#bk')}b.style.display=show?'':'none';b.onclick=fn||null}
+function renderQ(t){const d=D[t],s=st[t],p=$('#'+t);const qs=t=='p5'?d:d.qs;
+ if(s.end){p.innerHTML=`<div class="card done">${ring(s.ok||0,qs.length)}<h2>${NM[t]} 끝!</h2><p>${s.ok==qs.length?'전부 맞혔어요. 이 속도 그대로 가요.':'틀린 문제는 해설을 한 번 더 읽어 보세요.'}</p>${s.ok!=null?`<div class="sc">${qs.length}문제 중 ${s.ok}개 정답</div>`:''}${redo()}${t!='p5'?trans(d):''}</div>`+(t!='p5'?`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`:'');if(t!='p5')fillPsg(t,$('#psg'));
+  bkBtn(0);btn(NX[t]?`다음: ${NM[NX[t]]} →`:'오늘 끝!',0,()=>show(NX[t]));return}
+ if(s.v==null||s.v>s.i)s.v=s.i;
+ // past: 이미 채점한 앞 문제를 다시 보는 중(고칠 수 없음)
+ const past=s.v<s.i,q=qs[s.v],pk=past?s.picks[s.v]:s.pick,graded=pk!=null,sel=past?null:s.sel;let h='';
+ if(t!='p5')h+=`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`;
+ h+=`<div class="card"><div class="qn"><b>Q${s.v+1}</b><span>${s.v+1} / ${qs.length}</span></div><div class="qt">${blankify(q.t,graded?q.o[pk]:(sel!=null?q.o[sel]:null),!graded)}</div>`;
+ h+=q.o.map((o,i)=>`<div class="opt${graded?(i==q.a?' right':i==pk?' wrong':' dim'):(i===sel?' sel':'')}" data-i="${i}"><i>${L[i]}</i>${o}</div>`).join('');
+ if(graded){const ok=pk==q.a;h+=`<div class="fb show ${ok?'ok':'no'}"><div class="t">${ok?IC.ok()+'정답이에요!':IC.no()+'아쉬워요, 정답은 ('+L[q.a]+')'}</div>${q.e}${q.k?`<div class="kr">해석: ${q.k}</div>`:''}${ok?'':`<a class="askk" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">해설을 봐도 모르겠으면 카카오톡 채널로 질문해 주세요 ›</a>`}</div>`}
+ else h+=`<p class="pickhint">${sel==null?'보기를 눌러 답을 고르세요.':'다른 보기를 눌러 바꿀 수 있어요. 정했으면 아래 「확인」을 눌러 주세요.'}</p>`;
+ h+='</div>';p.innerHTML=h;
+ if(t!='p5')fillPsg(t,$('#psg'));
+ if(!graded)p.querySelectorAll('.opt').forEach(o=>o.onclick=()=>{s.sel=+o.dataset.i;renderQ(t)});
+ bkBtn(s.v>0,()=>{s.v--;renderQ(t);scrollTo(0,0)});
+ if(past)btn('다음 문제 →',0,()=>{s.v++;renderQ(t);scrollTo(0,0)});
+ else if(!graded)btn(sel==null?'답을 골라 주세요':'확인',sel==null,()=>{s.pick=s.sel;s.picks[s.i]=s.pick;if(s.pick==q.a)s.ok++;renderQ(t)});
+ else btn(s.i+1<qs.length?'다음 문제':'결과 보기',0,()=>{s.i++;s.pick=null;s.sel=null;s.v=s.i;if(s.i>=qs.length){s.end=true;steps();mark(t,s.ok,qs.length)}renderQ(t);scrollTo(0,0)})}
+function renderW(){const s=st.wd,p=$('#wd');$('.bar').style.display='none';if($('#bk'))$('#bk').style.display='none';
+ if(s.end){const n=INFO.review?`다시 풀기 끝! 처음 푼 기록은 그대로예요.<br><a href="${REC}" style="color:var(--gd);font-weight:800">내 학습 기록으로 돌아가기 ›</a>`:INFO.weekend?'주말 복습 끝! 월요일 아침 7시에 새 문제가 와요.':allDone()?`「매일 풀기」 ${Math.max(INFO.streak,1)}일째가 채워졌어요.<br>내일 아침 7시에 또 만나요.`:'남은 파트도 마저 풀면 오늘 「매일 풀기」가 채워져요.';
+  p.innerHTML=`<div class="card done">${ring(s.k.length?s.k.filter(x=>x).length:(s.ok||0),W.length||10)}<h2>${allDone()?'오늘 할 것 다 했어요!':'단어 끝!'}</h2><p>${n}</p>${redo()}${TOKEN&&!INFO.review?`<br><a class="redo" href="${SAMPLE?'../voca.html?mock=1':'voca.html?k='+encodeURIComponent(TOKEN)}">「몰라요」 단어는 나만의 단어장에 ›</a>`:''}${s.k.length?`<div class="sc">아는 단어 ${s.k.filter(x=>x).length} / ${W.length}</div>`:''}</div>`+W.map(w=>`<div class="card" style="padding:14px 18px;margin-bottom:8px"><b style="font-size:17px">${w[0]}</b><div style="color:var(--gd);margin-top:3px">${w[1]}</div></div>`).join('');return}
+ const w=W[s.i];p.innerHTML=`<div class="wd-top"><span>완토 VOCA</span><span>${s.i+1} / ${W.length}</span></div><div class="flip${s.open?' open':''}" id="fl"><div class="cnt">${s.i+1}</div><div class="en">${w[0]}</div><div class="hint">눌러서 뜻 보기</div><div class="ko">${w[1]}</div></div><div class="two"><button class="no" id="wn">몰라요</button><button class="yes" id="wy">알아요</button></div><div class="dots">${W.map((x,i)=>`<i class="${s.k[i]===true?'k':s.k[i]===false?'u':''}"></i>`).join('')}</div>`;
+ $('#fl').onclick=()=>{s.open=!s.open;renderW()};
+ const nx=v=>{s.k[s.i]=v;s.i++;s.open=false;if(s.i>=W.length){s.end=true;steps();mark('wd',s.k.filter(x=>x).length,W.length)}renderW()};$('#wn').onclick=()=>nx(false);$('#wy').onclick=()=>nx(true)}
+function show(t){if(!t)return;cur=t;$('.bar').style.display='';$$('.tab').forEach(x=>x.classList.toggle('on',x.dataset.t==t));$$('.pane').forEach(x=>x.classList.toggle('on',x.id==t));t=='wd'?renderW():renderQ(t);scrollTo(0,0)}
+$$('.tab').forEach(x=>x.onclick=()=>show(x.dataset.t));
+function start(r){INFO=r;const it=r.items;D={p5:it.p5,p6:it.p6,p7:it.p7};W=it.words||[];
+ const wd=['일','월','화','수','목','금','토'][new Date(r.date+'T12:00:00Z').getUTCDay()];
+ $('.hd .d').textContent=`${+r.date.slice(5,7)}월 ${+r.date.slice(8,10)}일 ${wd}요일 · ${r.product=='rc'?'RC반':'LC반'}`;
+ $('.hd h1').textContent=r.review?'지난 문제 다시 풀기':r.weekend?'주말 복습':'오늘의 토익 RC';fire(r.streak||0);
+ $('.hd>div').insertAdjacentHTML('beforeend',`<a class="recl" style="text-align:left" href="${REC}">내 학습 기록 ›</a>`);$('.fire').style.cursor='pointer';$('.fire').onclick=()=>location.href=REC;
+ if(SAMPLE)$('.steps').insertAdjacentHTML('afterend','<div class="wkn"><b>체험판</b>이에요. 실제 첫날(DAY 1) 문제 그대로이고, 푼 기록은 어디에도 저장되지 않아요.</div>');
+ if(r.review)$('.steps').insertAdjacentHTML('afterend',`<div class="wkn">지난 문제를 <b>다시 푸는 중</b>이에요. 기록에는 안 들어가요. <a href="./?k=${encodeURIComponent(TOKEN)}">오늘 문제로 ›</a></div>`);
+ $('.tabs .tab[data-t=p5] small').textContent=D.p5.length+'문제';$('.tabs .tab[data-t=wd] small').textContent=W.length+'개';
+ if(r.weekend)$('.steps').insertAdjacentHTML('afterend','<div class="wkn">주말엔 새 문제 대신 <b>금요일 문제 복습</b>이에요. 기록에는 안 들어가요.</div>');
+ const pr=r.review?{}:(r.progress||{});PARTS.forEach(p=>{if(pr[p]){st[p].end=true;st[p].ok=pr[p].score}});steps();
+ show(PARTS.find(p=>!st[p].end)||'wd')}
+(async()=>{
+ if(!TOKEN){msg('lock','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「오늘의 학습 페이지 바로가기」</b> 버튼으로 들어와 주세요.');return}
+ try{const r=/^\d{4}-\d\d-\d\d$/.test(RD)?await rpc('daily_day',{p_token:TOKEN,p_date:RD}):await rpc('daily_today',{p_token:TOKEN});
+  if(r.error){const E={no_sub:['lock','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['pause','이용이 끝났거나 멈춘 상태예요.'],not_started:['clock',`<b>${r.start_date}</b>부터 문제가 시작돼요.`],expired:['cal',`이용 기간이 <b>${r.end_date}</b>에 끝났어요.`],no_items:['tool','오늘 문제를 준비하고 있어요. 잠시 뒤 다시 열어 주세요.'],out_of_range:['cal','이 날짜의 문제는 열 수 없어요.'],weekend_day:['cal','주말에는 문제가 없었어요.']}[r.error]||['warn','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
+  start(r)}catch(e){msg('warn','인터넷 연결을 확인하고 다시 열어 주세요.')}
+})();
+</script></body></html>
