@@ -200,7 +200,8 @@ async function rpc(fn,body){
    ['p7','세부',14,12],['p7','주제·목적',6,6],['p7','추론',9,5],['p7','NOT·TRUE',6,4],['p7','동의어',3,3]].map(x=>({part:x[0],type:x[1],n:x[2],ok:x[3]}));
   return{name:'김토익',product:'rc',start_date:'2026-11-25',end_date:'2027-11-24',today:'2026-12-18',parts:4,streak:6,full_days:14,days,types}}
  const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
-function msg(big,html){$('#app').style.display='none';const m=$('#msg');m.style.display='block';m.innerHTML=`<div class="big">${big}</div>${html}<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>`}
+const MI={lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',pause:'<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',warn:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.500v.010"/>'};
+function msg(big,html){$('#app').style.display='none';const m=$('#msg');m.style.display='block';m.innerHTML=`<div class="big"><svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#8a94a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${MI[big]||MI.warn}</svg></div>${html}<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>`}
 
 // ── 셈 ──
 function sumParts(){const o={};for(const k in R.days)for(const p in R.days[k]){const v=R.days[k][p];o[p]=o[p]||{s:0,t:0};o[p].s+=v.s||0;o[p].t+=v.t||0}return o}
@@ -289,15 +290,15 @@ function wrongs(){
  const el=$('#wl');if(!out.length){el.style.display='none';return}
  el.style.display='';el.innerHTML='<h2>틀린 문제가 있었던 날</h2>'+out.map(([k,w])=>{const d=dt(k);return`<a href="${LINK(k)}"><div>${d.getMonth()+1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일<em>${w}문제</em></div><span>다시 풀기 ›</span></a>`}).join('')}
 (async()=>{
- if(!TOKEN&&!MOCK){msg('🔒','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「내 학습 기록」</b> 버튼으로 들어와 주세요.');return}
+ if(!TOKEN&&!MOCK){msg('lock','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「내 학습 기록」</b> 버튼으로 들어와 주세요.');return}
  try{R=await rpc('daily_history',{p_token:TOKEN});
-  if(R.error){const E={no_sub:['🔒','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['⏸️','이용이 끝났거나 멈춘 상태예요.']}[R.error]||['⚠️','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
+  if(R.error){const E={no_sub:['lock','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['pause','이용이 끝났거나 멈춘 상태예요.']}[R.error]||['warn','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
   R.days=R.days||{};const T=R.types||[],P=sumParts();
   const all=renderTop(P);renderCoach(P,T,all);renderParts(P);renderTypes(T);renderWeeks();
   const t=dt(R.today<R.start_date?R.start_date:R.today);ym=new Date(t.getFullYear(),t.getMonth(),1);sel=R.today<R.start_date?R.start_date:R.today;
   $('#pv').onclick=()=>{ym=new Date(ym.getFullYear(),ym.getMonth()-1,1);cal()};$('#nx').onclick=()=>{ym=new Date(ym.getFullYear(),ym.getMonth()+1,1);cal()};
   if(/iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent))$('#appl').href='https://apps.apple.com/kr/app/id6815950208';
   $('#go').href=LINK();$('#app').style.display='';cal();detail();wrongs();motion();
- }catch(e){msg('⚠️','인터넷 연결을 확인하고 다시 열어 주세요.')}
+ }catch(e){msg('warn','인터넷 연결을 확인하고 다시 열어 주세요.')}
 })();
 </script></body></html>

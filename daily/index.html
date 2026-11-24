@@ -64,7 +64,7 @@ body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);backgrou
 .two .no{background:#fff;color:var(--ink);box-shadow:0 2px 8px rgba(0,0,0,.05)}.two .yes{background:var(--g);color:#fff}
 .dots{display:flex;gap:5px;justify-content:center;margin-top:16px}.dots i{width:8px;height:8px;border-radius:50%;background:#dcd8cf}.dots i.k{background:var(--g)}.dots i.u{background:var(--y)}
 </style></head><body>
-<div class="hd"><div><div class="d">11월 24일 월요일 · RC반</div><h1>오늘의 토익 RC</h1></div><div class="fire">🔥 12일째</div></div>
+<div class="hd"><div><div class="d">11월 24일 월요일 · RC반</div><h1>오늘의 토익 RC</h1></div><div class="fire"></div></div>
 <div class="steps"><i></i><i></i><i></i><i></i></div>
 <div class="tabs">
  <div class="tab on" data-t="p5">Part 5<small>3문제</small></div>
@@ -89,6 +89,14 @@ body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);backgrou
 .nb.cur.pend{font-size:15px;font-weight:700;min-width:0;color:var(--ink);border-bottom-color:var(--ink)}
 /* 빈칸에 들어간 답이 글줄보다 내려앉던 것 바로잡음(11/24) */
 .bl.fill{vertical-align:baseline;line-height:1.3;height:auto;padding:1px 9px 2px;margin:0 2px}
+.ring{display:flex;justify-content:center;margin-bottom:6px;color:var(--g)}.ring.all{color:var(--g)}
+.ring .arc{animation:arc .9s cubic-bezier(.2,.8,.2,1) both}
+@keyframes arc{from{stroke-dasharray:0 var(--c)}to{stroke-dasharray:var(--d) var(--c)}}
+.fire{display:inline-flex;align-items:center;gap:5px}.fire svg{color:#f76707}
+.fb .t{display:flex;align-items:center;gap:7px}.fb.ok .t svg{color:var(--g)}.fb.no .t svg{color:var(--red)}
+.msg .big{display:flex;justify-content:center;color:#8b95a1;margin-bottom:14px}
+.redo{display:inline-block;margin-top:14px;font-size:14px;font-weight:800;color:var(--gd);text-decoration:none}
+@media (prefers-reduced-motion:reduce){.ring .arc{animation:none}}
 .pickhint{font-size:13px;color:var(--sub);line-height:1.55;margin-top:4px}
 .askk{display:block;margin-top:10px;font-size:13.5px;font-weight:800;color:var(--gd);text-decoration:none}
 .wkn{background:#fff8e6;border-radius:14px;padding:12px 14px;font-size:14px;line-height:1.6;margin:10px 16px 0}
@@ -100,22 +108,37 @@ const RD=new URLSearchParams(location.search).get('d')||'';   // 지난 날짜 �
 const REC='rec.html?k='+encodeURIComponent(TOKEN);
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const L='ABCD',PARTS=['p5','p6','p7','wd'],NX={p5:'p6',p6:'p7',p7:'wd',wd:null},NM={p5:'Part 5',p6:'Part 6',p7:'Part 7',wd:'오늘의 단어'};
+// 직접 그린 아이콘(이모지 대신). 선 굵기 2, 둥근 끝으로 통일.
+const SV=(d,sz,fill)=>`<svg width="${sz||20}" height="${sz||20}" viewBox="0 0 24 24" fill="${fill?'currentColor':'none'}" stroke="${fill?'none':'currentColor'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const IC={flame:z=>SV('<path d="M12 2c1 3 5 5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-6 1-9z"/>',z,1),
+ ok:z=>`<svg width="${z||22}" height="${z||22}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M7 12.500l3.300 3.300L17 9" fill="none" stroke="#fff" stroke-width="2.400" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+ no:z=>`<svg width="${z||22}" height="${z||22}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M8.500 8.500l7 7M15.500 8.500l-7 7" fill="none" stroke="#fff" stroke-width="2.400" stroke-linecap="round"/></svg>`,
+ lock:z=>SV('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',z),
+ pause:z=>SV('<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>',z),
+ clock:z=>SV('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',z),
+ cal:z=>SV('<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M8 3v4M16 3v4"/>',z),
+ tool:z=>SV('<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.600 5.600l2.100 2.100M16.300 16.300l2.100 2.100M5.600 18.400l2.100-2.100M16.300 7.700l2.100-2.100"/>',z),
+ warn:z=>SV('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.500v.010"/>',z)};
+// 점수 고리: 몇 문제 중 몇 개 맞혔는지 한눈에. 다 맞히면 고리가 꽉 차고 가운데에 체크가 뜬다.
+function ring(ok,n){const R=38,C=2*Math.PI*R,d=n?C*ok/n:0,all=n&&ok==n;
+ return `<div class="ring${all?' all':''}"><svg width="112" height="112" viewBox="0 0 112 112" role="img" aria-label="${n}개 중 ${ok}개"><circle cx="56" cy="56" r="${R}" fill="none" stroke="#ebe8e1" stroke-width="10"/>${d>0?`<circle class="arc" cx="56" cy="56" r="${R}" fill="none" stroke="currentColor" stroke-width="10" stroke-linecap="round" stroke-dasharray="${d} ${C}" style="--d:${d};--c:${C}" transform="rotate(-90 56 56)"/>`:''}<text x="56" y="${all?52:63}" text-anchor="middle" font-size="${all?17:26}" font-weight="800" fill="#191f28">${all?'':ok+'/'+n}</text>${all?`<path d="M42 57l10 10 19-21" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`:''}</svg></div>`}
 let D=null,W=[],INFO=null,cur='p5';
 const st={p5:{i:0,ok:0,pick:null,end:false,picks:[]},p6:{i:0,ok:0,pick:null,end:false,picks:[]},p7:{i:0,ok:0,pick:null,end:false,picks:[]},wd:{i:0,open:false,k:[],end:false}};
 async function rpc(fn,body){const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
-function msg(big,html){$$('.hd,.steps,.tabs,.pane,.bar').forEach(x=>x.style.display='none');const m=$('#msg');m.style.display='block';m.innerHTML=`<div class="big">${big}</div>${html}<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>`}
+function msg(big,html){$$('.hd,.steps,.tabs,.pane,.bar').forEach(x=>x.style.display='none');const m=$('#msg');m.style.display='block';m.innerHTML=`<div class="big">${(IC[big]||IC.warn)(54)}</div>${html}<br><a class="kbtn" href="https://pf.kakao.com/_JCLYG">완벽한토익 카톡 문의</a>`}
 function btn(txt,dis,fn){const b=$('#go');b.textContent=txt;b.disabled=!!dis;b.onclick=fn||null}
 function steps(){$$('.steps i').forEach((x,i)=>x.classList.toggle('on',st[PARTS[i]].end));$$('.tab').forEach(t=>t.classList.toggle('fin',st[t.dataset.t].end))}
-function fire(n){$('.fire').textContent=n>0?`🔥 ${n}일째`:'🔥 오늘 시작'}
+function fire(n){$('.fire').innerHTML=IC.flame(17)+(n>0?`${n}일째`:'오늘 시작')}
 function mark(t,score,total){if(!TOKEN||INFO.weekend||INFO.review)return;const up=r=>{if(r&&r.streak!=null){INFO.streak=r.streak;fire(r.streak)}};const b={p_token:TOKEN,p_part:t,p_score:score,p_total:total};
  rpc('daily_mark2',{...b,p_picks:t=='wd'?st.wd.k:st[t].picks}).then(up).catch(()=>rpc('daily_mark',b).then(up).catch(()=>{}))}   // 새 함수가 아직 없으면 옛 함수로
 function blankify(t,s,pend){return t.replace('___',s?`<span class="bl fill${pend?' pend':''}">${s}</span>`:'<span class="bl"></span>')}
 function trans(d){return d.psg_k?`<div class="trn" onclick="this.nextElementSibling.classList.toggle('show')">지문 해석 보기 ▾</div><div class="trbox">${d.psg_k}</div>`:''}
 function fillPsg(t,root){const d=D[t],s=st[t];if(!root)return;const cur=s.v==null?s.i:s.v;root.querySelectorAll('.nb').forEach(n=>{const k=+n.dataset.n,q=d.qs[k];n.dataset.l=k+1;n.className='nb';n.textContent='';const pk=s.picks[k];if(pk!=null&&q){n.textContent=q.o[pk];n.classList.add('fill',pk==q.a?'ok':'no')}else if(!s.end&&k==cur){n.classList.add('cur');if(q&&s.sel!=null&&cur==s.i&&/^빈칸/.test(q.t)&&q.o[s.sel].length<40){n.textContent=q.o[s.sel];n.classList.add('pend')}}})}
 function allDone(){return PARTS.every(p=>st[p].end)}
+function redo(){return (INFO&&!INFO.review&&!INFO.weekend&&TOKEN)?`<br><a class="redo" href="./?k=${encodeURIComponent(TOKEN)}&d=${INFO.date}">오늘 문제 처음부터 다시 풀기 ›</a>`:''}
 function bkBtn(show,fn){let b=$('#bk');if(!b){$('#go').insertAdjacentHTML('beforebegin','<button class="btn bk" id="bk" type="button">‹ 이전</button>');b=$('#bk')}b.style.display=show?'':'none';b.onclick=fn||null}
 function renderQ(t){const d=D[t],s=st[t],p=$('#'+t);const qs=t=='p5'?d:d.qs;
- if(s.end){p.innerHTML=`<div class="card done"><div class="big">${s.ok==qs.length?'🎉':'👍'}</div><h2>${NM[t]} 끝!</h2><p>틀린 문제는 해설을 한 번 더 읽어 보세요.</p>${s.ok!=null?`<div class="sc">${qs.length}문제 중 ${s.ok}개 정답</div>`:''}${t!='p5'?trans(d):''}</div>`+(t!='p5'?`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`:'');if(t!='p5')fillPsg(t,$('#psg'));
+ if(s.end){p.innerHTML=`<div class="card done">${ring(s.ok||0,qs.length)}<h2>${NM[t]} 끝!</h2><p>${s.ok==qs.length?'전부 맞혔어요. 이 속도 그대로 가요.':'틀린 문제는 해설을 한 번 더 읽어 보세요.'}</p>${s.ok!=null?`<div class="sc">${qs.length}문제 중 ${s.ok}개 정답</div>`:''}${redo()}${t!='p5'?trans(d):''}</div>`+(t!='p5'?`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`:'');if(t!='p5')fillPsg(t,$('#psg'));
   bkBtn(0);btn(NX[t]?`다음: ${NM[NX[t]]} →`:'오늘 끝!',0,()=>show(NX[t]));return}
  if(s.v==null||s.v>s.i)s.v=s.i;
  // past: 이미 채점한 앞 문제를 다시 보는 중(고칠 수 없음)
@@ -123,7 +146,7 @@ function renderQ(t){const d=D[t],s=st[t],p=$('#'+t);const qs=t=='p5'?d:d.qs;
  if(t!='p5')h+=`<div class="card"><div class="psg" id="psg">${d.psg}</div></div>`;
  h+=`<div class="card"><div class="qn"><b>Q${s.v+1}</b><span>${s.v+1} / ${qs.length}</span></div><div class="qt">${blankify(q.t,graded?q.o[pk]:(sel!=null?q.o[sel]:null),!graded)}</div>`;
  h+=q.o.map((o,i)=>`<div class="opt${graded?(i==q.a?' right':i==pk?' wrong':' dim'):(i===sel?' sel':'')}" data-i="${i}"><i>${L[i]}</i>${o}</div>`).join('');
- if(graded){const ok=pk==q.a;h+=`<div class="fb show ${ok?'ok':'no'}"><div class="t">${ok?'정답이에요! 👏':'아쉬워요, 정답은 ('+L[q.a]+')'}</div>${q.e}${q.k?`<div class="kr">해석: ${q.k}</div>`:''}${ok?'':`<a class="askk" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">해설을 봐도 모르겠으면 카카오톡 채널로 질문해 주세요 ›</a>`}</div>`}
+ if(graded){const ok=pk==q.a;h+=`<div class="fb show ${ok?'ok':'no'}"><div class="t">${ok?IC.ok()+'정답이에요!':IC.no()+'아쉬워요, 정답은 ('+L[q.a]+')'}</div>${q.e}${q.k?`<div class="kr">해석: ${q.k}</div>`:''}${ok?'':`<a class="askk" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">해설을 봐도 모르겠으면 카카오톡 채널로 질문해 주세요 ›</a>`}</div>`}
  else h+=`<p class="pickhint">${sel==null?'보기를 눌러 답을 고르세요.':'다른 보기를 눌러 바꿀 수 있어요. 정했으면 아래 「이 답으로 확인」을 눌러 주세요.'}</p>`;
  h+='</div>';p.innerHTML=h;
  if(t!='p5')fillPsg(t,$('#psg'));
@@ -134,7 +157,7 @@ function renderQ(t){const d=D[t],s=st[t],p=$('#'+t);const qs=t=='p5'?d:d.qs;
  else btn(s.i+1<qs.length?'다음 문제':'결과 보기',0,()=>{s.i++;s.pick=null;s.sel=null;s.v=s.i;if(s.i>=qs.length){s.end=true;steps();mark(t,s.ok,qs.length)}renderQ(t);scrollTo(0,0)})}
 function renderW(){const s=st.wd,p=$('#wd');$('.bar').style.display='none';if($('#bk'))$('#bk').style.display='none';
  if(s.end){const n=INFO.review?`다시 풀기 끝! 처음 푼 기록은 그대로예요.<br><a href="${REC}" style="color:var(--gd);font-weight:800">내 학습 기록으로 돌아가기 ›</a>`:INFO.weekend?'주말 복습 끝! 월요일 아침 7시에 새 문제가 와요.':allDone()?`「매일 풀기」 ${Math.max(INFO.streak,1)}일째가 채워졌어요.<br>내일 아침 7시에 또 만나요.`:'남은 파트도 마저 풀면 오늘 「매일 풀기」가 채워져요.';
-  p.innerHTML=`<div class="card done"><div class="big">🔥</div><h2>${allDone()?'오늘 할 것 다 했어요!':'단어 끝!'}</h2><p>${n}</p>${s.k.length?`<div class="sc">아는 단어 ${s.k.filter(x=>x).length} / ${W.length}</div>`:''}</div>`+W.map(w=>`<div class="card" style="padding:14px 18px;margin-bottom:8px"><b style="font-size:17px">${w[0]}</b><div style="color:var(--gd);margin-top:3px">${w[1]}</div></div>`).join('');return}
+  p.innerHTML=`<div class="card done">${ring(s.k.length?s.k.filter(x=>x).length:(s.ok||0),W.length||10)}<h2>${allDone()?'오늘 할 것 다 했어요!':'단어 끝!'}</h2><p>${n}</p>${redo()}${s.k.length?`<div class="sc">아는 단어 ${s.k.filter(x=>x).length} / ${W.length}</div>`:''}</div>`+W.map(w=>`<div class="card" style="padding:14px 18px;margin-bottom:8px"><b style="font-size:17px">${w[0]}</b><div style="color:var(--gd);margin-top:3px">${w[1]}</div></div>`).join('');return}
  const w=W[s.i];p.innerHTML=`<div class="wd-top"><span>완토 VOCA</span><span>${s.i+1} / ${W.length}</span></div><div class="flip${s.open?' open':''}" id="fl"><div class="cnt">${s.i+1}</div><div class="en">${w[0]}</div><div class="hint">눌러서 뜻 보기</div><div class="ko">${w[1]}</div></div><div class="two"><button class="no" id="wn">몰라요</button><button class="yes" id="wy">알아요</button></div><div class="dots">${W.map((x,i)=>`<i class="${s.k[i]===true?'k':s.k[i]===false?'u':''}"></i>`).join('')}</div>`;
  $('#fl').onclick=()=>{s.open=!s.open;renderW()};
  const nx=v=>{s.k[s.i]=v;s.i++;s.open=false;if(s.i>=W.length){s.end=true;steps();mark('wd',s.k.filter(x=>x).length,W.length)}renderW()};$('#wn').onclick=()=>nx(false);$('#wy').onclick=()=>nx(true)}
@@ -151,9 +174,9 @@ function start(r){INFO=r;const it=r.items;D={p5:it.p5,p6:it.p6,p7:it.p7};W=it.wo
  const pr=r.review?{}:(r.progress||{});PARTS.forEach(p=>{if(pr[p]){st[p].end=true;st[p].ok=pr[p].score}});steps();
  show(PARTS.find(p=>!st[p].end)||'wd')}
 (async()=>{
- if(!TOKEN){msg('🔒','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「오늘의 학습 페이지 바로가기」</b> 버튼으로 들어와 주세요.');return}
+ if(!TOKEN){msg('lock','개인 링크로만 열 수 있어요.<br>알림톡의 <b>「오늘의 학습 페이지 바로가기」</b> 버튼으로 들어와 주세요.');return}
  try{const r=/^\d{4}-\d\d-\d\d$/.test(RD)?await rpc('daily_day',{p_token:TOKEN,p_date:RD}):await rpc('daily_today',{p_token:TOKEN});
-  if(r.error){const E={no_sub:['🔒','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['⏸️','이용이 끝났거나 멈춘 상태예요.'],not_started:['⏰',`<b>${r.start_date}</b>부터 문제가 시작돼요.`],expired:['📅',`이용 기간이 <b>${r.end_date}</b>에 끝났어요.`],no_items:['🛠️','오늘 문제를 준비하고 있어요. 잠시 뒤 다시 열어 주세요.'],out_of_range:['📅','이 날짜의 문제는 열 수 없어요.'],weekend_day:['📅','주말에는 문제가 없었어요.']}[r.error]||['⚠️','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
-  start(r)}catch(e){msg('⚠️','인터넷 연결을 확인하고 다시 열어 주세요.')}
+  if(r.error){const E={no_sub:['lock','링크가 맞지 않아요.<br>알림톡 버튼으로 다시 들어와 주세요.'],inactive:['pause','이용이 끝났거나 멈춘 상태예요.'],not_started:['clock',`<b>${r.start_date}</b>부터 문제가 시작돼요.`],expired:['cal',`이용 기간이 <b>${r.end_date}</b>에 끝났어요.`],no_items:['tool','오늘 문제를 준비하고 있어요. 잠시 뒤 다시 열어 주세요.'],out_of_range:['cal','이 날짜의 문제는 열 수 없어요.'],weekend_day:['cal','주말에는 문제가 없었어요.']}[r.error]||['warn','잠시 뒤 다시 열어 주세요.'];msg(E[0],E[1]);return}
+  start(r)}catch(e){msg('warn','인터넷 연결을 확인하고 다시 열어 주세요.')}
 })();
 </script></body></html>
