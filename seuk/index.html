@@ -90,6 +90,9 @@ details p{color:#bdbdbd;font-size:15.5px;margin-top:8px}
 .paybtn:disabled{opacity:.5}
 .kq{display:block;text-align:center;font-size:14px;color:var(--sub);margin-top:16px}
 .testband{background:#3a3200;color:#ffe680;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;text-align:center;margin-bottom:14px}
+.brand img.wl{width:26px;height:26px;border-radius:7px;margin-left:2px}
+.duo{display:flex;align-items:center;gap:16px;margin-bottom:18px}.duo img{height:46px;width:auto}.duo img.wi{height:58px;border-radius:14px}.duo span{font-size:26px;color:var(--sub)}
+.wanto .books{margin-top:18px;border-radius:20px;overflow:hidden}.wanto .books img{width:100%;display:block}
 .brand .x{color:var(--sub);font-weight:500;margin:0 2px}.brand .wt{font-size:15px;font-weight:700}
 .collab{display:inline-block;font-size:13px;font-weight:800;color:var(--pt);border:1px solid #3a3a3a;border-radius:999px;padding:6px 12px;margin-bottom:16px}
 .wanto .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px;align-items:start}
@@ -99,7 +102,11 @@ details p{color:#bdbdbd;font-size:15.5px;margin-top:8px}
 .wanto .wlist b{font-size:16.5px}.wanto .wlist p{font-size:14.5px;color:#bdbdbd;margin-top:4px}
 .wanto .wlist a{color:var(--pt)}
 @media(max-width:760px){.wanto .wgrid{grid-template-columns:1fr}}
-footer{border-top:1px solid var(--line);padding:32px 0 60px;color:var(--dim);font-size:13.5px}
+.sticky{position:fixed;left:0;right:0;bottom:0;padding:10px 16px 16px;background:linear-gradient(rgba(0,0,0,0),#000 40%);z-index:30}
+.sticky a{display:flex;justify-content:space-between;align-items:center;max-width:560px;margin:0 auto;background:#151515;border:1px solid #2c2c2c;color:#fff;border-radius:16px;padding:12px 12px 12px 18px;text-decoration:none}
+.sticky b{display:block;font-size:15.5px;color:var(--pt)}.sticky small{display:block;font-size:12.5px;color:var(--sub)}
+.sticky em{font-style:normal;background:var(--pt);color:var(--ptk);font-weight:800;border-radius:12px;padding:12px 18px;font-size:15px}
+footer{padding-bottom:110px !important;border-top:1px solid var(--line);padding:32px 0 60px;color:var(--dim);font-size:13.5px}
 footer nav{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
 footer nav a{color:#bdbdbd}
 @media(max-width:760px){
@@ -114,7 +121,7 @@ footer nav a{color:#bdbdbd}
 </head><body>
 <div class="wrap">
 <header class="top">
-  <div class="brand"><img src="logo-mark.png" alt="">스윽 <span class="x">×</span> <span class="wt">완벽한토익</span></div>
+  <div class="brand"><img src="logo-mark.png" alt="">스윽 <span class="x">×</span> <img class="wl" src="/icon-192.png" alt=""><span class="wt">완벽한토익</span></div>
   <a class="go" href="#plans">이용권</a>
 </header>
 
@@ -155,6 +162,7 @@ footer nav a{color:#bdbdbd}
 </section>
 
 <section class="wanto">
+  <div class="duo"><img src="logo-mark.png" alt="스윽"><span>×</span><img class="wi" src="/icon-192.png" alt="완벽한토익"></div>
   <span class="collab">스윽 × 완벽한토익</span>
   <h2>단어를 고른 사람들이<br>지금도 매일 토익을 가르칩니다</h2>
   <p class="sub">완벽한토익은 신촌 강의장과 비대면으로 1:1 토익 수업을 하는 곳입니다. 수업에서 학생들이 자주 막히는 단어를 보고 스윽 단어를 골랐습니다.</p>
@@ -167,10 +175,11 @@ footer nav a{color:#bdbdbd}
       <div><b>완토 수강생은 스윽이 무료</b><p>완토 앱에서 수강중이면 완토 계정으로 인증해 모든 단어를 엽니다.</p></div>
     </div>
   </div>
+  <div class="books"><img src="/daily/rc/img/books.jpg" alt="완벽한토익 자체 교재" loading="lazy"></div>
   <a class="btn ln" href="https://perfect-toeic.com/" style="margin-top:22px">완벽한토익 둘러보기</a>
 </section>
 
-<section id="reviews" data-product="seuk" data-theme="dark" style="padding:0"></section>
+<section id="reviews" data-product="seuk" data-theme="dark" data-tabs-before=".hero + section" style="padding:0"></section>
 
 <section id="plans">
   <h2>이용권은 한 번 사면 평생 씁니다</h2>
@@ -233,5 +242,10 @@ footer nav a{color:#bdbdbd}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
 <script src="https://static.danalpay.com/d1/sdk/index.js"></script>
 <script src="buy.js"></script>
+<div class="sticky" id="sticky"><a href="#plans"><span><b>웹에서 사면 5천원 더 저렴</b><small>한 번 결제 · 평생 · 자동결제 없음</small></span><em>이용권 보기</em></a></div>
+<script>
+(function(){var s=document.getElementById('sticky'),p=document.getElementById('plans');
+new IntersectionObserver(function(es){es.forEach(function(e){s.style.display=e.isIntersecting?'none':''})},{threshold:.05}).observe(p);})();
+</script>
 <script src="/assets/reviews.js" defer></script>
 </body></html>
