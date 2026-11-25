@@ -487,6 +487,12 @@
   .info2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
   .infocard{border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);padding:30px;display:flex;flex-direction:column;gap:12px;scroll-margin-top:92px}
   .infocard h3{font-size:20px;font-weight:800}
+  .pricetbl{width:100%;border-collapse:collapse;font-size:14.5px}
+  .pricetbl th{text-align:left;font-size:13px;color:var(--ink-soft);font-weight:700;padding:8px 6px;border-bottom:1.5px solid var(--line-strong)}
+  .pricetbl td{padding:11px 6px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+  .pricetbl td.pr{text-align:right;font-weight:800;white-space:nowrap}
+  .pricetbl a{font-size:12.5px;font-weight:600;margin-left:4px}
+  @media (max-width:560px){.pricetbl td:nth-child(2){font-size:13px;color:var(--ink-soft)}}
   .infocard>p{color:var(--ink-soft);font-size:14.5px;line-height:1.75}
   .infocard ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
   .infocard ul li{font-size:14px;color:var(--ink-soft);display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
@@ -3287,12 +3293,24 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     </div>
     <div class="info2" style="margin-top:24px">
       <div class="infocard reveal" id="payment">
-        <h3>💳 결제 안내</h3>
-        <p>레벨테스트·상담 후 반이 확정되면 아래 수단으로 수강료를 결제하실 수 있습니다.</p>
+        <h3>수강료 · 이용료</h3>
+        <p>모든 금액은 부가세 포함가예요. 수업은 기간제가 아니라 횟수제라, 8회를 다 들을 때까지 이용할 수 있어요. 사람마다 금액이 달라지지 않아요.</p>
+        <table class="pricetbl">
+          <thead><tr><th>상품</th><th>내용</th><th>금액</th></tr></thead>
+          <tbody>
+            <tr><td><b>1:1 토익 대면 수업</b></td><td>8회 (주 2회 기준, 1회 2시간)</td><td class="pr">640,000원</td></tr>
+            <tr><td><b>1:1 토익 비대면 수업</b></td><td>8회 (주 2회 기준, 1회 1시간 30분)</td><td class="pr">480,000원</td></tr>
+            <tr><td><b>2:1 토익 수업</b></td><td>8회 (주 2회 고정 시간, 1회 2시간)</td><td class="pr">500,000원</td></tr>
+            <tr><td><b>데일리 RC</b> <a href="/daily/rc/">자세히</a></td><td>180일, 평일 아침 카카오 알림톡</td><td class="pr">32,500원</td></tr>
+            <tr><td><b>데일리 RC</b></td><td>365일, 평일 아침 카카오 알림톡</td><td class="pr">39,990원</td></tr>
+            <tr><td><b>완벽한토익 VOCA All-in-One</b></td><td>교재 1권</td><td class="pr">22,000원</td></tr>
+            <tr><td><b>완벽한토익 1000제 RC</b></td><td>교재 1권 (택배 시 3,000원 추가)</td><td class="pr">21,900원</td></tr>
+          </tbody>
+        </table>
         <div class="pay-badges">
-          <span>신용·체크카드</span><span>계좌이체</span><span>무통장입금</span><span>카카오페이</span><span>네이버페이</span>
+          <span>신용·체크카드</span><span>휴대폰</span><span>네이버페이</span><span>카카오페이</span><span>페이코</span><span>계좌이체</span><span>가상계좌</span>
         </div>
-        <p class="note">온라인 카드 자동결제(PG) 연동은 실제 사이트 배포 후 설정할 수 있습니다. 현재는 상담을 통해 결제를 진행하며, 수강료·환불 규정은 상담 시 안내드립니다.</p>
+        <p class="note">결제는 (주)다날이 대신 처리해요. 환불은 <a href="/terms.html">이용약관</a>의 환불 규정을 따르고, 개인정보는 <a href="/privacy.html">개인정보처리방침</a>대로 다뤄요.</p>
         <div class="cfoot" style="display:flex;gap:10px"><a class="btn btn-primary" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">결제·수강료 문의</a></div>
       </div>
     </div>
@@ -3481,8 +3499,9 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     </div>
     <div class="foot-legal">
       <div>
-        <span class="mono">완벽한토익</span> · 대표 김태완 &amp; 이창희 · 사업자등록번호 369-28-01751<br>
-        서울 서대문구 연세로2길 14, 4층 · TEL 0507-1332-9565
+        상호 <span class="mono">완벽한토익</span> · 대표 김태완 · 사업자등록번호 369-28-01751 · 통신판매업 신고 면제 대상<br>
+        주소 서울특별시 서대문구 연세로2길 14, 4층 · 고객센터 0507-1332-9565 · contact@perfect-toeic.com<br>
+        <a href="/terms.html">이용약관</a> · <a href="/privacy.html"><b>개인정보처리방침</b></a> · <a href="#payment">수강료 안내</a>
       </div>
       <div class="mono">© 2026 PERFECT TOEIC. All rights reserved.</div>
     </div>
