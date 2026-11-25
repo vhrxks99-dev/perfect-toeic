@@ -56,14 +56,13 @@ function done(r){
  ${MOCK?'<div class="testband">화면 확인용(가짜 결제)이에요</div>':''}
  <div class="card"><div class="ico">${CHECK}</div><h1>결제 완료</h1><p class="lead">${esc(r.name)}님, 데일리 RC ${r.plan_days}일 이용권이 준비됐어요.</p></div>
  <div class="card"><div class="alarm"><i><svg viewBox="0 0 24 24" width="26" height="26"><circle cx="12" cy="13" r="7.5" stroke="#b58100" stroke-width="2" fill="none"/><path d="M12 9.5V13l2.5 1.8M5 4.5 3 6.5M19 4.5l2 2" stroke="#b58100" stroke-width="2" fill="none" stroke-linecap="round"/></svg></i><div><b>${tomorrow?'내일':md(r.start_date)} 아침 7시부터 카톡으로 문제가 와요</b><p>평일마다 카카오 알림톡으로 오늘의 Part 5 문제와 학습 페이지 링크가 가요.</p></div></div></div>
- <div class="card"><h2>내 학습 페이지</h2><p class="sub">알림톡 버튼과 같은 주소예요. 첫 문제가 오는 날부터 열려요. 나만 쓰는 주소라 다른 사람과 나누지 말아 주세요.</p>
-  <div class="link" id="lk">${esc(r.link.replace(/^https:\/\//,""))}</div>
-  <div class="btns"><button class="btn dk" id="cp">주소 복사</button><a class="btn lt" href="${esc(r.link)}">열어 보기</a></div></div>
+ <div class="card"><h2>내 학습 페이지</h2><p class="sub">매일 알림톡 버튼을 누르면 바로 열려요. 첫 문제가 오는 날부터 볼 수 있어요. 나만 쓰는 페이지라 다른 사람과 나누지 말아 주세요.</p>
+  <div class="btns" style="margin-top:14px"><a class="btn dk" href="${esc(r.link)}">내 학습 페이지 열기</a><button class="btn lt" id="cp">주소 복사</button></div></div>
  <div class="card"><div class="row"><span>상품</span><b>데일리 RC ${r.plan_days}일</b></div><div class="row"><span>결제 금액</span><b>${won(r.amount)}</b></div><div class="row"><span>이용 기간</span><b>${md(r.start_date)} ~<br>${r.end_date.slice(0,4)}년 ${md(r.end_date)}</b></div></div>
  <div class="card"><h2>알아 두세요</h2><ul class="tip">
   <li>알림톡은 결제할 때 적은 번호의 카카오톡으로 가요. 카톡 친구가 아니어도 와요.</li>
   <li>첫 알림톡을 받은 날부터 3일 안에는 전액 환불돼요. 카톡 채널 1:1로 말씀해 주세요.</li>
-  <li>이 화면을 캡처해 두시거나 주소를 카톡 「나와의 채팅」에 붙여 두면 편해요.</li></ul>
+  <li>알림톡을 지웠다면 「주소 복사」로 카톡 「나와의 채팅」에 붙여 두면 편해요.</li></ul>
   <a class="btn ky" style="margin-top:16px" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">완벽한토익 카톡 채널</a></div>`;
  $('#cp').onclick=async()=>{try{await navigator.clipboard.writeText(r.link)}catch(e){const t=document.createElement('textarea');t.value=r.link;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}$('#cp').textContent='복사됐어요'};
 }
