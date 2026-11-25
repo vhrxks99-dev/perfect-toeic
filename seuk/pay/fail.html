@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스윽 결제 실패</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Pretendard,sans-serif;background:#000;color:#ededed;line-height:1.65;word-break:keep-all;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.box{max-width:440px;width:100%;background:#111;border:1px solid #232323;border-radius:24px;padding:32px 24px;text-align:center}
+.ic{width:64px;height:64px;border-radius:50%;background:#2a1414;display:grid;place-items:center;margin:0 auto 18px}
+h1{font-size:24px;font-weight:800}
+p{color:#bdbdbd;font-size:15.5px;margin-top:10px}
+a.btn{display:block;margin-top:22px;background:#d8ff3e;color:#0b0b0b;font-weight:800;text-decoration:none;border-radius:14px;padding:15px}
+a.kq{display:block;margin-top:14px;font-size:14px;color:#9b9b9b}
+</style></head><body>
+<div class="box">
+  <div class="ic"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg></div>
+  <h1>결제가 되지 않았어요</h1>
+  <p id="m">돈은 빠져나가지 않았어요. 다시 시도해 주세요.</p>
+  <a class="btn" href="/seuk/#plans">다시 결제하기</a>
+  <a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">계속 안 되면 카카오톡 채널로 물어보세요</a>
+</div>
+<script>
+const m = new URLSearchParams(location.search).get('m');
+if (m) document.getElementById('m').textContent = m + ' — 돈은 빠져나가지 않았어요.';
+</script>
+</body></html>

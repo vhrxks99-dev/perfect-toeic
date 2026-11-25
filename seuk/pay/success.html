@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>스윽 결제 완료</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Pretendard,sans-serif;background:#000;color:#ededed;line-height:1.65;word-break:keep-all;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+.box{max-width:440px;width:100%;background:#111;border:1px solid #232323;border-radius:24px;padding:32px 24px;text-align:center}
+.ic{width:64px;height:64px;border-radius:50%;background:#d8ff3e;display:grid;place-items:center;margin:0 auto 18px}
+.ic.wait{background:#222}
+h1{font-size:24px;font-weight:800;letter-spacing:-.5px}
+p{color:#bdbdbd;font-size:15.5px;margin-top:10px}
+.row{display:flex;justify-content:space-between;border-top:1px solid #232323;padding:12px 2px;font-size:15px;margin-top:0}
+.rows{margin-top:22px;text-align:left}
+.rows .row:last-child{border-bottom:1px solid #232323}
+.rows b{color:#fff}
+a.btn{display:block;margin-top:22px;background:#d8ff3e;color:#0b0b0b;font-weight:800;text-decoration:none;border-radius:14px;padding:15px}
+a.kq{display:block;margin-top:14px;font-size:14px;color:#9b9b9b}
+</style></head><body>
+<div class="box" id="box">
+  <div class="ic wait"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9b9b9b" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+  <h1>결제를 확인하고 있어요</h1>
+  <p>잠시만 기다려 주세요.</p>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
+<script>
+const sb = supabase.createClient('https://rdocmjqemozmykgkfvkp.supabase.co', 'sb_publishable_UCqT5rdfWMhd3o-Yx5n4JQ_COQ6IB4e', { auth: { persistSession: true } });
+const o = new URLSearchParams(location.search).get('o') || '';
+const M = { CARD: '신용·체크카드', MOBILE: '휴대폰', NAVERPAY: '네이버페이', KAKAOPAY: '카카오페이', PAYCO: '페이코', TRANSFER: '계좌이체' };
+const ok = (r) => `
+  <div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0b0b0b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+  <h1>평생 이용권이 열렸어요</h1>
+  <p>스윽 앱을 열고, 방금 로그인한 계정으로 로그인하면 기초·실전·고득점 단어가 전부 열려 있어요.</p>
+  <div class="rows">
+    <div class="row"><span>상품</span><b>스윽 토익 단어 평생 이용권</b></div>
+    <div class="row"><span>결제 금액</span><b>${Number(r.amount).toLocaleString('ko-KR')}원</b></div>
+    ${r.method ? `<div class="row"><span>결제수단</span><b>${M[r.method] || r.method}</b></div>` : ''}
+  </div>
+  <a class="btn" href="/seuk/">스윽 페이지로</a>
+  <a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">문의는 카카오톡 채널로</a>`;
+const msg = (h, t) => `<h1>${h}</h1><p>${t}</p><a class="btn" href="/seuk/">스윽 페이지로</a><a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">문의는 카카오톡 채널로</a>`;
+(async () => {
+  for (let i = 0; i < 8; i++) {
+    const { data, error } = await sb.rpc('web_order_result', { p_order_id: o });
+    if (!error && data && data.status === 'paid') { document.getElementById('box').innerHTML = ok(data); return; }
+    if (!error && data && data.status === 'failed') { document.getElementById('box').innerHTML = msg('결제가 끝나지 않았어요', data.fail_msg || '다시 시도해 주세요.'); return; }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  document.getElementById('box').innerHTML = msg('결제 결과를 아직 못 읽었어요', '결제가 됐다면 스윽 앱에서 같은 계정으로 로그인했을 때 이용권이 열려 있어요. 안 열려 있으면 카카오톡 채널로 주문번호 ' + o + ' 를 보내 주세요.');
+})();
+</script>
+</body></html>

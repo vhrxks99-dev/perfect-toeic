@@ -1,23 +1,198 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>스윽 — 단어암기</title>
-<meta name="description" content="사진 한 장에 단어 하나. 매일 정해 주는 오늘 할 일로 토익 단어를 외우는 앱, 스윽.">
+<meta name="description" content="매일 「오늘 할 일」을 정해 주는 토익 단어 앱 스윽. 이용권은 한 번 사면 평생 씁니다.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="seuk.css">
-</head><body><main class="home">
-<img class="logo" src="logo-mark.png" alt="스윽">
-<h1 class="big">스윽</h1>
-<p class="tag">단어암기</p>
-<p class="lead">사진 한 장에 단어 하나.<br>매일 「오늘 할 일」을 정해 주는 토익 단어 앱이에요.</p>
-<ul class="feat">
-<li>단어마다 뜻을 보여 주는 사진</li>
-<li>외운 단어·틀린 단어를 기억해서 알맞은 날 다시 복습</li>
-<li>쉬움·보통·어려움 단계별 단어장</li>
-</ul>
-<nav class="links">
-<a href="privacy/">개인정보처리방침</a>
-<a href="terms/">이용약관</a>
-<a href="delete/">계정 삭제</a>
-</nav>
-<p class="foot">문의 perfecttoeic99@gmail.com</p>
-</main></body></html>
+<style>
+:root{--bg:#000;--card:#111;--line:#232323;--txt:#ededed;--sub:#9b9b9b;--dim:#6b6b6b;--pt:#d8ff3e;--ptk:#0b0b0b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Pretendard,"Noto Sans KR",sans-serif;background:var(--bg);color:var(--txt);line-height:1.65;word-break:keep-all;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.4px}
+.brand img{width:34px;height:auto}
+.brand small{font-weight:500;color:var(--sub);font-size:13px;margin-left:2px}
+.top a.go{font-size:14px;font-weight:700;text-decoration:none;border:1px solid #3a3a3a;border-radius:999px;padding:8px 16px}
+.hero{padding:64px 0 56px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+.hero h1{font-size:clamp(34px,6vw,58px);line-height:1.14;font-weight:800;letter-spacing:-1.6px}
+.hero h1 em{font-style:normal;color:var(--pt)}
+.hero p.lead{font-size:18px;color:#cfcfcf;margin:22px 0 30px;max-width:30em}
+.cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn{display:inline-block;text-decoration:none;font-weight:800;font-size:16px;border-radius:14px;padding:15px 24px}
+.btn.pt{background:var(--pt);color:var(--ptk)}
+.btn.ln{border:1px solid #3a3a3a;color:#fff}
+.hero .note{font-size:13.5px;color:var(--dim);margin-top:14px}
+/* 단어 카드 그림(앱 화면을 글자로 다시 그린 것) */
+.stack{position:relative;height:380px}
+.stack{height:450px}
+.wc{position:absolute;left:50%;top:0;width:260px;height:410px;border-radius:26px;background:#f4f1ea;color:#111;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.6)}
+.wc .pic{display:block;width:100%;height:190px;object-fit:cover}
+.wc .in{padding:14px 20px 18px}
+.wc.b{transform:translateX(-66%) rotate(-8deg);background:#1b1b1b;border:1px solid #2c2c2c}
+.wc.b .pic{height:100%;opacity:.45}
+.wc.f{transform:translateX(-40%) rotate(4deg);top:22px}
+.wc .tag{display:inline-block;font-size:11.5px;font-weight:800;background:#111;color:#fff;border-radius:999px;padding:4px 10px}
+.wc .w{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:8px}
+.wc .p{color:#777;font-size:14px;margin-top:2px}
+.wc .m{font-size:18px;font-weight:700;margin-top:14px}
+.wc .ex{font-size:13.5px;color:#555;margin-top:16px;line-height:1.5;border-top:1px solid #dcd7cc;padding-top:12px}
+section{padding:56px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(24px,3.6vw,32px);font-weight:800;letter-spacing:-.8px;line-height:1.25}
+.sub{color:var(--sub);font-size:16px;margin-top:8px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px}
+.step b.n{font-size:13px;color:var(--pt);font-weight:800;letter-spacing:.5px}
+.step h3{font-size:19px;font-weight:800;margin:8px 0 6px}
+.step p{font-size:15px;color:#bdbdbd}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:28px}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px;display:flex;flex-direction:column}
+.plan .tg{font-size:13px;color:var(--sub);font-weight:700}
+.plan h3{font-size:21px;font-weight:800;margin-top:4px}
+.plan .d{font-size:14.5px;color:#bdbdbd;margin-top:6px;flex:1}
+.plan .pr{font-size:28px;font-weight:800;letter-spacing:-.8px;margin-top:18px}
+.plan .pr small{font-size:14px;color:var(--sub);font-weight:600;letter-spacing:0}
+.plan button,.set button{margin-top:16px;width:100%;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:15.5px;border-radius:12px;padding:13px}
+.plan button{background:#222;color:#fff;border:1px solid #333}
+.set{margin-top:14px;background:var(--pt);color:var(--ptk);border-radius:22px;padding:28px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.set .tg{font-size:13px;font-weight:800}
+.set h3{font-size:26px;font-weight:800;letter-spacing:-.6px;margin-top:2px}
+.set p{font-size:15px;margin-top:6px;opacity:.8}
+.set .pr{text-align:right}
+.set .pr s{font-size:15px;opacity:.6}
+.set .pr b{display:block;font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1.1}
+.set p.web{margin-top:12px;opacity:1;font-weight:800;font-size:15.5px}
+.set p.web span{font-weight:600;opacity:.7}
+.set button{background:#0b0b0b;color:#fff;margin-top:10px;min-width:200px}
+.free{margin-top:14px;border:1px dashed #333;border-radius:18px;padding:20px 24px;color:#cfcfcf;font-size:15px}
+.free b{color:#fff}
+.how{counter-reset:h;display:grid;gap:10px;margin-top:24px;max-width:640px}
+.how li{list-style:none;counter-increment:h;display:flex;gap:14px;align-items:flex-start;font-size:16px}
+.how li:before{content:counter(h);flex:none;width:28px;height:28px;border-radius:50%;background:#222;border:1px solid #333;font-size:13.5px;font-weight:800;display:grid;place-items:center;margin-top:1px}
+details{border-bottom:1px solid var(--line);padding:16px 0;max-width:760px}
+details summary{cursor:pointer;font-weight:700;font-size:16.5px;list-style:none}
+details summary::-webkit-details-marker{display:none}
+details p{color:#bdbdbd;font-size:15.5px;margin-top:8px}
+.buy{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px}
+.buy h3{font-size:19px;font-weight:800}
+.buy .bs{font-size:14.5px;color:var(--sub);margin:6px 0 12px}
+.sbtn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font:inherit;font-weight:800;font-size:16px;cursor:pointer;margin-top:10px}
+.sbtn.kakao{background:#fee500;color:#191919}.sbtn.google{background:#fff;color:#111}
+.who{display:flex;justify-content:space-between;align-items:center;font-size:15px;margin-bottom:12px}
+.who button{background:none;border:1px solid #333;color:#bdbdbd;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.agree{display:flex;gap:10px;align-items:flex-start;background:#181818;border-radius:14px;padding:14px;cursor:pointer;font-size:14px;color:#cfcfcf}
+.agree input{flex:none;width:20px;height:20px;margin-top:2px;accent-color:var(--pt)}
+.agree b{color:#fff}.agree.bad{box-shadow:0 0 0 2px #e5484d inset}
+.paybtn{display:block;width:100%;border:0;background:var(--pt);color:var(--ptk);font:inherit;font-weight:800;font-size:18px;border-radius:14px;padding:17px;cursor:pointer}
+.paybtn:disabled{opacity:.5}
+.kq{display:block;text-align:center;font-size:14px;color:var(--sub);margin-top:16px}
+.testband{background:#3a3200;color:#ffe680;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;text-align:center;margin-bottom:14px}
+footer{border-top:1px solid var(--line);padding:32px 0 60px;color:var(--dim);font-size:13.5px}
+footer nav{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+footer nav a{color:#bdbdbd}
+@media(max-width:760px){
+ .hero{grid-template-columns:1fr;padding:36px 0 40px;gap:28px}
+ .stack{height:470px;order:2}
+ .wc{width:240px;height:430px}.wc .pic{height:170px}.wc .w{font-size:28px}
+ .steps,.plans{grid-template-columns:1fr}
+ .set{grid-template-columns:1fr}.set .pr{text-align:left}.set button{width:100%}
+ section{padding:44px 0}
+}
+</style>
+</head><body>
+<div class="wrap">
+<header class="top">
+  <div class="brand"><img src="logo-mark.png" alt="">스윽 <small>단어암기</small></div>
+  <a class="go" href="#plans">이용권</a>
+</header>
+
+<div class="hero">
+  <div>
+    <h1>오늘 외울 단어를<br><em>앱이 정해 줍니다.</em></h1>
+    <p class="lead">스윽은 토익 단어 5,384개를 하루치로 나눠 줍니다. 켜면 오늘 할 일이 나오고, 틀린 단어는 며칠 뒤에 다시 나옵니다.</p>
+    <div class="cta">
+      <a class="btn pt" href="#plans">이용권 보기</a>
+      <a class="btn ln" href="#how">구매 방법</a>
+    </div>
+    <p class="note">기초 DAY 01~05는 무료로 써 볼 수 있어요.</p>
+  </div>
+  <div class="stack" aria-hidden="true">
+    <div class="wc b"><img class="pic" src="img/negotiate.jpg" alt=""></div>
+    <div class="wc f">
+      <img class="pic" src="img/deliver.jpg" alt="">
+      <div class="in">
+      <span class="tag">3일째 · 12 / 30</span>
+      <div class="w">deliver</div>
+      <div class="p">[dilívər] 동사</div>
+      <div class="m">배달하다, 전달하다</div>
+      <div class="ex">The package will be delivered by Friday.<br>소포는 금요일까지 배달될 것이다.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <h2>하루에 하는 일은 세 가지입니다</h2>
+  <p class="sub">순서대로 따라가면 그날 분량이 끝납니다.</p>
+  <div class="steps">
+    <div class="step"><b class="n">01 훑기</b><h3>아는 단어부터 거릅니다</h3><p>「이미 알아요」와 「외울게요」로 나눕니다. 아는 단어에 시간을 쓰지 않습니다.</p></div>
+    <div class="step"><b class="n">02 카드</b><h3>뒤집어 가며 외웁니다</h3><p>뜻, 발음, 예문이 한 장에 있습니다. 소리는 자동으로 읽어 줍니다.</p></div>
+    <div class="step"><b class="n">03 퀴즈</b><h3>4지선다로 확인합니다</h3><p>틀린 단어는 오답노트에 쌓이고, 정해진 날에 복습으로 다시 나옵니다.</p></div>
+  </div>
+</section>
+
+<section id="plans">
+  <h2>이용권은 한 번 사면 평생 씁니다</h2>
+  <p class="sub">구독이 아니라 매달 나가는 돈이 없습니다.</p>
+  <div class="set">
+    <div><span class="tg">평생 이용권</span><h3>스윽 토익 단어</h3><p>기초 · 실전 · 고득점 5,384단어 전부, 게임 무제한</p><p class="web">웹에서 구매하면 5천원 더 저렴해요 <span>(앱에서는 49,000원)</span></p></div>
+    <div class="pr"><s>49,000원</s><b>44,000원</b><button data-plan="life">구매하기</button></div>
+  </div>
+  <div class="free"><b>무료로 쓸 수 있는 것</b> — 기초 DAY 01~05, 게임 하루 3판, 출석과 리그</div>
+  <div class="buy" id="buy" hidden>
+    <div class="testband" id="testband" hidden>시험 결제 중이에요. 결제해도 당일 자동으로 취소돼요.</div>
+    <div id="b_login">
+      <h3>스윽 앱에서 쓰는 계정으로 로그인해 주세요</h3>
+      <p class="bs">이용권은 로그인한 계정에 붙어요. 앱에서 같은 계정으로 로그인하면 바로 열려 있어요.</p>
+      <button class="sbtn kakao" id="lg_kakao" type="button">카카오로 로그인</button>
+      <button class="sbtn google" id="lg_google" type="button">구글로 로그인</button>
+      <p class="bs">애플로 가입했다면 아이폰 스윽 앱 안에서 구매해 주세요.</p>
+    </div>
+    <div id="b_pay" hidden>
+      <div class="who"><span id="who"></span><button type="button" id="logout">다른 계정</button></div>
+      <label class="agree" id="w_agree"><input type="checkbox" id="f_agree"><span><b>이용약관·환불 규정·개인정보 수집에 동의해요 (필수)</b><br><a href="terms/" target="_blank">이용약관</a> · <a href="privacy/" target="_blank">개인정보처리방침</a></span></label>
+      <p class="bs">신용·체크카드, 휴대폰, 네이버페이·카카오페이·페이코, 계좌이체로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.</p>
+      <button class="paybtn" id="paybtn" type="button">44,000원 결제하기</button>
+    </div>
+    <div id="b_owned" hidden><h3>이미 평생 이용권이 있어요</h3><p class="bs">스윽 앱에서 이 계정으로 로그인하면 전부 열려 있어요.</p></div>
+    <a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">결제가 잘 안 되면 카톡으로 물어보세요</a>
+  </div>
+</section>
+
+<section id="how">
+  <h2>구매 방법</h2>
+  <ol class="how">
+    <li>「구매하기」를 누르고, 스윽 앱에서 쓰는 계정(카카오 · 구글 · 애플)으로 로그인합니다.</li>
+    <li>신용·체크카드, 휴대폰, 네이버페이 · 카카오페이 · 페이코, 계좌이체로 결제합니다.</li>
+    <li>앱을 열어 같은 계정으로 로그인하면 이용권이 바로 열려 있습니다.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>자주 묻는 질문</h2>
+  <details open><summary>평생이라는 게 정확히 무슨 뜻인가요?</summary><p>한 번 결제하면 추가 결제 없이 계속 쓴다는 뜻입니다. 자동결제는 없습니다.</p></details>
+  <details><summary>휴대폰을 바꾸면 어떻게 되나요?</summary><p>이용권은 계정에 붙어 있습니다. 새 휴대폰에서 같은 계정으로 로그인하면 그대로 쓸 수 있습니다.</p></details>
+  <details><summary>환불은 어떻게 하나요?</summary><p>환불 기준은 <a href="terms/">이용약관</a>에 적혀 있습니다. 신청은 카카오톡 채널 「완벽한토익」 1:1 대화로 받습니다.</p></details>
+</section>
+
+<footer>
+  <nav><a href="privacy/">개인정보처리방침</a><a href="terms/">이용약관</a><a href="delete/">계정 삭제</a></nav>
+  상호 완벽한토익 · 대표 김태완 · 사업자등록번호 369-28-01751 · 통신판매업 신고 면제 대상<br>
+  주소 서울특별시 서대문구 연세로2길 14, 4층 · 고객센터 0507-1332-9565 · contact@perfect-toeic.com<br>
+  결제는 (주)다날이 대신 처리합니다.
+</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
+<script src="https://static.danalpay.com/d1/sdk/index.js"></script>
+<script src="buy.js"></script>
+</body></html>
