@@ -54,6 +54,9 @@ h2{font-size:clamp(24px,3.6vw,32px);font-weight:800;letter-spacing:-.8px;line-he
 .plan .pr small{font-size:14px;color:var(--sub);font-weight:600;letter-spacing:0}
 .plan button,.set button{margin-top:16px;width:100%;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:15.5px;border-radius:12px;padding:13px}
 .plan button{background:#222;color:#fff;border:1px solid #333}
+.plan .pr s{font-size:15px;color:#6b6b6b;font-weight:600;margin-right:4px}
+.webnote{margin-top:14px;font-weight:800;color:var(--pt);font-size:16px}.webnote span{color:var(--sub);font-weight:600;font-size:14px}
+.buy .pick{font-size:15px;color:#fff;font-weight:800;margin-bottom:12px}
 .set{margin-top:14px;background:var(--pt);color:var(--ptk);border-radius:22px;padding:28px;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
 .set .tg{font-size:13px;font-weight:800}
 .set h3{font-size:26px;font-weight:800;letter-spacing:-.6px;margin-top:2px}
@@ -143,13 +146,20 @@ footer nav a{color:#bdbdbd}
 
 <section id="plans">
   <h2>이용권은 한 번 사면 평생 씁니다</h2>
-  <p class="sub">구독이 아니라 매달 나가는 돈이 없습니다.</p>
+  <p class="sub">구독이 아니라 매달 나가는 돈이 없습니다. 목표 점수에 맞춰 고르세요.</p>
+  <p class="webnote">웹에서 구매하면 5천원 더 저렴해요 <span>(앱 안에서 사면 위 줄 그은 가격)</span></p>
+  <div class="plans">
+    <div class="plan"><span class="tg">600점 목표</span><h3>스윽 기초</h3><p class="d">기초 1,207단어 · 게임 무제한</p><div class="pr"><s>29,000원</s> 24,000원 <small>/ 평생</small></div><button data-plan="lv1">구매하기</button></div>
+    <div class="plan"><span class="tg">700~800점 목표</span><h3>스윽 실전</h3><p class="d">실전 3,064단어 · 게임 무제한</p><div class="pr"><s>49,000원</s> 44,000원 <small>/ 평생</small></div><button data-plan="lv2">구매하기</button></div>
+    <div class="plan"><span class="tg">900점 목표</span><h3>스윽 고득점</h3><p class="d">고득점 1,113단어 · 게임 무제한</p><div class="pr"><s>39,000원</s> 34,000원 <small>/ 평생</small></div><button data-plan="lv3">구매하기</button></div>
+  </div>
   <div class="set">
-    <div><span class="tg">평생 이용권</span><h3>스윽 토익 단어</h3><p>기초 · 실전 · 고득점 5,384단어 전부, 게임 무제한</p><p class="web">웹에서 구매하면 5천원 더 저렴해요 <span>(앱에서는 49,000원)</span></p></div>
-    <div class="pr"><s>49,000원</s><b>44,000원</b><button data-plan="life">구매하기</button></div>
+    <div><span class="tg">세 가지 모두</span><h3>스윽 완성</h3><p>기초 · 실전 · 고득점 5,384단어 전부, 게임 무제한</p></div>
+    <div class="pr"><s>79,000원</s><b>74,000원</b><button data-plan="set">구매하기</button></div>
   </div>
   <div class="free"><b>무료로 쓸 수 있는 것</b> — 기초 DAY 01~05, 게임 하루 3판, 출석과 리그</div>
   <div class="buy" id="buy" hidden>
+    <p class="pick" id="pick"></p>
     <div class="testband" id="testband" hidden>시험 결제 중이에요. 결제해도 당일 자동으로 취소돼요.</div>
     <div id="b_login">
       <h3>스윽 앱에서 쓰는 계정으로 로그인해 주세요</h3>
@@ -162,9 +172,9 @@ footer nav a{color:#bdbdbd}
       <div class="who"><span id="who"></span><button type="button" id="logout">다른 계정</button></div>
       <label class="agree" id="w_agree"><input type="checkbox" id="f_agree"><span><b>이용약관·환불 규정·개인정보 수집에 동의해요 (필수)</b><br><a href="terms/" target="_blank">이용약관</a> · <a href="privacy/" target="_blank">개인정보처리방침</a></span></label>
       <p class="bs">신용·체크카드, 휴대폰, 네이버페이·카카오페이·페이코, 계좌이체로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.</p>
-      <button class="paybtn" id="paybtn" type="button">44,000원 결제하기</button>
+      <button class="paybtn" id="paybtn" type="button">결제하기</button>
     </div>
-    <div id="b_owned" hidden><h3>이미 평생 이용권이 있어요</h3><p class="bs">스윽 앱에서 이 계정으로 로그인하면 전부 열려 있어요.</p></div>
+    <div id="b_owned" hidden><h3>이미 가지고 있는 이용권이에요</h3><p class="bs">스윽 앱에서 이 계정으로 로그인하면 열려 있어요. 다른 이용권을 사려면 위에서 골라 주세요.</p></div>
     <a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">결제가 잘 안 되면 카톡으로 물어보세요</a>
   </div>
 </section>

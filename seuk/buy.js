@@ -13,6 +13,18 @@ const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { flowType: 'pkce', det
 const $ = (s) => document.querySelector(s);
 const K_OPEN = 'seuk.buy.open';
 let user = null, busy = false;
+const PLANS = {
+  lv1: { name: '스윽 기초', price: 24000 },
+  lv2: { name: '스윽 실전', price: 44000 },
+  lv3: { name: '스윽 고득점', price: 34000 },
+  set: { name: '스윽 완성 (세트)', price: 74000 },
+};
+let plan = 'set';
+const won = (n) => n.toLocaleString('ko-KR') + '원';
+function showPlan() {
+  $('#pick').textContent = '고른 이용권: ' + PLANS[plan].name + ' · ' + won(PLANS[plan].price);
+  $('#paybtn').textContent = won(PLANS[plan].price) + ' 결제하기';
+}
 
 if (TEST) $('#testband').hidden = false;
 
@@ -26,7 +38,7 @@ function nameOf(u) {
 
 async function owned() {
   const { data } = await sb.from('purchases').select('product').eq('user_id', user.id);
-  return (data || []).some((r) => r.product === 'set');
+  return (data || []).some((r) => r.product === 'set' || r.product === plan);
 }
 
 async function render() {
@@ -43,13 +55,17 @@ async function render() {
   $('#b_pay').hidden = false;
 }
 
-function openBuy() {
+function openBuy(p) {
+  if (p && PLANS[p]) plan = p;
+  store('seuk.buy.plan', plan);
+  showPlan();
+  render();
   $('#buy').hidden = false;
   store(K_OPEN, '1');
   $('#buy').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
-document.querySelectorAll('button[data-plan]').forEach((b) => b.addEventListener('click', openBuy));
+document.querySelectorAll('button[data-plan]').forEach((b) => b.addEventListener('click', () => openBuy(b.dataset.plan)));
 
 async function login(provider) {
   store(K_OPEN, '1');
@@ -72,10 +88,10 @@ $('#paybtn').onclick = async () => {
   const b = $('#paybtn'); b.disabled = true; b.textContent = '결제창 여는 중…';
   try {
     const nm = nameOf(user);
-    const { data: o, error } = await sb.rpc('web_order_new', { p_product: 'set', p_name: nm || null });
+    const { data: o, error } = await sb.rpc('web_order_new', { p_product: plan, p_name: nm || null });
     if (error) throw new Error('주문을 만들지 못했어요.');
     if (o.error) {
-      const m = { login: '다시 로그인해 주세요.', owned: '이미 평생 이용권이 있어요.', too_many: '주문이 너무 여러 번 만들어졌어요. 10분 뒤 다시 해 주세요.' };
+      const m = { login: '다시 로그인해 주세요.', owned: '이미 가지고 있는 이용권이에요.', too_many: '주문이 너무 여러 번 만들어졌어요. 10분 뒤 다시 해 주세요.' };
       if (o.error === 'owned') { render(); }
       throw new Error(m[o.error] || '주문을 만들지 못했어요.');
     }
@@ -89,12 +105,15 @@ $('#paybtn').onclick = async () => {
   } catch (e) {
     alert((e && e.message) || '결제를 시작하지 못했어요.');
   } finally {
-    busy = false; b.disabled = false; b.textContent = '44,000원 결제하기';
+    busy = false; b.disabled = false; showPlan();
   }
 };
 
 sb.auth.onAuthStateChange(() => render());
 (async () => {
+  const sp = read('seuk.buy.plan');
+  if (sp && PLANS[sp]) plan = sp;
+  showPlan();
   await render();
   if (read(K_OPEN) === '1' && user) openBuy();
 })();
