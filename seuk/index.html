@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>스윽 — 단어암기</title>
+<title>스윽 × 완벽한토익 — 토익 단어암기</title>
 <meta name="description" content="매일 「오늘 할 일」을 정해 주는 토익 단어 앱 스윽. 이용권은 한 번 사면 평생 씁니다.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
@@ -90,6 +90,15 @@ details p{color:#bdbdbd;font-size:15.5px;margin-top:8px}
 .paybtn:disabled{opacity:.5}
 .kq{display:block;text-align:center;font-size:14px;color:var(--sub);margin-top:16px}
 .testband{background:#3a3200;color:#ffe680;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;text-align:center;margin-bottom:14px}
+.brand .x{color:var(--sub);font-weight:500;margin:0 2px}.brand .wt{font-size:15px;font-weight:700}
+.collab{display:inline-block;font-size:13px;font-weight:800;color:var(--pt);border:1px solid #3a3a3a;border-radius:999px;padding:6px 12px;margin-bottom:16px}
+.wanto .wgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px;align-items:start}
+.wanto .wimg img{width:100%;border-radius:20px;display:block}
+.wanto .wlist{display:grid;gap:10px}
+.wanto .wlist div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 18px}
+.wanto .wlist b{font-size:16.5px}.wanto .wlist p{font-size:14.5px;color:#bdbdbd;margin-top:4px}
+.wanto .wlist a{color:var(--pt)}
+@media(max-width:760px){.wanto .wgrid{grid-template-columns:1fr}}
 footer{border-top:1px solid var(--line);padding:32px 0 60px;color:var(--dim);font-size:13.5px}
 footer nav{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
 footer nav a{color:#bdbdbd}
@@ -105,14 +114,15 @@ footer nav a{color:#bdbdbd}
 </head><body>
 <div class="wrap">
 <header class="top">
-  <div class="brand"><img src="logo-mark.png" alt="">스윽 <small>단어암기</small></div>
+  <div class="brand"><img src="logo-mark.png" alt="">스윽 <span class="x">×</span> <span class="wt">완벽한토익</span></div>
   <a class="go" href="#plans">이용권</a>
 </header>
 
 <div class="hero">
   <div>
+    <span class="collab">매일 1:1 토익 수업하는 완벽한토익 강사들이 만든 단어 앱</span>
     <h1>오늘 외울 단어를<br><em>앱이 정해 줍니다.</em></h1>
-    <p class="lead">스윽은 토익 단어 5,384개를 하루치로 나눠 줍니다. 켜면 오늘 할 일이 나오고, 틀린 단어는 며칠 뒤에 다시 나옵니다.</p>
+    <p class="lead">완벽한토익 강사들이 토익에 자주 나오는 단어 5,384개를 골라 하루치로 나눴습니다. 켜면 오늘 할 일이 나오고, 틀린 단어는 며칠 뒤에 다시 나옵니다.</p>
     <div class="cta">
       <a class="btn pt" href="#plans">이용권 보기</a>
       <a class="btn ln" href="#how">구매 방법</a>
@@ -143,6 +153,24 @@ footer nav a{color:#bdbdbd}
     <div class="step"><b class="n">03 퀴즈</b><h3>4지선다로 확인합니다</h3><p>틀린 단어는 오답노트에 쌓이고, 정해진 날에 복습으로 다시 나옵니다.</p></div>
   </div>
 </section>
+
+<section class="wanto">
+  <span class="collab">스윽 × 완벽한토익</span>
+  <h2>단어를 고른 사람들이<br>지금도 매일 토익을 가르칩니다</h2>
+  <p class="sub">완벽한토익은 신촌 강의장과 비대면으로 1:1 토익 수업을 하는 곳입니다. 수업에서 학생들이 자주 막히는 단어를 보고 스윽 단어를 골랐습니다.</p>
+  <div class="wgrid">
+    <div class="wimg"><img src="/daily/rc/img/team.jpg" alt="완벽한토익 선생님들" loading="lazy"></div>
+    <div class="wlist">
+      <div><b>1:1 토익 수업</b><p>대면·비대면 8회, 선생님이 학생 한 명의 약점만 봅니다.</p></div>
+      <div><b>자체 교재</b><p>VOCA All-in-One, 실전 RC 1000제, Part 5·6 실전 문제집을 직접 만들어 수업에 씁니다.</p></div>
+      <div><b>데일리 RC</b><p>평일 아침 7시, 카카오톡으로 오는 토익 RC 10분. <a href="/daily/rc/">자세히</a></p></div>
+      <div><b>완토 수강생은 스윽이 무료</b><p>완토 앱에서 수강중이면 완토 계정으로 인증해 모든 단어를 엽니다.</p></div>
+    </div>
+  </div>
+  <a class="btn ln" href="https://perfect-toeic.com/" style="margin-top:22px">완벽한토익 둘러보기</a>
+</section>
+
+<section id="reviews" data-product="seuk" data-theme="dark" style="padding:0"></section>
 
 <section id="plans">
   <h2>이용권은 한 번 사면 평생 씁니다</h2>
@@ -205,4 +233,5 @@ footer nav a{color:#bdbdbd}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
 <script src="https://static.danalpay.com/d1/sdk/index.js"></script>
 <script src="buy.js"></script>
+<script src="/assets/reviews.js" defer></script>
 </body></html>

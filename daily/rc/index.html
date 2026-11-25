@@ -151,6 +151,8 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
  <div class="books"><img src="img/books.jpg" alt="완벽한토익 자체 교재"></div>
 </div></section>
 
+<section id="reviews" data-product="daily" data-theme="light" style="padding:0;background:var(--bg)"></section>
+
 <section id="buy"><div class="wrap">
  <h2>가격</h2>
  <p class="lead">구독 아니에요. 자동결제 없이 한 번만 결제하면, 고른 기간 동안 평일 아침마다 와요.</p>
@@ -267,4 +269,5 @@ $('#paybtn').onclick=async()=>{
 new IntersectionObserver(es=>es.forEach(e=>$('#sticky').style.display=e.isIntersecting?'none':''),{threshold:.05}).observe($('#buy'));
 setPlan(365);
 </script>
+<script src="/assets/reviews.js" defer></script>
 </body></html>
