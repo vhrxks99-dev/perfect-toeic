@@ -492,6 +492,7 @@
   .pricetbl td{padding:11px 6px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
   .pricetbl td.pr{text-align:right;font-weight:800;white-space:nowrap}
   .pricetbl a{font-size:12.5px;font-weight:600;margin-left:4px}
+  .pricecap{font-size:15.5px;font-weight:800;margin:14px 0 2px}.pricecap a{font-size:12.5px;font-weight:600;margin-left:6px}
   @media (max-width:560px){.pricetbl td:nth-child(2){font-size:13px;color:var(--ink-soft)}}
   .infocard>p{color:var(--ink-soft);font-size:14.5px;line-height:1.75}
   .infocard ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:9px}
@@ -3294,17 +3295,30 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     <div class="info2" style="margin-top:24px">
       <div class="infocard reveal" id="payment">
         <h3>수강료 · 이용료</h3>
-        <p>모든 금액은 부가세 포함가예요. 수업은 기간제가 아니라 횟수제라, 8회를 다 들을 때까지 이용할 수 있어요. 사람마다 금액이 달라지지 않아요.</p>
+        <p>모든 금액은 부가세 포함가예요. 수업은 기간제가 아니라 횟수제라, 8회를 다 들을 때까지 수업을 받을 수 있어요. 사람마다 금액이 달라지지 않아요.</p>
+        <h4 class="pricecap">수강료</h4>
         <table class="pricetbl">
-          <thead><tr><th>상품</th><th>내용</th><th>금액</th></tr></thead>
+          <thead><tr><th>수업</th><th>내용</th><th>금액</th></tr></thead>
           <tbody>
             <tr><td><b>1:1 토익 대면 수업</b></td><td>8회 (주 2회 기준, 1회 2시간)</td><td class="pr">640,000원</td></tr>
             <tr><td><b>1:1 토익 비대면 수업</b></td><td>8회 (주 2회 기준, 1회 1시간 30분)</td><td class="pr">480,000원</td></tr>
             <tr><td><b>2:1 토익 수업</b></td><td>8회 (주 2회 고정 시간, 1회 2시간)</td><td class="pr">500,000원</td></tr>
-            <tr><td><b>데일리 RC</b> <a href="/daily/rc/">자세히</a></td><td>180일, 평일 아침 카카오 알림톡</td><td class="pr">32,500원</td></tr>
-            <tr><td><b>데일리 RC</b></td><td>365일, 평일 아침 카카오 알림톡</td><td class="pr">39,990원</td></tr>
-            <tr><td><b>완벽한토익 VOCA All-in-One</b></td><td>교재 1권</td><td class="pr">22,000원</td></tr>
-            <tr><td><b>완벽한토익 1000제 RC</b></td><td>교재 1권 (택배 시 3,000원 추가)</td><td class="pr">21,900원</td></tr>
+          </tbody>
+        </table>
+        <h4 class="pricecap">교재</h4>
+        <table class="pricetbl">
+          <thead><tr><th>교재</th><th>내용</th><th>금액</th></tr></thead>
+          <tbody>
+            <tr><td><b>완벽한토익 VOCA All-in-One</b></td><td>1권</td><td class="pr">22,000원</td></tr>
+            <tr><td><b>완벽한토익 1000제 RC</b></td><td>1권 (택배 시 3,000원 추가)</td><td class="pr">21,900원</td></tr>
+          </tbody>
+        </table>
+        <h4 class="pricecap">데일리 RC <a href="/daily/rc/">자세히</a></h4>
+        <table class="pricetbl">
+          <thead><tr><th>이용권</th><th>내용</th><th>금액</th></tr></thead>
+          <tbody>
+            <tr><td><b>데일리 RC 180일</b></td><td>평일 아침 카카오 알림톡으로 토익 RC 문제</td><td class="pr">32,500원</td></tr>
+            <tr><td><b>데일리 RC 365일</b></td><td>평일 아침 카카오 알림톡으로 토익 RC 문제</td><td class="pr">39,990원</td></tr>
           </tbody>
         </table>
         <div class="pay-badges">
