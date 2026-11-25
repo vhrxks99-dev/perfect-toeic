@@ -1,0 +1,90 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>결제 완료 · 완벽한토익 데일리 RC</title><meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;word-break:keep-all}
+:root{--navy:#0f1f4d;--g:#0f8a7b;--gl:#e3f4f0;--ink:#191f28;--sub:#6b7684;--bg:#f6f4ef;--or:#f26a2e}
+body{font-family:Pretendard,'Malgun Gothic',sans-serif;color:var(--ink);background:var(--bg);letter-spacing:-.3px;min-height:100vh}
+.wrap{max-width:520px;margin:0 auto;padding:40px 20px 48px}
+.card{background:#fff;border-radius:22px;padding:26px 22px;box-shadow:0 6px 24px rgba(15,31,77,.08);margin-bottom:14px}
+.ico{width:64px;height:64px;border-radius:50%;background:var(--gl);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.ico svg{width:34px;height:34px}
+h1{font-size:26px;font-weight:800;text-align:center;line-height:1.35}
+.lead{font-size:16px;color:var(--sub);text-align:center;line-height:1.6;margin-top:8px}
+.row{display:flex;justify-content:space-between;font-size:15px;padding:11px 0;border-bottom:1px solid #f0ede6}.row:last-child{border:0}
+.row span{color:var(--sub)}.row b{font-weight:700;text-align:right}
+h2{font-size:17px;font-weight:800;margin-bottom:6px}
+.sub{font-size:14px;color:var(--sub);line-height:1.6}
+.link{display:block;background:var(--bg);border-radius:14px;padding:14px;font-size:14px;word-break:break-all;margin:12px 0 10px;color:var(--ink);font-family:ui-monospace,Consolas,monospace}
+.btns{display:flex;gap:8px}
+.btn{flex:1;display:block;text-align:center;border:0;font-family:inherit;font-weight:800;font-size:16px;border-radius:14px;padding:15px 10px;cursor:pointer;text-decoration:none}
+.btn.dk{background:var(--ink);color:#fff}.btn.lt{background:#fff;color:var(--ink);border:1.5px solid #dcd8cf}
+.btn.ky{background:#fee500;color:#191f28}
+.alarm{display:flex;gap:12px;align-items:flex-start;background:#fff8e6;border-radius:16px;padding:16px;margin-top:2px}
+.alarm i{font-style:normal;font-size:24px;line-height:1}
+.alarm b{display:block;font-size:16px;margin-bottom:3px}.alarm p{font-size:14px;color:#5b5240;line-height:1.6}
+ul.tip{list-style:none;margin-top:4px}ul.tip li{font-size:14px;color:#4e5968;line-height:1.65;padding-left:14px;position:relative;margin-top:6px}
+ul.tip li::before{content:'';position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:#b8b2a6}
+.wait{text-align:center;padding:80px 0;color:var(--sub);font-size:16px;line-height:1.7}
+.spin{width:38px;height:38px;border:4px solid #e2ded5;border-top-color:var(--ink);border-radius:50%;margin:0 auto 18px;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err h1{font-size:22px}.err .ico{background:#fdecec}
+.testband{background:#fff3c4;color:#6b5500;border-radius:12px;padding:9px 12px;font-size:13px;font-weight:700;text-align:center;margin-bottom:14px}
+</style></head><body><div class="wrap" id="app">
+<div class="wait"><div class="spin"></div>결제를 확인하고 있어요.<br>이 화면을 닫지 말아 주세요.</div>
+</div>
+<script>
+const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
+const q=new URLSearchParams(location.search), MOCK=q.has('mock');
+const $=s=>document.querySelector(s);
+const won=n=>Number(n).toLocaleString('ko-KR')+'원';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const DOW='일월화수목금토';
+const md=d=>{const x=new Date(d+'T12:00:00Z');return `${x.getUTCMonth()+1}월 ${x.getUTCDate()}일(${DOW[x.getUTCDay()]})`};
+const kst=()=>new Date(Date.now()+9*3600e3).toISOString().slice(0,10);
+const CHECK='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="#0f8a7b" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+async function rpc(fn,body){const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(await r.text());return r.json()}
+
+function mockResult(){const p=+(q.get('plan')||365);const t=kst();let s=new Date(t+'T12:00:00Z');do{s.setUTCDate(s.getUTCDate()+1)}while(s.getUTCDay()%6==0);
+ const sd=s.toISOString().slice(0,10);const e=new Date(s);e.setUTCDate(e.getUTCDate()+p-1);
+ return{ok:true,name:'홍길동',plan_days:p,amount:p==365?39990:32500,start_date:sd,end_date:e.toISOString().slice(0,10),link:'https://perfect-toeic.com/daily/?k=3f9c2a7be1d04c58a6e2b91f0d7c4e12'}}
+
+function done(r){
+ const tomorrow=r.start_date===(()=>{const x=new Date(kst()+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+1);return x.toISOString().slice(0,10)})();
+ $('#app').innerHTML=`
+ ${MOCK?'<div class="testband">화면 확인용(가짜 결제)이에요</div>':''}
+ <div class="card"><div class="ico">${CHECK}</div><h1>결제 완료</h1><p class="lead">${esc(r.name)}님, 데일리 RC ${r.plan_days}일 이용권이 준비됐어요.</p></div>
+ <div class="card"><div class="alarm"><i><svg viewBox="0 0 24 24" width="26" height="26"><circle cx="12" cy="13" r="7.5" stroke="#b58100" stroke-width="2" fill="none"/><path d="M12 9.5V13l2.5 1.8M5 4.5 3 6.5M19 4.5l2 2" stroke="#b58100" stroke-width="2" fill="none" stroke-linecap="round"/></svg></i><div><b>${tomorrow?'내일':md(r.start_date)} 아침 7시부터 카톡으로 문제가 와요</b><p>평일마다 카카오 알림톡으로 오늘의 Part 5 문제와 학습 페이지 링크가 가요.</p></div></div></div>
+ <div class="card"><h2>내 학습 페이지</h2><p class="sub">알림톡 버튼과 같은 주소예요. 첫 문제가 오는 날부터 열려요. 나만 쓰는 주소라 다른 사람과 나누지 말아 주세요.</p>
+  <div class="link" id="lk">${esc(r.link)}</div>
+  <div class="btns"><button class="btn dk" id="cp">주소 복사</button><a class="btn lt" href="${esc(r.link)}">열어 보기</a></div></div>
+ <div class="card"><div class="row"><span>상품</span><b>데일리 RC ${r.plan_days}일</b></div><div class="row"><span>결제 금액</span><b>${won(r.amount)}</b></div><div class="row"><span>이용 기간</span><b>${md(r.start_date)} ~<br>${r.end_date.slice(0,4)}년 ${md(r.end_date)}</b></div></div>
+ <div class="card"><h2>알아 두세요</h2><ul class="tip">
+  <li>알림톡은 결제할 때 적은 번호의 카카오톡으로 가요. 카톡 친구가 아니어도 와요.</li>
+  <li>첫 알림톡을 받은 날부터 3일 안에는 전액 환불돼요. 카톡 채널 1:1로 말씀해 주세요.</li>
+  <li>이 화면을 캡처해 두시거나 주소를 카톡 「나와의 채팅」에 붙여 두면 편해요.</li></ul>
+  <a class="btn ky" style="margin-top:16px" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">완벽한토익 카톡 채널</a></div>`;
+ $('#cp').onclick=async()=>{try{await navigator.clipboard.writeText(r.link)}catch(e){const t=document.createElement('textarea');t.value=r.link;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}$('#cp').textContent='복사됐어요'};
+}
+
+function fail(title,body){
+ $('#app').innerHTML=`<div class="card err"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 17h.01" stroke="#e5484d" stroke-width="3" stroke-linecap="round"/></svg></div><h1>${title}</h1><p class="lead">${body}</p>
+ <div class="btns" style="margin-top:20px"><a class="btn dk" href="../rc/#buy">다시 결제하기</a><a class="btn ky" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">카톡 문의</a></div></div>`}
+
+(async()=>{
+ if(MOCK){setTimeout(()=>done(mockResult()),500);return}
+ const oid=q.get('o');
+ if(!oid){fail('결제 정보가 없어요','판매 페이지에서 다시 시작해 주세요.');return}
+ for(let k=0;k<6;k++){
+  try{
+   const r=await rpc('pay_order_result',{p_order_id:oid});
+   if(r.status==='paid'&&r.link){done(r);return}
+   if(r.status==='failed'){fail('결제가 승인되지 않았어요',esc(r.fail_msg||'')+'<br>돈이 빠져나갔다면 카톡으로 알려 주세요.');return}
+   if(r.error){fail('주문을 찾지 못했어요','판매 페이지에서 다시 시작해 주세요.');return}
+  }catch(e){}
+  await new Promise(s=>setTimeout(s,1500));
+ }
+ fail('확인이 늦어지고 있어요','잠시 뒤 이 화면을 새로고침해 주세요. 새로고침해도 결제가 두 번 되지 않아요.');
+})();
+</script></body></html>

@@ -161,7 +161,13 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
  <p class="note">결제한 다음 평일 아침 7시부터 알림톡이 가요.</p>
 
  <div class="buy">
-  <p class="note" style="margin:0 0 10px;text-align:left"><b>결제는 곧 열려요.</b> 신용·체크카드로 받을 예정이에요. 열리는 날 카카오톡 채널로 가장 먼저 알려 드릴게요.</p>
+  <label class="fld" id="w_name"><span>이름</span><input id="f_name" autocomplete="name" maxlength="20" placeholder="홍길동"><div class="err">이름을 적어 주세요.</div></label>
+  <label class="fld" id="w_phone"><span>휴대폰 번호</span><input id="f_phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="010-1234-5678"><small>매일 알림톡이 이 번호의 카카오톡으로 가요.</small><div class="err">휴대폰 번호를 다시 확인해 주세요.</div></label>
+
+  <div class="testband" id="testband" hidden>시험 결제 중이에요. 결제해도 당일 자동으로 취소돼요.</div>
+  <p class="note" style="margin:0 0 4px;text-align:left">신용·체크카드, 휴대폰, 네이버페이·카카오페이·페이코, 계좌이체로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.</p>
+
+  <label class="agree" id="w_agree"><input type="checkbox" id="f_agree"><div><b>환불 규정·이용약관·개인정보 수집에 동의해요</b><span>아래 「환불 안내」와 약관을 읽었어요. (필수)</span></div></label>
   <div class="terms">
    <details><summary>이용약관</summary><p>
    1. 완벽한토익 데일리 RC는 고른 기간(180일 또는 365일) 동안 평일 아침 카카오 알림톡으로 토익 RC 문제와 개인 학습 페이지 링크를 보내 드리는 디지털 콘텐츠예요.<br>
@@ -170,14 +176,15 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
    4. 카카오톡 사정이나 번호 변경으로 알림톡이 안 오면 학습 페이지는 그대로 열려요. 번호가 바뀌면 카톡 채널로 알려 주세요.<br>
    5. 환불은 아래 「환불 안내」를 따라요.</p></details>
    <details><summary>개인정보 수집·이용</summary><p>
-   · 받는 것: 이름, 휴대폰 번호, 결제 기록(결제 금액·결제 일시·카드사, 카드 번호 전체는 받지 않아요)<br>
+   · 받는 것: 이름, 휴대폰 번호, 결제 기록(결제 금액·결제 일시·결제수단, 카드 번호는 받지 않아요)<br>
+   · 결제 처리: (주)다날이 결제를 대신 처리해요<br>
    · 쓰는 곳: 알림톡 발송, 개인 학습 페이지 제공, 환불·문의 응대<br>
    · 보관: 이용 기간이 끝나고 5년(전자상거래법에 따른 거래 기록 보관), 그 뒤 지워요<br>
    · 동의하지 않으면 구매할 수 없어요.</p></details>
   </div>
 
-  <button class="paybtn" id="paybtn" type="button" disabled style="opacity:.55;cursor:default">결제 준비 중이에요</button>
-  <a class="kq" href="https://pf.kakao.com/_JCLYG" target="_blank" rel="noopener">카카오톡 채널 추가하고 열리는 날 알림 받기</a>
+  <button class="paybtn" id="paybtn" type="button">39,990원 결제하기</button>
+  <a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">결제가 잘 안 되면 카톡으로 물어보세요</a>
  </div>
 </div></section>
 
@@ -200,18 +207,63 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
  </div>
 </div></section>
 
-<footer>상호 완벽한토익 · 대표 김태완 · 사업자등록번호 369-28-01751<br>통신판매업 신고: 신고 면제 대상<br>주소 서울특별시 서대문구 연세로2길 14, 4층 · 이메일 contact@perfect-toeic.com<br>문의 카카오톡 채널 <a href="https://pf.kakao.com/_JCLYG" style="color:#8b95a1">「완벽한토익」</a> · <a href="https://perfect-toeic.com" style="color:#8b95a1">perfect-toeic.com</a></footer>
-<div class="sticky" id="sticky"><a href="#buy">가격 보기 <span id="stk">365일 39,990원</span></a></div>
+<footer>상호 완벽한토익 · 대표 김태완 · 사업자등록번호 369-28-01751<br>통신판매업 신고: 신고 면제 대상<br>주소 서울특별시 서대문구 연세로2길 14, 4층 · 이메일 contact@perfect-toeic.com<br>고객센터 0507-1332-9565 · 카카오톡 채널 <a href="https://pf.kakao.com/_JCLYG" style="color:#8b95a1">「완벽한토익」</a> · <a href="https://perfect-toeic.com" style="color:#8b95a1">perfect-toeic.com</a></footer>
+<div class="sticky" id="sticky"><a href="#buy">결제하기 <span id="stk">365일 39,990원</span></a></div>
 
+<script src="https://static.danalpay.com/d1/sdk/index.js"></script>
 <script>
-// 결제 준비 중 판(2026-11-24): 결제 회사(다날) 가입 전이라 결제창 없이 기간 고르기만 된다.
-// 결제가 붙던 판은 같은 폴더 index_toss_1120.html 에 있다.
+// 다날 V2 통합결제창 (2026-11-25). 결제 승인은 Supabase Edge Function danal-return 이 한다.
+// ── 바꿀 곳 ─────────────────────────────────────────────
+// 계약 끝나고 다날이 실제 키를 주면 아래 셋을 바꾸고 TEST 를 false 로. Secret Key 는 절대 여기 넣지 말 것.
+const DANAL_CLIENT_KEY = 'CL_NZbhSKdB5EePW6YCj2KVF7FDkLbi3V-w_ZQ0CjNSZ-A=';
+const DANAL_MID = '9810030929';
+const MOBILE_ITEM = '1270000000';   // 휴대폰결제 아이템코드(시험용)
+const TEST = true;
+// ────────────────────────────────────────────────────────
+const SB='https://guaqfsuwrvqjffmbiwpw.supabase.co', KEY='sb_publishable_0bsxx0fJt86WQFuuZeoH-g_9pxVxh-C';
+const RET=SB+'/functions/v1/danal-return';
 const PLAN={180:{price:32500},365:{price:39990}};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const won=n=>Number(n).toLocaleString('ko-KR')+'원';
-function setPlan(p){$$('.plan').forEach(b=>{const on=+b.dataset.plan===p;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
- $('#stk').textContent=`${p}일 ${won(PLAN[p].price)}`}
+let plan=365,busy=false;
+if(TEST)$('#testband').hidden=false;
+
+async function rpc(fn,body){
+ const r=await fetch(`${SB}/rest/v1/rpc/${fn}`,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+ if(!r.ok)throw new Error(await r.text());return r.json()}
+
+function setPlan(p){plan=p;$$('.plan').forEach(b=>{const on=+b.dataset.plan===p;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
+ $('#paybtn').textContent=won(PLAN[p].price)+' 결제하기';$('#stk').textContent=`${p}일 ${won(PLAN[p].price)}`}
 $$('.plan').forEach(b=>b.onclick=()=>setPlan(+b.dataset.plan));
+
+$('#f_phone').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,11);
+ e.target.value=d.length<4?d:d.length<8?d.slice(0,3)+'-'+d.slice(3):d.slice(0,3)+'-'+d.slice(3,d.length-4)+'-'+d.slice(-4);$('#w_phone').classList.remove('bad')});
+$('#f_name').addEventListener('input',()=>$('#w_name').classList.remove('bad'));
+$('#f_agree').addEventListener('change',()=>$('#w_agree').classList.remove('bad'));
+
+$('#paybtn').onclick=async()=>{
+ if(busy)return;
+ const name=$('#f_name').value.trim(),phone=$('#f_phone').value.replace(/\D/g,'');let bad=null;
+ if(!name){$('#w_name').classList.add('bad');bad=bad||$('#w_name')}
+ if(!/^01\d{8,9}$/.test(phone)){$('#w_phone').classList.add('bad');bad=bad||$('#w_phone')}
+ if(!$('#f_agree').checked){$('#w_agree').classList.add('bad');bad=bad||$('#w_agree')}
+ if(bad){bad.scrollIntoView({behavior:'smooth',block:'center'});return}
+ if(typeof DanalPayments!=='function'){alert('결제창을 불러오지 못했어요. 새로고침해 보시고, 계속 안 되면 카톡으로 알려 주세요.');return}
+ busy=true;const b=$('#paybtn');b.disabled=true;b.textContent='결제창 여는 중…';
+ try{
+  const o=await rpc('pay_order_create_daily',{p_plan:plan,p_name:name,p_phone:phone});
+  if(o.error){const m={bad_name:'이름을 다시 확인해 주세요.',bad_phone:'휴대폰 번호를 다시 확인해 주세요.',too_many:'주문이 너무 여러 번 만들어졌어요. 10분 뒤 다시 해 주세요.'};throw new Error(m[o.error]||'주문을 만들지 못했어요.')}
+  await DanalPayments(DANAL_CLIENT_KEY).requestPayment({
+   merchantId:DANAL_MID, orderId:o.order_id, orderName:o.order_name, amount:o.amount,
+   userId:'d'+phone.slice(-8), userName:name, userPhoneNumber:phone,
+   successUrl:RET+'?r=ok', failUrl:RET+'?r=fail',
+   paymentsMethod:'INTEGRATED',
+   methods:{card:{}, mobile:{itemCode:MOBILE_ITEM}, naverPay:{}, kakaoPay:{}, payco:{}, transfer:{}}
+  });
+ }catch(e){alert(e&&e.message||'결제를 시작하지 못했어요.')}
+ finally{busy=false;b.disabled=false;b.textContent=won(PLAN[plan].price)+' 결제하기'}
+};
+
 new IntersectionObserver(es=>es.forEach(e=>$('#sticky').style.display=e.isIntersecting?'none':''),{threshold:.05}).observe($('#buy'));
 setPlan(365);
 </script>
