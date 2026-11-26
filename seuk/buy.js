@@ -14,10 +14,10 @@ const $ = (s) => document.querySelector(s);
 const K_OPEN = 'seuk.buy.open';
 let user = null, busy = false;
 const PLANS = {
-  lv1: { name: '스윽 기초', price: 24000 },
-  lv2: { name: '스윽 실전', price: 44000 },
-  lv3: { name: '스윽 고득점', price: 34000 },
-  set: { name: '스윽 완성 (세트)', price: 74000 },
+  lv1: { name: '스윽 기초', price: 20300 },
+  lv2: { name: '스윽 실전', price: 34300 },
+  lv3: { name: '스윽 고득점', price: 27300 },
+  set: { name: '스윽 완성 (세트)', price: 55300 },
 };
 let plan = 'set';
 const won = (n) => n.toLocaleString('ko-KR') + '원';

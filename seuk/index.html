@@ -54,6 +54,8 @@ h2{font-size:clamp(24px,3.6vw,32px);font-weight:800;letter-spacing:-.8px;line-he
 .plan .pr small{font-size:14px;color:var(--sub);font-weight:600;letter-spacing:0}
 .plan button,.set button{margin-top:16px;width:100%;border:0;cursor:pointer;font:inherit;font-weight:800;font-size:15.5px;border-radius:12px;padding:13px}
 .plan button{background:#222;color:#fff;border:1px solid #333}
+.off{font-style:normal;font-size:.62em;color:var(--pt);font-weight:800;margin-right:4px;vertical-align:middle}
+.set .off{color:#3a4a00}
 .plan .pr s{font-size:15px;color:#6b6b6b;font-weight:600;margin-right:4px}
 .webnote{margin-top:14px;font-weight:800;color:var(--pt);font-size:16px}.webnote span{color:var(--sub);font-weight:600;font-size:14px}
 .buy .pick{font-size:15px;color:#fff;font-weight:800;margin-bottom:12px}
@@ -184,15 +186,14 @@ footer nav a{color:#bdbdbd}
 <section id="plans">
   <h2>이용권은 한 번 사면 평생 씁니다</h2>
   <p class="sub">구독이 아니라 매달 나가는 돈이 없습니다. 목표 점수에 맞춰 고르세요.</p>
-  <p class="webnote">웹에서 구매하면 5천원 더 저렴해요 <span>(앱 안에서 사면 위 줄 그은 가격)</span></p>
   <div class="plans">
-    <div class="plan"><span class="tg">600점 목표</span><h3>스윽 기초</h3><p class="d">기초 1,207단어 · 게임 무제한</p><div class="pr"><s>29,000원</s> 24,000원 <small>/ 평생</small></div><button data-plan="lv1">구매하기</button></div>
-    <div class="plan"><span class="tg">700~800점 목표</span><h3>스윽 실전</h3><p class="d">실전 3,064단어 · 게임 무제한</p><div class="pr"><s>49,000원</s> 44,000원 <small>/ 평생</small></div><button data-plan="lv2">구매하기</button></div>
-    <div class="plan"><span class="tg">900점 목표</span><h3>스윽 고득점</h3><p class="d">고득점 1,113단어 · 게임 무제한</p><div class="pr"><s>39,000원</s> 34,000원 <small>/ 평생</small></div><button data-plan="lv3">구매하기</button></div>
+    <div class="plan"><span class="tg">600점 목표</span><h3>스윽 기초</h3><p class="d">기초 1,207단어 · 게임 무제한</p><div class="pr"><s>29,000원</s> <em class="off">30%</em> 20,300원 <small>/ 평생</small></div><button data-plan="lv1">구매하기</button></div>
+    <div class="plan"><span class="tg">700~800점 목표</span><h3>스윽 실전</h3><p class="d">실전 3,064단어 · 게임 무제한</p><div class="pr"><s>49,000원</s> <em class="off">30%</em> 34,300원 <small>/ 평생</small></div><button data-plan="lv2">구매하기</button></div>
+    <div class="plan"><span class="tg">900점 목표</span><h3>스윽 고득점</h3><p class="d">고득점 1,113단어 · 게임 무제한</p><div class="pr"><s>39,000원</s> <em class="off">30%</em> 27,300원 <small>/ 평생</small></div><button data-plan="lv3">구매하기</button></div>
   </div>
   <div class="set">
     <div><span class="tg">세 가지 모두</span><h3>스윽 완성</h3><p>기초 · 실전 · 고득점 5,384단어 전부, 게임 무제한</p></div>
-    <div class="pr"><s>79,000원</s><b>74,000원</b><button data-plan="set">구매하기</button></div>
+    <div class="pr"><s>79,000원</s><b><em class="off">30%</em> 55,300원</b><button data-plan="set">구매하기</button></div>
   </div>
   <div class="free"><b>무료로 쓸 수 있는 것</b> — 기초 DAY 01~05, 게임 하루 3판, 출석과 리그</div>
   <div class="buy" id="buy" hidden>
@@ -234,7 +235,7 @@ footer nav a{color:#bdbdbd}
   <details><summary>Q. 무료로 먼저 써 볼 수 있나요?</summary><p>A. 기초 DAY 01~05, 게임 하루 3판, 출석과 리그는 결제 없이 쓸 수 있어요.</p></details>
   <details><summary>Q. 하루에 몇 개씩 외우나요?</summary><p>A. 하루에 DAY 하나, 단어 50개예요. 아는 단어는 넘기고 모르는 단어만 사진 카드로 다시 외워요. 틀린 단어는 잊기 직전에 다시 나와요.</p></details>
   <details><summary>Q. 웹에서 사면 앱에서는 어떻게 쓰나요?</summary><p>A. 결제할 때 로그인한 카카오·구글 계정으로 앱에서 로그인하면 바로 열려 있어요.</p></details>
-  <details><summary>Q. 웹이 왜 더 싼가요?</summary><p>A. 앱 마켓 수수료가 빠져서 앱 안에서 사는 것보다 5천원 싸요. 이용권 내용은 똑같아요.</p></details>
+  <details><summary>Q. 앱에서 사는 것과 가격이 다른가요?</summary><p>A. 웹에서는 앱 마켓 수수료가 빠져서 앱 안 가격보다 30% 싸게 살 수 있어요. 이용권 내용은 똑같아요.</p></details>
   <details><summary>Q. 휴대폰을 바꾸면 어떻게 되나요?</summary><p>A. 이용권은 계정에 붙어 있어요. 새 휴대폰에서 같은 계정으로 로그인하면 그대로 써요.</p></details>
   <details><summary>Q. 완벽한토익 수강생도 따로 사야 하나요?</summary><p>A. 아니요. 완벽한토익에서 지금 수강중이면 앱에서 완토 계정으로 인증하고 모든 단어를 무료로 써요.</p></details>
   <details><summary>Q. 환불은 어떻게 하나요?</summary><p>A. 웹에서 산 경우, 결제한 날부터 7일 안에 유료 단어를 학습하지 않았다면 전액 환불해 드려요. 신청은 카카오톡 채널 「완벽한토익」 1:1 대화로 받아요. 자세한 기준은 <a href="terms/">이용약관</a>에 있어요.</p></details>
@@ -250,7 +251,7 @@ footer nav a{color:#bdbdbd}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.115.0/dist/umd/supabase.js"></script>
 <script src="https://static.danalpay.com/d1/sdk/index.js"></script>
 <script src="buy.js"></script>
-<div class="sticky" id="sticky"><a href="#plans"><span><b>웹에서 사면 5천원 더 저렴</b><small>한 번 결제 · 평생 · 자동결제 없음</small></span><em>이용권 보기</em></a></div>
+<div class="sticky" id="sticky"><a href="#plans"><span><b>평생 이용권 30% 할인</b><small>한 번 결제 · 자동결제 없음</small></span><em>이용권 보기</em></a></div>
 <script>
 (function(){var s=document.getElementById('sticky'),p=document.getElementById('plans');
 new IntersectionObserver(function(es){es.forEach(function(e){s.style.display=e.isIntersecting?'none':''})},{threshold:.05}).observe(p);})();
