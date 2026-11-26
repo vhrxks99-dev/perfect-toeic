@@ -151,7 +151,7 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
  <div class="books"><img src="img/books.jpg" alt="완벽한토익 자체 교재"></div>
 </div></section>
 
-<section id="reviews" data-product="daily" data-theme="light" data-tabs-before=".hero + section" style="padding:0"></section>
+<section id="reviews" data-product="daily" data-theme="light" data-tabs-before=".hero + section" data-tabs-style="navy" style="padding:0"></section>
 
 <section id="buy"><div class="wrap">
  <h2>가격</h2>
@@ -269,5 +269,5 @@ $('#paybtn').onclick=async()=>{
 new IntersectionObserver(es=>es.forEach(e=>$('#sticky').style.display=e.isIntersecting?'none':''),{threshold:.05}).observe($('#buy'));
 setPlan(365);
 </script>
-<script src="/assets/reviews.js" defer></script>
+<script src="/assets/reviews.js?v=1126n" defer></script>
 </body></html>

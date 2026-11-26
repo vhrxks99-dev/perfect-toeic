@@ -15,11 +15,17 @@
   const C = dark
     ? { page: '#000', bg: '#111', line: '#262626', ink: '#ededed', sub: '#9b9b9b', star: '#d8ff3e', bar: '#2a2a2a', btn: '#d8ff3e', btnInk: '#0b0b0b', field: '#181818', tab: '#d8ff3e', tabInk: '#0b0b0b' }
     : { page: '#fff', bg: '#fff', line: '#ebe8e1', ink: '#191f28', sub: '#6b7684', star: '#f26a2e', bar: '#eeebe4', btn: '#191f28', btnInk: '#fff', field: '#f6f4ef', tab: '#f26a2e', tabInk: '#fff' };
+  // data-tabs-style="navy": 남색 페이지(데일리)용 탭 — 남색 바탕 + 하늘색 밑줄 (11/26 원장님 「상세정보 색깔이 안 맞다」)
+  const navy = box.dataset.tabsStyle === 'navy';
   const css = document.createElement('style');
-  css.textContent = `
+  css.textContent = navy ? `
+  .rvtabs{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:1fr 1fr;background:#0f1f4d;border-bottom:1px solid rgba(255,255,255,.12)}
+  .rvtabs a{display:block;text-align:center;padding:15px 0 12px;font-weight:800;font-size:16px;text-decoration:none;color:rgba(255,255,255,.55);border-bottom:3px solid transparent}
+  .rvtabs a.on{color:#fff;border-bottom-color:#7cc4ff}` : `
   .rvtabs{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:1fr 1fr;background:${C.page};border-bottom:1px solid ${C.line}}
   .rvtabs a{display:block;text-align:center;padding:15px 0;font-weight:800;font-size:16px;text-decoration:none;color:${C.ink}}
-  .rvtabs a.on{background:${C.tab};color:${C.tabInk}}
+  .rvtabs a.on{background:${C.tab};color:${C.tabInk}}`;
+  css.textContent += `
   .rv{padding:${dark ? '56px 0' : '56px 22px'};max-width:${dark ? 'none' : '560px'};margin:0 auto;${dark ? `border-top:1px solid ${C.line}` : ''}}
   .rv h2{font-size:26px;font-weight:800;line-height:1.35;color:${C.ink}}
   .rv .sumbox{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;background:${dark ? '#111' : '#f6f4ef'};border-radius:18px;padding:20px 22px;margin:16px 0 22px}
