@@ -5,6 +5,9 @@ const DANAL_CLIENT_KEY = 'CL_NZbhSKdB5EePW6YCj2KVF7FDkLbi3V-w_ZQ0CjNSZ-A=';
 const DANAL_MID = '9810030929';
 const MOBILE_ITEM = '1270000000';
 const TEST = true;
+// 11/26 원장님: 스윽 앱이 스토어에 나오기 전까지 웹 결제를 막아 둔다(웹에서 사도 받을 앱이 없음).
+//   앱 출시하면 OPEN = true. 시험할 때는 주소 끝에 ?open=1
+const OPEN = false || new URLSearchParams(location.search).get('open') === '1';
 // ────────────────────────────────────────────
 const SB_URL = 'https://rdocmjqemozmykgkfvkp.supabase.co';
 const SB_KEY = 'sb_publishable_UCqT5rdfWMhd3o-Yx5n4JQ_COQ6IB4e';
@@ -56,6 +59,7 @@ async function render() {
 }
 
 function openBuy(p) {
+  if (!OPEN) { $('#soon').hidden = false; $('#soon').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   if (p && PLANS[p]) plan = p;
   store('seuk.buy.plan', plan);
   showPlan();
