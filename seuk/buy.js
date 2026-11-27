@@ -155,7 +155,7 @@ $('#paybtn').onclick = async () => {
   }
 };
 
-sb.auth.onAuthStateChange(() => render());
+sb.auth.onAuthStateChange(() => setTimeout(render, 0));   // 콜백 안에서 바로 DB 호출하면 supabase-js 가 멈춤
 (async () => {
   const sp = read('seuk.buy.plan');
   if (sp && PLANS[sp]) plan = sp;

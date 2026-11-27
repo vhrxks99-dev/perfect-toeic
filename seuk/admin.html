@@ -40,5 +40,7 @@ async function load(){
  document.querySelectorAll('[data-no]').forEach(b=>b.onclick=async()=>{if(!confirm('입금하지 않은 신청을 취소할까요?'))return;
   const {error:e}=await sb.rpc('web_order_bank_cancel',{p_order_no:b.dataset.no});if(e){alert(e.message);return}load()});
 }
-sb.auth.onAuthStateChange(()=>load());load();
+// 주의: onAuthStateChange 안에서 바로 supabase 호출을 기다리면 멈춘다(supabase-js 잠금) → 한 박자 늦춰 부른다
+let busyLoad=false;const run=()=>{if(busyLoad)return;busyLoad=true;load().catch(e=>{$('#box').textContent='오류: '+(e&&e.message)}).finally(()=>busyLoad=false)};
+sb.auth.onAuthStateChange(()=>setTimeout(run,0));run();
 </script></body></html>
