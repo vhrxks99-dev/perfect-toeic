@@ -11815,6 +11815,12 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
     // '다음 수업이 잡혀 있다'고 잘못 보고 숙제 알림이 계속 뜬다.
     var fr=await sb.from('schedules').select('student_id,student_name,starts_at').eq('teacher_id',meId).gt('starts_at',now.toISOString()).neq('status','canceled').neq('status','noshow');
     if(!fr.error && fr.data){ futureRows=fr.data; fr.data.forEach(function(s){ if(!isStudentEntry(s)) return; stuKeys(s.student_id,s.student_name).forEach(function(k){ hasFuture[k]=true; }); }); }
+    // 11/27 원장님 「효민 여울 수업 잡아놨는데 왜 미등록?」 — 다음 수업을 다른 선생님이 잡아도 '있음'으로 본다
+    var mySids=mine.map(function(s){ return s.student_id; }).filter(function(x,i,arr){ return x && arr.indexOf(x)===i; });
+    if(mySids.length){
+      var fr2=await sb.from('schedules').select('student_id,student_name,starts_at').in('student_id',mySids).neq('teacher_id',meId).gt('starts_at',now.toISOString()).neq('status','canceled').neq('status','noshow');
+      if(!fr2.error && fr2.data){ futureRows=futureRows.concat(fr2.data); fr2.data.forEach(function(s){ stuKeys(s.student_id,s.student_name).forEach(function(k){ hasFuture[k]=true; }); }); }
+    }
     // 그 학생의 '다음 수업' 이 언제인지 — 숙제가 어느 수업 것인지 가르는 기준이다.
     function nextLessonAfter(sid, afterISO){
       if(!sid) return null;
