@@ -15,7 +15,7 @@ const RET = SB_URL + '/functions/v1/seuk-danal-return';
 const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true } });
 const $ = (s) => document.querySelector(s);
 const K_OPEN = 'seuk.buy.open';
-let user = null, busy = false;
+let user = null, busy = false, pm = 'card';
 const PLANS = {
   lv1: { name: '스윽 기초', price: 20300 },
   lv2: { name: '스윽 실전', price: 34300 },
@@ -26,7 +26,7 @@ let plan = 'set';
 const won = (n) => n.toLocaleString('ko-KR') + '원';
 function showPlan() {
   $('#pick').textContent = '고른 이용권: ' + PLANS[plan].name + ' · ' + won(PLANS[plan].price);
-  $('#paybtn').textContent = won(PLANS[plan].price) + ' 결제하기';
+  $('#paybtn').textContent = won(PLANS[plan].price) + (pm === 'bank' ? ' 무통장입금 신청' : ' 결제하기');
 }
 
 if (TEST) $('#testband').hidden = false;
@@ -83,10 +83,52 @@ $('#lg_kakao').onclick = () => login('kakao');
 $('#lg_google').onclick = () => login('google');
 $('#logout').onclick = async () => { await sb.auth.signOut(); render(); };
 $('#f_agree').addEventListener('change', () => $('#w_agree').classList.remove('bad'));
+document.querySelectorAll('.pmb').forEach((b) => b.addEventListener('click', () => {
+  pm = b.dataset.pm;
+  document.querySelectorAll('.pmb').forEach((x) => x.classList.toggle('on', x === b));
+  $('#w_bname').hidden = pm !== 'bank';
+  if (TEST) $('#testband').hidden = pm === 'bank';
+  $('#pm_note').textContent = pm === 'bank'
+    ? '신청하면 입금할 계좌와 입금자명이 나와요. 입금이 확인되면 이 계정에 이용권이 열려요(평일 낮에는 보통 몇 시간 안에 확인).'
+    : '신용·체크카드, 휴대폰으로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.';
+  showPlan();
+}));
+
+async function bankOrder() {
+  const nm = $('#f_bname').value.trim();
+  if (!nm) { $('#f_bname').focus(); alert('입금하실 분 이름을 적어 주세요.'); return; }
+  busy = true;
+  const b = $('#paybtn'); b.disabled = true; b.textContent = '신청하는 중…';
+  try {
+    const { data: o, error } = await sb.rpc('web_order_new_bank', { p_product: plan, p_name: nm });
+    if (error) throw new Error('신청을 만들지 못했어요.');
+    if (o.error) {
+      const m = { login: '다시 로그인해 주세요.', owned: '이미 가지고 있는 이용권이에요.', too_many: '오늘 신청이 이미 여러 번 있어요. 카톡으로 문의해 주세요.', bad_name: '이름을 다시 확인해 주세요.' };
+      throw new Error(m[o.error] || '신청을 만들지 못했어요.');
+    }
+    const box = $('#bankdone'); box.hidden = false;
+    const acct = o.account.replace(/-/g, '');
+    box.innerHTML = `<h3>무통장입금 신청이 접수됐어요</h3>
+      <div class="row"><span>은행</span><b>${o.bank}</b></div>
+      <div class="row"><span>계좌번호</span><b>${o.account}<button class="cp" data-c="${acct}">복사</button></b></div>
+      <div class="row"><span>예금주</span><b>${o.holder}</b></div>
+      <div class="row"><span>입금 금액</span><b>${won(o.amount)}</b></div>
+      <div class="row"><span>입금자명</span><b>${o.depositor}<button class="cp" data-c="${o.depositor}">복사</button></b></div>
+      <p>· 입금자명을 위와 똑같이 적어 주세요. 다르면 확인이 늦어져요.<br>· 24시간 안에 입금해 주세요. 확인되면 지금 로그인한 계정에 「${o.order_name}」이 열려요.<br>· 현금영수증이 필요하면 카톡 채널로 번호를 알려 주세요.<br>· 신청번호 ${o.order_id}</p>`;
+    box.querySelectorAll('.cp').forEach((c) => c.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(c.dataset.c); c.textContent = '복사됨'; });
+    $('#b_pay').hidden = true;
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } catch (e) {
+    alert((e && e.message) || '신청하지 못했어요.');
+  } finally {
+    busy = false; b.disabled = false; showPlan();
+  }
+}
 
 $('#paybtn').onclick = async () => {
   if (busy) return;
   if (!$('#f_agree').checked) { $('#w_agree').classList.add('bad'); return; }
+  if (pm === 'bank') { await bankOrder(); return; }
   if (typeof DanalPayments !== 'function') { alert('결제창을 불러오지 못했어요. 새로고침해 보시고, 계속 안 되면 카톡으로 알려 주세요.'); return; }
   busy = true;
   const b = $('#paybtn'); b.disabled = true; b.textContent = '결제창 여는 중…';

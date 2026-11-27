@@ -120,6 +120,18 @@ footer nav a{color:#bdbdbd}
  .set{grid-template-columns:1fr}.set .pr{text-align:left}.set button{width:100%}
  section{padding:44px 0}
 }
+.pm{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 10px}
+.pmb{border:2px solid #333;border-radius:14px;background:#141414;color:#ededed;padding:12px 8px;font-family:inherit;cursor:pointer;text-align:center}
+.pmb b{display:block;font-size:15px;font-weight:800}.pmb span{display:block;font-size:12px;opacity:.65;margin-top:2px}
+.pmb.on{border-color:#d8ff3e;color:#d8ff3e}
+.bname{display:block;margin:0 0 8px}.bname span{display:block;font-size:13px;opacity:.75;margin-bottom:6px}
+.bname input{width:100%;box-sizing:border-box;border:1px solid #333;background:#181818;color:#ededed;border-radius:12px;padding:12px;font:inherit;font-size:16px}
+.bankdone{border:2px solid #d8ff3e;border-radius:18px;padding:20px 18px;background:#111;margin-top:6px}
+.bankdone h3{font-size:19px;font-weight:800;margin:0 0 10px}
+.bankdone .row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #262626;font-size:15px}
+.bankdone .row b{font-weight:800;text-align:right}
+.bankdone .cp{margin-left:6px;border:1px solid #444;background:#1c1c1c;color:#ededed;border-radius:8px;font-size:12px;padding:2px 8px;cursor:pointer;font-family:inherit}
+.bankdone p{font-size:13.5px;opacity:.75;margin-top:10px;line-height:1.6}
 </style>
 </head><body>
 <div class="wrap">
@@ -211,8 +223,12 @@ footer nav a{color:#bdbdbd}
     <div id="b_pay" hidden>
       <div class="who"><span id="who"></span><button type="button" id="logout">다른 계정</button></div>
       <label class="agree" id="w_agree"><input type="checkbox" id="f_agree"><span><b>이용약관·환불 규정·개인정보 수집에 동의해요 (필수)</b><br><a href="terms/" target="_blank">이용약관</a> · <a href="privacy/" target="_blank">개인정보처리방침</a></span></label>
-      <p class="bs">신용·체크카드, 휴대폰으로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.</p>
+      <div class="pm"><button type="button" class="pmb on" data-pm="card"><b>카드 · 휴대폰</b><span>바로 결제</span></button><button type="button" class="pmb" data-pm="bank"><b>무통장입금</b><span>계좌로 직접 입금</span></button></div>
+      <label class="bname" id="w_bname" hidden><span>입금하실 분 이름</span><input id="f_bname" maxlength="20" placeholder="홍길동" autocomplete="name"></label>
+      <p class="bs" id="pm_note">신용·체크카드, 휴대폰으로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.</p>
       <button class="paybtn" id="paybtn" type="button">결제하기</button>
+    </div>
+    <div class="bankdone" id="bankdone" hidden>
     </div>
     <div id="b_owned" hidden><h3>이미 가지고 있는 이용권이에요</h3><p class="bs">스윽 앱에서 이 계정으로 로그인하면 열려 있어요. 다른 이용권을 사려면 위에서 골라 주세요.</p></div>
     <a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">결제가 잘 안 되면 카톡으로 물어보세요</a>
@@ -223,7 +239,7 @@ footer nav a{color:#bdbdbd}
   <h2>구매 방법</h2>
   <ol class="how">
     <li>「구매하기」를 누르고, 스윽 앱에서 쓰는 계정(카카오 · 구글)으로 로그인합니다.</li>
-    <li>신용·체크카드, 휴대폰으로 결제합니다.</li>
+    <li>신용·체크카드, 휴대폰으로 결제하거나 완벽한토익 계좌로 무통장입금할 수 있습니다.</li>
     <li>앱을 열어 같은 계정으로 로그인하면 이용권이 바로 열려 있습니다.</li>
   </ol>
 </section>
