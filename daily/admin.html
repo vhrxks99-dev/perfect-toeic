@@ -35,6 +35,10 @@ td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
 <div id="app" style="display:none">
 <h1>완토 데일리 관리</h1><div class="sub">구매자 등록 → 개인 링크 발급 · 매일 푼 기록 · 이번 달 환급 후보 · 환불 계산</div>
 <div class="kpi"><div><span>이용 중</span><b id="k1">-</b></div><div><span>오늘 다 푼 사람</span><b id="k2">-</b></div><div><span>이번 달 환급 후보</span><b id="k3">-</b></div><div><span>이번 달 평일(오늘까지)</span><b id="k4">-</b></div></div>
+<div class="card" id="bankcard"><h2>무통장입금 대기 <span class="muted" id="bk_n"></span></h2>
+ <div class="muted" style="margin-bottom:8px">판매 페이지에서 무통장입금을 신청한 주문이에요. 기업은행(043-133434-01-013)에 <b>입금자명·금액</b>이 맞게 들어온 걸 확인하고 「입금 확인」을 누르면 바로 구매자로 등록되고 다음 평일부터 알림톡이 가요.</div>
+ <div style="overflow-x:auto"><table><thead><tr><th>신청</th><th>입금자명</th><th>금액</th><th>기간</th><th class="hide-m">휴대폰</th><th></th></tr></thead><tbody id="bk_list"></tbody></table></div>
+</div>
 <div class="card"><h2>구매자 등록</h2>
  <div class="form">
   <label>반<select id="f_product"><option value="rc">RC반</option><option value="lc">LC반</option></select></label>
@@ -72,6 +76,20 @@ function weekdaysUpTo(from,to){let n=0,x=from;while(x<=to){if(dow(x)%6)n++;x=add
 const PLAN={365:{price:39990,list:79980},180:{price:32500,list:65000}};
 function refund(s){if(s.status!=='active')return'-';const L=(PLAN[s.plan_days]||PLAN[365]).list,pd=s.plan_days||365;const used=Math.max(0,Math.round((new Date(TODAY)-new Date(s.start_date))/864e5)+1);if(TODAY<s.start_date)return won(s.amount)+' (시작 전)';if(used<=3)return won(s.amount)+' (3일 안)';const v=Math.floor(s.amount-L*used/pd-L*0.2);return won(Math.max(0,v))+` (${used}일)`}
 function msgFor(s){return `${s.name}님, 완벽한토익 데일리 ${s.product=='rc'?'RC':'LC'}반 결제 확인됐어요.\n\n${s.start_date}(평일) 아침 7시부터 매일 카카오 알림톡으로 오늘의 문제가 가요.\n알림톡의 「오늘의 학습 페이지 바로가기」를 누르면 아래 개인 페이지가 열려요. 다른 사람과 공유하지 말아 주세요.\n\n${LINK(s.token)}\n\n이용 기간: ${s.start_date} ~ ${s.end_date}`}
+async function loadBank(){
+ const {data,error}=await sb.from('pay_orders').select('order_id,name,phone,amount,plan_days,depositor,created_at').eq('status','wait_bank').order('created_at',{ascending:false});
+ if(error){$('#bk_list').innerHTML=`<tr><td colspan="6" class="muted">${esc(error.message)}</td></tr>`;return}
+ $('#bk_n').textContent=data.length?data.length+'건':'';
+ $('#bk_list').innerHTML=data.length?data.map(o=>{const t=new Date(new Date(o.created_at).getTime()+9*3600e3).toISOString().slice(5,16).replace('T',' ');
+  return `<tr><td>${t}</td><td><b>${esc(o.depositor)}</b><div class="muted">${esc(o.name)}</div></td><td>${won(o.amount)}</td><td>${o.plan_days}일</td><td class="hide-m">${esc(o.phone)}</td>
+  <td style="white-space:nowrap"><button class="btn s" data-ok="${o.order_id}">입금 확인</button> <button class="btn s" style="background:#eee;color:#666" data-no="${o.order_id}">취소</button></td></tr>`}).join(''):'<tr><td colspan="6" class="muted">대기 중인 신청 없음</td></tr>';
+ $$('[data-ok]').forEach(b=>b.onclick=async()=>{const o=data.find(x=>x.order_id==b.dataset.ok);if(!confirm(`${o.depositor} ${won(o.amount)} 입금 확인했나요? 누르면 바로 이용이 시작돼요.`))return;
+  b.disabled=true;const {data:r,error:e}=await sb.rpc('pay_order_bank_confirm',{p_order_id:o.order_id});
+  if(e||(r&&r.error)){alert('처리 못 함: '+(e?e.message:r.error));b.disabled=false;return}
+  alert(`${o.name}님 등록 완료. 다음 평일 아침부터 알림톡이 가요.`);loadBank();load()});
+ $$('[data-no]').forEach(b=>b.onclick=async()=>{const o=data.find(x=>x.order_id==b.dataset.no);if(!confirm(`${o.depositor} 신청을 취소할까요? (입금 안 한 경우)`))return;
+  const {error:e}=await sb.rpc('pay_order_bank_cancel',{p_order_id:o.order_id});if(e){alert(e.message);return}loadBank()});
+}
 async function load(){
  const [a,b]=await Promise.all([sb.from('daily_subs').select('*').order('created_at',{ascending:false}),sb.from('daily_progress').select('sub_id,day_date,part').gte('day_date',TODAY.slice(0,8)+'01')]);
  if(a.error){$('#lock').style.display='block';$('#app').style.display='none';$('#lock').innerHTML='표를 읽지 못했어요.<br>'+esc(a.error.message);return}
@@ -109,5 +127,5 @@ $('#f_save').onclick=async()=>{
  if(!user){$('#lock').style.display='block';$('#lock').innerHTML='원장·실장 계정으로 로그인해야 볼 수 있어요.<br><a href="/" style="color:#0f8a7b;font-weight:800">perfect-toeic.com 에서 로그인</a> 후 다시 열어 주세요.';return}
  const {data:me}=await sb.from('profiles').select('role,name').eq('id',user.id).single();
  if(!me||!['master','manager'].includes(me.role)){$('#lock').style.display='block';$('#lock').textContent='원장·실장만 볼 수 있어요.';return}
- $('#app').style.display='block';load()})();
+ $('#app').style.display='block';load();loadBank()})();
 </script></body></html>

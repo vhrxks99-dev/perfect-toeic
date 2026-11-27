@@ -73,6 +73,16 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
 .paybtn{display:block;width:100%;border:0;background:var(--ink);color:#fff;font-family:inherit;font-weight:800;font-size:18px;border-radius:16px;padding:18px;margin-top:16px;cursor:pointer}
 .paybtn:disabled{opacity:.5}
 .kq{display:block;text-align:center;font-size:14px;color:var(--sub);margin-top:14px;text-decoration:underline}
+.pm{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 8px}
+.pmb{border:2px solid #e6e3dc;border-radius:14px;background:#fff;padding:12px 8px;font-family:inherit;cursor:pointer;color:var(--ink);text-align:center}
+.pmb b{display:block;font-size:15px;font-weight:800}.pmb span{display:block;font-size:12px;color:var(--sub);margin-top:2px}
+.pmb.on{border-color:var(--or);background:#fff6f1}
+.bankdone{margin-top:16px;border:2px solid var(--or);border-radius:18px;padding:20px 18px;background:#fff6f1}
+.bankdone h3{font-size:19px;font-weight:800;margin-bottom:10px}
+.bankdone .row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid #f0dccd;font-size:15px}
+.bankdone .row b{font-weight:800;text-align:right}
+.bankdone .cp{margin-left:6px;border:1px solid #e3c7b4;background:#fff;border-radius:8px;font-size:12px;padding:2px 8px;cursor:pointer;font-family:inherit}
+.bankdone p{font-size:13.5px;color:var(--sub);margin-top:10px;line-height:1.6}
 .plan .pd{margin-top:4px;font-size:13px;font-weight:700;color:var(--g)}
 .hero{padding-bottom:48px}
 .shots .ph2{display:flex;justify-content:center;align-items:flex-start;gap:12px;margin-top:26px}
@@ -167,7 +177,11 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
   <label class="fld" id="w_phone"><span>휴대폰 번호</span><input id="f_phone" type="tel" inputmode="numeric" autocomplete="tel" maxlength="13" placeholder="010-1234-5678"><small>매일 알림톡이 이 번호의 카카오톡으로 가요.</small><div class="err">휴대폰 번호를 다시 확인해 주세요.</div></label>
 
   <div class="testband" id="testband" hidden>시험 결제 중이에요. 결제해도 당일 자동으로 취소돼요.</div>
-  <p class="note" style="margin:0 0 4px;text-align:left">신용·체크카드, 휴대폰으로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.</p>
+  <div class="pm" role="radiogroup" aria-label="결제 방법">
+   <button type="button" class="pmb on" data-pm="card" role="radio" aria-checked="true"><b>카드 · 휴대폰</b><span>바로 결제</span></button>
+   <button type="button" class="pmb" data-pm="bank" role="radio" aria-checked="false"><b>무통장입금</b><span>계좌로 직접 입금</span></button>
+  </div>
+  <p class="note" id="pm_note" style="margin:0 0 4px;text-align:left">신용·체크카드, 휴대폰으로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.</p>
 
   <label class="agree" id="w_agree"><input type="checkbox" id="f_agree"><div><b>환불 규정·이용약관·개인정보 수집에 동의해요</b><span>아래 「환불 안내」와 약관을 읽었어요. (필수)</span></div></label>
   <div class="terms">
@@ -179,7 +193,7 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
    5. 환불은 아래 「환불 안내」를 따라요.</p></details>
    <details><summary>개인정보 수집·이용</summary><p>
    · 받는 것: 이름, 휴대폰 번호, 결제 기록(결제 금액·결제 일시·결제수단, 카드 번호는 받지 않아요)<br>
-   · 결제 처리: (주)다날이 결제를 대신 처리해요<br>
+   · 결제 처리: 카드·휴대폰은 (주)다날이 대신 처리하고, 무통장입금은 완벽한토익 계좌로 직접 받아요<br>
    · 쓰는 곳: 알림톡 발송, 개인 학습 페이지 제공, 환불·문의 응대<br>
    · 보관: 이용 기간이 끝나고 5년(전자상거래법에 따른 거래 기록 보관), 그 뒤 지워요<br>
    · 동의하지 않으면 구매할 수 없어요.</p></details>
@@ -188,6 +202,7 @@ footer{background:#f2f1ee;color:#8b95a1;font-size:12px;line-height:1.8;padding:2
   <button class="paybtn" id="paybtn" type="button">39,990원 결제하기</button>
   <a class="kq" href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener">결제가 잘 안 되면 카톡으로 물어보세요</a>
  </div>
+ <div class="bankdone" id="bankdone" hidden></div>
 </div></section>
 
 <section style="background:var(--bg)"><div class="wrap faq">
@@ -228,7 +243,7 @@ const RET=SB+'/functions/v1/danal-return';
 const PLAN={180:{price:32500},365:{price:39990}};
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const won=n=>Number(n).toLocaleString('ko-KR')+'원';
-let plan=365,busy=false;
+let plan=365,busy=false,pm='card';
 if(TEST)$('#testband').hidden=false;
 
 async function rpc(fn,body){
@@ -236,8 +251,10 @@ async function rpc(fn,body){
  if(!r.ok)throw new Error(await r.text());return r.json()}
 
 function setPlan(p){plan=p;$$('.plan').forEach(b=>{const on=+b.dataset.plan===p;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)});
- $('#paybtn').textContent=won(PLAN[p].price)+' 결제하기';$('#stk').textContent=`${p}일 ${won(PLAN[p].price)}`}
+ $('#paybtn').textContent=won(PLAN[p].price)+(pm==='bank'?' 무통장입금 신청':' 결제하기');$('#stk').textContent=`${p}일 ${won(PLAN[p].price)}`}
 $$('.plan').forEach(b=>b.onclick=()=>setPlan(+b.dataset.plan));
+$$('.pmb').forEach(b=>b.onclick=()=>{pm=b.dataset.pm;$$('.pmb').forEach(x=>{const on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-checked',on)});
+ if(TEST)$('#testband').hidden=pm==='bank';$('#pm_note').textContent=pm==='bank'?'신청하면 입금할 계좌와 입금자명이 나와요. 입금이 확인되면 다음 평일 아침부터 알림톡이 가요(평일 낮에는 보통 몇 시간 안에 확인).':'신용·체크카드, 휴대폰으로 결제할 수 있어요. 「결제하기」를 누르면 다날 결제창에서 고르면 돼요.';setPlan(plan)});
 
 $('#f_phone').addEventListener('input',e=>{const d=e.target.value.replace(/\D/g,'').slice(0,11);
  e.target.value=d.length<4?d:d.length<8?d.slice(0,3)+'-'+d.slice(3):d.slice(0,3)+'-'+d.slice(3,d.length-4)+'-'+d.slice(-4);$('#w_phone').classList.remove('bad')});
@@ -251,6 +268,7 @@ $('#paybtn').onclick=async()=>{
  if(!/^01\d{8,9}$/.test(phone)){$('#w_phone').classList.add('bad');bad=bad||$('#w_phone')}
  if(!$('#f_agree').checked){$('#w_agree').classList.add('bad');bad=bad||$('#w_agree')}
  if(bad){bad.scrollIntoView({behavior:'smooth',block:'center'});return}
+ if(pm==='bank'){await bankOrder(name,phone);return}
  if(typeof DanalPayments!=='function'){alert('결제창을 불러오지 못했어요. 새로고침해 보시고, 계속 안 되면 카톡으로 알려 주세요.');return}
  busy=true;const b=$('#paybtn');b.disabled=true;b.textContent='결제창 여는 중…';
  try{
@@ -266,6 +284,25 @@ $('#paybtn').onclick=async()=>{
  }catch(e){alert(e&&e.message||'결제를 시작하지 못했어요.')}
  finally{busy=false;b.disabled=false;b.textContent=won(PLAN[plan].price)+' 결제하기'}
 };
+async function bankOrder(name,phone){
+ busy=true;const b=$('#paybtn');b.disabled=true;b.textContent='신청하는 중…';
+ try{
+  const o=await rpc('pay_order_create_daily_bank',{p_plan:plan,p_name:name,p_phone:phone});
+  if(o.error){const m={bad_name:'이름을 다시 확인해 주세요.',bad_phone:'휴대폰 번호를 다시 확인해 주세요.',too_many:'오늘 신청이 이미 여러 번 있어요. 카톡으로 문의해 주세요.'};throw new Error(m[o.error]||'신청을 만들지 못했어요.')}
+  const acct=o.account.replace(/-/g,'');
+  const box=$('#bankdone');box.hidden=false;
+  box.innerHTML=`<h3>무통장입금 신청이 접수됐어요</h3>
+   <div class="row"><span>은행</span><b>${o.bank}</b></div>
+   <div class="row"><span>계좌번호</span><b>${o.account}<button class="cp" data-c="${acct}">복사</button></b></div>
+   <div class="row"><span>예금주</span><b>${o.holder}</b></div>
+   <div class="row"><span>입금 금액</span><b>${won(o.amount)}</b></div>
+   <div class="row"><span>입금자명</span><b>${o.depositor}<button class="cp" data-c="${o.depositor}">복사</button></b></div>
+   <p>· 입금자명을 위와 똑같이 적어 주세요. 다르면 확인이 늦어져요.<br>· 24시간 안에 입금해 주세요. 입금이 확인되면 다음 평일 아침 7시부터 ${phone.slice(0,3)}-****-${phone.slice(-4)} 카카오톡으로 알림톡이 가요.<br>· 현금영수증이 필요하면 카톡 채널로 번호를 알려 주세요.<br>· 신청번호 ${o.order_id}</p>`;
+  box.querySelectorAll('.cp').forEach(c=>c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(c.dataset.c);c.textContent='복사됨'});
+  $('.buy').style.display='none';box.scrollIntoView({behavior:'smooth',block:'center'});
+ }catch(e){alert(e&&e.message||'신청하지 못했어요.')}
+ finally{busy=false;b.disabled=false;setPlan(plan)}
+}
 
 new IntersectionObserver(es=>es.forEach(e=>$('#sticky').style.display=e.isIntersecting?'none':''),{threshold:.05}).observe($('#buy'));
 setPlan(365);
