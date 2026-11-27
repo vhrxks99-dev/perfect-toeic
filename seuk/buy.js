@@ -104,7 +104,7 @@ $('#paybtn').onclick = async () => {
       userId: 's' + user.id.replace(/-/g, '').slice(0, 12), userName: nm || '스윽 회원',
       successUrl: RET + '?r=ok', failUrl: RET + '?r=fail',
       paymentsMethod: 'INTEGRATED',
-      methods: { card: {}, mobile: { itemCode: MOBILE_ITEM }, naverPay: {}, kakaoPay: {}, payco: {}, transfer: {} },
+      methods: { card: {}, mobile: { itemCode: MOBILE_ITEM } },   // 11/27 다날 계약: 카드·휴대폰만
     });
   } catch (e) {
     alert((e && e.message) || '결제를 시작하지 못했어요.');
