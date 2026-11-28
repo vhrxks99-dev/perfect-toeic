@@ -10,7 +10,8 @@
   var S = { open: false, tab: 'chat', rooms: null, contacts: null, all: null, room: null, msgs: [], filter: 'all', q: '', find: '', unread: 0, chan: null, timer: null, roomTimer: null, fs: 1 };
   try { S.fs = Number(localStorage.getItem('talk_fs') || '1') || 1; } catch (e) {}
 
-  function me() { return window.WT_REAL_PROFILE || window.WT_PROFILE || null; }
+  function me() { return window.WT_REAL_PROFILE || window.WT_PROFILE || S.guestMe || null; }
+  function guestToken() { try { var t = localStorage.getItem('tk_guest'); if (!t) { t = 'g' + Array.from(crypto.getRandomValues(new Uint8Array(18))).map(function (b) { return b.toString(16).padStart(2, '0'); }).join(''); localStorage.setItem('tk_guest', t); } return t; } catch (e) { return null; } }
   function sb() { return window.sb; }
   function isStaff(p) { return p && ['admin', 'master', 'manager'].indexOf(p.role) >= 0; }
   function isOps(p) { return p && (p.role === 'master' || p.role === 'manager'); }
@@ -124,7 +125,7 @@
     if (p.role === 'student' && !p.teacher_id) { try { await sb().rpc('talk_consult', { p_action: 'start', p_value: null }); } catch (e) {} }
     renderList(); loadRooms();
   }
-  function closePanel() { S.open = false; S.room = null; $('tkPanel').classList.remove('on'); $('tkFab').style.display = ''; refreshUnread(); }
+  function closePanel() { S.open = false; S.room = null; $('tkPanel').classList.remove('on'); var f = $('tkFab'); if (f) f.style.display = S.guest ? 'none' : ''; if (S.guestTimer) { clearInterval(S.guestTimer); S.guestTimer = null; } if (!S.guest) refreshUnread(); }
 
   async function loadRooms() {
     var r = await sb().rpc('talk_my_rooms'); S.rooms = r.error ? [] : (r.data || []);
@@ -211,6 +212,10 @@
   async function markRead() { if (!S.room) return; var r = await sb().rpc('talk_mark_read', { p_room: S.room.id }); if (!r.error) setBadge(r.data || 0); }
   async function loadMsgs() {
     if (!S.room) return;
+    if (S.guest) {
+      var g = await sb().rpc('talk_guest_read', { p_token: S.guest, p_after: 0 });
+      S.msgs = g.data || []; paintMsgs(); scrollEnd(); return;
+    }
     var r = await sb().from('talk_messages').select('id, room_id, sender_id, sender_name, kind, body, data, created_at').eq('room_id', S.room.id).order('created_at', { ascending: false }).limit(S.limit || 150);
     S.msgs = (r.data || []).reverse();
     if (S.room.kind === 'dm') { var m = await sb().from('talk_members').select('user_id, last_read_at').eq('room_id', S.room.id); var o = (m.data || []).filter(function (x) { return x.user_id !== me().id; })[0]; S.otherRead = o ? o.last_read_at : null; }
@@ -225,11 +230,11 @@
     var p = me(); var r = S.room;
     var ro = r.peek || (r.kind === 'wanto' && !isStaff(p));
     var h = '<div class="tk-room"><div class="tk-rhead"><button data-a="back">‹</button><b>' + esc(r.title) + '</b>' + (r.peek ? '<span style="font-size:12px;color:#B26A00">보기만</span>' : '') +
-      '<button data-a="find" title="검색">🔍</button>' + (!r.peek && r.kind !== 'wanto' ? '<button data-a="menu" title="메뉴">☰</button>' : '') + '</div>' +
+      (S.guest ? '<button data-a="close" title="닫기">✕</button>' : '<button data-a="find" title="검색">🔍</button>' + (!r.peek && r.kind !== 'wanto' ? '<button data-a="menu" title="메뉴">☰</button>' : '')) + '</div>' +
       '<div id="tkFind" style="display:none" class="tk-findbar"><input id="tkFindQ" placeholder="대화 검색"><span id="tkFindN" style="font-size:13px;color:#6E6E78"></span><button data-a="fup">▲</button><button data-a="fdn">▼</button></div>' +
       '<div class="tk-msgs" id="tkMsgs"></div>' +
       (ro ? '<div class="tk-ro">' + (r.peek ? '원장·부원장·실장 보기 화면이에요' : '알림을 받는 톡이에요') + '</div>'
-        : '<div class="tk-input"><button class="tk-att" data-a="attach" title="사진·동영상·파일">＋</button><textarea id="tkText" rows="1" placeholder="메시지 입력 (Enter 보내기, Shift+Enter 줄바꿈)"></textarea><button class="tk-send" data-a="send">↑</button></div>') +
+        : '<div class="tk-input">' + (S.guest ? '' : '<button class="tk-att" data-a="attach" title="사진·동영상·파일">＋</button>') + '<textarea id="tkText" rows="1" placeholder="메시지 입력 (Enter 보내기, Shift+Enter 줄바꿈)"></textarea><button class="tk-send" data-a="send">↑</button></div>') +
       '</div>';
     $('tkPanel').innerHTML = h;
     var t = $('tkText'); if (t) t.onkeydown = function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } };
@@ -261,7 +266,7 @@
     var lastConsult = null; msgs.forEach(function (m) { if (m.kind === 'notice' && m.data && m.data.consult) lastConsult = m.id; }); S.lastConsult = lastConsult;
     msgs.forEach(function (m, i) {
       var prev = msgs[i - 1]; var newDay = !prev || ymd(prev.created_at) !== ymd(m.created_at);
-      var mine = m.sender_id === p.id;
+      var mine = m.sender_id === p.id || (!!S.guest && m.sender_id == null && m.kind === 'text' && m.data && m.data.guest);
       var hit = q && (m.body + ' ' + ((m.data && m.data.name) || '')).toLowerCase().indexOf(q) >= 0; if (hit) hits.push(m.id);
       var name = m.kind === 'bot' ? '완토 · ' + (m.sender_name || '') : m.kind === 'claude' ? '검사' : (isConsult() && m.sender_id && m.sender_id !== p.id && isStaffName(m)) ? '완벽한토익' : (m.sender_name || '완토');
       var showName = !mine && (!prev || prev.sender_id !== m.sender_id || newDay);
@@ -269,7 +274,7 @@
       h += '<div id="tkm' + m.id + '"' + (hit && S.curHit === m.id ? ' class="tk-hit"' : '') + '>' + (newDay ? '<div class="tk-day"><span>' + sdate(ymd(m.created_at)) + '</span></div>' : '') +
         (showName ? '<div class="tk-nm">' + esc(name) + '</div>' : '') +
         '<div class="tk-row' + (mine ? ' me' : '') + '">' + (mine ? '<span class="tk-tm">' + (unread ? '<span class="tk-one">1</span>' : '') + hm(m.created_at) + '</span>' : '') + bubble(m, mine) + (!mine ? '<span class="tk-tm">' + hm(m.created_at) + '</span>' : '') +
-        (mine || isOps(p) ? '<button class="tk-more" style="visibility:visible;opacity:.35" data-del="' + m.id + '" title="삭제">✕</button>' : '') + '</div></div>';
+        (!S.guest && (mine || isOps(p)) ? '<button class="tk-more" style="visibility:visible;opacity:.35" data-del="' + m.id + '" title="삭제">✕</button>' : '') + '</div></div>';
     });
     box.innerHTML = h; S.hits = hits;
     var n = $('tkFindN'); if (n) n.textContent = q ? (hits.length ? ((S.hitAt >= 0 ? S.hitAt : hits.length - 1) + 1) + '/' + hits.length : '0') : '';
@@ -277,7 +282,7 @@
     wireConsult(box);
   }
   var staffIds = null;
-  function isStaffName(m) { return staffIds ? staffIds[m.sender_id] : false; }
+  function isStaffName(m) { if (S.guest) return !!m.sender_id; return staffIds ? staffIds[m.sender_id] : false; }
   function loadStaffIds() { sb().from('profiles').select('id').in('role', ['admin', 'master', 'manager']).then(function (r) { staffIds = {}; (r.data || []).forEach(function (x) { staffIds[x.id] = true; }); if (S.room) paintMsgs(); }); }
 
   function jump(step, toLatest) {
@@ -297,6 +302,7 @@
   async function send() {
     var t = $('tkText'); var body = (t.value || '').trim(); if (!body) return;
     t.value = ''; var p = me();
+    if (S.guest) { var gr = await sb().rpc('talk_guest', { p_token: S.guest, p_name: null, p_phone: null, p_action: 'text', p_value: body }); if (gr.error) { toast(gr.error.message); t.value = body; } loadMsgs(); return; }
     var r = await sb().from('talk_messages').insert({ room_id: S.room.id, sender_id: p.id, sender_name: p.name, kind: 'text', body: body });
     if (r.error) { toast('보내지 못했어요: ' + r.error.message); t.value = body; return; }
     loadMsgs(); setTimeout(scrollEnd, 120);
@@ -374,7 +380,8 @@
     if (act === 'form') { val = {}; card.querySelectorAll('[data-ff]').forEach(function (i) { val[i.getAttribute('data-ff')] = i.value.trim(); }); }
     if (act === 'paid') { var pe = $('tkPayer'); val = pe ? pe.value.trim() : ''; }
     btn.disabled = true;
-    var r = await sb().rpc('talk_consult', { p_action: act, p_value: val });
+    var r = S.guest ? await sb().rpc('talk_guest', { p_token: S.guest, p_name: null, p_phone: null, p_action: act, p_value: val })
+                    : await sb().rpc('talk_consult', { p_action: act, p_value: val });
     if (r.error) { toast(r.error.message); btn.disabled = false; return; }
     loadMsgs(); setTimeout(scrollEnd, 200);
   }
@@ -439,7 +446,7 @@
     if (!t) return;
     var a = t.getAttribute('data-a');
     if (a === 'close') return closePanel();
-    if (a === 'back') { S.room = null; renderList(); loadRooms(); return; }
+    if (a === 'back') { if (S.guest) return closePanel(); S.room = null; renderList(); loadRooms(); return; }
     if (a === 'send') return send();
     if (a === 'attach') return $('tkFile').click();
     if (a === 'find') { var fb = $('tkFind'); fb.style.display = fb.style.display === 'none' ? 'flex' : 'none'; if (fb.style.display === 'flex') { S.limit = 1000; await loadMsgs(); $('tkFindQ').focus(); } else { S.find = ''; paintMsgs(); } return; }
@@ -468,9 +475,41 @@
 
   // ── 「수업 신청은 Talk 에서」 (2026-11-28 원장님) ──
   // 상담·수업 신청 카톡 버튼을 누르면 카톡 대신 안내창 → 웹 Talk 「완토 상담」 또는 앱
+  // 회원이 아니면 이름·연락처만 받고 바로 상담 (2026-11-28 원장님 「회원 아닌 애들도 열게」)
+  function guestStart() {
+    mount();
+    var tok = guestToken(); if (!tok) { toast('이 브라우저에서는 상담을 열 수 없어요'); return; }
+    var known = null; try { known = localStorage.getItem('tk_guest_name'); } catch (e) {}
+    S.open = true; $('tkPanel').classList.add('on'); var fab = $('tkFab'); if (fab) fab.style.display = 'none';
+    if (known) return guestOpen(tok, null, null);
+    $('tkPanel').innerHTML = '<div class="tk-head"><b>완토 상담</b><button class="tk-x" data-a="close">✕</button></div>' +
+      '<div style="padding:10px 18px;color:#5A6478;font-size:14.5px;line-height:1.6">회원가입 없이 바로 상담할 수 있어요.<br>답장을 드릴 수 있게 이름과 연락처만 적어 주세요.</div>' +
+      '<div style="padding:0 18px;display:flex;flex-direction:column;gap:10px"><input id="tkGName" placeholder="이름" style="border:0;background:#F5F5F5;border-radius:12px;padding:12px;font:15px Pretendard,sans-serif">' +
+      '<input id="tkGPhone" placeholder="연락처 (010-0000-0000)" inputmode="tel" style="border:0;background:#F5F5F5;border-radius:12px;padding:12px;font:15px Pretendard,sans-serif">' +
+      '<label style="font-size:13px;color:#6E6E78"><input type="checkbox" id="tkGAgree"> 상담을 위해 이름·연락처를 받는 것에 동의해요</label>' +
+      '<button class="tk-btn main" id="tkGGo">상담 시작하기</button>' +
+      '<div style="font-size:13px;color:#6E6E78;line-height:1.6;margin-top:6px">완토 앱을 설치하면 답장 알림도 받고 숙제·수업 일정까지 한곳에서 볼 수 있어 더 편리해요.</div></div>';
+    $('tkGGo').onclick = function () {
+      var nm = $('tkGName').value.trim(), ph = $('tkGPhone').value.trim();
+      if (!nm || !ph) return toast('이름과 연락처를 적어 주세요');
+      if (!$('tkGAgree').checked) return toast('동의에 체크해 주세요');
+      guestOpen(tok, nm, ph);
+    };
+  }
+  async function guestOpen(tok, nm, ph) {
+    var r = await sb().rpc('talk_guest', { p_token: tok, p_name: nm, p_phone: ph, p_action: 'start', p_value: null });
+    if (r.error) { toast(r.error.message); try { localStorage.removeItem('tk_guest_name'); } catch (e) {} return guestStart(); }
+    try { if (nm) localStorage.setItem('tk_guest_name', nm); } catch (e) {}
+    S.guest = tok; S.guestMe = { id: 'guest', role: 'student', name: nm || '손님' };
+    S.room = { id: Number(r.data), title: '완토 상담', kind: 'group', peek: false };
+    renderRoom(); await loadMsgs();
+    if (S.guestTimer) clearInterval(S.guestTimer);
+    S.guestTimer = setInterval(function () { if (S.open && S.guest) loadMsgs(); }, 6000);
+  }
+
   async function openConsult() {
-    var p = me();
-    if (!p) { try { sessionStorage.setItem('tk_after_login', '1'); } catch (e) {} if (window.waOpenLogin) window.waOpenLogin(); return; }
+    var p = window.WT_REAL_PROFILE || window.WT_PROFILE || null;
+    if (!p) return guestStart();
     await openPanel();
     if (p.role === 'student') {
       var r = await sb().rpc('talk_consult', { p_action: 'start', p_value: null });
@@ -483,10 +522,9 @@
     d.style.cssText = 'position:fixed;inset:0;background:rgba(20,28,45,.45);z-index:10001;display:flex;align-items:center;justify-content:center;padding:16px';
     d.innerHTML = '<div style="width:380px;max-width:100%;background:#fff;border-radius:20px;padding:24px;text-align:center;font-family:Pretendard,sans-serif">' +
       '<div style="font-size:30px">💬</div><div style="font-size:21px;font-weight:800;margin:8px 0">수업 신청은 완토 Talk에서 해요</div>' +
-      '<div style="color:#5A6478;font-size:14.5px;line-height:1.6">' + (me() ? 'Talk 「완토 상담」에서' : '회원가입하고 Talk를 열면 「완토 상담」에서') + '<br>수업료·사전 OT 안내부터 결제까지 바로 진행돼요.</div>' +
+      '<div style="color:#5A6478;font-size:14.5px;line-height:1.6">Talk 「완토 상담」에서 수업료·사전 OT 안내부터<br>결제까지 바로 진행돼요. 회원가입 없이도 돼요.</div>' +
       '<button id="tkApGo" class="tk-btn main" style="margin-top:16px">웹에서 Talk 열기</button>' +
-      '<div style="display:flex;gap:8px;margin-top:10px"><a href="https://apps.apple.com/kr/app/id6815950208" target="_blank" rel="noopener" style="flex:1;background:#15181E;color:#fff;border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:13.5px">아이폰 앱</a>' +
-      '<a href="https://play.google.com/store/apps/details?id=com.perfecttoeic.app" target="_blank" rel="noopener" style="flex:1;background:#1F62E0;color:#fff;border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:13.5px">안드로이드 앱</a></div>' +
+      '<div style="margin-top:10px;font-size:13px;color:#6E6E78;line-height:1.6">완토 앱을 설치하면 답장 알림도 받고 숙제·수업 일정까지 한곳에서 볼 수 있어 더 편리해요.</div>' +
       '<a href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" id="tkApK" style="display:block;margin-top:10px;background:#FEE500;color:#191919;border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:13.5px">카카오톡 채널로 상담할게요</a>' +
       '<button id="tkApX" style="margin-top:12px;border:0;background:none;color:#A3A3AD;font:14px Pretendard,sans-serif;cursor:pointer">닫기</button></div>';
     document.body.appendChild(d);
