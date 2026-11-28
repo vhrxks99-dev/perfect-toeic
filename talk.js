@@ -65,6 +65,7 @@
     '.tk-msgs{flex:1;overflow:auto;padding:6px 12px 16px}' +
     '.tk-day{text-align:center;margin:10px 0}.tk-day span{background:rgba(255,255,255,.6);color:#7C869A;font-size:12.5px;border-radius:10px;padding:3px 10px}' +
     '.tk-nm{font-size:13px;color:#43434C;margin:10px 0 3px 4px}' +
+    '.tk-orow{display:flex;align-items:flex-start;gap:8px}.tk-orow.first{margin-top:12px}.tk-fcol{width:40px;flex:none}.tk-ocol{flex:1;min-width:0}.tk-nm.beside{margin:0 0 2px 2px}.tk-orow.first .tk-row{margin-top:0}' +
     '.tk-row{display:flex;align-items:flex-end;gap:6px;margin-top:4px}.tk-row.me{justify-content:flex-end}' +
     '.tk-tm{font-size:11px;color:#8A92A3;white-space:nowrap}.tk-one{font-size:11px;color:#E2A400;font-weight:700;display:block;text-align:right}' +
     '.tk-bb{max-width:74%;background:#fff;border-radius:16px;padding:9px 13px;font-size:15.5px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}' +
@@ -218,6 +219,8 @@
     }
     var r = await sb().from('talk_messages').select('id, room_id, sender_id, sender_name, kind, body, data, created_at').eq('room_id', S.room.id).order('created_at', { ascending: false }).limit(S.limit || 150);
     S.msgs = (r.data || []).reverse();
+    // 말풍선 옆 프로필 사진(카톡처럼, 2026-11-28 원장님) — 방마다 대화상대 사진을 한 번 읽어 둔다
+    if (S.facesRoom !== S.room.id) { var fm = await sb().rpc('talk_room_members', { p_room: S.room.id }); S.faces = {}; (fm.data || []).forEach(function (x) { S.faces[x.user_id] = x.role === 'student' ? null : x.avatar_url; }); S.facesRoom = S.room.id; }
     if (S.room.kind === 'dm') { var m = await sb().from('talk_members').select('user_id, last_read_at').eq('room_id', S.room.id); var o = (m.data || []).filter(function (x) { return x.user_id !== me().id; })[0]; S.otherRead = o ? o.last_read_at : null; }
     var box = $('tkMsgs'); var atBottom = !box || box.scrollHeight - box.scrollTop - box.clientHeight < 80;
     paintMsgs(); if (atBottom && !S.find) scrollEnd();
@@ -272,9 +275,10 @@
       var showName = !mine && (!prev || prev.sender_id !== m.sender_id || newDay);
       var unread = mine && S.room.kind === 'dm' && S.otherRead && m.created_at > S.otherRead;
       h += '<div id="tkm' + m.id + '"' + (hit && S.curHit === m.id ? ' class="tk-hit"' : '') + '>' + (newDay ? '<div class="tk-day"><span>' + sdate(ymd(m.created_at)) + '</span></div>' : '') +
-        (showName ? '<div class="tk-nm">' + esc(name) + '</div>' : '') +
+        (mine ? '' : '<div class="tk-orow' + (showName ? ' first' : '') + '"><div class="tk-fcol">' + (showName ? face(name, (name === '완벽한토익' || !m.sender_id) ? null : (S.faces || {})[m.sender_id], (!m.sender_id || name === '완벽한토익' || m.kind === 'bot' || m.kind === 'notice' || m.kind === 'claude') ? 'wanto' : null, 40) : '') + '</div><div class="tk-ocol">') +
+        (showName ? '<div class="tk-nm beside">' + esc(name) + '</div>' : '') +
         '<div class="tk-row' + (mine ? ' me' : '') + '">' + (mine ? '<span class="tk-tm">' + (unread ? '<span class="tk-one">1</span>' : '') + hm(m.created_at) + '</span>' : '') + bubble(m, mine) + (!mine ? '<span class="tk-tm">' + hm(m.created_at) + '</span>' : '') +
-        (!S.guest && (mine || isOps(p)) ? '<button class="tk-more" style="visibility:visible;opacity:.35" data-del="' + m.id + '" title="삭제">✕</button>' : '') + '</div></div>';
+        (!S.guest && (mine || isOps(p)) ? '<button class="tk-more" style="visibility:visible;opacity:.35" data-del="' + m.id + '" title="삭제">✕</button>' : '') + '</div>' + (mine ? '' : '</div></div>') + '</div>';
     });
     box.innerHTML = h; S.hits = hits;
     var n = $('tkFindN'); if (n) n.textContent = q ? (hits.length ? ((S.hitAt >= 0 ? S.hitAt : hits.length - 1) + 1) + '/' + hits.length : '0') : '';
