@@ -487,17 +487,19 @@
       '<button id="tkApGo" class="tk-btn main" style="margin-top:16px">웹에서 Talk 열기</button>' +
       '<div style="display:flex;gap:8px;margin-top:10px"><a href="https://apps.apple.com/kr/app/id6815950208" target="_blank" rel="noopener" style="flex:1;background:#15181E;color:#fff;border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:13.5px">아이폰 앱</a>' +
       '<a href="https://play.google.com/store/apps/details?id=com.perfecttoeic.app" target="_blank" rel="noopener" style="flex:1;background:#1F62E0;color:#fff;border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:13.5px">안드로이드 앱</a></div>' +
+      '<a href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" id="tkApK" style="display:block;margin-top:10px;background:#FEE500;color:#191919;border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:13.5px">카카오톡 채널로 상담할게요</a>' +
       '<button id="tkApX" style="margin-top:12px;border:0;background:none;color:#A3A3AD;font:14px Pretendard,sans-serif;cursor:pointer">닫기</button></div>';
     document.body.appendChild(d);
     if (!document.getElementById('tkCss')) { var st = document.createElement('style'); st.id = 'tkCss'; st.textContent = css; document.head.appendChild(st); }
     d.onclick = function (e) { if (e.target === d) d.remove(); };
     $('tkApX').onclick = function () { d.remove(); };
+    $('tkApK').onclick = function () { setTimeout(function () { d.remove(); }, 50); };
     $('tkApGo').onclick = function () { d.remove(); openConsult(); };
   }
   // 상담·수업 신청 카톡 링크만 가로챈다(교재 구매·채용·제안 문의는 그대로 카톡)
   document.addEventListener('click', function (e) {
     var a = e.target.closest && e.target.closest('a[href*="pf.kakao.com/_JCLYG"]');
-    if (!a) return;
+    if (!a || a.id === 'tkApK') return;
     var txt = (a.textContent || '') + ' ' + (a.getAttribute('aria-label') || '');
     if (/교재|채용|제안|자료/.test(txt)) return;
     var p = me(); if (p && isStaff(p)) return; // 직원은 원래대로
