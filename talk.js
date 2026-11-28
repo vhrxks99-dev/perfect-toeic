@@ -24,7 +24,7 @@
   var WK = ['일', '월', '화', '수', '목', '금', '토'];
   function sdate(y) { var p = y.split('-'); var w = new Date(y + 'T00:00:00Z').getUTCDay(); return (+p[1]) + '/' + (+p[2]) + '(' + WK[w] + ')'; }
   function whenShort(iso) { return ymd(iso) === today() ? hm(iso) : sdate(ymd(iso)).replace(/\(.\)/, ''); }
-  function roomName(r) { return r.kind === 'wanto' ? '완토' : r.kind === 'group' ? (r.title || '단체 톡') : (r.other_name || '이름 없음'); }
+  function roomName(r) { return r.kind === 'wanto' ? '완벽한토익' : r.kind === 'group' ? (r.title === '완토 상담' ? '완벽한토익 상담' : (r.title || '단체 톡')) : (r.other_name || '이름 없음'); }
   function toast(t) { var el = document.createElement('div'); el.className = 'tk-toast'; el.textContent = t; document.body.appendChild(el); setTimeout(function () { el.remove(); }, 2200); }
 
   var PERSON = '<svg viewBox="0 0 24 24" fill="#7EA2EA"><circle cx="12" cy="7.5" r="4.5"/><path d="M3 21c0-4.6 4-7.5 9-7.5s9 2.9 9 7.5z"/></svg>';
@@ -232,7 +232,7 @@
   function renderRoom() {
     var p = me(); var r = S.room;
     var ro = r.peek || (r.kind === 'wanto' && !isStaff(p));
-    var h = '<div class="tk-room"><div class="tk-rhead"><button data-a="back">‹</button><b>' + esc(r.title) + '</b>' + (r.peek ? '<span style="font-size:12px;color:#B26A00">보기만</span>' : '') +
+    var h = '<div class="tk-room"><div class="tk-rhead"><button data-a="back">‹</button><b>' + esc(r.title === '완토 상담' ? '완벽한토익 상담' : r.title === '완토' ? '완벽한토익' : r.title) + '</b>' + (r.peek ? '<span style="font-size:12px;color:#B26A00">보기만</span>' : '') +
       (S.guest ? '<button data-a="close" title="닫기">✕</button>' : '<button data-a="find" title="검색">🔍</button>' + (!r.peek && r.kind !== 'wanto' ? '<button data-a="menu" title="메뉴">☰</button>' : '')) + '</div>' +
       '<div id="tkFind" style="display:none" class="tk-findbar"><input id="tkFindQ" placeholder="대화 검색"><span id="tkFindN" style="font-size:13px;color:#6E6E78"></span><button data-a="fup">▲</button><button data-a="fdn">▼</button></div>' +
       '<div class="tk-msgs" id="tkMsgs"></div>' +
@@ -271,7 +271,7 @@
       var prev = msgs[i - 1]; var newDay = !prev || ymd(prev.created_at) !== ymd(m.created_at);
       var mine = m.sender_id === p.id || (!!S.guest && m.sender_id == null && m.kind === 'text' && m.data && m.data.guest);
       var hit = q && (m.body + ' ' + ((m.data && m.data.name) || '')).toLowerCase().indexOf(q) >= 0; if (hit) hits.push(m.id);
-      var name = m.kind === 'bot' ? '완토 · ' + (m.sender_name || '') : m.kind === 'claude' ? '검사' : (isConsult() && m.sender_id && m.sender_id !== p.id && isStaffName(m)) ? '완벽한토익' : (m.sender_name || '완벽한토익');
+      var name = m.kind === 'bot' ? '완벽한토익 · ' + (m.sender_name || '') : m.kind === 'claude' ? '검사' : (!m.sender_id || (isConsult() && m.sender_id !== p.id && isStaffName(m))) ? '완벽한토익' : (m.sender_name || '완벽한토익');
       var showName = !mine && (!prev || prev.sender_id !== m.sender_id || newDay || hm(prev.created_at) !== hm(m.created_at));
       var unread = mine && S.room.kind === 'dm' && S.otherRead && m.created_at > S.otherRead;
       h += '<div id="tkm' + m.id + '"' + (hit && S.curHit === m.id ? ' class="tk-hit"' : '') + '>' + (newDay ? '<div class="tk-day"><span>' + sdate(ymd(m.created_at)) + '</span></div>' : '') +
@@ -486,7 +486,7 @@
     var known = null; try { known = localStorage.getItem('tk_guest_name'); } catch (e) {}
     S.open = true; $('tkPanel').classList.add('on'); var fab = $('tkFab'); if (fab) fab.style.display = 'none';
     if (known) return guestOpen(tok, null, null);
-    $('tkPanel').innerHTML = '<div class="tk-head"><b>완토 상담</b><button class="tk-x" data-a="close">✕</button></div>' +
+    $('tkPanel').innerHTML = '<div class="tk-head"><b>완벽한토익 상담</b><button class="tk-x" data-a="close">✕</button></div>' +
       '<div style="padding:10px 18px;color:#5A6478;font-size:14.5px;line-height:1.6">회원가입 없이 바로 상담할 수 있어요.<br>답장을 드릴 수 있게 이름과 연락처만 적어 주세요.</div>' +
       '<div style="padding:0 18px;display:flex;flex-direction:column;gap:10px"><input id="tkGName" placeholder="이름" style="border:0;background:#F5F5F5;border-radius:12px;padding:12px;font:15px Pretendard,sans-serif">' +
       '<input id="tkGPhone" placeholder="연락처 (010-0000-0000)" inputmode="tel" style="border:0;background:#F5F5F5;border-radius:12px;padding:12px;font:15px Pretendard,sans-serif">' +
