@@ -555,7 +555,7 @@
   .post .stars{color:var(--accent);font-size:14px;letter-spacing:1px}
   .post .pt{font-weight:800;font-size:16px}
   .post .badge-best{font-size:11px;font-weight:800;color:#fff;background:var(--accent);padding:3px 8px;border-radius:6px}
-  .post .pm{color:var(--ink-soft);font-size:14.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+  .post .pm{color:var(--ink-soft);font-size:14.5px;line-height:1.7;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}
   .post .pf{display:flex;gap:12px;color:var(--muted);font-size:12.5px;margin-top:9px;font-family:var(--font-mono)}
   .naver-btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
   .naver-btns a{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#fff;background:#03C75A;border-radius:10px;padding:12px 18px;transition:.15s}
@@ -4557,7 +4557,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .sd-pill.wait{background:#FFF6E0;color:#8A5A00}
 .sd-scroll{max-height:330px;overflow:auto}
 /* 숙제·상담은 글이 길다. 자르지 말고 줄바꿈해서 다 보여준다. */
-.sd-tbl td.sd-wrap{white-space:normal;line-height:1.7;word-break:break-word;min-width:0}
+.sd-tbl td.sd-wrap{white-space:normal;line-height:1.7;word-break:keep-all;overflow-wrap:anywhere;min-width:0}
 .sd-grid.narrow-left{grid-template-columns:1fr 1.45fr}
 /* 학생 메모 (2026-08-24) — 학생 카드 맨 아래. 선생님끼리 보는 기록 */
 .sd-note .sd-note-new{display:flex;gap:8px;align-items:flex-start;margin-bottom:12px}
@@ -4570,7 +4570,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 .sd-note .sd-note-row:first-child{border-top:0}
 .sd-note .sd-note-row .m{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:4px}
 .sd-note .sd-note-row .m b{color:var(--ink);font-size:12.5px}
-.sd-note .sd-note-row .t{font-size:14px;line-height:1.75;white-space:normal;word-break:break-word}
+.sd-note .sd-note-row .t{font-size:14px;line-height:1.75;white-space:normal;word-break:keep-all;overflow-wrap:anywhere}
 .sd-note .sd-note-list .none{color:var(--muted);text-align:center;padding:18px;font-size:13.5px}
 @media(max-width:640px){ .sd-note .sd-note-new{flex-direction:column} .sd-note .sd-note-new button{width:100%} }
 @media (max-width:1000px){ .sd-grid.narrow-left{grid-template-columns:1fr} }
@@ -4886,7 +4886,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
 /* 상담 수정 창은 한 줄에 칸이 3개라 기본 410px 로는 좁다(2026-08-12). */
 #waCsEdit .wa-card{max-width:620px}
 /* 메모는 여러 줄로 적으므로 줄바꿈을 살려서 보여준다(2026-08-12). */
-#csTable td[data-l="메모"]{font-size:13.5px !important;color:var(--ink-soft) !important;line-height:1.7;min-width:240px;max-width:420px;white-space:pre-wrap !important;word-break:break-word}
+#csTable td[data-l="메모"]{font-size:13.5px !important;color:var(--ink-soft) !important;line-height:1.7;min-width:240px;max-width:420px;white-space:pre-wrap !important;word-break:keep-all;overflow-wrap:anywhere}
 #csTable td[data-l="이름"]{font-weight:800}
 #csTable select[data-cs-result]{font-size:13px !important;padding:5px 8px !important}
 @media(max-width:640px){
@@ -5093,7 +5093,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   text-align:left;padding:9px 10px;font-size:12.5px;font-weight:800;
   color:#6b7280;border-bottom:1.5px solid var(--line);white-space:nowrap}
 .dash-table td{padding:10px;border-bottom:1px solid #f1f2f4;vertical-align:middle;
-  word-break:break-word}
+  word-break:keep-all;overflow-wrap:anywhere}
 .dash-table tr:last-child td{border-bottom:0}
 .dash-table tbody tr:hover td,.dash-table tr:hover td{background:#fafbfc}
 /* 칸 너비 — 쓴날 / 분류 / 어디에 / 금액 / 결제 / 메모 / 지우기 */
@@ -5140,7 +5140,7 @@ var WT_LIB_R2 = 'https://jaryosil.perfecttoeic99.workers.dev';
   .dash-table td.ex-pay{grid-area:p;margin-top:3px;font-size:12.5px;color:var(--muted)}
   .dash-table td.ex-del{grid-area:x;margin-top:3px;text-align:right!important;font-size:12.5px}
   /* 메모는 있을 때만 자리를 차지한다 */
-  .dash-table td.ex-memo{grid-area:m;font-size:12.5px;color:var(--muted);word-break:break-word}
+  .dash-table td.ex-memo{grid-area:m;font-size:12.5px;color:var(--muted);word-break:keep-all;overflow-wrap:anywhere}
   .dash-table td.ex-memo:not(:empty){margin-top:6px}
   .dash-table td.ex-memo:empty{display:none}
 }
@@ -21199,5 +21199,5 @@ html,body{overflow-x:clip}
 
 </script>
 <!-- 완토 Talk (2026-11-28) -->
-<script src="talk.js?v=20261128f" defer></script>
+<script src="talk.js?v=20261128g" defer></script>
 </body></html>

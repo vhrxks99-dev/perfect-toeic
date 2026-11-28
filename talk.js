@@ -67,7 +67,7 @@
     '.tk-nm{font-size:13px;color:#43434C;margin:10px 0 3px 4px}' +
     '.tk-row{display:flex;align-items:flex-end;gap:6px;margin-top:4px}.tk-row.me{justify-content:flex-end}' +
     '.tk-tm{font-size:11px;color:#8A92A3;white-space:nowrap}.tk-one{font-size:11px;color:#E2A400;font-weight:700;display:block;text-align:right}' +
-    '.tk-bb{max-width:74%;background:#fff;border-radius:16px;padding:9px 13px;font-size:15.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}' +
+    '.tk-bb{max-width:74%;background:#fff;border-radius:16px;padding:9px 13px;font-size:15.5px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}' +
     '.tk-row.me .tk-bb{background:' + BRAND + ';color:#fff}' +
     '.tk-bot{background:#EDF3FE!important;border:1.5px solid #DCE8FD}.tk-claude{background:#FFF5E4!important;border:1.5px solid #F2D9A6}' +
     '.tk-card{max-width:82%;background:#fff;border-radius:16px;padding:12px 13px;font-size:15px;line-height:1.5;white-space:pre-wrap}' +
