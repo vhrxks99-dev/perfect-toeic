@@ -525,8 +525,8 @@
     d.innerHTML = '<div style="width:380px;max-width:100%;background:#fff;border-radius:20px;padding:24px;text-align:center;font-family:Pretendard,sans-serif">' +
       '<div style="font-size:30px">💬</div><div style="font-size:21px;font-weight:800;margin:8px 0">어떻게 상담할까요?</div>' +
       '<div style="color:#5A6478;font-size:14.5px;line-height:1.6">완토 Talk에서는 수업료·사전 OT 안내부터<br>결제까지 한 번에 진행돼요.</div>' +
-      '<button id="tkApGo" class="tk-btn main" style="margin-top:16px">' + (logged ? 'Talk로 상담하기' : '가입하고 Talk로 상담하기') + '</button>' +
-      '<a href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" id="tkApK" style="display:block;margin-top:10px;background:#FEE500;color:#191919;border-radius:12px;padding:11px;font-weight:800;text-decoration:none;font-size:14px">카카오톡으로 상담하기</a>' +
+      '<button id="tkApGo" class="tk-btn main" style="box-sizing:border-box;height:48px;padding:0;margin-top:16px">' + (logged ? 'Talk로 상담하기' : '가입하고 Talk로 상담하기') + '</button>' +
+      '<a href="https://pf.kakao.com/_JCLYG/chat" target="_blank" rel="noopener" id="tkApK" class="tk-btn" style="box-sizing:border-box;height:48px;line-height:48px;padding:0;margin-top:10px;background:#FEE500;color:#191919;text-decoration:none;text-align:center">카카오톡으로 상담하기</a>' +
       '<div style="margin-top:12px;font-size:13px;color:#6E6E78;line-height:1.6">완토 앱을 설치하면 답장 알림도 받고 숙제·수업 일정까지 한곳에서 볼 수 있어 더 편리해요.</div>' +
       '<button id="tkApX" style="margin-top:10px;border:0;background:none;color:#A3A3AD;font:14px Pretendard,sans-serif;cursor:pointer">닫기</button></div>';
     document.body.appendChild(d);
