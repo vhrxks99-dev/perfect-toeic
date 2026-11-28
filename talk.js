@@ -61,11 +61,11 @@
     '.tk-empty{text-align:center;color:#6E6E78;font-size:15px;padding:40px 30px;line-height:1.6}' +
     '.tk-nav{display:flex;justify-content:space-around;border-top:1px solid #EAE7E3;padding:8px 0}.tk-nav button{border:0;background:none;font:700 12px Pretendard,sans-serif;color:#A3A3AD;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:70px}.tk-nav button.on{color:' + BRAND + '}.tk-nav i{font-style:normal;font-size:20px}' +
     '.tk-room{display:flex;flex-direction:column;height:100%;background:#E9EEF8}' +
-    '.tk-rhead{display:flex;align-items:center;gap:12px;padding:14px 14px}.tk-rhead b{flex:1;font-size:22px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tk-rhead button{border:0;background:none;font-size:22px;cursor:pointer;color:#43434C}' +
+    '.tk-rhead{display:flex;align-items:center;gap:12px;padding:14px 14px}.tk-rhead b{flex:1;font-size:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tk-rhead button{border:0;background:none;font-size:22px;cursor:pointer;color:#43434C}' +
     '.tk-msgs{flex:1;overflow:auto;padding:6px 12px 16px}' +
     '.tk-day{text-align:center;margin:10px 0}.tk-day span{background:rgba(255,255,255,.6);color:#7C869A;font-size:12.5px;border-radius:10px;padding:3px 10px}' +
     '.tk-nm{font-size:13px;color:#43434C;margin:10px 0 3px 4px}' +
-    '.tk-orow{display:flex;align-items:flex-start;gap:8px}.tk-orow.first{margin-top:12px}.tk-fcol{width:40px;flex:none}.tk-ocol{flex:1;min-width:0}.tk-nm.beside{margin:0 0 2px 2px}.tk-orow.first .tk-row{margin-top:0}' +
+    '.tk-orow{display:flex;align-items:flex-start;gap:8px}.tk-orow.first{margin-top:12px}.tk-fcol{width:40px;flex:none}.tk-ocol{flex:1;min-width:0}.tk-nm.beside{margin:0 0 3px 2px;font-size:15px;font-weight:600;color:#191F28}.tk-orow.first .tk-row{margin-top:0}' +
     '.tk-row{display:flex;align-items:flex-end;gap:6px;margin-top:4px}.tk-row.me{justify-content:flex-end}' +
     '.tk-tm{font-size:11px;color:#8A92A3;white-space:nowrap}.tk-one{font-size:11px;color:#E2A400;font-weight:700;display:block;text-align:right}' +
     '.tk-bb{max-width:74%;background:#fff;border-radius:16px;padding:9px 13px;font-size:15.5px;line-height:1.5;white-space:pre-wrap;word-break:keep-all;overflow-wrap:anywhere}' +
@@ -271,8 +271,8 @@
       var prev = msgs[i - 1]; var newDay = !prev || ymd(prev.created_at) !== ymd(m.created_at);
       var mine = m.sender_id === p.id || (!!S.guest && m.sender_id == null && m.kind === 'text' && m.data && m.data.guest);
       var hit = q && (m.body + ' ' + ((m.data && m.data.name) || '')).toLowerCase().indexOf(q) >= 0; if (hit) hits.push(m.id);
-      var name = m.kind === 'bot' ? '완토 · ' + (m.sender_name || '') : m.kind === 'claude' ? '검사' : (isConsult() && m.sender_id && m.sender_id !== p.id && isStaffName(m)) ? '완벽한토익' : (m.sender_name || '완토');
-      var showName = !mine && (!prev || prev.sender_id !== m.sender_id || newDay);
+      var name = m.kind === 'bot' ? '완토 · ' + (m.sender_name || '') : m.kind === 'claude' ? '검사' : (isConsult() && m.sender_id && m.sender_id !== p.id && isStaffName(m)) ? '완벽한토익' : (m.sender_name || '완벽한토익');
+      var showName = !mine && (!prev || prev.sender_id !== m.sender_id || newDay || hm(prev.created_at) !== hm(m.created_at));
       var unread = mine && S.room.kind === 'dm' && S.otherRead && m.created_at > S.otherRead;
       h += '<div id="tkm' + m.id + '"' + (hit && S.curHit === m.id ? ' class="tk-hit"' : '') + '>' + (newDay ? '<div class="tk-day"><span>' + sdate(ymd(m.created_at)) + '</span></div>' : '') +
         (mine ? '' : '<div class="tk-orow' + (showName ? ' first' : '') + '"><div class="tk-fcol">' + (showName ? face(name, (name === '완벽한토익' || !m.sender_id) ? null : (S.faces || {})[m.sender_id], (!m.sender_id || name === '완벽한토익' || m.kind === 'bot' || m.kind === 'notice' || m.kind === 'claude') ? 'wanto' : null, 40) : '') + '</div><div class="tk-ocol">') +
